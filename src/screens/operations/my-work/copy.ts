@@ -11,6 +11,10 @@ import type { Dictionary } from '@/lib'
 export const MY_WORK_EN: Dictionary = {
   'myWork.meta.one': '1 item',
   'myWork.meta.other': '{count} items',
+  /* **X3 / O8 / X15** — the header line counts the BACKLOG, so it agrees with
+     the rail badge and disagrees with the mounted view. That surprise is what
+     this sentence answers, and it is asked for rather than read. */
+  'myWork.meta.hint': 'Yours and unclaimed, in every queue. The table counts this view.',
 
   'myWork.search': 'Search by subject, ID or queue',
 

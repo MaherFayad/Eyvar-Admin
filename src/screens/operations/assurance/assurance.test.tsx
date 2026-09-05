@@ -79,13 +79,13 @@ describe('T5.12 — the Reason column spends one fill, on two reasons', () => {
     renderAssurance('?view=all')
     const table = await screen.findByRole('table')
 
-    const unavailable = within(table).getAllByText(copy('assurance.reason.captainUnavailable'))
-    expect(unavailable.length).toBeGreaterThan(0)
-    expect(unavailable[0].closest('[data-slot="badge"]')).not.toBeNull()
+    const unavailable = within(table).getAllByText(copy('assurance.reason.captainUnavailable'))[0]
+    expect(unavailable).toBeDefined()
+    expect(unavailable!.closest('[data-slot="badge"]')).not.toBeNull()
 
-    const onTrack = within(table).getAllByText(copy('assurance.reason.onTrack'))
-    expect(onTrack.length).toBeGreaterThan(0)
-    expect(onTrack[0].closest('[data-slot="badge"]')).toBeNull()
+    const onTrack = within(table).getAllByText(copy('assurance.reason.onTrack'))[0]
+    expect(onTrack).toBeDefined()
+    expect(onTrack!.closest('[data-slot="badge"]')).toBeNull()
   })
 
   it('leaves the other four reasons unfilled', async () => {

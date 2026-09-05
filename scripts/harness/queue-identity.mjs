@@ -1,12 +1,11 @@
 /**
- * **T5.12 and T5.1's evidence, for the two queues this pass owns.**
+ * **T5.1 and T5.12's evidence for My Work and Trip Assurance.**
  *
- * Prints, per route and per language: the widest identity line, how many
- * identity cells are clipped (`scrollWidth > clientWidth` must be 0), the
- * identity column's measured width, and the filled badges per row (H7 allows
- * at most two on Assurance).
+ * Per route and per language at 1280: every column's rendered width against the
+ * widest thing in it, how many identity lines are clipped (`scrollWidth >
+ * clientWidth`), and the filled badges per row (H7 allows at most two).
  *
- *   node scripts/harness/queue-identity.mjs [label]
+ *   node scripts/harness/queue-identity.mjs [label]      # HARNESS_BASE=…
  */
 import { chromium } from 'playwright'
 import { mkdirSync } from 'node:fs'
@@ -18,9 +17,10 @@ mkdirSync(OUT, { recursive: true })
 
 const ROUTES = [
   ['mywork', '/operations/my-work'],
+  ['mywork-all', '/operations/my-work?view=everything'],
   ['assurance', '/operations/assurance'],
   ['assurance-all', '/operations/assurance?view=all'],
-  ['assurance-nobackup', '/operations/assurance?view=no-backup-captain'],
+  ['assurance-absences', '/operations/assurance?view=absences'],
 ]
 
 /* Runs in the page. */
@@ -28,19 +28,49 @@ function probe() {
   const rows = [...document.querySelectorAll('tbody tr')].filter(
     (r) => r.querySelectorAll('td').length > 1,
   )
+  const heads = [...document.querySelectorAll('thead th')]
 
+  /* Per column: the rendered width, and the widest laid-out content in it. A
+     cell's content is its deepest inline boxes, so `scrollWidth` on the cell
+     itself would report the clipped width rather than the wanted one. */
+  const columns = heads.map((th, index) => {
+    let widest = 0
+    let widestText = ''
+    let clips = 0
+    for (const row of rows) {
+      const cell = row.querySelectorAll('td')[index]
+      if (!cell) continue
+      /* The `td` is excluded on purpose: `table-fixed` gives it the declared
+         width, so its own `scrollWidth` reports the box rather than the
+         content. Only the inline boxes inside it know how wide they want. */
+      let rowClips = false
+      for (const node of cell.querySelectorAll('span, a, button')) {
+        if (node.scrollWidth > node.clientWidth + 1 && node.clientWidth > 0) rowClips = true
+        if (node.scrollWidth > widest) {
+          widest = node.scrollWidth
+          widestText = node.innerText.trim().split('\n')[0].slice(0, 60)
+        }
+      }
+      if (rowClips) clips += 1
+    }
+    return {
+      header: th.innerText.trim().slice(0, 18),
+      width: Math.round(th.getBoundingClientRect().width),
+      widest,
+      widestText,
+      clips,
+    }
+  })
+
+  /* The identity is the only cell carrying a named link; its FIRST line is the
+     identity itself (`Identity` and `SubjectIdentity` both render one). */
   const clipped = []
   const widest = { text: '', px: 0 }
-  let identityWidth = 0
   const badgesPerRow = []
 
   for (const row of rows) {
-    /* The identity is the only cell carrying a named link (`Identity` and
-       `SubjectIdentity` both render one); its FIRST line is the identity. */
-    const cell = [...row.querySelectorAll('td')].find((td) => td.querySelector('a[aria-label]'))
-    if (cell) {
-      identityWidth = Math.round(cell.getBoundingClientRect().width)
-      const line = cell.querySelector('a[aria-label]')
+    const line = row.querySelector('td a[aria-label]')
+    if (line) {
       if (line.scrollWidth > line.clientWidth + 1) {
         clipped.push({
           text: line.innerText.trim().slice(0, 70),
@@ -67,17 +97,18 @@ function probe() {
 
   return {
     rows: rows.length,
-    identityWidth,
-    clipped,
+    tableWidth: Math.round(document.querySelector('table')?.getBoundingClientRect().width ?? 0),
+    columns,
+    clippedCount: clipped.length,
+    clipped: clipped.slice(0, 6),
     widest,
     maxFilledPerRow: badgesPerRow.length ? Math.max(...badgesPerRow.map((b) => b.length)) : 0,
-    /* rows carrying 0, 1, 2, 3 … tone fills. H7's budget is per row. */
+    /* Rows carrying 0, 1, 2, 3 … tone fills. H7's budget is per row. */
     fillHistogram: badgesPerRow.reduce((acc, b) => {
       acc[b.length] = (acc[b.length] ?? 0) + 1
       return acc
     }, {}),
     worstRow: badgesPerRow.slice().sort((a, b) => b.length - a.length)[0] ?? [],
-    tableWidth: Math.round(document.querySelector('table')?.getBoundingClientRect().width ?? 0),
     dir: document.documentElement.dir,
   }
 }
@@ -99,9 +130,16 @@ for (const language of ['en', 'ar']) {
   for (const [name, route] of ROUTES) {
     await page.goto(`${BASE}${route}`, { waitUntil: 'networkidle' })
     await page.waitForTimeout(1400)
-    const facts = await page.evaluate(probe)
-    console.log(`\n== ${name} · ${language} · 1280 ==`)
-    console.log(JSON.stringify(facts, null, 2))
+    const f = await page.evaluate(probe)
+    console.log(`\n== ${name} · ${language} · 1280 · table ${f.tableWidth} · ${f.rows} rows ==`)
+    for (const c of f.columns) {
+      console.log(
+        `   ${c.header.padEnd(18)} w=${String(c.width).padStart(4)}  widest=${String(c.widest).padStart(4)}  clipped=${String(c.clips).padStart(2)}/${f.rows}  ${c.widestText}`,
+      )
+    }
+    console.log(`   identity clipped ${f.clippedCount}/${f.rows}, widest ${f.widest.px}px "${f.widest.text}"`)
+    for (const c of f.clipped) console.log(`     clip ${c.scroll}>${c.client} ${c.text}`)
+    console.log(`   fills/row max ${f.maxFilledPerRow} ${JSON.stringify(f.fillHistogram)} worst ${JSON.stringify(f.worstRow)}`)
     await page.screenshot({ path: `${OUT}/${LABEL}-${name}-${language}.png`, fullPage: false })
   }
 }

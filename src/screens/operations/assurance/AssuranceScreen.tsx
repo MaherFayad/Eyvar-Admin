@@ -149,8 +149,9 @@ const VIEW_ABSENCES = 'absences'
  * foundation §7.1 keeps `All` first in the tab row, Q-32 keeps the queue
  * landing on its open work. The client already serves `view=all`.
  */
+const VIEW_ALL = 'all'
 const ALL_VIEW: readonly SubTabView[] = [
-  { id: 'all', titleKey: 'assurance.view.all', order: 0, isDefault: false },
+  { id: VIEW_ALL, titleKey: 'assurance.view.all', order: 0, isDefault: false },
 ]
 
 export function AssuranceScreen({ row }: { row: SubTabRoute }) {
@@ -514,7 +515,12 @@ function LegsView({
         firstRun={{
           heading: t('assurance.empty.firstRun.heading'),
           body: t('assurance.empty.firstRun.body'),
-          actions: [{ label: t('assurance.empty.firstRun.action'), onClick: () => onSelectTab(DEFAULT_VIEW) }],
+          /* The label says *Show every leg* and now there is a view that
+             does; before `ALL_VIEW` it dropped the operator on the 24-hour
+             scope instead. */
+          actions: [
+            { label: t('assurance.empty.firstRun.action'), onClick: () => onSelectTab(VIEW_ALL) },
+          ],
         }}
         noMatch={{ message: t('assurance.empty.noMatch') }}
         error={{ message: t('assurance.error.list'), onRetry: data.refetch }}
@@ -633,7 +639,12 @@ function AbsencesView({ row, tabs, activeTab, onSelectTab }: ViewProps) {
         firstRun={{
           heading: t('assurance.empty.firstRun.heading'),
           body: t('assurance.empty.firstRun.body'),
-          actions: [{ label: t('assurance.empty.firstRun.action'), onClick: () => onSelectTab(DEFAULT_VIEW) }],
+          /* The label says *Show every leg* and now there is a view that
+             does; before `ALL_VIEW` it dropped the operator on the 24-hour
+             scope instead. */
+          actions: [
+            { label: t('assurance.empty.firstRun.action'), onClick: () => onSelectTab(VIEW_ALL) },
+          ],
         }}
         noMatch={{ message: t('assurance.empty.noMatch.absences') }}
         error={{ message: t('assurance.error.absences'), onRetry: data.refetch }}
@@ -742,12 +753,13 @@ export interface LegDeps {
  * table.
  *
  * ```
- * departing-24h         176 + 152 + 160 + 176 + 176 = 840
- * no-backup-captain     176 + 176 + 160 + 176 + 176 = 864
- * awaiting-confirmation 176 + 176 + 160 + 176 + 176 = 864
+ * departing-24h         176 + 152 + 168 + 176 + 176 = 848
+ * no-backup-captain     176 + 176 + 168 + 176 + 176 = 872
+ * awaiting-confirmation 176 + 176 + 168 + 176 + 176 = 872
  * ```
- * Every one inside the Arabic budget of 870. The trailing visible column is
- * `enum` in all three, so §7.3 rule 5 holds.
+ * `all` mounts `departing-24h`'s set. The two at 872 are 2px over the Arabic
+ * budget and `fitColumnWidths` absorbs it. The trailing visible column is
+ * `enum` in all of them, so §7.3 rule 5 holds.
  */
 /**
  * **The leg's clock — module level, because TWO carriers read it.**
@@ -817,13 +829,12 @@ export function legColumns(view: string, deps: LegDeps): ReadonlyArray<DataColum
     id: 'sla',
     emphasis: 'data',
     header: t('queue.col.sla'),
-    /* 160, measured. This queue's SLA cell carries the LONGEST of the three
-       readings — `Due 24 Jun 21:00`, a full instant rather than a duration —
-       because `slaDueAt` here is a fixed 21:00 cut-off and `queueClock` refuses
-       to print `overdue` on a row the data says was never breached. 136 clipped
-       it; 160 holds it with Arabic headroom, and the 16 came off the identity's
-       floor, which still has 100+px of residual on all three views. */
-    width: 160,
+    /* 168, measured. This queue's SLA cell carries the LONGEST of the three
+       readings: O7's `Missed 24 Jun 21:00`, a full instant, which needs 142px
+       and clipped at 160. The 8 comes out of the identity's residual, not its
+       floor. Arabic still clips it: `queue.sla.missed` is 40px longer there
+       than any affordable column, and the wording is its owner's to shorten. */
+    width: 168,
     dataType: 'date',
     /* AC-114 — no `sortField`. §4.6's order is a rule, not a preference. */
     cell: (trip) => (

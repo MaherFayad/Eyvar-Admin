@@ -100,6 +100,7 @@ import {
   useQueueViews,
 } from '@/screens/queues'
 import { ConfirmDialog, type ConfirmRequest } from '@/components/ConfirmDialog'
+import { InfoHint } from '@/components/InfoHint'
 import { withFallback } from '../localCopy'
 import { MY_WORK_EN } from './copy'
 
@@ -448,7 +449,15 @@ export function MyWorkScreen({ row }: { row: SubTabRoute }) {
   ]
 
   return (
-    <QueuePage row={row} meta={meta} t={t} dir={dir}>
+    <QueuePage
+      row={row}
+      meta={meta}
+      /* X15 — the line states the backlog, not this view's count, and nothing
+         on screen says so. One sentence, behind the icon. */
+      hint={<InfoHint t={t}>{t('myWork.meta.hint')}</InfoHint>}
+      t={t}
+      dir={dir}
+    >
       <BreachBanner
         id="operations-my-work-sla"
         count={breached.data?.total ?? 0}
@@ -649,9 +658,9 @@ export interface WorkDeps {
 
 /**
  * §7.3's width contract: `136 + 104 + 160 + 176 = 576`, plus the identity's
- * `minWidth: 208` = **784**, plus §7.8's 88px single-action lane = **872**,
- * two over the Arabic budget of 870, which `fitColumnWidths` absorbs from the
- * four shrinkable columns rather than from the identity (T5.1).
+ * `minWidth: 208` and §7.8's 88px action lane = 872, which `fitColumnWidths`
+ * absorbs from the four shrinkable columns rather than from the identity.
+ * **T5.1 is not reached and cannot be here** — see the `item` column.
  *
  * **There is no `Decision` column and there must not be one** (§7.2,
  * **AC-281**). The trailing data column is the owner chip; the action lane
@@ -707,12 +716,11 @@ export function workColumns(deps: WorkDeps): ReadonlyArray<DataColumn<WorkItem>>
       csv: (item) => titleOf(item),
       header: t('myWork.col.item'),
       alwaysVisible: true,
-      /* **T5.1, and it does not reach zero.** 208 is every px `Queue` can give
-         back (measured: 129 en / 109 ar for its widest label). The widest line
-         one on the fixtures is 570 en / 529 ar — an incident summary and a
-         ticket subject are sentences, not identities — so a sentence still
-         truncates into its `title`. Named in the handoff; the fix is a column
-         or a shorter line one, and neither is this file's to choose. */
+      /* **T5.1, and 208 is every px the other four columns can spare.** The
+         widest line one on the fixtures measures 593 en / 713 ar: an incident
+         summary and a ticket subject are sentences, so line one is not an
+         identity and no width fixes it. The fix is in the projection, not
+         here; named in the handoff with the harness numbers. */
       minWidth: 208,
       dataType: 'text',
       sortField: 'title',

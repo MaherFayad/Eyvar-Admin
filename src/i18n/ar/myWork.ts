@@ -20,6 +20,7 @@ import type { Dictionary } from '@/lib'
 export const MY_WORK_AR: Dictionary = {
   'myWork.meta.one': 'عنصر واحد',
   'myWork.meta.other': '{count} من العناصر',
+  'myWork.meta.hint': 'ما تحمله وما لم يُستلَم، في كل قوائم العمل. والجدول يعدّ هذا العرض.',
   'myWork.search': 'ابحث بالموضوع أو المعرّف أو قائمة العمل',
   'myWork.col.item': 'العنصر',
   'myWork.item.text': '{text}',

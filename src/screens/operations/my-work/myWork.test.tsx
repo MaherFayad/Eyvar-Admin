@@ -7,6 +7,7 @@
  */
 
 import { render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { MemoryRouter } from 'react-router-dom'
 import {
@@ -75,5 +76,15 @@ describe('X3 / O8 — the count line and the nav badge', () => {
     await waitFor(async () => {
       expect(await headerCount()).toBe(expected)
     })
+  })
+})
+
+describe('X15 — the surprising count explains itself, when asked', () => {
+  it('opens one sentence from a named button beside the line', async () => {
+    renderMyWork()
+    await screen.findByRole('table')
+    const hint = await screen.findByRole('button', { name: EN['shell.hint.show'] as string })
+    await userEvent.hover(hint)
+    expect(await screen.findByRole('tooltip')).toHaveTextContent(copy('myWork.meta.hint'))
   })
 })

@@ -1,8 +1,8 @@
 {
   "totals": {
-    "keys": 5611,
-    "en": 5332,
-    "ar": 5611,
+    "keys": 5612,
+    "en": 5333,
+    "ar": 5612,
     "arMissing": 0,
     "arExtra": 279,
     "copyFiles": 36,
@@ -214,7 +214,7 @@
       "exports": [
         "MY_WORK_EN"
       ],
-      "keys": 63,
+      "keys": 64,
       "notInEN": 0
     },
     {

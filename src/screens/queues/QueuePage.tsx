@@ -129,18 +129,36 @@ export function useQueueViews(
 export function QueuePage({
   row,
   meta,
+  hint = null,
   t,
   dir,
   children,
 }: {
   row: SubTabRoute
   meta: string | null
+  /**
+   * X15 — one sentence explaining the `meta` line, asked for rather than read.
+   * Optional and additive: a queue whose count needs no explaining passes
+   * nothing and renders exactly as before.
+   */
+  hint?: ReactNode
   t: Translate
   dir: Direction
   children: ReactNode
 }) {
+  /* Still ONE line (V4): the hint is a 14px icon on the same baseline, not a
+     second row. `null` meta with a hint would be an icon beside nothing. */
+  const line =
+    meta === null ? null : hint === null ? (
+      meta
+    ) : (
+      <span className="inline-flex items-center gap-0.5">
+        {meta}
+        {hint}
+      </span>
+    )
   return (
-    <SingleColumnPage header={<PageHeader title={t(row.titleKey)} meta={meta} t={t} dir={dir} />}>
+    <SingleColumnPage header={<PageHeader title={t(row.titleKey)} meta={line} t={t} dir={dir} />}>
       {children}
     </SingleColumnPage>
   )
