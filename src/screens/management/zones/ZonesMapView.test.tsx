@@ -21,10 +21,14 @@ import { describe, expect, it, vi } from 'vitest'
 import { ApiError } from '@/data/types'
 import type { Zone } from '@/data/types'
 import { createTranslator } from '@/lib'
+import { EN } from '@/i18n/dictionaries'
 import { ZONES_EN } from './copy'
 import { ZonesMapView } from './ZonesMapView'
 
-const t = createTranslator({ dictionary: ZONES_EN, fallback: ZONES_EN, language: 'en' })
+/* The SHIPPED dictionary, not this screen's slice: `InfoHint` is named by
+   `shell.hint.show`, and a translator that cannot see the shell's keys throws
+   on a component the operator meets on this screen (X15). */
+const t = createTranslator({ dictionary: EN, fallback: EN, language: 'en' })
 
 function zone(overrides: Partial<Zone> & Pick<Zone, 'id' | 'name'>): Zone {
   return {

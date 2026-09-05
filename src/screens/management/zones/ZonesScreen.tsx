@@ -1,103 +1,49 @@
 /**
- * Management › Market & Zones — the **zone-health table**, and the strip above
- * it. `docs/05-restructure/design/07-rulings-r4.md` **R4-6** and **R4-6b**.
+ * Management › Market & Zones — a map and an index table over one set of
+ * zones. `docs/05-restructure/design/07-rulings-r4.md` **R4-6**, **R4-6b**.
  *
- * ## The ruling this screen implements
+ * ## Two surfaces over one read, and `?view=` chooses (T7.3, owner decision O5)
  *
- * > **Market & Zones is an Index table (§3.1–3.3) with a metric strip (§3.7)
- * > above it, and the strip's tiles are *filters into the table*, not links
- * > away from it.**
+ * The map answers *where is demand starved*; the table answers *which of thirty
+ * zones do I act on*. Both read `listZones` through the same `useIndexTable`,
+ * so the search, the filters and the page survive the switch. `?scope=` is the
+ * strip's tile toggle and stays separate: `table` is not a zone filter.
+ */
+
+/**
+ * ## Why this is a table and not a metric board (R4-6)
  *
- * The legacy page settles it: `filterZones(f)` re-renders and then
- * `kpiScrollTo('zones-list')` (`:14130`, `:14535`) — the tiles **narrow the
- * table and scroll to it**; they do not navigate. And the rows carry actions
- * with a permission key of their own (`zones.steer`, `:14004`), which a §3.7
- * metric board has never had. A surface with a per-row permission key is a
- * table.
+ * Legacy settles it: `filterZones(f)` re-renders and then
+ * `kpiScrollTo('zones-list')` (`:14130`, `:14535`), so the tiles narrow rows
+ * rather than navigate; and the rows carry a permission key of their own
+ * (`zones.steer`, `:14004`), which no §3.7 board has.
+ */
+
+/**
+ * ## Every figure derives, and the board half now renders (R4-6b §6.6.4, X6)
  *
- * ## R4-6b §6.6.4 — five tiles, and not one of them a literal
- *
- * > **When the table lands, Market & Zones' FIVE metric tiles MUST be derived
- * > from the table's own rows. They may not remain literals.**
- *
- * The derivation already exists: `resolveZones()` is the one array, and
- * `getZoneHealth()` summarises it. **This screen's job is not to re-derive — it
- * is to not reintroduce a literal.** Every figure in the strip comes from
- * `ZoneHealthSummary`; there is no number typed into this file, and the nav
- * badge, the strip and the table's first row cannot disagree because there is
- * nowhere for a second answer to live.
- *
- * The ruling's own correction is worth keeping in view: it was written as
- * *"four tiles"*, and `captainsNeeded` — which the metrics spec ranks **first**
- * — is zone-derived like the rest. Deriving four and leaving the fifth a
- * literal is precisely the drift the ruling exists to prevent, arriving one
- * tile to the left.
- *
- * ## The cities table is GONE, and L-6 is answered by not asking
- *
- * It was a four-row table headed `Cities`: `Riyadh · 6 · 45%`, then `Jeddah`,
- * `Dammam` and `Makkah`, each `Not launched · 0 · —`. Every one of those
- * numbers already had a home on this screen — 6 is the header's own zone count,
- * 45% is the strip's `avgFailureRate` tile, and `Riyadh` is the secondary line
- * of every row in the table below. So the card spent 184px of vertical space
- * and a second `<table>` element restating one row and drawing three em dashes.
- *
- * The em-dash discipline it was written to demonstrate is **not** what was
- * removed. L-6's finding is that legacy gates the measure on the city's NAME
- * (`c.name === 'Riyadh'`, `:6942`), so three rows can never be filled whatever
- * data arrives. Nothing in this screen does that, and the same discipline is
- * still enforced in two places, neither of them this card. The per-city
- * breakdown ITSELF still ships, computed, with the same three honest nulls and
- * its own tests: it is the `zones.citiesHealth` metric breakdown
- * (`data/clients/metrics.ts`, `data/clients/zones.test.ts:142`), which is where
- * a city-by-city comparison belongs. And the discipline is enforced where an
- * operator can watch it move: the ratio column
- * and the ratio tile render `ABSENT` for a zone with no captains rather than
- * `Infinity×` (R4-12), and the avg-failure tile renders `ABSENT` rather than
- * `0 %` when there is nothing to average.
- *
- * What the card uniquely carried was COVERAGE — one of the four cities is live
- * — and that is a count, so it is now a clause in the meta line under the title.
- * A count does not need a table, and a table of one real row and three absences
- * is not a summary of a market, it is a picture of a seed.
- *
- * ## `Captains needed` is not a column here, and the trade is the point
- *
- * It was 148px wide and **blank on 5 of its 6 rows** — deliberately so, because
- * a healthy zone has no recruitment target and a `0` would read as a
- * reassurance. That reasoning was right about the CELL and wrong about the
- * column: a measure that is absent on five rows in six is not a column, it is a
- * flag, and this table already flies that flag in words on every row.
- * `Priority` says `Recruit now` / `Watch` / `Healthy`; the exact figure is the
- * strip's first tile and the map inspector's own sentence.
- *
- * What the 148px bought back is why it is not a close call. The declared widths
- * summed to **1182 against a 1038px container at 1440**, so the table clipped
- * 144px and what fell off the inline-end was the **`Actions` column** — `Steer
- * captains` and `Queue recruitment`, the two controls this screen exists to
- * offer, and the two that R4-6 §6.4 clause 2 requires be visible at rest. The
- * sum is now 1034 and nothing clips. A blank column was hiding the buttons.
- *
+ * `resolveZones()` is the one array and `getZoneHealth()` summarises it, so no
+ * number is typed into this file. The seeded `management-zones` metrics and the
+ * `citiesHealth` breakdown reached no surface at all; they are the board above
+ * the table — the per-city ranking the removed `Cities` card could not hold,
+ * because legacy gates the measure on a city's NAME (`c.name === 'Riyadh'`,
+ * `:6942`) and three of its four rows could never fill.
+ */
+
+/**
  * Rules applied
- *   R4-6 §6.4 clause 1
- *              a zone tile is a **toggle**, not an anchor: same card, same
- *              anatomy, `aria-pressed`, and the focus ring traces the card.
- *              Only the two tiles the table can actually filter on are
- *              toggles; the other three are figures, because a control that
- *              narrows nothing is worse than a figure that states something.
- *   R4-6 §6.4 clause 2 / D8
- *              **two row actions is not a kebab.** `Steer drivers` and
- *              `Queue recruitment` render as labelled controls, visible at rest
- *              and keyboard-operable (**AC-68**), plus `View`. They live in a
- *              declared column because `DataTable`'s `rowActions` collapses two
- *              into a menu — the conflict is reported, not resolved here.
- *   R4-12      a ratio renders `{value}×` with the sign supplied by the UI and
- *              the operands in the label. `null` — a zone with no captains —
- *              renders an em dash, never `Infinity×`.
- *   R4-10.1 / R7
- *              `recruit-now` and `watch` share the `warning` tone and the
- *              severity step is carried by the **label**. R5a leaves no red
- *              badge to give the first one.
+ *   R4-6 §6.4 clause 1  a tile is a **toggle**, not an anchor. Only the two the
+ *              rows can be filtered on are toggles; a control that narrows
+ *              nothing is worse than a figure.
+ *   R4-6 §6.4 clause 2 / D8  **two row actions is not a kebab**: labelled,
+ *              visible at rest, keyboard-operable (**AC-68**), in a declared
+ *              column because `rowActions` would collapse them into a menu.
+ *              Widths are budgeted to §7.3 rule 3 so that column never clips.
+ *   R4-12      a ratio renders `{value}×`, operands on the second line. `null`
+ *              renders `ABSENT`, never `Infinity×`.
+ *   R4-10.1 / R7  `recruit-now` and `watch` share the `warning` tone and the
+ *              severity step is carried by the **label** (R5a leaves no red
+ *              badge to give the first one).
  */
 
 import { useCallback, useMemo, useState } from 'react'
@@ -240,7 +186,7 @@ export function ZonesScreen({ row }: { row: SubTabRoute }) {
    */
   const params = new URLSearchParams(location.search)
   const surface: 'map' | 'table' = params.get('view') === 'table' ? 'table' : 'map'
-  const view = params.get('scope') ?? 'all'
+  const scope = params.get('scope') ?? 'all'
   const setParam = useCallback(
     (key: string, next: string | null) => {
       const search = new URLSearchParams(location.search)
@@ -251,7 +197,7 @@ export function ZonesScreen({ row }: { row: SubTabRoute }) {
     },
     [navigate, location.pathname, location.search],
   )
-  const setView = useCallback(
+  const setScope = useCallback(
     (next: string) => setParam('scope', next === 'all' ? null : next),
     [setParam],
   )
@@ -273,23 +219,27 @@ export function ZonesScreen({ row }: { row: SubTabRoute }) {
   })
 
   const zones = useAsync<Paginated<Zone>>(
-    (signal) => listZones({ view, ...table.params, signal }),
+    /* **`view` LAST, and that is the whole of the bug this fixes.**
+       `useIndexTable` reads `?view=` as a row scope, and `?view=` now names the
+       SURFACE (T7.3), so spreading `table.params` after the scope handed
+       `listZones` the word `table` as a filter and the tiles narrowed nothing.
+       The strip's scope is the row filter; the surface is not. */
+    (signal) => listZones({ ...table.params, view: scope, signal }),
     {
-      /* The tile toggle and the table query are the fetcher's two inputs and
-         both are here, so each `?view=` keys separately — flipping to
-         `starved` and back paints `all`'s own rows. `steer` and
-         `queueRecruitment` both go through `refetch`, which bypasses the cache
-         and rewrites the entry, so a steered zone is never re-served stale. */
-      deps: [view, table.params],
+      /* Both fetcher inputs are here, so each scope keys separately: flipping
+         to `starved` and back paints `all`'s own rows. `steer` and
+         `queueRecruitment` go through `refetch`, which rewrites the entry, so a
+         steered zone is never re-served stale. */
+      deps: [scope, table.params],
       cacheKey: 'zones.list',
     },
   )
 
   /**
-   * **The board half of R4-6b, which was seeded and never rendered (X6).**
-   * Thirteen `management-zones` metrics and the `citiesHealth` breakdown live
-   * in the fixtures; the map surface has room for five of them, so the table
-   * surface carries the rest. Read only when that surface is on.
+   * **The board half of R4-6b, which was seeded and never rendered (X6).** The
+   * `management-zones` metrics and the `citiesHealth` breakdown live in the
+   * fixtures and reached no surface. Read only when the table is on, because
+   * the map has no room for a board and does not ask for one.
    */
   const board = useAsync<MetricBoard>(
     (signal) => getMetricBoard('management-zones', undefined, signal),
@@ -381,15 +331,16 @@ export function ZonesScreen({ row }: { row: SubTabRoute }) {
   /**
    * **The P1 table, restored as the second view (T7.3, owner decision O5).**
    * A city with thirty zones is a list you query, and sort, the column picker,
-   * the filter menu, CSV and paging are index-table affordances the map cannot
-   * offer. Widths are the ones the table shipped with; the actions column is
-   * declared rather than a kebab because R4-6 §6.4 clause 2 requires both
-   * controls visible at rest.
+   * the filter menu, CSV and paging are affordances the map cannot offer.
+   * Widths are re-budgeted to §7.3 rule 3 so `Actions` — which R4-6 §6.4
+   * clause 2 requires visible at rest — is not the column that clips.
    */
   const columns = useMemo<DataColumn<Zone>[]>(
     () => [
       {
         id: 'zone',
+        emphasis: 'primary',
+        csv: (zone) => zone.name,
         header: t('zones.col.zone'),
         dataType: 'text',
         minWidth: 190,
@@ -419,10 +370,11 @@ export function ZonesScreen({ row }: { row: SubTabRoute }) {
       },
       {
         id: 'demandSupply',
+        emphasis: 'data',
         header: t('zones.col.demandSupply'),
         dataType: 'number',
         align: 'end',
-        width: 152,
+        width: 118,
         sortField: 'demandSupplyRatio',
         /* **R4-12** - the operands are in the second line, the value is the
            bare ratio, and a zone with no captains renders `ABSENT` rather than
@@ -451,7 +403,7 @@ export function ZonesScreen({ row }: { row: SubTabRoute }) {
         header: t('zones.col.failureRate'),
         dataType: 'number',
         align: 'end',
-        width: 140,
+        width: 112,
         sortField: 'failureRate',
         /* The table's default order is this column, worst first (`:14132`). */
         cell: (zone) => (
@@ -469,13 +421,18 @@ export function ZonesScreen({ row }: { row: SubTabRoute }) {
       },
       {
         id: 'captainsNeeded',
+        emphasis: 'data',
         header: t('zones.col.captainsNeeded'),
         dataType: 'number',
         align: 'end',
         width: 148,
         sortField: 'captainsNeeded',
-        /* O9 - blank, not a fill: a healthy zone has no recruitment target,
-           and `0` would read as a reassurance somebody could act on. */
+        /* **Off by default, in the picker, and the recorded reason holds.** It
+           is blank on five rows in six — a healthy zone has no recruitment
+           target, and `0` would read as a reassurance — and the figure is the
+           strip's first tile. Shown by default it spends the width `Actions`
+           needs (§7.3 rule 3), which is what R4-6 §6.4 clause 2 forbids. */
+        defaultHidden: true,
         cell: (zone) => (
           <span className="block text-end tabular-nums">
             {zone.captainsNeeded === 0 ? '' : formatCount(zone.captainsNeeded, language)}
@@ -487,7 +444,7 @@ export function ZonesScreen({ row }: { row: SubTabRoute }) {
         header: t('zones.col.subMomentum'),
         dataType: 'number',
         align: 'end',
-        width: 152,
+        width: 120,
         sortField: 'subMomentum',
         /* **`null` when no subscription request maps to this zone at all.** A
            `0` would claim we measured flat growth. */
@@ -504,7 +461,7 @@ export function ZonesScreen({ row }: { row: SubTabRoute }) {
         id: 'priority',
         header: t('zones.col.priority'),
         dataType: 'enum',
-        width: 150,
+        width: 120,
         cell: (zone) => (
           <StatusBadge tone={RECRUITMENT_PRIORITY_TONE[zone.recruitmentPriority]}>
             {t(`zones.priority.${zone.recruitmentPriority}`)}
@@ -586,48 +543,50 @@ export function ZonesScreen({ row }: { row: SubTabRoute }) {
       bleed={
         <>
         <BoardBand density="bar">
-          {/* **The band carries §8's slots 1 and 2 and no control.** The
-              measure switch stood at its inline-end for a version, which is
-              where the reference draws it; it now sits in the panel directly
-              above the list it orders. The shading toggle beside it is gone
-              outright — see `SHADE_FLOOR`. What is left is what a band is for:
-              the name of the board and one line of scope. */}
-          {/* **The summary is a SUBTITLE, not a tail.** It sat on the title's
-              own baseline, which made `Market & Zones 6 zones · 2 starved` read
-              as one run — and it is the slot every other board fills with its
-              lede, one line under the name in the same quiet tone. Same words,
-              same colour; what changed is that it is now a line of its own. */}
-          <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
-          <div className="flex min-w-0 flex-col gap-3">
-            <h1 className="text-band font-medium text-hero-foreground">{t(row.titleKey)}</h1>
-            {health.data && (
-              <span className="max-w-prose text-sm text-hero-muted">
-                <bdi>
-                  {t('zones.meta', {
-                    zones: formatCount(health.data.zonesTracked, language),
-                    starved: formatCount(health.data.starvedZones, language),
-                    cities: formatCount(liveCities, language),
-                    allCities: formatCount(allCities, language),
-                  })}
-                </bdi>
-              </span>
-            )}
-          </div>
+          {/* **The band carries §8's slots 1 and 2, and one control.** The
+              measure switch sits in the panel above the list it orders; the
+              shading toggle is gone — see `SHADE_FLOOR`. What stands at the
+              band's inline-end is the surface choice, which is about the whole
+              board rather than about any one reading.
 
-          {/* **The view switch (T7.3).** A map answers *where is demand
-              starved*; a table answers *which of thirty zones do I act on*.
-              The same underlined tab the console uses everywhere else, on the
-              band because the choice is about the whole board. */}
-          <Tabs value={surface} onValueChange={setSurface} className="gap-0">
-            <TabsList variant="line" aria-label={t('zones.view.label')} className="h-auto gap-4 p-0">
-              <TabsTrigger value="map" className="h-auto flex-none px-0 pb-1.5 text-xs">
-                {t('zones.view.map')}
-              </TabsTrigger>
-              <TabsTrigger value="table" className="h-auto flex-none px-0 pb-1.5 text-xs">
-                {t('zones.view.table')}
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
+              **The summary is a SUBTITLE, not a tail**: on the title's own
+              baseline it read as one run with the name. It is the slot every
+              other board fills with its lede, one line under the name. */}
+          <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
+            <div className="flex min-w-0 flex-col gap-3">
+              <h1 className="text-band font-medium text-hero-foreground">{t(row.titleKey)}</h1>
+              {health.data && (
+                <span className="max-w-prose text-sm text-hero-muted">
+                  <bdi>
+                    {t('zones.meta', {
+                      zones: formatCount(health.data.zonesTracked, language),
+                      starved: formatCount(health.data.starvedZones, language),
+                      cities: formatCount(liveCities, language),
+                      allCities: formatCount(allCities, language),
+                    })}
+                  </bdi>
+                </span>
+              )}
+            </div>
+
+            {/* **The view switch (T7.3, owner decision O5).** A map answers
+                *where is demand starved*; a table answers *which of thirty
+                zones do I act on*. The same underlined tab every other sub-tab
+                uses for a view, so the grammar is not invented here. */}
+            <Tabs value={surface} onValueChange={setSurface} className="gap-0">
+              <TabsList
+                variant="line"
+                aria-label={t('zones.view.label')}
+                className="h-auto gap-4 p-0"
+              >
+                <TabsTrigger value="map" className="h-auto flex-none px-0 pb-1.5 text-xs">
+                  {t('zones.view.map')}
+                </TabsTrigger>
+                <TabsTrigger value="table" className="h-auto flex-none px-0 pb-1.5 text-xs">
+                  {t('zones.view.table')}
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
           </div>
         </BoardBand>
 
@@ -641,8 +600,8 @@ export function ZonesScreen({ row }: { row: SubTabRoute }) {
           <ZoneStrip
             summary={health.data}
             worstZone={worstZone}
-            view={view}
-            onView={setView}
+            view={scope}
+            onView={setScope}
             t={t}
             language={language}
           />
@@ -712,17 +671,17 @@ export function ZonesScreen({ row }: { row: SubTabRoute }) {
                 t={t}
                 language={language}
                 tableId="management-zones"
-                view={view}
+                view={scope}
                 searchPlaceholder={t('zones.search')}
                 skeletonPattern="P1"
                 firstRun={{
                   heading: t('zones.empty.heading'),
                   body: t('zones.empty.body'),
-                  actions: [{ label: t('zones.empty.action'), onClick: () => setView('all') }],
+                  actions: [{ label: t('zones.empty.action'), onClick: () => setScope('all') }],
                 }}
                 noMatch={{
                   message: t('zones.noMatch'),
-                  action: { label: t('zones.noMatch.action'), onClick: () => setView('all') },
+                  action: { label: t('zones.noMatch.action'), onClick: () => setScope('all') },
                 }}
                 error={{ message: t('zones.error.read'), onRetry: zones.refetch }}
               />
@@ -737,11 +696,11 @@ export function ZonesScreen({ row }: { row: SubTabRoute }) {
 /* ────────────────────────────── the board ──────────────────────────────── */
 
 /**
- * **The thirteen seeded `management-zones` metrics and the city breakdown,
- * rendered (T7.3, X6).** They were in the fixtures with no surface: the strip
- * above the map carries five of them, and R4-6b's board half is where the rest
- * belong. Same chapters, same tiles and same ranked list every metric board
- * draws, so nothing about a zone measure is styled twice.
+ * **The seeded `management-zones` metrics and the city breakdown, rendered
+ * (T7.3, X6).** They were in the fixtures with no surface. R4-6b puts a board
+ * above the index it explains, and these are the same chapters, tiles and
+ * ranked list every other metric board draws — the strip's readings are
+ * derived from the rows and carry no trend, so neither restates the other.
  */
 function ZoneBoard({
   board,
@@ -812,18 +771,11 @@ function ZoneBoard({
  * a tile that looks like a control and narrows nothing is worse than a figure.
  */
 /**
- * **Which end of the strip a cell is at, declared by the caller.**
- *
- * A `first:` variant cannot answer this: each cell is the only child of its own
- * `<li>`, so `first-child` matches every one of them. The strip is the only
- * thing that knows which is first, and at 1344 the grid goes from three across
- * to five, so it is not even the same set of cells at both widths — the end
- * cell of a three-up row is the third, not the fifth.
- *
- * The point of it is alignment: the strip carries the page's inline padding so
- * its outer edge is on the measure, and without this the cells' own padding
- * would push the first numeral 20px further in than the band's title directly
- * above it. Both properties are logical, so both mirror under `dir="rtl"`.
+ * **Which end of the strip a cell is at, declared by the caller.** A `first:`
+ * variant cannot answer it: each cell is the only child of its own `<li>`. The
+ * point is alignment — the strip carries the page's inline padding, and without
+ * this the first numeral would sit inside the band's title above it. Both
+ * properties are logical, so both mirror under `dir="rtl"`.
  */
 type Edge = 'start' | 'end' | 'both' | 'mid'
 

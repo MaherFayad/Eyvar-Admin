@@ -672,6 +672,12 @@ function MapCanvas({
      actually eats. */
   const reserve = viewport.reserveFor(PANEL_RESERVE_PX)
 
+  /* **The corner the floating panel is not in.** The canvas is pinned
+     `dir="ltr"` so `start` does not mirror inside it, while the panel is
+     document-`end` — the canvas's left in Arabic. The zoom stack and the
+     caption both take this side, or Arabic buries them under the panel. */
+  const free = language === 'ar' ? 'end' : 'start'
+
   const projection = useMemo(
     () =>
       fitProjection(
@@ -702,10 +708,9 @@ function MapCanvas({
           page and keeps the card treatment it had.
 
           The aspect ratio holds on a phone. Above the breakpoint the map takes
-          the region's RESIDUAL height (T2.1): a declared 608 overshot the
-          501px left at 1280 x 800, so the panel floating on it ran past the
-          fold and the list under the inspector showed one row. The floor is
-          what a choropleth still reads at, not a target. */}
+          the region's RESIDUAL height (T2.1): a declared height overshot what
+          the minimum viewport had left, so the panel floating on it ran past
+          the fold. The floor is what a choropleth still reads at. */}
       <div
         ref={boxRef}
         dir="ltr"
@@ -845,25 +850,16 @@ function MapCanvas({
           canZoomOut={canZoomOut}
           zoomInLabel={t('zones.map.zoom.in')}
           zoomOutLabel={t('zones.map.zoom.out')}
-          /* **The side follows the panel, and it used not to.** The comment
-             this replaces claimed `start` was safe in both languages because
-             the canvas is pinned `dir="ltr"`. That is true of the CONTROL and
-             false of the PANEL: the panel is `end` in the document, which is
-             the canvas's left in Arabic — so in Arabic these two buttons sat
-             underneath it and the keyboard's only route to the zoom was
-             invisible. */
-          side={language === 'ar' ? 'end' : 'start'}
+          side={free}
         />
 
-        {/* **A solid card, at 12px, clear of the zoom stack (T5.8).** It was
-            10px grey on a gradient, which on a light basemap left the licence
-            and the ramp's two ends unreadable. A card carries its own ground,
-            so neither is read against a street. It sits opposite the zoom
-            controls' corner, whichever one the language put them in. */}
+        {/* **A solid card at 12px, stacked above the zoom (T5.8).** It was 10px
+            grey on a gradient, which on a light basemap left the licence and
+            the ramp's two ends unreadable; a card carries its own ground. */}
         <figcaption
           className={cn(
-            'absolute z-10 flex max-w-md flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border border-border bg-card px-3 py-1.5 text-xs text-muted-foreground shadow-2',
-            language === 'ar' ? 'bottom-3 start-3' : 'bottom-20 start-3',
+            'absolute bottom-20 z-10 flex max-w-md flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border border-border bg-card px-3 py-1.5 text-xs text-muted-foreground shadow-2',
+            free === 'end' ? 'end-3' : 'start-3',
           )}
         >
           <ShadeLegend metric={metric} t={t} />
@@ -872,16 +868,17 @@ function MapCanvas({
               It is outside the `aria-hidden` basemap on purpose — a licence
               notice a screen reader cannot reach is not a licence notice. */}
           <BasemapAttribution />
-          {/* X15 — a zone we hold no boundary for is still STATED, but it is an
-              explanation of the picture rather than a step, so it is asked for
-              rather than read. */}
-          <InfoHint t={t}>
-            {unmapped.length > 0
-              ? t('zones.map.unmapped', {
-                  zones: unmapped.map((zone) => zone.name).join(', '),
-                })
-              : null}
-          </InfoHint>
+          {/* **Inline, and X15 says so.** A zone we hold no boundary for is a
+              DATA FACT about the picture, not an explanation of it, and X15's
+              carve-out keeps a data fact where the operator cannot miss it. It
+              renders only when there is one. */}
+          {unmapped.length > 0 && (
+            <span>
+              {t('zones.map.unmapped', {
+                zones: unmapped.map((zone) => zone.name).join(', '),
+              })}
+            </span>
+          )}
         </figcaption>
       </div>
     </figure>
@@ -1035,10 +1032,9 @@ function Inspector({
         <div className="flex min-w-0 flex-col">
           <span className="flex min-w-0 items-center gap-0.5">
             <h3 className="truncate text-base font-medium text-foreground">{zone.name}</h3>
-            {/* **One hint on the card title (X15), not three 12px lines under
-                the readings.** They explain the two numbers rather than change
-                what the operator does next, and stacked inline they cost the
-                zone list four of its rows at 1280 x 800 (T2.1). */}
+            {/* **One hint, not three inline lines under the readings (X15).**
+                They explain the two numbers rather than change what the
+                operator does next, and stacked they cost the list its rows. */}
             <InfoHint t={t}>
               {hintLines([
                 t('zones.demandSupply.detail', {
@@ -1188,10 +1184,9 @@ function ZoneList({
 }) {
   return (
     <div className="flex flex-col pb-0.5">
-      {/* **The eyebrow names the list for a screen reader and no longer takes a
-          row of its own (T2.1).** The tabs directly under it say what the rows
-          are ordered by, which is the half a sighted reader needed; the visible
-          line above them spent 36px of a panel that was showing one zone. */}
+      {/* **The eyebrow names the list for a screen reader and takes no row of
+          its own (T2.1).** The tabs under it already say what the rows are
+          ordered by, which is the half a sighted reader needed. */}
       <span
         id="zones-map-list-heading"
         className="sr-only"
@@ -1318,9 +1313,8 @@ function ZoneListRow({
         </span>
 
         {/* **The bar moved onto the operands' line (T2.1).** Three stacked
-            lines made a 70px row, so the panel showed one zone at 1280 x 800;
-            the bar is `aria-hidden` decoration of a number the row already
-            prints, so it rides beside the counts rather than above them. */}
+            lines made a row so tall the panel showed one zone; the bar is
+            `aria-hidden` decoration of a number the row already prints. */}
         <span className="flex items-center gap-2.5">
           <span
             aria-hidden="true"

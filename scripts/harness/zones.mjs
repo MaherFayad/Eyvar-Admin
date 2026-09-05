@@ -11,7 +11,7 @@
 import { chromium } from 'playwright'
 import { mkdirSync } from 'node:fs'
 
-const BASE = 'http://localhost:4342'
+const BASE = process.env.HARNESS_BASE ?? 'http://localhost:4342'
 const LABEL = process.argv[2] ?? 'now'
 const OUT = './scripts/harness/shots'
 mkdirSync(OUT, { recursive: true })
@@ -96,15 +96,37 @@ const measure = () =>
     table: (() => {
       const t = document.querySelector('table')
       if (!t) return null
+      const scroller = t.closest('[class*=overflow-x]') ?? t.parentElement
+      const box = scroller.getBoundingClientRect()
       return {
-        headers: [...t.querySelectorAll('thead th')].map((th) => (th.textContent ?? '').trim()),
+        headers: [...t.querySelectorAll('thead th')].map((th) => {
+          const r = th.getBoundingClientRect()
+          return {
+            text: (th.textContent ?? '').trim(),
+            width: Math.round(r.width),
+            /* T7.3: a column the operator cannot see without scrolling sideways. */
+            inBox: r.left >= box.left - 1 && r.right <= box.right + 1,
+          }
+        }),
+        scrollWidth: scroller.scrollWidth,
+        clientWidth: scroller.clientWidth,
         rows: t.querySelectorAll('tbody tr').length,
+        /* T5.1-style: an identity cell that truncates. */
+        truncated: [...t.querySelectorAll('tbody tr td:first-child')].filter(
+          (td) => td.scrollWidth > td.clientWidth + 1,
+        ).length,
       }
     })(),
-    board: [...document.querySelectorAll('h2, h3')]
-      .map((h) => (h.textContent ?? '').trim())
-      .filter(Boolean)
-      .slice(0, 14),
+    /* T7.3: the board half. Chapters, tiles and the ranked city breakdown. */
+    board: {
+      chapters: [...document.querySelectorAll('h2')].map((h) => (h.textContent ?? '').trim()),
+      headings: [...document.querySelectorAll('h3, [data-slot="card-title"]')].map((h) =>
+        (h.textContent ?? '').trim(),
+      ),
+    },
+    toolbar: [...document.querySelectorAll('[role="toolbar"] button, [data-table-toolbar] button')]
+      .map((b) => (b.getAttribute('aria-label') ?? b.textContent ?? '').trim())
+      .filter(Boolean),
     overflowY: document.documentElement.scrollHeight - document.documentElement.clientHeight,
     emDashes: (document.body.innerText.match(/—/g) ?? []).length,
   })
@@ -128,7 +150,17 @@ for (const [name, url] of [
       await page.waitForTimeout(2600)
     }
     const facts = await page.evaluate(measure)
-    await page.screenshot({ path: `${OUT}/${name}-${lang}-1280-${LABEL}.png`, fullPage: name === 'zones-table' })
+    await page.screenshot({ path: `${OUT}/${name}-${lang}-1280-${LABEL}.png` })
+    /* The console scrolls inside its own region, so `fullPage` sees nothing
+       below the fold; the table surface gets a second shot at the bottom. */
+    if (name === 'zones-table') {
+      await page.evaluate(() => {
+        const table = document.querySelector('table')
+        if (table) table.scrollIntoView({ block: 'start' })
+      })
+      await page.waitForTimeout(400)
+      await page.screenshot({ path: `${OUT}/${name}-${lang}-1280-bottom-${LABEL}.png` })
+    }
     console.log(`\n=== ${name} ${lang} 1280x800 ${LABEL} ===`)
     console.log(JSON.stringify(facts, null, 2))
     if (errors.length) console.log('ERRORS', errors)
