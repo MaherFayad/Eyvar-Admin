@@ -26,6 +26,7 @@ import { PageHeader, type PageAction } from '@/components/PageHeader'
 import { DetailPage } from '@/components/PageShell'
 import { ElsewhereCard } from '../shared/ElsewhereCard'
 import { StatusBadge } from '@/components/StatusBadge'
+import { KeyValueGrid, KeyValueRow } from '@/components/KeyValueGrid'
 import { Money } from '@/components/Money'
 import { ConfirmDialog, type ConfirmRequest } from '@/components/ConfirmDialog'
 import { Button } from '@/components/ui/button'
@@ -226,44 +227,33 @@ export function DisputeDetailScreen() {
         </CardHeader>
         <CardContent className="flex flex-col gap-3 text-sm">
           <p className="whitespace-pre-wrap text-foreground">{dispute.claim}</p>
-          <dl className="grid grid-cols-2 gap-x-6 gap-y-1 text-xs">
-            <dt className="text-muted-foreground">{t('dispute.resolve.claimed')}</dt>
-            <dd className="text-end font-semibold">
+          <KeyValueGrid>
+            <KeyValueRow label={t('dispute.resolve.claimed')} numeric valueClassName="font-semibold">
               <Money amount={dispute.amountHalalas} />
-            </dd>
-            <dt className="text-muted-foreground">{t('dispute.resolve.filed')}</dt>
-            <dd className="text-end">
+            </KeyValueRow>
+            <KeyValueRow label={t('dispute.resolve.filed')} numeric>
               <bdi>{formatDate(dispute.filedAt, { style: 'day-month-time', language })}</bdi>
-            </dd>
+            </KeyValueRow>
             {dispute.tripId !== null && (
-              <>
-                <dt className="text-muted-foreground">{t('dispute.detail.trip')}</dt>
-                <dd className="text-end font-mono">
-                  <bdi>{dispute.tripId}</bdi>
-                </dd>
-              </>
+              <KeyValueRow label={t('dispute.detail.trip')} valueClassName="font-mono">
+                <bdi>{dispute.tripId}</bdi>
+              </KeyValueRow>
             )}
             {dispute.subscriptionId !== null && (
-              <>
-                <dt className="text-muted-foreground">{t('dispute.detail.subscription')}</dt>
-                <dd className="text-end font-mono">
-                  <bdi>{dispute.subscriptionId}</bdi>
-                </dd>
-              </>
+              <KeyValueRow label={t('dispute.detail.subscription')} valueClassName="font-mono">
+                <bdi>{dispute.subscriptionId}</bdi>
+              </KeyValueRow>
             )}
             {dispute.ticketId !== null && (
-              <>
-                <dt className="text-muted-foreground">{t('dispute.detail.ticket')}</dt>
-                <dd className="text-end">
-                  <Button asChild variant="ghost" size="xs">
-                    <a href={`/support/tickets/${dispute.ticketId}`}>
-                      <bdi>{dispute.ticketId}</bdi>
-                    </a>
-                  </Button>
-                </dd>
-              </>
+              <KeyValueRow label={t('dispute.detail.ticket')}>
+                <Button asChild variant="ghost" size="xs">
+                  <a href={`/support/tickets/${dispute.ticketId}`}>
+                    <bdi>{dispute.ticketId}</bdi>
+                  </a>
+                </Button>
+              </KeyValueRow>
             )}
-          </dl>
+          </KeyValueGrid>
         </CardContent>
       </Card>
 

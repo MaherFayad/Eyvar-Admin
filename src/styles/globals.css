@@ -327,6 +327,10 @@
   /* The neutral badge plate. The same tint as --ev-bg2 in light; its own name
      so dark can lift the plate above the card without moving the strip (R7). */
   --ev-neutral-lt: #f6f8f9;
+  /* The hover ground of a row inside a card (key/value grids, the rate card).
+     --ev-bg2 in light, the same fill as --accent; its own name because in dark
+     --accent sits BELOW the card and a hover must lift, not sink (AC-CC-01). */
+  --ev-row-hover: var(--ev-bg2);
 
   /* THE ONE SUBDUED FILL, and it does six jobs: the icon rail, the table
      header row, the filter-chip strip, a card's section-header strip, a promo
@@ -501,6 +505,10 @@
      consumers are separators, the scroll thumb and the skeleton fill, none of
      which carry text. Verified rather than assumed. */
   --ev-hairline: #e3e7ea;
+  /* The row rule INSIDE a card: ink at 8% over whatever ground the card has
+     (CONTACT-CENTRE-REDESIGN-PLAN §3 item 4). 1.17:1 on the light card, 1.26:1
+     on the dark one. Never a card or control edge. */
+  --ev-hairline-soft: color-mix(in srgb, var(--ev-ink) 8%, transparent);
 
   /* **THE FIRM BOUNDARY — the second of the product's two rule weights.**
      Added deliberately, in the same commit, because --ev-hairline moved two
@@ -1720,6 +1728,8 @@
   --ev-blue-lt: #222f4e;
   --ev-blue-dk: #9bb8ff;
   --ev-neutral-lt: #31363e;
+  /* A row's hover lift: one step above the card, under the raised tier. */
+  --ev-row-hover: #2b323b;
 
   /* --- The breached row (R5a use #1): a tint just above the row ground, a
      firmer one for hover, and a warmed muted ink that clears AA on both. */
@@ -2083,6 +2093,8 @@
   --destructive-foreground: var(--ev-surface);
 
   --border: var(--ev-hairline);
+  /* `border-border-soft` / `divide-border-soft`: the row rule inside a card. */
+  --border-soft: var(--ev-hairline-soft);
   /* R19 — the unchecked checkbox / radio outline, and nothing else. See the
      token's own declaration for the one permitted use and the measurements. */
   --border-strong: var(--ev-hairline-strong);
@@ -2254,6 +2266,8 @@
 
      The identity cell keeps `text-foreground` (--ev-ink, 15.680:1 on the
      darker ground). Only the muted level moves. */
+  /* `hover:bg-row-hover`: a row inside a card lifts on hover in both themes. */
+  --row-hover: var(--ev-row-hover);
   --row-critical: var(--ev-row-critical);
   --row-critical-emphasis: var(--ev-row-critical-emphasis);
   --row-critical-foreground: var(--ev-text-2-row-critical);
@@ -2501,6 +2515,7 @@
   --color-border: var(--border);
   --color-border-strong: var(--border-strong);
   --color-border-control: var(--border-control);
+  --color-border-soft: var(--border-soft);
   --color-input: var(--input);
   --color-ring: var(--ring);
 
@@ -2519,6 +2534,7 @@
   /* The breached row — `bg-row-critical`, `bg-row-critical-emphasis`,
      `text-row-critical-foreground`. Exposed so `DataTable` can drop
      `bg-rose-50/95` and friends for a semantic utility with no alpha. */
+  --color-row-hover: var(--row-hover);
   --color-row-critical: var(--row-critical);
   --color-row-critical-emphasis: var(--row-critical-emphasis);
   --color-row-critical-foreground: var(--row-critical-foreground);
