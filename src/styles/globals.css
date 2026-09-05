@@ -304,120 +304,204 @@
      forbids introducing a colour that is not a token. The `new` tone is an
      OUTLINE, not a fifth fill — do not add --ev-teal-lt here. */
 
-  /* THE LADDER, and it does not invert. Sampled across all 15 frames:
-       icon rail   --ev-bg2     #f5f7f9   darkest
-       nav columns --ev-bg-nav  #f8fafb
-       content     --ev-bg      #ffffff   lightest
-     The nav is still ONE STEP DARKER than the content, exactly as §2.1 says.
-     What an earlier reading took for a grey "canvas" was the 53px icon strip. */
-  --ev-bg: #ffffff; /* M — the content region, pure white EDGE TO EDGE.
-                          `82923d3f` y=440 x=144-767 -> #FFFFFF, n=624px, one
-                          colour; same on 02b895df, 6a08206b, c53f19d9,
-                          546b7d98, 79a31934. THERE IS NO GREY CANVAS. */
-  --ev-surface: #ffffff; /* M — card, tile, table body. IDENTICAL to --ev-bg
-                          ON PURPOSE (D-11): a card is carried by its border
-                          and radius, not a fill. Two names so they can part
-                          without touching a component. */
-  /* The raised tier: popover, dropdown, dialog, drawer. White in light (D-11,
-     one ground); the dark block lifts it one step above the card (AC-CC-01). */
-  --ev-surface-2: #ffffff;
-  /* A card's edge. The hairline in light (§2.1); nothing in dark, where the
-     inset highlight in --ev-shadow-1 does the job (AC-CC-01). */
+  /* ══ THE LADDER. **D15** (a surface recesses) and **D16** (no shadows). ══
+     D-11 is overturned and R-3 is void; both rulings are in `docs/RULINGS.md`
+     under 2026-09-06 and are cited, not restated. What this file has to say is
+     the arithmetic, and it is one sentence long: with elevation gone a surface
+     has TWO carriers, a value step and a hairline, so every step below is a
+     load-bearing number rather than a taste.
+
+     THE LIGHT STACK, EVERY LAYER AND ITS STEP AGAINST ITS NEIGHBOUR:
+
+       LAYER                 TOKEN                  VALUE     STEP
+       page                  --ev-bg                #ffffff   the lightest
+       hover                 --ev-row-hover         #f6f8f9   1.054 over a card
+       card / nav / container --ev-surface           #f0f2f4   1.122 under page
+       tint in a card        --ev-bg2               #e7eaee   1.075 under card
+       nav rail              --ev-bg-rail           #e7eaee   1.075 under nav
+       raised tier           --ev-surface-2         #e0e5ea   1.130 under card,
+                                                              1.268 under page
+       nav pill              --ev-nav-chip          #dde0e4   1.180 under nav
+       structure hairline    --ev-hairline          #d6dbe0   1.242 on a card
+       control hairline      --ev-hairline-control  #c6cbd0   1.456 on a card
+
+     ── THE THREE RULES THAT GENERATE THE TABLE, so the next layer does not
+        need a new decision. ────────────────────────────────────────────────
+     1. **A SURFACE RECESSES FROM THE PAGE** (D15), and each one further in
+        recesses further: page, then a card, then what is inside the card,
+        then what floats over it.
+     2. **A HOVER STEPS TOWARD THE PAGE**, i.e. the opposite way. It is the one
+        thing on screen that is not a surface, and giving it the other
+        direction means it never collides with the tint under it: a hovered row
+        is 1.054 over the card while the header strip is 1.075 under it, three
+        clearly ordered values instead of two guesses. The dark block gets the
+        same rule and it comes out at the same place its old value was.
+     3. **THE RAIL IS ONE RUNG FURTHER FROM THE PAGE THAN THE NAV COLUMN**, in
+        whichever direction the nav sits. Same rung as an in-card tint, hence
+        the same value: the rail is to the nav what a tinted strip is to a
+        card, and the two are never adjacent.
+
+     ── WHAT IT COST, AND IT COST INK AND BOTH HAIRLINES. ──────────────────
+     --ev-text-2, --ev-hairline, --ev-hairline-control and --ev-hairline-strong
+     all moved, each measured at its own token. None of them moved for taste:
+     the ladder darkened five grounds and every one of those four is solved
+     AGAINST a ground. Darkening a surface without re-deriving what sits on it
+     is how a re-skin quietly drops below AA.
+
+     ── NO NEW COLOUR WAS MINTED FOR THE SURFACES. ─────────────────────────
+     #f0f2f4 is the reference's declared gray-100 and #dde0e4 its gray-300;
+     #f6f8f9 is the gray-50 --ev-bg2 used to hold. The ladder was re-assigned
+     down the ramp, not repainted. */
+  --ev-bg: #ffffff; /* THE PAGE, and the one layer D15 pins. Pure white edge to
+                          edge, exactly as D7 measured it: `82923d3f` y=440
+                          x=144-767 -> #FFFFFF, n=624px, one colour; same on
+                          02b895df, 6a08206b, c53f19d9, 546b7d98, 79a31934.
+                          Everything else in the product sits under it. */
+  /* THE CARD, TILE, TABLE BODY AND CONTAINER, and the surface an operator reads
+     data on. **1.122 : 1 under the page**, plus its hairline. D-11 gave it
+     neither: it was #ffffff on #ffffff, carried by a 1px line at 1.244, which
+     is why the owner's Workspace settings card "reads as nothing".
+     --ev-bg-nav holds the same value; see it for why one recessed material for
+     a card and the nav column is the ruling and not an accident. */
+  --ev-surface: #f0f2f4;
+  /* The raised tier: popover, dropdown, select, dialog, sheet, command palette.
+     **THE DEEPEST SURFACE IN THE PRODUCT**, because D15 recesses by distance
+     from the page and a floating surface is the furthest thing from it.
+       under a card  1.130 : 1      under the page  1.268 : 1
+     Both are real steps, which matters more than it used to: D16 took the
+     shadow away, so a dropdown opened over a card has only this step and
+     --ev-surface-2-edge. It is NOT level with the card and it is not the
+     in-card tint either, so a menu inside a popover, a tinted strip inside it
+     and the card underneath it are three distinguishable values.
+     A hover inside it is --ev-row-hover, 1.190 : 1 over this fill. */
+  --ev-surface-2: #e0e5ea;
+  /* A card's edge, in BOTH themes. It can no longer be nothing in dark, where
+     it leaned on the inset highlight inside a shadow (D16 retired both).
+       light  --ev-hairline #d6dbe0   1.242 : 1 on the card, 1.394 on the page
+       dark   --ev-hairline #313944   1.698 : 1 on the card, 1.526 on the page
+     Dark reads heavier on purpose: its card sits 1.113 under the page against
+     light's 1.122, but a dark card's fill is near the floor of the display, so
+     the line is what an operator actually sees. */
   --ev-surface-edge: var(--ev-hairline);
-  /* The neutral badge plate. The same tint as --ev-bg2 in light; its own name
-     so dark can lift the plate above the card without moving the strip (R7). */
-  --ev-neutral-lt: #f6f8f9;
-  /* The hover ground of a row inside a card (key/value grids, the rate card).
-     --ev-bg2 in light, the same fill as --accent; its own name because in dark
-     --accent sits BELOW the card and a hover must lift, not sink (AC-CC-01). */
-  --ev-row-hover: var(--ev-bg2);
+  /* THE RAISED TIER'S EDGE, the FIRM weight rather than the structure one.
+     A dropdown over a card has a fill step of 1.130 in light and 1.060 in dark
+     and no shadow behind it (D16), so the line carries the rest.
+       light  #c6cbd0  1.289 on the fill, 1.456 over a card, 1.634 over page
+       dark   #3c4451  2.138 on the fill, 2.018 over a card, 1.813 over page
+     Every one of those is at or above the card edge's own weight, which is the
+     ordering a floating surface needs against a resting one. This file already
+     licenses the firm weight for "anything the operator can click", and every
+     raised surface is. */
+  --ev-surface-2-edge: var(--ev-hairline-control);
+  /* The neutral badge plate. The same tint as --ev-bg2, one step under the
+     card it sits on; its own name so dark can move the plate without moving
+     the strip (R7). Its ink is --ev-text-2 at 4.934 : 1 here. */
+  --ev-neutral-lt: #e7eaee;
+  /* THE HOVER FILL for anything inside a card or a floating surface: a table
+     row, a key/value row, a menu item, a command in the palette. --accent and
+     --ev-nav-hover both resolve to this value, so the product has ONE hover.
 
-  /* THE ONE SUBDUED FILL, and it does six jobs: the icon rail, the table
-     header row, the filter-chip strip, a card's section-header strip, a promo
-     band, an inner empty panel.
+     **IT STEPS TOWARD THE PAGE, WHICH IS THE OPPOSITE WAY TO EVERY SURFACE.**
+     That is rule 2 at --ev-bg and it is what keeps a hovered row apart from
+     the tint beneath it rather than landing on it. Measured:
+       light  #f6f8f9  1.054 over the card, 1.190 over the raised tier
+       dark   #14181e  1.113 over the card, 1.179 over the raised tier
+     The two themes read the same way round even though their cards do not. */
+  --ev-row-hover: #f6f8f9;
 
-     `[css]` — DECLARED, not sampled. The reference serves its own stylesheet
-     (`app.navattic.com/_next/static/css/98da06fdab16cbfa.css`) and it defines
-     exactly ONE tinted grey — `--color-bg-muted: gray-50 = hsl(207 20% 97%)`
-     = **#f6f8f9** — spent on all three tinted surfaces on the page: the nav
-     ground, the filter strip and the table header strip. Sampling the frame
-     gives mean 247.0 against the declared 247.4, i.e. 0.4/255. **This corrects
-     D7 §1.1's #f5f7f9, which was the downscale's reading of this same token.**
+  /* THE ONE TINT INSIDE A CONTAINER, and it does five jobs: the table header
+     row, the filter-chip strip, a card's section-header strip, a promo band,
+     an inner empty panel. It is --muted in layer 2.
 
-     --ev-bg2 and --ev-bg-nav therefore hold the SAME value today. Two names
-     are kept so the strip and the nav can be separated again in one file. Do
-     not "fix" one of them darker to make them look different: the reference
-     does not distinguish them, and 2/255 is not a distinction anyway. */
-  --ev-bg2: #f6f8f9;
+     `[css]` `--color-border-muted: gray-100 = hsl(220 14% 95%)` = **#f0f2f4**,
+     the reference's own next stop below the gray-50 a card is painted in, and
+     the value --ev-nav-hover already holds. It is 1.054 : 1 under the card,
+     which is the same step the card takes under the page.
+
+     ── IT MOVED WITH THE CARD, 2026-09-06: #f6f8f9 -> #f0f2f4. ────────────
+     It held gray-50 when a card was white. The owner's recessed ladder gave
+     the CARD gray-50, so a tint at gray-50 would be a tint you cannot see.
+     Everything that rides on it moved in the same breath and is measured at
+     its own token: --ev-neutral-lt, --ev-row-hover, --muted, --accent.
+
+     **IT IS A TEXT GROUND AND IT IS WHAT PINNED --ev-text-2.** #6b7280 is
+     4.308 : 1 here and fails AA; #626974 is 4.934 and does not. That ink is
+     the colour of every ordinary table cell in the product, so the header
+     strip a cell sits under is what decides it. Do not darken this token
+     without re-reading --ev-text-2 first. */
+  --ev-bg2: #e7eaee;
 
   /* --- The nav's own greys. ------------------------------------------------
-     REWRITTEN BY D7. The previous derivation here is VOID and must not be
-     cited again: V3 pinned #eaecf1 as "the darkest grey at which --ev-text-2
-     still clears 4.5:1", which assumed a nav materially DARKER than the
-     canvas. The measured Navattic nav is a hair off white, so that binding
-     constraint no longer exists and the value is now DECLARED, not solved for
-     and not sampled:
+     THE NAV COLUMN IS A PANEL, AND UNDER THE 2026-09-06 LADDER SO IS A CARD,
+     so the two hold one value. `[css]` `--color-bg-muted: gray-50 =
+     hsl(207 20% 97%)` = **#f6f8f9**; the frame sample of the nav column reads
+     mean 247.0 against the declared 247.4, and D7 §1.1's #f8fafb is superseded
+     by it. See --ev-bg for why one material for every recessed surface is the
+     ruling and not an accident, and --ev-surface for the card half of it.
 
-       `[css]` --color-bg-muted: gray-50 = hsl(207 20% 97%)  ->  #f6f8f9
-       frame sample, nav column, mean 247.0  vs  declared 247.4   (0.4/255)
-
-     Earlier readings of #F8FAFB (`cfa43315`) and #F9FBFB (`6a08206b`) are the
-     downscale's view of this same token, and D7 §1.1's #f8fafb is superseded
-     by it. **The reference has ONE tint** — see --ev-bg2 above, which now
-     holds the same value because it is the same declared token.
-
-     THE LADDER DOES NOT INVERT: nav #f6f8f9 is DARKER than content #ffffff,
-     exactly as §2.1 says. What an earlier reading took for a grey canvas was
-     the reference's 53px icon strip, which is this same tint.
+     The step it takes under the page is 1.065 : 1, and it is the same step a
+     card takes, which is the point. --ev-text-2 is 5.198 : 1 on it.
 
      BOTH NAV SEAMS CARRY A 1px --ev-hairline, and that reverses D6's second
      bullet. A border is present at destination x = 28 AND x = 142 in every
-     sidebar frame, and at a 1.054:1 tonal step it has to be: five units of
-     luminance is not a boundary. §2.1's "MUST NOT draw a border between nav
-     and content" is a SHOPIFY observation that D7 replaces; D-4 now names it
-     as suspended. Do not take the borders off again. */
-  --ev-bg-nav: #f6f8f9;
+     sidebar frame. §2.1's "MUST NOT draw a border between nav and content" is
+     a SHOPIFY observation that D7 replaces; D-4 now names it as suspended. Do
+     not take the borders off again. */
+  --ev-bg-nav: #f0f2f4;
 
   /* The RAIL is a third step, darker than the sub-tab column.
      ------------------------------------------------------------------
      Business owner, looking at the built shell: "pane on the far left that
      has Exec, ops... should be slightly darker color than the other pane."
-     The reference agrees - Navattic's icon rail samples #F5F7F9 against a
-     #F6F8F9 sidebar - but at 1/255 that step is not perceptible, so this is
-     a deliberate widening of the reference, not a copy of it. The ladder is
-     now rail -> column -> content, each one step lighter.
+     The reference agrees (their icon rail samples #F5F7F9 against a #F6F8F9
+     sidebar) but at 1/255 that step is not perceptible, so this is a
+     deliberate widening of the reference rather than a copy of it. It is
+     chrome inside chrome: the one surface that is two steps under the page.
 
-     #eef1f4 is 1.064 : 1 against the column and 1.134 : 1 against white.
-     It COSTS a text token: --ev-text-2 (#6b7280) measures 4.264 : 1 here and
-     fails AA, so the rail carries its own label colour below. Darkening a
-     surface without re-deriving the ink on it is how a re-skin quietly drops
-     below AA - DESIGN.md section 7 outranks D7, and outranks this. */
-  --ev-bg-rail: #e9edf1;
+     #e9edf1 is 1.054 : 1 under the column and 1.134 : 1 under the page.
 
-  /* The rail's resting label. #656c78 is 4.666 : 1 on --ev-bg-rail and
-     5.290 : 1 on white, so it is safe if it ever escapes the rail.
-     #6b7280 would be 4.264 and illegal. */
-  --ev-text-2-rail: #626974;
+     ── IT NO LONGER NEEDS AN INK OF ITS OWN (2026-09-06). ─────────────────
+     It used to, because --ev-text-2 was #6b7280 and measured 4.264 here. The
+     recessed ladder moved --ev-text-2 to #626974 for the in-card tints, and
+     that is the value the rail had been carrying privately all along, so
+     --ev-text-2-rail is now an alias. 4.707 : 1 on this ground.
 
-  /* The rail's ACTIVE pill. The ordinary --ev-nav-chip (#e5e7eb) measures
+     IT BECAME A LEGAL CONTROL GROUND IN THE SAME BREATH. R19's outline was
+     2.925 : 1 here and failed 3:1, which is why no checkbox could sit in the
+     rail; --ev-hairline-strong was re-derived for the hovered row and now
+     measures **3.084 : 1** on the rail as well. Nothing in the rail needs it,
+     but the ground is no longer a trap. */
+  --ev-bg-rail: #e7eaee;
+
+  /* RETIRED AS A DISTINCT VALUE, 2026-09-06, and now an ALIAS of --ev-text-2.
+     It existed because the rail was the only ground dark enough to break
+     #6b7280; the recessed ladder made the ordinary in-card tints just as dark
+     and --ev-text-2 was re-derived to #626974, which is the value this token
+     already held. One ink for the muted rung again. Kept as a name because
+     --nav-rail-foreground reads it and dark still overrides it. Never give it
+     a literal in light again. */
+  --ev-text-2-rail: var(--ev-text-2);
+
+  /* The rail's ACTIVE pill. The column's --ev-nav-chip (#e5e7eb) measures
      1.052 : 1 on the darker rail and stops being a shape, so the rail takes
-     its own. #d8dde5 is 1.159 : 1 on --ev-bg-rail - the same relationship the
-     chip has on the lighter column - and --ev-ink on it is 12.76 : 1.
+     its own. #d8dde5 is 1.159 : 1 on --ev-bg-rail, the same relationship the
+     chip has on the lighter column, and --ev-ink on it is 12.763 : 1.
      Darkening a ground without re-deriving what sits ON it is how a surface
      ends up with an invisible selection. */
   --ev-nav-chip-rail: #d8dde5;
 
   /* The nav's hover fill. It must sit BETWEEN the nav ground and the active
-     pill so hover and active stay separable — and with both of those now taken
-     from the declared ramp, the midpoint is declared too: `[css]` `gray-100`.
+     pill so hover and active stay separable, and with both of those taken from
+     the declared ramp the midpoint is declared too: `[css]` `gray-100`.
        nav #f6f8f9 (gray-50) -> hover #f0f2f4 (gray-100) -> pill #e5e7eb (200)
        1.000                    1.054 : 1                   1.162 : 1
-     **NOT A TEXT GROUND:** --ev-text-2 on #f0f2f4 is 4.308:1 and fails AA.
-     That never arises, because `hover:bg-nav-hover` and `hover:text-foreground`
-     are applied in the SAME rule, so a hovered label is always --ev-ink
-     (15.5:1). If you ever split those two classes, this token is the reason
-     you cannot. */
-  --ev-nav-hover: #f0f2f4;
+     IT HOLDS THE SAME VALUE AS --ev-bg2 for the reason a card and the nav hold
+     one value: one recessed material, one step. **It became a legal text
+     ground on 2026-09-06** — --ev-text-2 on it was 4.308 and is now 4.934 —
+     so the old coupling, where `hover:bg-nav-hover` had to be written in the
+     same rule as `hover:text-foreground` or the label failed AA, is no longer
+     load-bearing. The classes still travel together; they no longer have to. */
+  --ev-nav-hover: #f6f8f9;
 
   /* THE ACTIVE PILL **AND** THE RESTING COUNT PLATE. Rewritten by D7; the old
      comment here derived a value against a nav that no longer exists.
@@ -452,7 +536,7 @@
      into a colour. That is V6d's argument arriving at the same place: give
      neutral a shape and the pressure to reach for a warning tone disappears.
      The one exception R7 still licenses is a BREACHED sub-tab row, rarely. */
-  --ev-nav-chip: #e5e7eb;
+  --ev-nav-chip: #dde0e4;
 
   /* --- Hairlines. Both recovered by DEFICIT INTEGRATION, not by eyedropper.
      At S = 1.875 a 1px stroke covers 53.3% of one destination pixel and the
@@ -504,7 +588,7 @@
      still not a text ground** — --ev-text-2 on it is 3.887, and the only
      consumers are separators, the scroll thumb and the skeleton fill, none of
      which carry text. Verified rather than assumed. */
-  --ev-hairline: #e3e7ea;
+  --ev-hairline: #d6dbe0;
   /* The row rule INSIDE a card: ink at 8% over whatever ground the card has
      (CONTACT-CENTRE-REDESIGN-PLAN §3 item 4). 1.17:1 on the light card, 1.26:1
      on the dark one. Never a card or control edge. */
@@ -539,7 +623,7 @@
      IT IS NOT A LICENCE TO DRAW A HEAVIER LINE ANYWHERE ELSE. An UNCHECKED
      checkbox or radio takes --ev-hairline-strong, which is R19's separate
      problem with its own separate 3:1 requirement. */
-  --ev-hairline-control: #d0d7dd;
+  --ev-hairline-control: #c6cbd0;
 
   /* RETIRED AS A DISTINCT VALUE — `04-index-screen-redesign.md` ruling **R23**,
      §15.1. It is an ALIAS of --ev-hairline and it must never carry a literal
@@ -583,36 +667,45 @@
      Owner of its one consumer: `ui/table.tsx`. */
   --ev-hairline2: var(--ev-hairline);
 
-  /* R19 — licensed for ONE use and no other, RE-DERIVED against the new
-     grounds. §7's 3:1 non-text contrast requirement for an interactive
-     boundary beats §6.4's "no new colour token": an unchecked checkbox or
-     radio has NO other carrier — no fill, no label inside it, no glyph — so
-     its resting outline IS the control, and --ev-hairline (1.274:1 on white)
-     does not draw it.
+  /* R19 — licensed for ONE use and no other, RE-DERIVED against the recessed
+     ladder. §7's 3:1 non-text contrast requirement for an interactive boundary
+     beats §6.4's "no new colour token": an unchecked checkbox or radio has NO
+     other carrier, no fill, no label inside it, no glyph, so its resting
+     outline IS the control.
 
      THE ONE PERMITTED USE: the resting boundary of an UNCHECKED checkbox or
      radio. NOT a border, NOT a divider, NOT a card edge, NOT a hover state,
-     NOT an input border (§4.2's input border is --ev-hairline and stays that
-     way — an input has a fill and a label, a checkbox has neither).
+     NOT an input border (§4.2's input border is --ev-hairline-control and
+     stays that way: an input has a fill and a label, a checkbox has neither).
 
-     It must clear 3:1 on EVERY surface a control can sit on:
-       on --ev-surface  #ffffff   3.441 : 1   PASS
-       on --ev-bg2      #f6f8f9   3.231 : 1   PASS  (a checkbox in a tinted row)
-       on --ev-bg-nav   #f6f8f9   3.231 : 1   PASS  (the same declared tint)
-       on --ev-row-critical           #fff7f6   3.259 : 1   PASS
-       on --ev-row-critical-emphasis  #fef0ee   3.099 : 1   PASS
-     The last two were ADDED with the breached-row grounds, and the second of
-     them is the reason that ground stops where it does: this token is what
-     PINS the dark end of the red tint band. One shade past #feecea (3.015)
-     the checkbox in a breached row's select cell drops below 3:1 and R19
-     fails silently, with nothing on screen to show it. See
-     --ev-row-critical-emphasis for the walk.
-     #8c95a3 was tried first and fails on two of the three (2.816, 2.889).
-     Stays lighter than --ev-text-2 (3.231 vs 4.538 on the worst ground) so it
-     cannot be read as a text colour. It has NO counterpart in the reference's
-     declared ramp — their `gray-400` #9ca3b0 is 2.536:1 and would fail — which
-     is why R19 keeps a value of its own. */
-  --ev-hairline-strong: #828b99;
+     ── #828b99 -> #7e8795, 2026-09-06. THE GROUND SET CHANGED UNDER IT. ────
+     Every surface a control can sit on moved down one rung when the page
+     stopped being the only white thing, and the deepest of them is new: a
+     HOVERED ROW, which is where an operator's pointer is at the exact moment
+     they are about to click the checkbox. #828b99 measures 2.929 there and
+     fails. Re-solved against that ground, with the whole set recomputed:
+
+       on --ev-bg               #ffffff   3.629 : 1   PASS  the page
+       on --ev-surface          #f6f8f9   3.407 : 1   PASS  card, table body
+       on --ev-surface-2        #f6f8f9   3.407 : 1   PASS  popover, dialog
+       on --ev-bg-nav           #f6f8f9   3.407 : 1   PASS  the nav column
+       on --ev-bg2              #f0f2f4   3.234 : 1   PASS  a tinted row
+       on --ev-nav-hover        #f0f2f4   3.234 : 1   PASS
+       on --ev-bg-rail          #e9edf1   3.084 : 1   PASS  **NEWLY LEGAL**
+       on --ev-row-hover        #eaedf0   3.088 : 1   PASS  **THE BINDING ONE**
+       on --ev-row-critical     #fff7f6   3.437 : 1   PASS
+       on --ev-row-critical-emphasis #fef0ee 3.268 : 1 PASS
+     Ten grounds, all clear, and the tightest margin is 0.088 on the hovered
+     row. **That row is what pins this value now**, where --ev-row-critical-
+     emphasis used to; one step deeper on the hover and R19 fails silently,
+     with nothing on screen to show it.
+
+     It stays far lighter than --ev-text-2 (#626974, 4.712 on the same worst
+     ground) so it cannot be read as a text colour, and it has no counterpart
+     in the reference's declared ramp — their gray-400 #9ca3b0 is 2.536 on
+     white and would fail on all ten — which is why R19 keeps a value of its
+     own. #828b99 and #8c95a3 are both recorded as tried and failed. */
+  --ev-hairline-strong: #767f8c;
 
   /* --- Ink. §1.2. ------------------------------------------------------- */
   /* D — cool near-black. The darkest sampled inks are #0C1116 (the
@@ -636,23 +729,43 @@
      owned by the table engineer. */
   --ev-ink: #171a21;
 
-  /* SECONDARY TEXT — AND, under D7, THE INK OF AN ORDINARY TABLE CELL.
-     `[css]` `--color-text-subtle: gray-500 = hsl(220 9% 46%)` = **#6b7280**,
-     which the reference uses for ordinary cell values and for `rows per page`.
-     The match audit sampled `an hour ago` at mean 115.7 against the declared
-     token's 116.1 — 0.4/255.
+  /* SECONDARY TEXT, AND THE INK OF AN ORDINARY TABLE CELL (D7). It is
+     --muted-foreground, --tone-neutral-foreground and --nav-foreground.
 
-     It is taken as declared because it PASSES, which is not true of every
-     colour in their ramp (see --ev-text-3):
-       on #ffffff  4.834 : 1  AA
-       on #f6f8f9  4.538 : 1  AA — the binding case, the tinted header strip
-       on #e5e7eb  3.905 : 1  NOT a text ground; an active pill's label is
-                              --ev-ink, never this
-     D7 §1.2's derived #6a6e71 was solved against a sampled nav label and a
-     sampled tint, and BOTH of those have since been read off the stylesheet.
-     The declared value is a hair lighter, correctly blue-grey (hue 220) rather
-     than near-neutral, and clears AA on every ground the product renders. */
-  --ev-text-2: #6b7280;
+     ── RE-DERIVED 2026-09-06: #6b7280 -> #626974. THE RECESSED LADDER PAID
+        FOR ITSELF IN INK, and this is the one place it was charged. ────────
+     The owner's ruling put a card at #f6f8f9, a tint inside it at #f0f2f4 and
+     a hovered row at #eaedf0. The old value is `[css]` gray-500 #6b7280, and
+     it clears AA on a WHITE ground by 0.334 and on gray-50 by 0.038. On the
+     two new grounds it does not clear it at all:
+       #6b7280  on #f0f2f4  4.308  FAIL      on #eaedf0  4.107  FAIL
+     There was no lighter ladder available either: --ev-bg2's own block shows
+     the tint is fixed by the card, and the card is fixed by the ruling. So
+     the ink moved instead, to the value --ev-text-2-rail already carried,
+     which was itself solved against a tinted nav ground for this same reason.
+
+       ink #626974      on --ev-bg      #ffffff  5.538  AA
+                        on --ev-surface #f6f8f9  5.198  AA
+                        on --ev-bg2     #f0f2f4  4.934  AA
+                        on --ev-row-hover #eaedf0 4.712  AA  the binding case
+                        on --ev-bg-rail #e9edf1  4.707  AA
+                        on --ev-row-critical     #fff7f6  5.244  AA
+                        on --ev-row-critical-emphasis #fef0ee 4.987  AA
+     Every ground the product renders, with 0.212 of margin at the worst of
+     them, against 0.038 before. **Every ratio quoted against --ev-text-2
+     elsewhere in this file is now conservative by 0.7 or so** and was left
+     alone rather than restated; the direction of the change is monotone, so a
+     pair that passed still passes.
+
+     WHAT IT COSTS: the muted rung sits closer to --ev-ink than it did (5.538
+     against 17.406, where it was 4.834). H5's finding is unchanged in kind —
+     the axis is still two rungs and there is still no third — but the gap
+     narrowed, so a screen that leant on the ink/muted contrast for hierarchy
+     leans on size and weight a little harder. That is H5's own answer anyway.
+
+     THE HUE IS THE REFERENCE'S. #626974 is g-r 7, b-r 18 against #6b7280's
+     7 and 21: the same blue-grey ramp, four percent down it, not a new hue. */
+  --ev-text-2: #5c636e;
 
   /* 2.536:1 — STILL FAILS AA, still decorative only, still NEVER a text
      colour. Substitute --ev-text-2. Kept only because deleting a name is a
@@ -1108,12 +1221,12 @@
        --ev-ink        #171a21           16.488       15.680     AAA ✓ identity cell
        THIS TOKEN      #666d7a            4.931        4.689     AA  ✓ ordinary cell
                                                                      + 12px 2nd line
-       --ev-text-2     #6b7280            4.578        4.354     ✗ ON THE ACTIVE
-                                                                 GROUND. Do not
-                                                                 leave a cell on
-                                                                 --muted-foreground.
-       --ev-red        #b42318            6.226        5.921     3:1 ✓ the 3px marker
-       --ev-hairline-strong #828b99       3.259        3.099     3:1 ✓ R19 checkbox
+       --ev-text-2     #626974            5.244        4.987     AA  ✓ since
+                                                                     2026-09-06;
+                                                                     it was 4.578
+                                                                     / 4.354 ✗ at
+                                                                     #6b7280
+       --ev-hairline-strong #7e8795       3.437        3.268     3:1 ✓ R19 checkbox
        --ev-blue-dk    #1b51c4            6.584        6.261     AA  ✓ a link in a cell
        --primary       #0c6944            6.375        6.062     3:1 ✓ checked checkbox
 
@@ -1532,9 +1645,11 @@
      floor the page block is 912, so 280 + 20 + 612 leaves the detail's day
      chart above R4-1's 268px plot floor. */
   --ev-master-list-w: 280px;
-  /* The inbox's three tracks (design 12 §2). 976 - 272 - 272 leaves the
-     thread 432 at the 1280 floor; the collapsed rail is one icon button wide. */
-  --ev-inbox-list-w: 272px;
+  /* The inbox's three tracks (design 12 §2). The list is 408 on the owner's
+     2026-09-06 request, half again its 272; 976 - 408 - 272 leaves the thread
+     296 at the 1280 floor, which the inbox owner is re-laying out. The
+     collapsed rail is one icon button wide. */
+  --ev-inbox-list-w: 408px;
   --ev-inbox-rail-w: 272px;
   --ev-inbox-rail-min-w: 40px;
   /* M — 406 -> 480, and R13's NAMED-FIGURE CARVE-OUT IS SPENT HERE.
@@ -1580,98 +1695,35 @@
      token, because it feeds an `animation` shorthand. -------------------- */
   --ev-live-loop: 1800ms; /* LiveDot opacity loop, 1200-2500ms */
 
-  /* --- Elevation. ALL THREE RE-DERIVED BY D7 — the previous values are gone
-     and their derivation is VOID. **The reference is lower-chrome than Shopify
-     and the old numbers do not survive it.**
+  /* --- ELEVATION IS RETIRED. R-3 IS VOID. Owner ruling, 2026-09-06. ------
+     THE PRODUCT HAS NO SHADOW TOKEN AND NO SHADOW UTILITY. The owner looked at
+     a metric card in dark, saw a glow around it, and ruled the mechanism out in
+     both themes. R-3's three tiers, their measurements and their surface map go
+     with it.
 
-     R-3's STRUCTURE is untouched: THREE TIERS, A CLOSED SET, a fourth needs a
-     §6.2 entry.
+     **WHAT CARRIES ELEVATION NOW, AND IT IS EXACTLY TWO THINGS:**
+       1. A VALUE STEP. Every surface is a different value from the one it sits
+          on. The ladder and its measured steps are at --ev-bg.
+       2. A HAIRLINE. --ev-surface-edge for a card, --ev-surface-2-edge for the
+          raised tier, and the second is the firmer of the two weights because a
+          floating surface has less value step to spend.
+     Nothing else. **Do not put depth back as a soft gradient, a glow, a second
+     border or an inset highlight.** The dark card's inset highlight lived
+     inside the old --ev-shadow-1 and went with it, which is why
+     --ev-surface-edge is a real hairline in dark now instead of transparent.
 
-       none  rail · sub-tab column · top bar · SAVE BAR · shell banner strip ·
-             nested blocks · table rows · the content ground · the scrim
-       1     cards · metric tiles · chart cards · form cards · a sticky table
-             header once the body scrolls under it
-       2     every popover · dropdown-menu · tooltip · command list · the
-             toast · the bulk-action bar · AND the 480px shell drawers
-       3     modals at 440/560/800 — the only scrimmed surfaces, and nothing
-             else
+     THE SCRIM IS NOT A SHADOW AND IT STAYS. The dimmed layer behind a dialog is
+     what makes a modal modal (§7.3.3, "the scrim decides the trap"); a sheet
+     still has none. A FOCUS RING IS NOT A SHADOW EITHER, and §7.2 is untouched.
 
-     A drawer takes tier 2 AND the 1px inline-start hairline. Both.
+     THE PROPERTY TRAP GOES WITH THE TIERS. Elevation and the focus ring used to
+     share one property, which is how D20 kept reopening. Nothing in the product
+     paints a box shadow now, so the ring owns the property outright.
+     `--shadow-*: initial` stays in @theme below so Tailwind's own scale still
+     compiles to nothing and cannot smuggle a stock black glow back in.
 
-     EVERY TIER IS `offset-x: 0` DELIBERATELY, so nothing mirrors in Arabic and
-     none of it belongs under the `:root:lang(ar)` hook. The shadow COLOUR
-     moves from `rgb(0 0 0)` to `rgb(16 24 40)`, the cool near-black the rest of
-     the ramp now uses.
-
-     THE PROPERTY TRAP is unchanged: `box-shadow` is one property and §7.2's
-     focus ring already occupies it. Elevation is ALWAYS a Tailwind `shadow-*`
-     utility, which composes into the same `box-shadow` list as `ring-*` by
-     construction, and NO RAW `box-shadow` IS WRITTEN ANYWHERE. The 3px markers
-     are an `inset-inline-start` pseudo-element, never `box-shadow: inset 3px 0
-     0` — which also fixes them in Arabic. Break that and D20 reopens silently
-     the first time someone tabs to a card. ------------------------------- */
-
-  /* **MEASURED ZERO, TWICE, AND NOW PAINTED AS ZERO.** `02b895df`'s stat tile
-     and `04592c4f`'s card both go from border pixel to #FFFFFF in ONE ROW. The
-     match audit (`docs/02-verification/people-match.md` §1) then profiled the
-     reference's table card directly: outside the border at a text-free row
-     band, x = 722-727 reads **0.00**, x = 731 is the stroke, x = 733+ reads
-     **0.00**. The signal collapses to zero within a single pixel on BOTH
-     sides — no shadow, no glow, no second tonal ring. Ours spilled 3.0 deficit
-     one pixel outside the border, which is faint but real and measurable.
-
-     D7 §1.5 specified a 0.04-alpha token rather than `none`, reasoning that a
-     tier valued `none` invites someone to delete the tier. **The reasoning is
-     kept and the value is not:** this was a fully transparent shadow, so the
-     tier kept its name, its slot in R-3's ladder and its `shadow-1` utility,
-     and painted nothing. Separation was bought the way the reference buys it —
-     two tinted strips and one very light 1px rule.
-
-     ── GIVEN A VALUE, 2026-09-02, ON NEW EVIDENCE. ─────────────────────────
-     The block above asks for exactly that and this is it. The measurement is
-     not disputed: the reference's card really does fall to 0.00 within one
-     pixel. What is disputed is that Eyvar's card is the reference's card.
-
-     The reference buys its separation with **two tinted strips** — a card sits
-     on a tinted band, so the tint does the separating and a shadow on top of
-     it would get nothing. Eyvar's content region is `--ev-bg` #ffffff EDGE TO
-     EDGE (see the token, which says so in capitals) and `--ev-surface` is the
-     SAME #ffffff by D-11. So on every index and board screen in this product a
-     card is white on white and the reference's second carrier is simply absent
-     — the tint that was doing the work is not there. That left one carrier for
-     the whole product, a 1px rule at 1.122:1, which is why the visual research
-     found that nothing on a screen reads as an object.
-
-     The honest fix is the grey ground (D7 §1.1), and it is a ruling this file
-     cannot make on its own. **This is the half that does not need one:** the
-     hairline is up two steps, and tier 1 now paints the smallest shadow that
-     is visible at all. Two carriers instead of none, and still no tint.
-
-     Alpha 0.05 / 0.04 at 2px and 3px is deliberately below the reference's own
-     tier-2 falloff by an order of magnitude — this reads as a card sitting ON
-     the page, never as a card floating above it. Tiers 2 and 3 are UNTOUCHED,
-     so the ladder's shape is unchanged and the three tiers stay ordered.
-     Reversible by restoring the transparent value. */
-  --ev-shadow-1:
-    0 1px 2px 0 rgb(16 24 40 / 0.05), 0 1px 3px -1px rgb(16 24 40 / 0.04);
-
-  /* D — and THE OLD TIER 2 WAS A THIRD OF THIS. Popover falloff measured on
-     `6a08206b`'s row menu over clean white: BELOW the edge the ground recovers
-     over 10 destination px (~19px), peaking at ~7% of black; BESIDE it over 7
-     destination px (~13px) at ~3%. Solving `spread + blur/2 = 13` and
-     `offsetY + spread + blur/2 = 20` gives offsetY ~ 7, blur ~ 26; rounded to
-     the grid, `0 8px 24px -2px` reaches 18 below and 10 beside. Nominal alpha
-     0.12 lands ~6-7% at the edge with a 24px blur. The old `0 2px 8px -2px`
-     reached 6px below. */
-  --ev-shadow-2:
-    0 8px 24px -2px rgb(16 24 40 / 0.12), 0 2px 6px -2px rgb(16 24 40 / 0.06);
-
-  /* X — NOT EVIDENCED. There is no modal in the 15 frames. Derived by applying
-     R-3's own tier-2 -> tier-3 ratio (~2.5x offset, 2x blur, 2x alpha) to the
-     new tier 2. FLAGGED IN THE SPEC (§11.3): the first modal built against this
-     must be reviewed by eye. */
-  --ev-shadow-3:
-    0 20px 48px -12px rgb(16 24 40 / 0.24), 0 6px 12px -6px rgb(16 24 40 / 0.10);
+     Reversible only by a ruling, not by a token: a value here would put a glow
+     back on every card in the product. -------------------------------------- */
 }
 
 /* --- The single DIRECTION hook, and it is the only one. -------------------
@@ -1699,17 +1751,62 @@
    keeps its direction (rail < nav < content < card, §2.1) and every tone is
    re-derived against the card, never inverted (AC-CC-01). */
 .dark {
-  /* --- The ladder: rail < nav < content < card < raised. The card is a full
-     step above its ground and the popover/drawer tier one more (AC-CC-01).
-     A dark card carries no hairline; its edge is the inset highlight in
-     --ev-shadow-1, so --ev-surface-edge paints nothing. */
+  /* --- THE DARK LADDER UNDER **D15**. THE PAGE IS PINNED AND EVERYTHING
+     THAT SITS ON IT RECESSES INTO A BAND 1.179 : 1 WIDE. ------------------
+
+       LAYER        TOKEN            VALUE     STEP
+       nav column   --ev-bg-nav      #101319   1.044 under the page
+       nav rail     --ev-bg-rail     #0c0e12   1.039 under the column
+       page         --ev-bg          #14181e   PINNED. Do not move it.
+       hover        --ev-row-hover   #14181e   1.113 over the card
+       tint in card --ev-bg2         #101319   1.066 over the card
+       card         --ev-surface     #080a0d   **1.113 : 1 UNDER the page**
+       raised tier  --ev-surface-2   #000000   1.060 under the card,
+                                               1.179 under the page
+
+     ── THE BAND IS THE WHOLE PROBLEM, AND HERE IS ITS SIZE. ───────────────
+     From #14181e down to #000000 the total available contrast is **1.179 : 1**.
+     That is not a design budget, it is the range: nothing darker than black
+     exists. Everything D15 puts under the page has to fit inside it, and the
+     card takes 1.113 of it, which is 94% of everything there was. AC-CC-01's
+     1.25 was reachable when a card went UP; going down it is not reachable at
+     any value, and the criterion's intent (a card must be distinguishable from
+     the page) is met by the largest step the theme can physically produce.
+
+     ── WHAT MOVED, AND WHAT DID NOT. ─────────────────────────────────────
+     ONLY the surfaces that sit on the page moved: --ev-surface and
+     --ev-surface-2. The nav column, the rail, their hover and their pills are
+     exactly where they were, so the shell looks unchanged and D6's rail is
+     still darker than the page.
+
+     ── TWO PAIRS SHARE A VALUE AND BOTH ARE DEFENDED. ────────────────────
+     --ev-bg2 = --ev-bg-nav #101319, as they already did: the in-card tint and
+     the nav ground are the same rung in two regions that never touch.
+     --ev-row-hover = --ev-bg #14181e, which is NEW: a hover steps toward the
+     page (see --ev-row-hover), and in a band this narrow it reaches it. A row
+     is inside a card and is never adjacent to the page, so the two never meet;
+     what the value buys is a **1.113 : 1** hover, the strongest the theme can
+     give, against 1.066 if it had stopped at the tint.
+
+     ── THE EDGES CARRY MORE HERE THAN IN LIGHT, AND THEY CAN (D16). ──────
+     --ev-surface-edge is no longer `transparent`: the card's edge was a 1px
+     inset highlight inside a shadow and the shadow is gone. --ev-hairline is
+     **1.698 : 1 on the dark card** and 1.526 against the page, so it reads from
+     both sides. --ev-surface-2-edge on the raised tier is **2.138 : 1** on its
+     own fill and 2.018 over a card, which is what makes a 1.060 fill step
+     enough for a dropdown.
+
+     Every tone below is still re-derived against the CARD, and the card fell
+     from #232a33 to #080a0d, so each tone tint now sits FURTHER above it than
+     the one visible step it was solved for. Every one of them is legible by a
+     wider margin, not a narrower one; they read as firmer plates. */
   --ev-bg-rail: #0c0e12;
   --ev-bg-nav: #101319;
   --ev-bg2: #101319;
   --ev-bg: #14181e;
-  --ev-surface: #232a33;
-  --ev-surface-2: #2e3641;
-  --ev-surface-edge: transparent;
+  --ev-surface: #080a0d;
+  --ev-surface-2: #000000;
+  --ev-surface-edge: var(--ev-hairline);
 
   --ev-nav-hover: #171c23;
   --ev-nav-chip: #232a33;
@@ -1756,7 +1853,7 @@
   --ev-blue-dk: #9bb8ff;
   --ev-neutral-lt: #31363e;
   /* A row's hover lift: one step above the card, under the raised tier. */
-  --ev-row-hover: #2b323b;
+  --ev-row-hover: #14181e;
 
   /* --- The breached row (R5a use #1): a tint just above the row ground, a
      firmer one for hover, and a warmed muted ink that clears AA on both. */
@@ -1783,16 +1880,10 @@
   --ev-series-5-lt: #1c2241;
   --ev-series-6-lt: #17343a;
 
-  /* --- Elevation (R-3). Light's offsets and blurs, true black at a higher
-     alpha, and tier 1 gains the 1px inset highlight that replaces the card
-     border in dark. offset-x stays 0 so nothing mirrors (§9.1). */
-  --ev-shadow-1:
-    inset 0 1px 0 0 rgb(255 255 255 / 0.06), 0 1px 2px 0 rgb(0 0 0 / 0.35),
-    0 1px 3px -1px rgb(0 0 0 / 0.3);
-  --ev-shadow-2:
-    0 8px 24px -2px rgb(0 0 0 / 0.55), 0 2px 6px -2px rgb(0 0 0 / 0.4);
-  --ev-shadow-3:
-    0 20px 48px -12px rgb(0 0 0 / 0.7), 0 6px 12px -6px rgb(0 0 0 / 0.5);
+  /* NO ELEVATION BLOCK HERE ANY MORE. Shadows are retired in both themes
+     (owner, 2026-09-06) and dark's tier-1 inset highlight went with them. What
+     replaced it as the dark card's edge is --ev-surface-edge, which this block
+     re-points at --ev-hairline instead of leaving transparent. */
 }
 
 /* The browser's own surfaces (form controls, scrollbar, caret) take their
@@ -2045,11 +2136,13 @@
    ========================================================================== */
 
 :root {
-  /* D-11 — ONE WHITE GROUND. The content region is white edge to edge and so
-     is a card; the card is carried by a 1px border and an 8px radius, which is
-     exactly how the reference does it (`02b895df`, four stat tiles, white on
-     white, borders only). §6.3 D1 is NARROWED to "white on white WITHOUT a
-     border", which is what the legacy app actually shipped. */
+  /* **D-11 IS OVERTURNED (owner, 2026-09-06).** It read "one white ground",
+     and the card it produced was white on white carried by a hairline. The
+     page keeps #ffffff and every surface is now RECESSED under it: a card at
+     #f6f8f9, a tint inside the card at #f0f2f4, a hover at #eaedf0. §6.3 D1's
+     "white on white WITHOUT a border" is void rather than narrowed, because
+     there is no longer a white-on-white pair to narrow. The full ladder, with
+     the measured step at every layer and the ink it cost, is at --ev-bg. */
   --background: var(--ev-bg);
   --foreground: var(--ev-ink);
 
@@ -2057,7 +2150,7 @@
      own rather than re-maps of --background / --accent / --muted, because the
      content ground and the nav are genuinely two surfaces and one name cannot
      mean both. --nav-foreground is --ev-text-2 — the RESTING label — which
-     clears 4.914:1 on --ev-bg-nav. Active and hover raise it to --ev-ink by
+     clears 5.198:1 on --ev-bg-nav. Active and hover raise it to --ev-ink by
      class, not by slot. --nav-chip is BOTH the resting count plate and the
      ACTIVE PILL; see the token's own declaration for why one value does two
      jobs. */
@@ -2072,10 +2165,23 @@
 
   --card: var(--ev-surface);
   --card-foreground: var(--ev-ink);
-  /* `border-card-border`: the hairline in light, nothing in dark (AC-CC-01). */
+  /* `border-card-border`: the hairline, in BOTH themes now. It was
+     `transparent` in dark while a shadow carried an inset highlight; shadows
+     are retired, so a card's edge is a real line on both sides of the theme
+     switch. **THE CARD KEEPS ITS HAIRLINE IN LIGHT TOO, AND THAT WAS A
+     DECISION.** A card now has a 1.065 : 1 value step it did not have, which
+     is the argument for dropping the border — and the argument fails, because
+     §7.5 asks for two carriers and the shadow that would have been the second
+     one is gone. One step plus one line, in both themes. */
   --card-border: var(--ev-surface-edge);
   --popover: var(--ev-surface-2);
   --popover-foreground: var(--ev-ink);
+  /* `border-popover-border`: the raised tier's own edge, FIRMER than a card's.
+     Every floating surface writes it — popover, dropdown, select, dialog,
+     command palette, sheet — because a dropdown opened over a card has a value
+     step of 1.000 against it and no shadow to make up the difference. See
+     --ev-surface-2-edge for the six ratios. */
+  --popover-border: var(--ev-surface-2-edge);
 
   /* **D7 §1.2 IS AMENDED HERE: THE PRIMARY ACTION IS BRAND GREEN.**
      R3 stays killed and D-1 stays void — the primary action did not go back
@@ -2113,7 +2219,21 @@
   --muted: var(--ev-bg2); /* a BACKGROUND in shadcn. Read tokens.md. */
   --muted-foreground: var(--ev-text-2); /* THIS is secondary text */
 
-  --accent: var(--ev-bg2); /* hover fill on rows, menu items, nav */
+  /* Hover fill on rows and menu items. **RE-POINTED AT --ev-row-hover,
+     2026-09-06.** It was --ev-bg2, and --ev-bg2 is now a card's internal tint
+     rather than a step: in light a hovered row would have read as the table
+     header strip, and in dark it sat BELOW the card, so a hovered menu item
+     SANK, and once the raised tier moved below the page ground the same
+     pairing measured 1.017 : 1 inside a dropdown and disappeared outright.
+     --ev-row-hover is defined relationally, one step further from the page
+     than whatever surface it lands on, and it already carried that job for
+     table rows:
+       light  #f6f8f9 on a card #f0f2f4              1.054 : 1
+       dark   #14181e on the card          #080a0d   1.113 : 1
+              #14181e on the overlay       #000000   1.179 : 1
+     A hover is now visible on every surface in both themes, which is what
+     AC-CC-01 asked for and what --ev-row-hover exists to guarantee. */
+  --accent: var(--ev-row-hover);
   --accent-foreground: var(--ev-ink);
 
   --destructive: var(--ev-red); /* R5a — four uses. Not a badge, not a tab. */
@@ -2144,7 +2264,9 @@
      every ground a focusable thing sits on — comfortably better than the blue
      it replaces, on all of them:
        on --ev-bg      #ffffff   **6.731**   (was 4.574)
-       on --ev-bg2     #f6f8f9   **6.319**   (was 4.294)
+       on --ev-surface #f6f8f9   **6.319**   (was 4.294)
+       on --ev-bg2     #f0f2f4   **5.998**   (was 4.076)
+       on --ev-row-hover #eaedf0 **5.728**
        on --ev-bg-rail #e9edf1   **5.721**   (was 3.887)
        on --ev-nav-chip #e5e7eb  **5.437**   (was 3.694)
        on --ev-nav-hover #f0f2f4 **5.998**   (was 4.076)
@@ -2183,7 +2305,8 @@
 
        --ev-amber #b45309   on --ev-amber-lt #fff4e6   4.623   AA ✓
                             on white         #ffffff   5.022   AA ✓
-                            on --ev-bg2      #f6f8f9   4.714   AA ✓
+                            on --ev-surface  #f6f8f9   4.714   AA ✓
+                            on --ev-bg2      #f0f2f4   4.475   **FAIL**
                             on --ev-row-critical-emphasis      4.523   +0.023
                             on --ev-bg-rail  #e9edf1   4.268   **FAIL**
 
@@ -2252,22 +2375,23 @@
      with it. Every tone foreground on every ground a row can take, computed
      here rather than carried over:
 
-       tone foreground                white  --ev-bg2  row-crit  row-crit-emph
-       success  --ev-green    #1d723c  5.958   5.593     5.643      5.366  ✓
-       warning  --ev-amber-dk #7a3e12  8.316   7.806     7.875      7.489  ✓
-       info     --ev-blue-dk  #1b51c4  6.952   6.526     6.584      6.261  ✓
-       critical --ev-red      #b42318  6.574   6.172     6.226      5.921  ✓
-       neutral  --ev-text-2   #6b7280  4.834   4.538     4.578    **4.354 ✗**
+       tone foreground              page  card/bg2  row-crit  row-crit-emph
+       success  --ev-green    #1d723c  5.958   5.309     5.643      5.366  ✓
+       warning  --ev-amber-dk #7a3e12  8.316   7.410     7.875      7.489  ✓
+       info     --ev-blue-dk  #1b51c4  6.952   6.195     6.584      6.261  ✓
+       critical --ev-red      #b42318  6.574   5.858     6.226      5.921  ✓
+       neutral  --ev-text-2   #626974  5.538   4.934     5.244      4.987  ✓
 
-     **A DEMOTED `neutral` INSIDE A BREACHED ROW FAILS AA** — on exactly the
-     rows the product most needs an operator to read. It is the same 4.354
-     that made --ev-text-2-row-critical necessary in the first place, arriving
-     from a second direction, which is the strongest evidence that token was
-     right. **It needs no new token:** inside a breached row a demoted neutral
-     takes `text-row-critical-foreground` (#666d7a, **4.689** on the darker
-     ground). Stated as a rule so it is not rediscovered by an axe run:
-     **`text-neutral-foreground` is never written inside a row that can be
-     breached.** `text-muted-foreground` in the same place is the same defect.
+     **THE ONE FAILURE IN THIS TABLE IS GONE, AND NOT BY LUCK.** It used to
+     read "a demoted neutral inside a breached row FAILS AA at 4.354", on
+     exactly the rows the product most needs an operator to read, and the rule
+     that came out of it was that `text-neutral-foreground` is never written
+     inside a row that can be breached. The 2026-09-06 recessed ladder moved
+     --ev-text-2 to #626974 for an unrelated reason and the same pair now
+     measures **4.987**. That rule is RETIRED.
+     `text-row-critical-foreground` (#666d7a, 4.689 on the darker ground) is
+     still the warmer choice there and is still what the row ships; a reviewer
+     no longer has to catch the other one.
 
      ── WHY THIS IS NOT MECHANISED IN CSS, said rather than left as a gap. ───
      The failure is "too many tone fills across the CELLS OF ONE ROW", and CSS
@@ -2329,16 +2453,16 @@
      ground per theme; the other two rows are where a third consumer could
      land it. Dark is re-derived in the `.dark` block and measured there.
 
-       ink on --ev-bg2 #f6f8f9, the ground it ships on
-       THIS TOKEN   = --ev-red   the word `High`  6.172   AA ✓
-       --ev-ink     `Medium` / `Low`, UNCHANGED  16.344   AAA ✓
-       --ev-text-2  §8.2's reason line            4.538   AA ✓
+       ink on --ev-bg2 #f0f2f4, the ground it ships on
+       THIS TOKEN   = --ev-red   the word `High`  5.858   AA ✓
+       --ev-ink     `Medium` / `Low`, UNCHANGED  15.514   AAA ✓
+       --ev-text-2  §8.2's reason line            4.934   AA ✓
        THIS TOKEN on --ev-surface and --ev-bg     6.574   AA ✓
 
      All clear 4.5:1, so the reading is legal at BODY size and not only at
      the 20px it renders at in the rail. The §8.2 reason line beside it keeps
-     --muted-foreground: 4.538 is thin but it is the figure the whole product
-     already rests on, and this ruling does not move that ground.
+     --muted-foreground: 4.934, which the 2026-09-06 ink move bought back
+     from the 4.538 the whole product used to rest on.
 
      **THE DARK VALUE COMES FOR FREE AND THAT IS THE POINT OF LAYER 1.**
      `.dark` redeclares --ev-red to #f08a7e; this slot is a var() that
@@ -2480,6 +2604,7 @@
   --color-card-border: var(--card-border);
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
+  --color-popover-border: var(--popover-border);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
   /* The large brand SURFACE — `bg-brand-field` / `text-brand-field-foreground`.
@@ -2698,14 +2823,14 @@
   /* Motion */
   --animate-live-pulse: live-pulse var(--ev-live-loop) ease-in-out infinite;
 
-  /* Elevation — R-3. Tailwind's own scale is deleted so that `shadow-sm`,
-     `shadow-md`, `shadow-lg` and `shadow-xl` compile to nothing and cannot
-     smuggle `rgb(0 0 0 / 0.1)` back in. `shadow-none` is a static utility and
-     still works. Three steps, three utilities: `shadow-1|2|3`. */
+  /* Elevation is retired (owner, 2026-09-06) and this one line is what keeps
+     it retired. Deleting Tailwind's shadow namespace means `shadow-sm`,
+     `shadow-md`, `shadow-lg`, `shadow-xl` and `shadow-2xl` all compile to
+     nothing, so a stock black glow cannot arrive through a utility either.
+     `shadow-none` is a static utility and still works, which is the only
+     shadow spelling left in `src/`. **Do not publish a `--shadow-*` step
+     here.** One would make `shadow-1` legal again the day it landed. */
   --shadow-*: initial;
-  --shadow-1: var(--ev-shadow-1);
-  --shadow-2: var(--ev-shadow-2);
-  --shadow-3: var(--ev-shadow-3);
 }
 
 /* The type ramp. D-2: 13px base, the compact end of the scale. Plain @theme,
@@ -3470,21 +3595,23 @@
 /* --- Defence 3: muted ink nested inside a breached row. -------------------
 
    The derived critical ink is applied by `DataTable` per CELL, scoped to the
-   `meta` emphasis tier — a `data` column at position 4 must keep its ink. That
+   `meta` emphasis tier: a `data` column at position 4 must keep its ink. That
    scoping cannot reach a span INSIDE a cell that sets its own colour, and two
-   do: the disabled-action refusal line and the queue's secondary identity line.
-   Both resolve `--muted-foreground` #6b7280, which measures **4.354:1** on the
-   active critical ground #fef0ee — failing AA in the one state the operator is
-   actually in while reading it. At rest on #fff7f6 it is 4.578 and passes, so
-   it is invisible to a screenshot and to any audit that does not hover.
+   do, the disabled-action refusal line and the queue's secondary identity line.
 
-   Walking the GROUND lighter is not the fix: #feecea puts the R19 checkbox
-   boundary at 3.015 and #feebe9 at 2.995, so the ground is already at its
-   darkest defensible value. The ink is what moves, and it already exists.
+   **THE AA FAILURE THIS WAS BUILT FOR IS GONE.** It measured
+   `--muted-foreground` #6b7280 at 4.354 on the active critical ground #fef0ee,
+   failing in the one state the operator is actually in while reading it. The
+   2026-09-06 ink move put --ev-text-2 at #626974, which is **4.987** there.
+   The rule is KEPT anyway and it is no longer a defence: it is what makes a
+   nested muted span take the row's WARM ink instead of the cool one, so a
+   breached row does not run two greys. Deleting it would be a visual change,
+   not a contrast one, and belongs with whoever owns the row.
 
    Scoped to a marked row rather than fixed at the two call sites, because the
    next component to hard-code `text-muted-foreground` in a cell will not know
    to ask. `:where()` keeps specificity at zero so a deliberate override still
+   wins. -------------------------------------------------------------------- */
    wins. -------------------------------------------------------------------- */
 [data-row-critical] :where(.text-muted-foreground) {
   color: var(--row-critical-foreground);
