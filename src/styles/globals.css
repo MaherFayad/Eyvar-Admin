@@ -315,36 +315,45 @@
 
        LAYER                 TOKEN                  VALUE     STEP
        page                  --ev-bg                #ffffff   the lightest
-       hover                 --ev-row-hover         #ffffff   1.065 over a card
-       card / nav / container --ev-surface           #f6f8f9   1.065 under page
-       tint in a card        --ev-bg2               #f3f5f7   1.026 under card
-       badge plate           --ev-neutral-lt        #f0f2f4   1.054 under card
-       raised tier           --ev-surface-2         #f0f2f4   1.054 under card,
-                                                              1.122 under page
+       raised + covering     --ev-surface-2 / -modal #ffffff   D33a, white
+       card / container      --ev-surface           #fafbfc   1.036 under page
+       tint in a card        --ev-bg2               #f7f9fb   1.019 under card
+       badge plate           --ev-neutral-lt        #f7f9fb   1.019 under card
+       hover                 --ev-row-hover         #f4f6f8   1.046 under card
+       nav column            --ev-bg-nav            #f6f8f9   1.065 under page
+       nav hover             --ev-nav-hover         #f0f2f4   1.054 under nav
        nav rail              --ev-bg-rail           #e9edf1   1.064 under nav
        nav pill              --ev-nav-chip          #e5e7eb   1.162 under nav
-       structure hairline    --ev-hairline          #e3e7ea   1.168 on a card
-       control hairline      --ev-hairline-control  #d0d7dd   1.365 on a card
+       SELECTED              --ev-selected          #dce1e6   1.270 under card
+       structure hairline    --ev-hairline          #e3e7ea   1.200 on a card
+       control hairline      --ev-hairline-control  #d0d7dd   1.403 on a card
 
-     -- THE LIGHT STEP IS DELIBERATELY SMALL AND WAS TUNED TWICE. ---------
-     A first pass put the card at 1.122 under the page with the tints at 1.075
-     under that. The owner rejected it on a report table ("for cards and tables
-     in white mode this is too dark") and the cause is stacking, not any single
-     value: a grey header on a grey card on a white page is three tones where
-     the design wants one surface with a quiet edge. So the card is a whisper
-     off white and **the tint inside it is a whisper off the card**, 1.026,
-     which is a boundary rather than a band. A table header is separated by its
-     rule and its type weight; the fill only has to stop it reading as another
-     row. Dark is not tuned this way and cannot be: see its own block.
+     -- THE LIGHT STEP IS A WHISPER, AND IT WAS TUNED TO A NUMBER. --------
+     Three passes were rejected by the owner as too dark, on a report table, a
+     metric card, a rules table and the onboarding popover. The cause is
+     STACKING, not any single value: a grey header on a grey card on a white
+     page is three tones where the design wants one surface with a quiet edge.
+     So the ceilings are stated rather than felt, and they are the owner's:
+       a card is at most **1.03-ish under the page**  (#fafbfc, 1.036)
+       a tint inside it is at most **1.02 under the card** (#f7f9fb, 1.019)
+       the badge plate takes the same ceiling
+     At those weights the CARD'S HAIRLINE does most of the work of saying
+     'this is a card' and the fill only stops it from being the page. A table
+     header is separated by its rule and its type weight; its fill only stops
+     it reading as another row. Dark is not tuned this way and cannot be: see
+     its own block, where the whole band is 1.179 wide.
 
      -- THE THREE RULES THAT GENERATE THE TABLE, so the next layer does not
         need a new decision. ---------------------------------------------
      1. **A SURFACE RECESSES FROM THE PAGE** (D33), and each one further in
         recesses further: page, then a card, then what is inside the card.
-     2. **A HOVER STEPS TOWARD THE PAGE**, the opposite way, and in light it
-        reaches it. A hovered row is WHITE on a #f6f8f9 card, 1.065 : 1, the
-        largest signal in the stack, and it reads as a lift rather than as
-        another grey band. Dark does the same and lands on its page value too.
+     2. **A HOVER STEPS AWAY FROM THE PAGE IN LIGHT AND TOWARD IT IN DARK**,
+        and that asymmetry is forced, not a preference. Light has the whole
+        range under a #fafbfc card; dark's band under the page is 1.179 wide
+        in total and the card and the overlay have spent it. So a hovered row
+        is #f4f6f8 in light, 1.046 under the card, and #14181e in dark, 1.113
+        over it. In both themes the hover is SMALLER than the selected step,
+        which is what keeps the mouse from outranking the choice.
      3. **THE RAIL IS ONE RUNG FURTHER FROM THE PAGE THAN THE NAV COLUMN**, in
         whichever direction the nav sits.
 
@@ -366,23 +375,25 @@
                           02b895df, 6a08206b, c53f19d9, 546b7d98, 79a31934.
                           Everything else in the product sits under it. */
   /* THE CARD, TILE, TABLE BODY AND CONTAINER, and the surface an operator reads
-     data on. **1.065 : 1 under the page**, plus its hairline. D-11 gave it
-     neither: it was #ffffff on #ffffff, which is why the owner's Workspace
-     settings card reads as nothing. This is the value they accepted on that
-     screen, and it is the CEILING as well as the floor: one step deeper was
-     rejected on a table. --ev-bg-nav holds the same value; see it for why one
-     recessed material for a card and the nav column is the ruling. */
-  --ev-surface: #f6f8f9;
-  /* THE ANCHORED RAISED TIER: popover, dropdown, select. A dialog, a modal
-     sheet and the palette are NOT here; they COVER the page and take
-     --ev-surface-modal (D33a).
-       under a card  1.054 : 1      under the page  1.122 : 1
-     One rung deeper than the card, which is what D33 asks of a surface that
-     rests on the page, and it carries more than it used to: D34 took the
-     shadow away, so a dropdown over a card has this step and
-     --ev-surface-2-edge and nothing else. A hover inside it is --ev-row-hover,
-     white, 1.122 : 1 over this fill. */
-  --ev-surface-2: #f0f2f4;
+     data on. **1.036 : 1 under the page**, which is a whisper, plus its
+     hairline at 1.200 on the fill and 1.244 against the page. D-11 gave it
+     neither and the owner's Workspace settings card read as nothing; three
+     darker versions of this token were then rejected in turn. The hairline is
+     the primary carrier at this weight and the fill is the confirmation.
+     It is no longer the nav column's value: see --ev-bg-nav. */
+  --ev-surface: #fafbfc;
+  /* EVERY FLOATING SURFACE: popover, dropdown, select, and through
+     --ev-surface-modal the dialog, the modal sheet and the palette.
+     **WHITE IN LIGHT (D33a).** D33 recesses a surface that sits ON the page;
+     a floating one is read against the scrim or against the control it hangs
+     from, and darkening the thing the operator was just sent to look at is
+     backwards. This token was 1.122 under the page for one pass and was the
+     darkest surface in the product, which is what made the onboarding popover
+     read as a grey slab.
+     Its whole edge is --ev-surface-2-edge, 1.454 : 1 on white, because there
+     is no fill step to help and no shadow left (D34). In DARK it recesses to
+     #000000; see the dark block. */
+  --ev-surface-2: #ffffff;
   /* A card's edge, in BOTH themes. It can no longer be nothing in dark, where
      it leaned on the inset highlight inside a shadow (D34 retired both).
        light  --ev-hairline #e3e7ea   1.168 : 1 on the card, 1.244 on the page
@@ -423,20 +434,39 @@
   /* The neutral badge plate. The same tint as --ev-bg2, one step under the
      card it sits on; its own name so dark can move the plate without moving
      the strip (R7). Its ink is --ev-text-2 at 4.934 : 1 here. */
-  --ev-neutral-lt: #f0f2f4;
+  --ev-neutral-lt: #f7f9fb;
   /* THE HOVER FILL for anything inside a card or a floating surface: a table
-     row, a key/value row, a menu item, a command in the palette. --accent and
-     --ev-nav-hover both resolve to this value, so the product has ONE hover.
+     row, a key/value row, a menu item, a command in the palette. --accent
+     resolves to it.
+       light  #f4f6f8  1.046 UNDER the card, 1.027 under the in-card tint
+       dark   #14181e  1.113 OVER the card, 1.179 over the raised tier
+     Rule 2 at --ev-bg says why the two themes go opposite ways. What holds in
+     both is the ORDER: hover is a smaller step than --ev-selected (1.270 in
+     light, 1.426 in dark), so the mouse never outranks the choice. */
+  --ev-row-hover: #f4f6f8;
+  /* **THE SELECTED GROUND.** One ground meaning *this is the row, the tile or
+     the zone you chose*, as distinct from the one under the pointer. It is the
+     D33 step applied to a STATE: a chosen thing recesses further than anything
+     around it.
+       light  #dce1e6  **1.270** under the card, 1.316 under the page
+       dark   #252d38  **1.426** over the card, 1.282 over the page
+     Dark goes the other way for --ev-row-hover's reason: there is nothing left
+     under a #080a0d card. Both clear the 1.25 the state needs to be findable
+     without a second carrier, and both are larger than the hover step.
 
-     **IT STEPS TOWARD THE PAGE, WHICH IS THE OPPOSITE WAY TO EVERY SURFACE.**
-     That is rule 2 at --ev-bg. In both themes the band is small enough that it
-     reaches the page's own value, which is the strongest hover available and,
-     in light, the only one that reads as a lift instead of another grey band:
-       light  #ffffff  1.065 over the card, 1.122 over the raised tier
-       dark   #14181e  1.113 over the card, 1.179 over the raised tier
-     A row is inside a card and is never adjacent to the page, so sharing the
-     page's value costs nothing. */
-  --ev-row-hover: #ffffff;
+     EVERY INK ON IT, because a selected row is a row of data:
+       --ev-ink        light 13.229  dark 11.713   identity cell
+       --ev-text-2     light  4.605  dark  6.221   ordinary cell, AA
+       --primary       light  5.114  dark  5.406   a checked checkbox, 3:1
+     **--ev-text-2 IS WHAT PINS THE LIGHT VALUE.** #5c636e is 4.605 here and
+     one step deeper fails AA; #626974, the value before this ruling, is 4.276
+     and already fails. The ink moved so the state could have its step.
+
+     NOT A CONTROL GROUND: --ev-hairline-strong is 2.7 on it, under R19's 3:1.
+     A selected table row carries a CHECKED box, which is a --primary fill and
+     not an outline, so the case does not arise. A screen that wants an
+     UNCHECKED checkbox on a selected ground needs a ruling, not this token. */
+  --ev-selected: #dce1e6;
 
   /* THE ONE TINT INSIDE A CONTAINER, and it does five jobs: the table header
      row, the filter-chip strip, a card's section-header strip, a promo band,
@@ -453,7 +483,7 @@
      It is a TEXT GROUND: --ev-text-2 is 5.067 : 1 here and --ev-ink 15.9. Do
      not darken it without re-reading --ev-text-2, which is the ink of every
      ordinary table cell in the product. */
-  --ev-bg2: #f3f5f7;
+  --ev-bg2: #f7f9fb;
 
   /* --- The nav's own greys. ------------------------------------------------
      THE NAV COLUMN IS A PANEL, AND UNDER D33 SO IS A CARD, so the two hold one
@@ -520,7 +550,7 @@
      same side, which separates them by more than either separates from the nav
      and removes the old constraint that a hovered label had to be re-coloured
      in the same rule to stay legal. --ev-text-2 on white is 5.538 : 1. */
-  --ev-nav-hover: #ffffff;
+  --ev-nav-hover: #f0f2f4;
 
   /* THE ACTIVE PILL **AND** THE RESTING COUNT PLATE. Rewritten by D7; the old
      comment here derived a value against a nav that no longer exists.
@@ -784,7 +814,7 @@
 
      THE HUE IS THE REFERENCE'S. #626974 is g-r 7, b-r 18 against #6b7280's
      7 and 21: the same blue-grey ramp, four percent down it, not a new hue. */
-  --ev-text-2: #626974;
+  --ev-text-2: #5c636e;
 
   /* 2.536:1 — STILL FAILS AA, still decorative only, still NEVER a text
      colour. Substitute --ev-text-2. Kept only because deleting a name is a
@@ -1008,6 +1038,15 @@
   --ev-hero: #1e332a;
   --ev-hero-2: #2a3d34;
   --ev-hero-line: #3a4d43;
+  /* One step BELOW the band, for a selected tile sitting on it. Nothing else
+     in the product goes under --ev-hero, so a selection there used to step the
+     wrong way (1.162 lighter, i.e. toward the page). **1.252 : 1 darker than
+     --ev-hero**, which matches --ev-selected's own step off a card, and it does
+     not invert in dark for the reason the band itself does not: see --ev-hero.
+     Inks on it, all against this fill:
+       --ev-hero-fg    #ffffff  16.837  AAA    --ev-hero-fg-2  #c8d1cc  10.782
+       --ev-hero-fg-3  #9fada5   7.212  AA     the mono eyebrow */
+  --ev-hero-sunken: #12201a;
   --ev-hero-fg: #ffffff;
   --ev-hero-fg-2: #c8d1cc;
   --ev-hero-fg-3: #9fada5;
@@ -1903,6 +1942,10 @@
   --ev-neutral-lt: #31363e;
   /* A row's hover lift: one step above the card, under the raised tier. */
   --ev-row-hover: #14181e;
+  /* D33 applied to a STATE. Dark goes the lighter way because nothing is left
+     under a #080a0d card; light goes darker. Both clear 1.25 from the card and
+     from the page, and both are a bigger step than the hover. */
+  --ev-selected: #252d38;
 
   /* --- The breached row (R5a use #1): a tint just above the row ground, a
      firmer one for hover, and a warmed muted ink that clears AA on both. */
@@ -2476,6 +2519,10 @@
      darker ground). Only the muted level moves. */
   /* `hover:bg-row-hover`: a row inside a card lifts on hover in both themes. */
   --row-hover: var(--ev-row-hover);
+  /* `bg-selected`: the chosen row, tile or zone. A STATE, not a surface, and
+     the one ground that outranks hover. See --ev-selected for every ink on it
+     and for why an unchecked checkbox may not sit here. */
+  --selected: var(--ev-selected);
   --row-critical: var(--ev-row-critical);
   --row-critical-emphasis: var(--ev-row-critical-emphasis);
   --row-critical-foreground: var(--ev-text-2-row-critical);
@@ -2719,6 +2766,7 @@
   --color-hero: var(--ev-hero);
   --color-hero-2: var(--ev-hero-2);
   --color-hero-line: var(--ev-hero-line);
+  --color-hero-sunken: var(--ev-hero-sunken);
   --color-hero-foreground: var(--ev-hero-fg);
   --color-hero-muted: var(--ev-hero-fg-2);
   --color-hero-label: var(--ev-hero-fg-3);
@@ -2755,6 +2803,7 @@
      `text-row-critical-foreground`. Exposed so `DataTable` can drop
      `bg-rose-50/95` and friends for a semantic utility with no alpha. */
   --color-row-hover: var(--row-hover);
+  --color-selected: var(--selected);
   --color-row-critical: var(--row-critical);
   --color-row-critical-emphasis: var(--row-critical-emphasis);
   --color-row-critical-foreground: var(--row-critical-foreground);
