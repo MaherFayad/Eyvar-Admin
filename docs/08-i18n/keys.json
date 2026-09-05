@@ -1,8 +1,8 @@
 {
   "totals": {
-    "keys": 5636,
-    "en": 5357,
-    "ar": 5636,
+    "keys": 5738,
+    "en": 5459,
+    "ar": 5738,
     "arMissing": 0,
     "arExtra": 279,
     "copyFiles": 36,
@@ -10,9 +10,9 @@
     "pluralForms": 53,
     "defaultValue": 0,
     "defaultValueForwarded": 2,
-    "emDashEn": 105,
-    "emDashAr": 108,
-    "overBudget": 184
+    "emDashEn": 101,
+    "emDashAr": 104,
+    "overBudget": 174
   },
   "registered": [
     {
@@ -20,7 +20,7 @@
       "exports": [
         "FINANCIALS_EN"
       ],
-      "keys": 694,
+      "keys": 785,
       "notInEN": 0
     },
     {
@@ -36,7 +36,7 @@
       "exports": [
         "PEOPLE_EN"
       ],
-      "keys": 329,
+      "keys": 335,
       "notInEN": 0
     },
     {
@@ -44,7 +44,7 @@
       "exports": [
         "OVERVIEW_EN"
       ],
-      "keys": 250,
+      "keys": 252,
       "notInEN": 0
     },
     {
@@ -186,19 +186,19 @@
       "notInEN": 0
     },
     {
+      "file": "src/screens/onboarding/copy.ts",
+      "exports": [
+        "ONBOARDING_EN"
+      ],
+      "keys": 81,
+      "notInEN": 0
+    },
+    {
       "file": "src/screens/operations/requests/copy.ts",
       "exports": [
         "REQUESTS_EN"
       ],
       "keys": 80,
-      "notInEN": 0
-    },
-    {
-      "file": "src/screens/onboarding/copy.ts",
-      "exports": [
-        "ONBOARDING_EN"
-      ],
-      "keys": 78,
       "notInEN": 0
     },
     {
@@ -324,7 +324,18 @@
     }
   ],
   "defaultValueByFile": [],
-  "fragments": [],
+  "fragments": [
+    {
+      "file": "src/i18n/ar/financials.ts",
+      "key": "metric.delta.points",
+      "value": " نقطة"
+    },
+    {
+      "file": "src/screens/financials/copy.ts",
+      "key": "metric.delta.points",
+      "value": " pts"
+    }
+  ],
   "emDash": [
     {
       "file": "src/i18n/ar/adminData.ts",
@@ -1365,54 +1376,6 @@
       "value": "You can see every safety incident and you cannot decide one — an Ops Manager does. Read one incident, and stop there."
     },
     {
-      "file": "src/i18n/ar/metrics.ts",
-      "lang": "ar",
-      "key": "overview.lede.support-overview",
-      "value": "كل ما هو مفتوح أمام شخص — الحوادث والتذاكر وأزمنة الاستجابة عليها."
-    },
-    {
-      "file": "src/i18n/ar/metrics.ts",
-      "lang": "ar",
-      "key": "overview.hero.group",
-      "value": "المؤشرات الرئيسية — اختر واحدًا لعرض مخططه"
-    },
-    {
-      "file": "src/screens/metrics/copy.ts",
-      "lang": "en",
-      "key": "overview.lede.support-overview",
-      "value": "Everything open in front of a person — incidents, tickets and the response times on them."
-    },
-    {
-      "file": "src/screens/metrics/copy.ts",
-      "lang": "en",
-      "key": "overview.hero.group",
-      "value": "Lead metrics — pick one to chart"
-    },
-    {
-      "file": "src/i18n/ar/people.ts",
-      "lang": "ar",
-      "key": "applicant.docReason.legend",
-      "value": "مرفوض — {reason}"
-    },
-    {
-      "file": "src/i18n/ar/people.ts",
-      "lang": "ar",
-      "key": "applicant.signal.ip",
-      "value": "موقع الاتصال {location} — متوافق مع مدينة التشغيل."
-    },
-    {
-      "file": "src/screens/operations/people/copy.ts",
-      "lang": "en",
-      "key": "applicant.docReason.legend",
-      "value": "Rejected — {reason}"
-    },
-    {
-      "file": "src/screens/operations/people/copy.ts",
-      "lang": "en",
-      "key": "applicant.signal.ip",
-      "value": "IP location {location} — consistent with the operating city."
-    },
-    {
       "file": "src/i18n/ar/policy.ts",
       "lang": "ar",
       "key": "policy.sla.grid.desc",
@@ -1743,14 +1706,6 @@
       "value": "Open Safety & Incidents"
     },
     {
-      "file": "src/screens/metrics/copy.ts",
-      "key": "overview.empty.action",
-      "class": "button",
-      "words": 4,
-      "budget": 3,
-      "value": "Go to quick rides"
-    },
-    {
       "file": "src/screens/admin/policy/copy.ts",
       "key": "policy.reasons.action.restore",
       "class": "button",
@@ -1871,30 +1826,6 @@
       "value": "Anything you hold, and anything nobody has picked up, from Requests to Safety — sorted by deadline, not by label."
     },
     {
-      "file": "src/screens/metrics/copy.ts",
-      "key": "overview.empty.body",
-      "class": "empty body",
-      "words": 20,
-      "budget": 12,
-      "value": "This board reports on captains, riders, trips and subscriptions. Numbers appear here as soon as there is activity to count."
-    },
-    {
-      "file": "src/screens/operations/people/copy.ts",
-      "key": "people.empty.applications.body",
-      "class": "empty body",
-      "words": 20,
-      "budget": 12,
-      "value": "Every captain who applies lands in this queue with their documents, so you can approve or reject in one place."
-    },
-    {
-      "file": "src/screens/operations/people/copy.ts",
-      "key": "people.empty.compliance.body",
-      "class": "empty body",
-      "words": 20,
-      "budget": 12,
-      "value": "Once a captain has a compliance file you can see every expiry date here and act before dispatch is affected."
-    },
-    {
       "file": "src/screens/admin/communications/copy.ts",
       "key": "comms.identity.empty.body",
       "class": "empty body",
@@ -1997,14 +1928,6 @@
       "words": 16,
       "budget": 12,
       "value": "Nothing is open in the queues routed to your role. Other queues may still have work."
-    },
-    {
-      "file": "src/screens/operations/people/copy.ts",
-      "key": "people.empty.riders.body",
-      "class": "empty body",
-      "words": 16,
-      "budget": 12,
-      "value": "Riders appear here as soon as they register, with their wallet balance, subscriptions and churn risk."
     },
     {
       "file": "src/screens/support/conversations/copy.ts",
@@ -2151,14 +2074,6 @@
       "value": "The record of who did what, and when"
     },
     {
-      "file": "src/screens/metrics/copy.ts",
-      "key": "overview.empty.heading",
-      "class": "empty title",
-      "words": 8,
-      "budget": 5,
-      "value": "Captains, riders, trips and subscriptions, on one board"
-    },
-    {
       "file": "src/screens/management/zones/copy.ts",
       "key": "zones.empty.heading",
       "class": "empty title",
@@ -2173,14 +2088,6 @@
       "words": 7,
       "budget": 5,
       "value": "Every message the system sends lands here"
-    },
-    {
-      "file": "src/screens/operations/people/copy.ts",
-      "key": "people.empty.riders.heading",
-      "class": "empty title",
-      "words": 7,
-      "budget": 5,
-      "value": "The rider roster, with wallets and renewals"
     },
     {
       "file": "src/screens/admin/policy/copy.ts",
@@ -2245,22 +2152,6 @@
       "words": 6,
       "budget": 5,
       "value": "No rider holds a wallet balance"
-    },
-    {
-      "file": "src/screens/operations/people/copy.ts",
-      "key": "people.empty.captains.heading",
-      "class": "empty title",
-      "words": 6,
-      "budget": 5,
-      "value": "Every captain, from application to compliance"
-    },
-    {
-      "file": "src/screens/operations/people/copy.ts",
-      "key": "people.empty.compliance.heading",
-      "class": "empty title",
-      "words": 6,
-      "budget": 5,
-      "value": "Document expiry, for the whole fleet"
     },
     {
       "file": "src/screens/reports/copy.ts",
@@ -3007,14 +2898,6 @@
       "value": "Settle how captains are paid"
     },
     {
-      "file": "src/screens/operations/people/copy.ts",
-      "key": "people.takeOver.title",
-      "class": "title",
-      "words": 5,
-      "budget": 4,
-      "value": "Take this application from {name}?"
-    },
-    {
       "file": "src/screens/admin/policy/copy.ts",
       "key": "policy.sla.breach.title",
       "class": "title",
@@ -3082,19 +2965,19 @@
   "overBudgetByClass": [
     [
       "title",
-      92
+      91
     ],
     [
       "empty body",
-      44
+      40
     ],
     [
       "button",
-      19
+      18
     ],
     [
       "empty title",
-      18
+      14
     ],
     [
       "meta",

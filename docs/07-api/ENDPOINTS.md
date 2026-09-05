@@ -8,7 +8,7 @@ The source of truth is the docblock above each exported function in
 client and regenerate. Conventions, envelopes, auth and error shapes live in
 [CONTRACT.md](CONTRACT.md); this file is only *what exists*.
 
-**312 endpoints across 47 client modules.**
+**313 endpoints across 47 client modules.**
 
 ## `src/data/clients/alerts.ts`
 
