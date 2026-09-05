@@ -1,11 +1,8 @@
 /**
- * The inbox composer (design 12 §5, §5.4 / AC-CC-11, §8.6). Four register
- * carriers, none colour alone: the tab pair, the whole surface moving to
- * `--ev-note`, the placeholder, and `Send` filled against `Add note` secondary.
- * Owner ruling of 2026-09-06 dropped the consequence line, the key hint and
- * `Reply by email`; Enter still sends and Shift + Enter still adds a line.
- * Drafts per conversation and register (§8.6.9); refusals as real text with
- * `aria-describedby` (§8.6.3).
+ * The inbox composer (design 12 §5.4 / AC-CC-11, §8.6). Four register carriers,
+ * none colour alone: the tab pair, the note ground, the placeholder, and `Send`
+ * filled against `Add note` secondary. Drafts per conversation and register
+ * (§8.6.9); refusals as real text with `aria-describedby` (§8.6.3).
  */
 
 import {
