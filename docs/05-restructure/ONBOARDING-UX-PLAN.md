@@ -245,3 +245,17 @@ Everything in §3–§6 is built on `feat/remediation-and-ux-phase1`. Evidence, 
 - **The analytics seam is in-memory** (`src/lib/analytics.ts`: `track`, `onTrack`, `recentEvents`). No vendor is attached; the plan names none.
 - **No RULINGS.md row was written.** Q-O1 stays with the owner; the build ships behind the plan's reading that R8 governs empty states only.
 - **Credits spent on Higgsfield:** 41 images at 2.5 credits, about 103 of the 496 available.
+
+---
+
+## 11. Round two — the welcome, the beacon and the richer first screen (2026-09-05)
+
+The owner reviewed round one and asked for three things the plan had argued against: a welcome on first arrival, a floating progress indicator, and a richer first screen. Recorded as a standing owner override in `docs/RULINGS.md` (2026-09-05) and built the same day.
+
+| Move | What it is | Where |
+|---|---|---|
+| **Welcome** | Five slides on the first session only, before the layer: what the console is (drawn), My Work (a capture of the product), the activity log (capture), ⌘K (capture), and the operator's role with the step count (drawn). `Not now`, `×`, Escape and outside-click all count as seen; `Start the checklist` opens the layer. The captures exist in English and Arabic under `public/onboarding/`, taken by `scripts/illustrations/capture-welcome.mjs`. | `WelcomeDialog.tsx` |
+| **Beacon** | A fixed pill at the bottom inline-end corner, 16px from each edge: one numbered circle per reachable step, done ones filled, the next one ringed, the `n of m completed` line, and a per-session `Hide`. Shown while the track is incomplete and undismissed and the layer is closed. Activating it opens the layer on the next step. Absent on the compact shell. | `OnboardingBeacon.tsx` |
+| **Richer intro** | `Welcome, {name}` above the role sentence, the role art at 144×96, and two group labels in the list: *Your first three* before the shared steps and *For your role* before the rest. | `OnboardingLayer.tsx` |
+
+Evidence: `onboarding.plan.test.tsx` → 12 passed (welcome once, Not now leaves the beacon, Start opens the layer, beacon counts and opens the next step, hides per session, absent when dismissed). `scripts/harness/onboarding.mjs` → welcome for each role, the beacon 16px from the corner in English and 16px from the left edge in Arabic. Three more illustrations, one regenerated for a gradient: 45 images, about 113 credits in total.

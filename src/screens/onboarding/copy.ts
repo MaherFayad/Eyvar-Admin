@@ -88,6 +88,39 @@ export const ONBOARDING_EN: Dictionary = {
   'onboarding.intro.myWork': 'Work assigned to you arrives in {subTab}.',
   /* C-3 — replaces the My Work line once the three shared steps are done. */
   'onboarding.intro.commonDone': 'The three steps everyone does are done. The rest is yours.',
+  'onboarding.intro.welcome': 'Welcome, {name}',
+  'onboarding.group.common': 'Your first three',
+  'onboarding.group.role': 'For your role',
+
+  /* The first-arrival welcome (owner override of §5.6, RULINGS.md 2026-09-05). */
+  'onboarding.welcome.title': 'Welcome to Eyvar Admin, {name}',
+  'onboarding.welcome.step1.body':
+    'Captains, riders, trips, subscriptions, wallets and the queues that keep them moving, on one screen you keep open all day.',
+  'onboarding.welcome.step2.title': 'Your work arrives in one place',
+  'onboarding.welcome.step2.body':
+    'Every queue reaches you in My Work. Claim an item, work it, release it. Nothing is yours until you claim it.',
+  'onboarding.welcome.step3.title': 'Everything you do is recorded',
+  'onboarding.welcome.step3.body':
+    'The activity log keeps your name on every action, and it tells you who is on call when something goes wrong.',
+  'onboarding.welcome.step4.title': 'Find anything from the keyboard',
+  'onboarding.welcome.step4.body':
+    'Press ⌘K to jump to a queue, open a record by its id, or run an action without leaving the page.',
+  'onboarding.welcome.step5.title': 'A short checklist for your role',
+  'onboarding.welcome.step5.body':
+    '{count} steps, each a real task on a real screen. Do them in any order, skip what you know, and come back from your account menu.',
+  'onboarding.welcome.next': 'Next',
+  'onboarding.welcome.back': 'Back',
+  'onboarding.welcome.start': 'Start the checklist',
+  'onboarding.welcome.later': 'Not now',
+  'onboarding.welcome.progress': 'Step {current} of {total}',
+  'onboarding.welcome.image.mywork': 'My Work, with claimed items and their deadlines',
+  'onboarding.welcome.image.activity': 'The activity log',
+  'onboarding.welcome.image.palette': 'The command palette, listing queues with waiting items',
+
+  /* The floating progress beacon. */
+  'onboarding.beacon.label': 'Getting started, {done} of {total} completed',
+  'onboarding.beacon.next': 'Next: {title}',
+  'onboarding.beacon.hide': 'Hide until next sign-in',
 
   /* ─────────────────────────── the step row ───────────────────────────── */
   'onboarding.step.open': 'Open {subTab}',

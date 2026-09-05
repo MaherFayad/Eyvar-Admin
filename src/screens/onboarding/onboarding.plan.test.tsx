@@ -17,6 +17,7 @@ import {
   getRouteTable,
   listRequests,
   listTeamUsers,
+  markOnboardingAutoOpened,
   resetDataLayer,
   switchMockUser,
 } from '@/data/clients'
@@ -75,17 +76,40 @@ function renderLayer(props: Partial<React.ComponentProps<typeof OnboardingLayer>
 /** Waits a macrotask so a provider read and its effects can settle. */
 const settle = () => act(() => new Promise<void>((resolve) => setTimeout(resolve, 20)))
 
-describe('AC-594 — "the layer opens automatically exactly once, on the first session"', () => {
-  it('opens on the landing route of an account that has never seen it, and stamps the sighting', async () => {
+describe('AC-594 — "the welcome opens automatically exactly once, on the first session"', () => {
+  it('welcomes an account that has never seen it, stamps the sighting, and Start opens the layer', async () => {
     const owner = await userWithRole('Owner')
     const session = await switchMockUser(owner)
+    const user = userEvent.setup()
     renderShell(session.landingRoute)
 
-    const dialog = await screen.findByRole('dialog')
-    expect(within(dialog).getByText(en('onboarding.title'))).toBeInTheDocument()
+    const welcome = await screen.findByRole('dialog')
+    expect(
+      within(welcome).getByText(en('onboarding.welcome.title').replace('{name}', session.name)),
+    ).toBeInTheDocument()
     await waitFor(async () => {
       expect((await getOnboarding(owner)).state.autoOpenedAt).not.toBeNull()
     })
+
+    /* Five slides, dots reachable, then the checklist. */
+    for (let i = 0; i < 4; i += 1) {
+      await user.click(screen.getByRole('button', { name: en('onboarding.welcome.next') }))
+    }
+    await user.click(screen.getByRole('button', { name: en('onboarding.welcome.start') }))
+    const layer = await screen.findByRole('dialog')
+    expect(within(layer).getByText(en('onboarding.title'))).toBeInTheDocument()
+  })
+
+  it('leaves the layer closed after Not now, and shows the beacon instead', async () => {
+    const owner = await userWithRole('Owner')
+    const session = await switchMockUser(owner)
+    const user = userEvent.setup()
+    renderShell(session.landingRoute)
+
+    await screen.findByRole('dialog')
+    await user.click(screen.getByRole('button', { name: en('onboarding.welcome.later') }))
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+    expect(screen.getByTestId('onboarding-beacon')).toBeInTheDocument()
   })
 
   it('does not open on a second sign-in', async () => {
@@ -116,6 +140,49 @@ describe('AC-594 — "the layer opens automatically exactly once, on the first s
     renderShell('/operations/people')
     await settle()
     expect(screen.queryByRole('dialog')).toBeNull()
+  })
+})
+
+describe('Beacon — "the floating progress shows 1, 2, 3 and opens the next step"', () => {
+  it('counts completions, names the next step, and opens the layer on it', async () => {
+    const owner = await userWithRole('Owner')
+    const session = await switchMockUser(owner)
+    await markOnboardingAutoOpened(owner)
+    await completeStep('common.account', 'manual', owner)
+    const user = userEvent.setup()
+    renderShell(session.landingRoute)
+
+    const beacon = await screen.findByTestId('onboarding-beacon')
+    const open = within(beacon).getByRole('button', {
+      name: new RegExp(en('onboarding.step.common.mywork.title').slice(0, 20)),
+    })
+    expect(open).toHaveAccessibleName(
+      new RegExp(en('onboarding.beacon.label').replace('{done}', '1').replace('{total}', '7')),
+    )
+    await user.click(open)
+    const layer = await screen.findByRole('dialog')
+    expect(within(layer).getByText(en('onboarding.step.common.mywork.body'))).toBeInTheDocument()
+    expect(screen.queryByTestId('onboarding-beacon')).toBeNull()
+  })
+
+  it('hides for the session, and never shows for a dismissed track', async () => {
+    const owner = await userWithRole('Owner')
+    const session = await switchMockUser(owner)
+    await markOnboardingAutoOpened(owner)
+    const user = userEvent.setup()
+    const first = renderShell(session.landingRoute)
+    await user.click(
+      within(await screen.findByTestId('onboarding-beacon')).getByRole('button', {
+        name: en('onboarding.beacon.hide'),
+      }),
+    )
+    expect(screen.queryByTestId('onboarding-beacon')).toBeNull()
+    first.unmount()
+
+    await dismissOnboarding(owner)
+    renderShell(session.landingRoute)
+    await settle()
+    expect(screen.queryByTestId('onboarding-beacon')).toBeNull()
   })
 })
 

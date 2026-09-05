@@ -104,7 +104,7 @@ import {
 } from '@/components/profile/driver'
 import { NotificationsLayer } from './layers/NotificationsLayer'
 import { AccountLayer } from './layers/AccountLayer'
-import { OnboardingLayer } from '@/screens/onboarding'
+import { OnboardingBeacon, OnboardingLayer, WelcomeDialog } from '@/screens/onboarding'
 import { Banner } from '@/components/Banner'
 import { ReauthModal } from '@/components/auth/ReauthModal'
 import { SignOutDirtyDialog } from './SignOutDirtyDialog'
@@ -252,6 +252,10 @@ export function AppLayout() {
    */
   /* Settled per account: a mock user switch is a new first session. */
   const autoOpenSettledFor = useRef<string | null>(null)
+  /* The welcome shows once, then hands over to the layer. The beacon hides
+     for the session only; a sign-in brings it back. */
+  const [welcomeOpen, setWelcomeOpen] = useState(false)
+  const [beaconHidden, setBeaconHidden] = useState(false)
   useEffect(() => {
     if (shell.onboardingStatus !== 'content' || shell.onboarding === null) return
     if (autoOpenSettledFor.current === shell.onboarding.userId) return
@@ -275,8 +279,8 @@ export function AppLayout() {
     const open = () => {
       settle()
       void markOnboardingAutoOpened()
-      track('onboarding.opened', { source: 'auto' })
-      setLayer('onboarding', '1')
+      track('onboarding.welcome.opened', {})
+      setWelcomeOpen(true)
     }
     if (!busy()) {
       open()
@@ -863,6 +867,42 @@ export function AppLayout() {
           route: browser Back closes it and stays put, and it does not consume a
           navigation level. One layer at a time is enforced by `withOverlay`,
           which deletes the other three params on every write (**AC-22**). */}
+      {shell.onboarding !== null && shell.session !== null && (
+        <WelcomeDialog
+          open={welcomeOpen}
+          name={shell.session.name}
+          role={shell.onboarding.role}
+          stepCount={shell.onboarding.totalCount}
+          language={shell.language.language}
+          t={t}
+          onFinish={(start) => {
+            setWelcomeOpen(false)
+            if (start) {
+              track('onboarding.opened', { source: 'welcome' })
+              setLayer('onboarding', '1')
+            }
+          }}
+        />
+      )}
+
+      {shell.onboarding !== null &&
+        !shell.onboarding.isComplete &&
+        shell.onboarding.state.dismissedAt === null &&
+        shell.onboarding.totalCount > 0 &&
+        route.overlay !== 'onboarding' &&
+        !welcomeOpen &&
+        !beaconHidden && (
+          <OnboardingBeacon
+            checklist={shell.onboarding}
+            t={t}
+            onOpen={(stepId) => {
+              track('onboarding.opened', { source: 'beacon' })
+              setLayer('onboarding', stepId ?? '1')
+            }}
+            onHide={() => setBeaconHidden(true)}
+          />
+        )}
+
       {route.overlay === 'onboarding' && (
         <OnboardingLayer
           open

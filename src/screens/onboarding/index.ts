@@ -6,5 +6,7 @@
  * address is one an operator can navigate past.
  */
 
+export { OnboardingBeacon } from './OnboardingBeacon'
+export { WelcomeDialog } from './WelcomeDialog'
 export { OnboardingLayer } from './OnboardingLayer'
 export { ONBOARDING_EN, ROLE_INTRO_KEYS, ROLE_KEYS } from './copy'

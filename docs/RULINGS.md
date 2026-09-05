@@ -50,6 +50,24 @@ rule's own site and add it to the list below. Overridden so far:
 Not overridden, and not to be assumed overridden: R7's "comparison differs by dash, never by
 hue", and `pairRefusal`'s rule for what may share one y-axis.
 
+### Onboarding may welcome once and may float its progress (2026-09-05)
+
+The owner asked for a welcome on first arrival, a floating progress indicator, and pictures in
+the checklist. Three `DESIGN.md` positions yield, and only this far:
+
+- §5.6 "MUST NOT use modal wizards for onboarding": **one** modal welcome of five slides, shown
+  once per account on the first session and never again (`WelcomeDialog`, stamped by
+  `autoOpenedAt`). Closing it by any route counts as seen. No other wizard, tour, coach mark or
+  spotlight is licensed by this.
+- R10 "one event, one surface": the checklist has **two** standing surfaces, the account-menu
+  entry and the bottom inline-end beacon (`OnboardingBeacon`), while the track is incomplete
+  and undismissed. The beacon hides per session and never raises a toast or a banner.
+- R8 "an illustration appears only on a whole-page, zero-records-ever empty state": a guide's
+  intro card, its expanded task and its completed state may carry a **decorative**
+  illustration. Empty states are unchanged; `track-empty` and E1 still carry none.
+
+Text: `docs/05-restructure/ONBOARDING-UX-PLAN.md` §11.
+
 ## `DESIGN.md` rulings
 
 | ID | Ruling in one line |

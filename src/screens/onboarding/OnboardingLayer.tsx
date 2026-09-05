@@ -105,6 +105,7 @@ import type { RoleName } from '@/data/types/session'
 import { track } from '@/lib/analytics'
 import { ROLE_INTRO_KEYS, ROLE_KEYS } from './copy'
 import { CompleteArt, ROLE_ART } from './illustrations'
+import { Fragment } from 'react'
 import { OnboardingStepRow } from './OnboardingStepRow'
 
 export interface OnboardingLayerProps {
@@ -312,6 +313,7 @@ export function OnboardingLayer({
             held={data.permissionsHeld}
             total={data.permissionsTotal}
             role={data.role}
+            name={shell.session?.name ?? ''}
             commonDone={COMMON_STEP_IDS.every((id) => data.state.completedStepIds.includes(id))}
             onOpenMyWork={() => {
               const row = findSubTabById(MY_WORK_SUB_TAB)
@@ -338,9 +340,18 @@ export function OnboardingLayer({
             {steps
               .filter((step) => !data.state.skippedStepIds.includes(step.id))
               .filter((step) => !data.state.archivedStepIds.includes(step.id))
-              .map((step) => (
+              .map((step, i, rows) => (
+                <Fragment key={step.id}>
+                {/* Two group labels: before the shared three and before the
+                    first role step. Structure, not decoration: the sequence
+                    is real (AC-618). */}
+                {i === 0 && (
+                  <p className="pt-1 text-xs font-medium text-muted-foreground">{t('onboarding.group.common')}</p>
+                )}
+                {i > 0 && rows[i - 1]!.id.startsWith('common.') && !step.id.startsWith('common.') && (
+                  <p className="pt-3 text-xs font-medium text-muted-foreground">{t('onboarding.group.role')}</p>
+                )}
                 <OnboardingStepRow
-                  key={step.id}
                   step={step}
                   t={t}
                   done={data.state.completedStepIds.includes(step.id)}
@@ -382,6 +393,7 @@ export function OnboardingLayer({
                     })
                   }
                 />
+                </Fragment>
               ))}
           </Accordion>
 
@@ -433,6 +445,7 @@ function Intro({
   held,
   total,
   role,
+  name,
   commonDone,
   onOpenMyWork,
 }: {
@@ -441,6 +454,7 @@ function Intro({
   held: number
   total: number
   role: RoleName
+  name: string
   commonDone: boolean
   onOpenMyWork: () => void
 }) {
@@ -455,6 +469,9 @@ function Intro({
   return (
     <div className="flex items-start gap-3 rounded-xl bg-muted p-3">
       <div className="flex min-w-0 flex-1 flex-col gap-2">
+      {name !== '' && (
+        <p className="text-base font-semibold text-foreground">{t('onboarding.intro.welcome', { name })}</p>
+      )}
       <p className="text-sm text-foreground">{t(introKey)}</p>
       {/* Two numbers in one sentence — `t()`, not `t.plural`. `pluralCountIn`
           refuses two numerics on purpose: there is no defensible way to guess
@@ -469,6 +486,8 @@ function Intro({
       ) : (
       <p className="text-sm text-muted-foreground">
         {before}
+        {/* The link and the full stop after it wrap together. */}
+        <span className="whitespace-nowrap">
         <button
           type="button"
           onClick={onOpenMyWork}
@@ -477,11 +496,12 @@ function Intro({
           {subTab}
         </button>
         {after}
+        </span>
       </p>
       )}
       </div>
       {/* Decorative, `aria-hidden` inside the component; the text carries everything. */}
-      {Art !== undefined && <Art className="h-16 w-24 shrink-0" />}
+      {Art !== undefined && <Art className="h-24 w-36 shrink-0" />}
     </div>
   )
 }

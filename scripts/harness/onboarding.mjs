@@ -48,8 +48,10 @@ async function measureArt(label, measured = new Set()) {
     if (measured.has(a.key)) continue
     measured.add(a.key)
     counted += 1
-    const hero = a.key === 'complete'
-    const ok = a.w > 0 && a.h > 0 && a.w <= (hero ? 160 : 96) && a.h <= (hero ? 120 : 72)
+    /* Three budgets: a step's art, the intro card's role art, the completed state. */
+    const [maxW, maxH] =
+      a.key === 'complete' ? [160, 120] : a.key.startsWith('role.') ? [144, 96] : [96, 72]
+    const ok = a.w > 0 && a.h > 0 && a.w <= maxW && a.h <= maxH
     console.log(`  ${label.padEnd(12)} ${a.key.padEnd(24)} ${a.w}×${a.h} ${ok ? 'ok' : 'FAIL'}`)
     if (!ok) failures += 1
   }
@@ -57,7 +59,7 @@ async function measureArt(label, measured = new Set()) {
 }
 
 async function openAccountMenu() {
-  await page.getByRole('button', { name: /Account|الحساب/ }).click()
+  await page.getByRole('button', { name: /^(Account|الحساب)$/ }).click()
   await page.waitForTimeout(200)
 }
 
@@ -96,7 +98,17 @@ for (const [slug, name] of USERS) {
   console.log(`\n== ${slug}`)
   await switchTo(name)
   if (slug !== 'owner') {
-    if ((await dialog().count()) === 0) fail(`${slug}: the layer did not auto-open after the switch`)
+    /* The welcome comes first: five slides, then Start opens the layer. */
+    if ((await dialog().count()) === 0) fail(`${slug}: the welcome did not open after the switch`)
+    if ((await dialog().getByText(/Welcome to Eyvar Admin/).count()) === 0) fail(`${slug}: the dialog is not the welcome`)
+    await page.screenshot({ path: `${OUT}/welcome-${slug}.png` })
+    for (let i = 0; i < 4; i += 1) {
+      await page.getByRole('button', { name: 'Next' }).click()
+      await page.waitForTimeout(150)
+    }
+    await page.getByRole('button', { name: 'Start the checklist' }).click()
+    await page.waitForTimeout(600)
+    if ((await dialog().count()) === 0) fail(`${slug}: Start did not open the layer`)
     if (!page.url().includes('onboarding=')) fail(`${slug}: URL carries no onboarding param`)
   } else {
     /* Her first sighting happens here if the page did not load on her landing
@@ -116,6 +128,19 @@ for (const [slug, name] of USERS) {
   if (arts === 0) fail(`${slug}: no illustration rendered`)
   await page.keyboard.press('Escape')
   await page.waitForTimeout(300)
+  /* With the layer closed the beacon sits at the bottom inline-end corner. */
+  const beacon = await page.evaluate(() => {
+    const el = document.querySelector('[data-testid="onboarding-beacon"]')
+    if (!el) return null
+    const r = el.getBoundingClientRect()
+    return { right: Math.round(innerWidth - r.right), bottom: Math.round(innerHeight - r.bottom), w: Math.round(r.width) }
+  })
+  if (beacon === null) fail(`${slug}: no beacon after closing the layer`)
+  else {
+    console.log(`  beacon ${beacon.w}px wide, ${beacon.right}px from the end edge, ${beacon.bottom}px from the bottom`)
+    if (beacon.right !== 16 || beacon.bottom !== 16) fail(`${slug}: beacon is not 16px from the corner`)
+  }
+  await page.screenshot({ path: `${OUT}/beacon-${slug}.png` })
 }
 
 console.log('\n== arabic')
@@ -137,6 +162,14 @@ const placed = await page.evaluate(() => {
 if (placed !== true) fail('arabic: the intro art is not at inline-end')
 await page.screenshot({ path: `${OUT}/onboarding-ar.png` })
 await walkSteps('arabic')
+await page.keyboard.press('Escape')
+await page.waitForTimeout(300)
+const beaconAr = await page.evaluate(() => {
+  const el = document.querySelector('[data-testid="onboarding-beacon"]')
+  return el ? Math.round(el.getBoundingClientRect().left) : null
+})
+if (beaconAr !== 16) fail(`arabic: beacon should sit 16px from the left edge, got ${beaconAr}`)
+await page.screenshot({ path: `${OUT}/beacon-ar.png` })
 
 await browser.close()
 if (errors.length) {
