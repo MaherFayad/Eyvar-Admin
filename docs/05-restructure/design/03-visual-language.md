@@ -100,9 +100,18 @@ Verified: `--ev-amber-dk` at 12 % over `#fff4e6`, downsampled at 53.3 % coverage
 | `--ev-marker` | `3px` | **`3px`** | — | R5a's breached-row edge and the SLA track. Untouched. |
 | `--ev-live-loop` | `1800ms` | **`1800ms`** | — | R18. Untouched. |
 
-### 1.5 Elevation — all three re-derived
+### 1.5 Elevation — all three re-derived, then **deleted by D16**
 
-The set is **low-chrome, and the old, heavier elevation values do not survive it.**
+> **SUPERSEDED by D15 and D16.** The three shadow tiers no longer exist. A surface **recesses**
+> — a card, container, popover, dropdown, dialog, sheet or palette is darker than the page it
+> sits on, in both themes, and nothing is ever raised above the page. Separation is the value
+> step plus a hairline and nothing else: no drop shadow, no inset highlight, no glow. The modal
+> scrim survives, because a scrim is what makes a modal modal; the focus ring survives, because
+> a ring is not a shadow. The table below is kept so that a citation of a tier still resolves;
+> **do not implement it.** §4.10 rule 1 states the rule in force.
+
+The derivation, as it stood: the set is **low-chrome, and the old, heavier elevation values did
+not survive it.**
 
 | Token | **Becomes** | | Evidence |
 |---|---|---|---|
@@ -528,10 +537,12 @@ These five govern all 41 screens. They exist because the same five faults recurr
 unrelated pages — the conversation thread, the safety record and the pricing rate cards — and
 each has one cause.
 
-1. **A dark surface earns its elevation from tone, not from a border.** In dark,
-   `--ev-surface` sits at least **1.25 : 1** above `--ev-bg2`; a card drops its border and
-   keeps a 1px inner shadow, and the popover / drawer tier moves one step further again. A
-   card whose only edge is a hairline is a defect in dark.
+1. **A surface is separated by a value step and a hairline, and by nothing else.** A card,
+   container, popover, dropdown, dialog, sheet or palette clears **1.25 : 1** against the
+   ground it sits on. Under **D15** it clears it *downward* — a surface RECESSES, the page is
+   the lightest layer, and nothing is ever raised above it. Under **D16** no surface carries a
+   drop shadow, an inset highlight or a glow; the modal scrim and the focus ring survive,
+   because neither is a shadow. A dark card therefore keeps a real hairline edge.
 2. **A chip is never a control.** Badge and button diverge in silhouette: a badge is **20px**,
    borderless, tinted ground, no uppercase; a button keeps **32px** with a border or a fill.
    A control that reads as a badge — `Mine 2`, `Online`, `On call` — is a text button with a
