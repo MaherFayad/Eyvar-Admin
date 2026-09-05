@@ -73,7 +73,7 @@ the checklist. Three `DESIGN.md` positions yield, and only this far:
   step is done or not done; there is no Skip control and no skipped group. The data layer keeps
   the fields; the UI never writes them.
 
-Text: `docs/05-restructure/ONBOARDING-UX-PLAN.md` §11–§12.
+Text: [`design/08-auth-and-onboarding.md`](05-restructure/design/08-auth-and-onboarding.md) §10.6–§10.7.
 
 ### The command palette is a centred modal (2026-09-05)
 
@@ -100,7 +100,7 @@ which is not a size a screen may choose (G6's three widths are otherwise untouch
 `--ev-palette-top` and `--ev-palette-max-h` are the two new tokens, because Tailwind's
 spacing scale carries no viewport unit.
 
-Text: `docs/05-restructure/COMMAND-PALETTE-DISCOVERY.md` §3, §4 and §6.
+Text: [`design/05-command-centre.md`](05-restructure/design/05-command-centre.md) §7–§13.
 
 ## `DESIGN.md` rulings
 
