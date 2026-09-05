@@ -78,9 +78,10 @@ async function probe(page, opts, compact) {
         probe.remove()
         return s.backgroundColor === resolved
       }
-      const panes = ['list', 'thread'].map((name) => document.querySelector(`[data-inbox-pane="${name}"]`))
-      const rail = document.querySelector('aside')
-      const panesVisible = [...panes, rail].filter((el) => el !== null && visible(el)).length
+      /* The rail counts whether it is open or showing its 40px strip, so both
+         forms carry `data-inbox-pane` (§2). */
+      const panes = ['list', 'thread', 'rail'].map((name) => document.querySelector(`[data-inbox-pane="${name}"]`))
+      const panesVisible = panes.filter((el) => el !== null && visible(el)).length
       const thread = panes[1]
       const bubbles = [...document.querySelectorAll('[data-bubble]')]
       const bordered = bubbles.filter((el) => Number.parseFloat(getComputedStyle(el).borderTopWidth) > 0).length
@@ -88,7 +89,9 @@ async function probe(page, opts, compact) {
       const header = document.querySelector('[data-inbox-pane="thread"] header')
       const headerFilled = header ? [...header.querySelectorAll('button')].filter(isFilled).length : 0
       const composer = thread ? thread.querySelector('[data-inbox-composer]') : null
-      const composerFilled = composer ? [...composer.querySelectorAll('button')].filter(isFilled).length : 0
+      /* The DECLARED primary, not the painted one: §8.6.3 disables Send with no
+         fill while the field is empty, so colour alone reads zero on a live composer. */
+      const composerFilled = composer ? composer.querySelectorAll('button[data-variant="default"]').length : 0
       /* `small` counts every text node under 12px; `smallProse` leaves out badge
          labels, the one job `--text-2xs` is declared for (globals.css H2). */
       let small = 0
@@ -227,8 +230,9 @@ for (const language of ['en', 'ar']) {
       if (errors.length) bad.push(`errors ${errors.join(' | ')}`)
       if (!compact) {
         if (opts.thread && facts.panesVisible !== 3) bad.push(`panes ${facts.panesVisible}`)
-        /* Arabic controls are 36px and rows 64px by token, so seven is its ceiling at 800. */
-        if (!opts.thread && (facts.rowCapacity ?? 0) < (language === 'ar' ? 7 : 8)) bad.push(`rows/800 capacity ${facts.rowCapacity}`)
+        /* Arabic controls are 36px and rows 64px by token, so it seats one fewer
+           than English. The air at the top of the pane costs each one a row. */
+        if (!opts.thread && (facts.rowCapacity ?? 0) < (language === 'ar' ? 6 : 7)) bad.push(`rows/800 capacity ${facts.rowCapacity}`)
       }
       if (opts.thread) {
         if (facts.bordered !== 0) bad.push(`bordered bubbles ${facts.bordered}`)

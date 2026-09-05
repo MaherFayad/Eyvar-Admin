@@ -874,14 +874,18 @@ export function InboxScreen({ row }: { row: SubTabRoute }) {
     openId === null ? (
       <div className={cn('min-h-0', railInGrid && 'border-s border-border')} />
     ) : railInGrid && !railCollapsed ? (
-      <aside aria-label={t('inbox.header.details')} className="flex min-h-0 flex-col overflow-y-auto border-s border-border">
+      <aside
+        data-inbox-pane="rail"
+        aria-label={t('inbox.header.details')}
+        className="flex min-h-0 flex-col overflow-y-auto border-s border-border"
+      >
         <div className="flex justify-end px-2 pt-2">
           <RailToggle collapsed={false} onToggle={toggleRail} dir={dir} t={t} />
         </div>
         {rail}
       </aside>
     ) : (
-      <div className="flex min-h-0 flex-col items-center border-s border-border pt-2">
+      <div data-inbox-pane="rail" className="flex min-h-0 flex-col items-center border-s border-border pt-2">
         <RailToggle collapsed onToggle={toggleRail} dir={dir} t={t} />
       </div>
     )
