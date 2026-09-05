@@ -8,7 +8,7 @@ fourth shell layer.
 **provisional on D4** for the two proposed ones — §8.6 names exactly which criteria move under
 each D4 outcome.
 
-> **Reconciled with `design/08-auth-and-onboarding.md`, 2026-08-27.** That document's §15 records
+> **Reconciled with `design/08-auth-and-onboarding.md`.** That document's §15 records
 > nine overrules of this spec; all nine are applied. **§19** is the record: what was applied as
 > written, what was applied with a different shape and why, which two were not overrules at all,
 > and **five further contradictions between the two documents that §15 did not name** (§19.3).
@@ -1178,7 +1178,7 @@ Numbered, independently checkable, each phrased so QA can pass or fail it withou
   `/signin` and told to start again. The count is of codes, including the one sent when the
   challenge opened — so the fifth code is the fourth successful resend, and the next press of
   `Resend` is refused.**
-  *(Amended 2026-08-27. **This criterion and its own copy counted different nouns.** It said *"after
+  *(Amended. **This criterion and its own copy counted different nouns.** It said *"after
   5 resends"*; `design/08-auth-and-onboarding.md` §4.4's string says *"Five codes were sent for this
   sign-in."* — **and five resends is six codes.** Both literal readings happen to be satisfied by
   the shipped `MAX_CODES_PER_CHALLENGE = 5`, which is why nothing failed; the engineer flagged it
@@ -1680,7 +1680,7 @@ does what it says.
 **Artifact:** this file. **AC-500 – AC-681**, contiguous. No criterion has been renumbered on any
 pass, and none sits outside 500–681.
 
-**Reconciliation pass, 2026-08-27.** `design/08-auth-and-onboarding.md` §15's nine overrules have
+**Reconciliation pass.** `design/08-auth-and-onboarding.md` §15's nine overrules have
 been applied — see **§19** for what was applied as written, what was reshaped and why, and what
 was not an overrule at all. The design spec and this spec no longer contradict each other, and
 **§19.3 lists five further contradictions found on this pass that §15 did not name.**

@@ -3032,7 +3032,7 @@ record; nothing there is repealed.
 
 ## 13. OWNER AMENDMENT 4 — the explanatory sentences, and the ⓘ that is refused
 
-**Date** 2026-09-04. **Instruction, verbatim:** *"I want you to read the driver and rider,
+**Instruction, verbatim:** *"I want you to read the driver and rider,
 pages, and sheets and remove any un neded comments or really secondary and add them in an i
 icon with a tool tip to tell that info"*. **"Comments" means the on-screen explanatory
 sentences**, not code comments. Four surfaces: this page, this sheet, and the rider's two

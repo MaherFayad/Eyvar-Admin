@@ -113,7 +113,7 @@ looking for it again. That asymmetry decides every borderline case in this table
 
 **Most of V-2 is not a contract gap. It is a ruling that shipped and was never applied.**
 
-> **Corrected 2026-08-27, and the correction is a defect in this document rather than in the
+> **Corrected, and the correction is a defect in this document rather than in the
 > table above.** This paragraph originally read *"four to six of the eight tiles must be
 > absent"*, and §14 repeated it as *"up to four of eight"* on Support. **The table gives five,
 > and the prose gave a range nobody could derive from it.** Product-owner re-derived it
@@ -894,7 +894,7 @@ It is a careful report and most of it survives contact. Four places it does not.
 **And one thing the audit did that is worth copying.** §1.1.3's rule — *an absence finding is
 scoped to the tree it was taken from, and names the `HEAD` and the capture time* — is the most
 useful paragraph in either report. It generalises past QA: **this document's §1.2 sorts tiles by
-fixture comments read at `HEAD` = `8a65130` plus the working tree of 2026-08-27. The
+fixture comments read at `HEAD` = `8a65130` plus the working tree. The
 classification is a claim about that tree, and mock-data-engineer should re-derive it from the
 sources rather than take my table on trust.**
 

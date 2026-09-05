@@ -7,53 +7,75 @@ repo. Do not re-litigate one in a spec or a review — if it is wrong, change it
 
 ## Index
 
-Grep the heading to jump. **Decided** binds; **Open** waits on the owner; **Practice** is a
-working rule; **Log** is a round's record. `docs/RULINGS.md` is the cross-document index and
-precedence order; new decisions are appended here with the next number and a date, then
-given one row there.
+Grep the heading to jump. **Decided** binds now; **Open** waits on the owner and says what is
+blocked; **Practice** is a working rule everyone follows. `docs/RULINGS.md` is the
+cross-document index and the precedence order; a new decision is appended here with the next
+number and given one row there.
 
 | Heading | Status |
 |---|---|
-| D1 — Information architecture: 5 workspaces, 34 sub-tabs | Decided |
-| D1a — Amendment to D1: 35 sub-tabs. Management gains **Reports** at order 6 | Decided |
+| D1 — Information architecture: 5 workspaces, 35 sub-tabs (amended by D1a) | Decided |
+| D1a — Management gains **Reports** at order 6 | Decided |
 | D2 — Minimum viewport: 1280px | Decided |
 | D3 — Stack | Decided |
-| D4 — Role model — **OPEN, needed before 0.7** | Decided |
+| D4 — Role model | **Open** |
 | D5 — The sub-tab column never collapses | Decided |
 | D6 — The navigation has its own background, one step darker than the canvas | Decided |
 | D7 — the **visual** language is the token layer: colour, spacing, radii, type, table style | Decided |
+| D7a and the amendments made during remediation — brand green `#0C6944` is `--primary` | Decided |
 | D8 — A row kebab is for *many* actions, never for one or two | Decided |
 | D9 — ⌘K is a command centre, not a search box | Decided |
-| D10 — Two rulings from the owner on chrome, applied immediately | Decided |
+| D10 — Two rulings from the owner on chrome | Decided |
 | D11 — The index toolbar is TWO rows, and search is a field | Decided |
 | D12 — The view switcher is a STADIUM segmented control, and R15 gets one narrow exception | Decided |
-| D13 — The final phase is an ad-hoc **Report Builder**, and it is a semantic layer before it is a screen | Decided |
+| D13 — the ad-hoc **Report Builder** is a semantic layer before it is a screen | Decided |
 | D14 — the auth spec governs auth STRUCTURE; D7's visual language governs its look | Decided |
-| AWAITING THE OWNER'S SIGNATURE — seven items | Open |
-| OPEN AFTER WAVE R4-4 — four items, none blocking | Open |
-| OPEN AFTER WAVE 3 (FINANCIALS DATA) — six spec findings for product-owner | Open |
-| OPEN AFTER THE FINANCIALS MONEY-FLOW DESIGN — two questions for Finance | Open |
-| OPEN AFTER THE REPORT-BUILDER SEMANTIC LAYER — three that outlive the module | Open |
-| BUILD SLOT — the zone-health table (owner: main, scheduled here so it is not lost again) | Open |
-| PRACTICE — a document may not tick its own acceptance criterion | Practice |
-| CARRIED — items owed to the AUTH BUILD, which has not started | Open |
-| PRACTICE — three rules from R5 §19–§20 that outlive the feature | Practice |
-| PRACTICE — assert the reason, not the presence | Practice |
-| PRACTICE — a ratio across two populations is wrong even when both numbers are right | Practice |
-| PRACTICE — four rules from R5 §23 | Practice |
-| PRACTICE — writing a rule about code without reading the code, in both directions | Practice |
-| SEQUENCING — D15 comes first, and the tile-count questions are HELD behind it | Open |
-| PRACTICE — two more, both about what a rule may claim | Practice |
-| PRACTICE — a negative assertion can pass vacuously, and that is a false tick in test form | Practice |
-| Round 5 — the eight delegated rulings, 2026-09-01 | Log |
-| Round 5 addendum — four rulings raised by the build, 2026-09-01 | Log |
-| Round 5 addendum 2 — the conversation-composer design pass, 2026-09-01 | Log |
-| Round 5 addendum 3 — AC-39's word list, 2026-09-01 | Log |
-| Round 5 addendum 4 — credential authority, 2026-09-01 | Log |
-| Remediation amendment, 2026-09-02 | Log |
+| D16 – D23 — the eight delegated rulings | Decided |
+| Four rulings the build raised (D16a, D18a, D19a, and the §6.2 addition) | Decided |
+| The conversation-composer design pass — four rulings | Decided |
+| D29 — the banned-word list | Decided |
+| D30 — credential authority | Decided |
 | D-11a — who owns focus when a menu hands off to a layer: **the layer wins** | Decided |
 | D-12 — peek is the drawer, not a sixth surface | Decided |
 | D-13 — motion has no duration tokens, and the request for a duration scale is refused | Decided |
+| D-F32 — a `Metric` derived from a server response is not a minted literal | Decided |
+| D21a — Admin: three things the workspace deliberately does not do | Decided |
+| D21b — five cross-cutting rules from the Management and Operations pass | Decided |
+| AWAITING THE OWNER'S SIGNATURE — seven items | **Open** |
+| OPEN — four metric-board items, none blocking | **Open** |
+| OPEN — six financials-data findings for product-owner | **Open** |
+| OPEN — two money-flow questions for Finance | **Open** |
+| OPEN — three report-builder questions that outlive the module | **Open** |
+| OPEN — the zone-health table, recorded here so it is not lost again | **Open** |
+| CARRIED — items owed to the auth surfaces | **Open** |
+| SEQUENCING — D15 comes first, and the tile-count questions are HELD behind it | **Open** |
+| PRACTICE — a document may not tick its own acceptance criterion | Practice |
+| PRACTICE — three rules that outlive the feature that raised them | Practice |
+| PRACTICE — assert the reason, not the presence | Practice |
+| PRACTICE — a ratio across two populations is wrong even when both numbers are right | Practice |
+| PRACTICE — four more rules about what a claim may assert | Practice |
+| PRACTICE — writing a rule about code without reading the code, in both directions | Practice |
+| PRACTICE — two more, both about what a rule may claim | Practice |
+| PRACTICE — a negative assertion can pass vacuously, and that is a false tick in test form | Practice |
+
+### Superseded, and by what
+
+Kept as one line each so a citation still resolves. Do not cite the left column as a live rule.
+
+| Superseded | By |
+|---|---|
+| D1's *34 sub-tabs* | **D1a** — the count is 35 |
+| D7's *near-black `--primary`* | **D7a** — brand green `#0C6944` |
+| §6.2 **D-1** (brand blue is the primary action colour) | **D7** — void |
+| §6.2 **D-2** (higher density) | **D7** — retired; only **D-2′**, the 32px page gutter, survives |
+| **V3** (`--ev-bg-nav` at `#eaecf1`) | **D7** — the nav is `#F8FAFB` and `#eaecf1` is retired |
+| **V9** (no icon on the error state) | `design/04-index-screen-redesign.md` |
+| **CQ-1** (the palette stays an anchored popover) | the owner's centred-palette override; `design/05-command-centre.md` §7 |
+| **AC-32**, **AC-33** (the sub-tab collapse) | **D5** and **V7** — void |
+| **AC-632**, **AC-633**, **AC-634** (skip a step) | withdrawn by the owner; there is no Skip control |
+| **Q-CC1 – Q-CC7** | answered as the defaults in `design/12-inbox.md` §11 |
+| **Q-F14** | **D-F32** |
+| **Q-P1 – Q-P8** | answered as the decisions in `design/05-command-centre.md` §12 |
 
 ## D1 — Information architecture: 5 workspaces, 34 sub-tabs
 
@@ -163,7 +185,7 @@ Rationale and the trade accepted are in `DESIGN.md` §6.6.
 
 ---
 
-## D4 — Role model — **OPEN, needed before 0.7**
+## D4 — Role model — **OPEN**, and the shell depends on it
 
 `PROPOSED-STRUCTURE.md` §10.4 proposes two roles that do not exist today —
 `Trust & Safety` and `Dispatcher` — and §10.5 proposes splitting `manage_settings` into
@@ -171,7 +193,7 @@ three permission keys. Its own §10.3 visibility matrix and §13.1 R5 both assum
 this exists.
 
 **This touches the shell, not one screen:** role membership decides which workspace tiles
-render at all. The shell (0.7) cannot be finished without an answer.
+render at all.
 
 It also has teeth beyond navigation. Admin › Operational Policy exists so an Ops Manager
 can widen the dispatch radius during a supply shortage without waking the founder — and
@@ -375,7 +397,7 @@ they work all day.
 **Where this applies:** every table, but it bites hardest in the §8.4 work queues, whose
 whole job is a disposition per row — the five wave-2 sub-tabs.
 
-### D8-b — the kebab begins at **three**. Ruled 2026-08-27, `design/10-financials-money-flows.md` §8
+### D8-b — the kebab begins at **three** (`design/10-financials-money-flows.md` §8)
 
 **Read this with D8; D8 alone will mislead you.** The table above defines **1** and **3 or more**
 and a **decision pair**, and leaves **2 undefined**. `DataTable` read the gap one way
@@ -600,7 +622,7 @@ before the controls move would trade a treatment complaint for a truncation.
 
 ---
 
-## D13 — The final phase is an ad-hoc **Report Builder**, and it is a semantic layer before it is a screen
+## D13 — the ad-hoc **Report Builder** is a semantic layer before it is a screen
 
 **Decided by the business owner**, with a product-analytics segmentation chart as the reference — the behaviour is recorded in `specs/06-report-builder.md` §0:
 *"a small module for reporting where the user can choose any data he wants and compare it to
@@ -730,7 +752,7 @@ defect caught late, and it should be resolved before either is built against.
 
 ## AWAITING THE OWNER'S SIGNATURE — seven items
 
-> **The heading has read five, seven and eight today. Three items were appended on 2026-08-27 and
+> **The heading has read five, seven and eight. Three items were appended and
 > one — Q-D17 — was retired into another, so the live count is seven.** The number is corrected in
 > the same edit as the list, every time, rather than left to go stale: **a superseded question left
 > standing in a signature register is the stale-status defect this register has now corrected three
@@ -830,7 +852,7 @@ the repo**. R4-8 was ruled from the built control and from measurement instead. 
 visual claim in this project cites a file; this one cannot, and that is a gap in the evidence
 chain rather than a judgement call.
 
-### Q-D16 and Q-D17 — appended by product-owner on the R5 pass, 2026-08-27
+### Q-D16 and Q-D17 — appended by product-owner
 
 Both are drafted yes/no in `design/09-rulings-r5.md` §14. **Both are the business owner's**: each is
 a scope call about what the product claims to measure, not a design or a data question. **They
@@ -950,7 +972,7 @@ the shape is one read of `src/components/metrics/MetricTileRow.tsx:70`; both tak
 > before the room. **D15 is already in this register with a recommendation; it now has the evidence.**
 
 > ⚠ **Superseded by the hold above — retained for the trail. Both Q-D16 and Q-D18 are answerable on
-> their merits; their tile-count consequences are not yet (added 2026-08-27).**
+> their merits; their tile-count consequences are not yet.**
 >
 > **§11.2's tile-removal sort was run on the wrong predicate.** The test asks whether a measure has
 > a **store**; the sort keyed on **`value: null`**, so a tile with a hand-written number and no
@@ -973,7 +995,7 @@ the shape is one read of `src/components/metrics/MetricTileRow.tsx:70`; both tak
 
 ### Q-D18 — Does a cumulative census render as a metric tile anywhere?
 
-**Appended by product-owner on the fourth R5 pass and reframed on the fifth, 2026-08-27. It absorbs
+**Appended by product-owner and later reframed. It absorbs
 Q-D17, which is retired below.** Five boards fail **AC-729**'s permitted tile counts. They resolve
 into **three decisions, not five** — this one, **Q-107**, and two genuine per-board calls — and this
 one settles the pair that a board-by-board framing could never have settled together.
@@ -1128,11 +1150,11 @@ content that determines it. **Q-107 and Q-115 stay open on their own merits rega
 
 ---
 
-## OPEN AFTER WAVE R4-4 — four items, none blocking
+## OPEN — four metric-board items, none blocking
 
 Raised by the metric-board build. Recorded so they are decided rather than rediscovered.
 
-> **Two of the four closed on 2026-08-27 by `design/09-rulings-r5.md`, and the text below is left
+> **Two of the four are closed by `design/09-rulings-r5.md`, and the text below is left
 > standing rather than deleted, because the reasoning is the record.**
 > **Item 1 (B-3, the caption's scope) — CLOSED by R5-4**, in the ruling's favour rather than the
 > spec's: R4-4 §4.2 gains *the direction that counts as good, where the label does not make it
@@ -1226,7 +1248,7 @@ a utility, **describe it rather than spell it**. And **verify by grepping `dist/
 
 ---
 
-## OPEN AFTER WAVE 3 (FINANCIALS DATA) — six spec findings for product-owner
+## OPEN — six financials-data findings for product-owner
 
 The data layer is built and green (1216 passing, 55 injectable operation ids, 13 accounts with
 non-zero trial-balance figures). These are places where **the spec cannot be implemented as
@@ -1287,9 +1309,9 @@ corrected split-tender shape beside it.
 
 ---
 
-## OPEN AFTER THE FINANCIALS MONEY-FLOW DESIGN — two questions for Finance
+## OPEN — two money-flow questions for Finance
 
-**Raised by `design/10-financials-money-flows.md` §10, recorded by product-owner 2026-08-27.
+**Raised by `design/10-financials-money-flows.md` §10, recorded by product-owner.
 Both block a criterion that is already written and already shipped short.** Neither is in the
 *Awaiting the owner's signature* list above, and that is deliberate: **both are Finance's, not the
 business owner's**, so adding them would move that list's count without moving its subject. The
@@ -1378,9 +1400,9 @@ Blocks: AC-333 and AC-334's reason-code clauses.**
 
 ---
 
-## OPEN AFTER THE REPORT-BUILDER SEMANTIC LAYER — three that outlive the module
+## OPEN — three report-builder questions that outlive the module
 
-**Recorded by product-owner 2026-08-27 from ten contradictions the built layer returned. Seven were
+**Recorded by product-owner from ten contradictions the built layer returned. Seven were
 wording and are amended in `specs/06-report-builder.md`; these three are register items because
 they bind outside that spec.**
 
@@ -1416,7 +1438,7 @@ changed what got written down.)*
 
 ---
 
-## BUILD SLOT — the zone-health table (owner: main, scheduled here so it is not lost again)
+## OPEN — the zone-health table, recorded here so it is not lost again
 
 **R4-6b** (`design/07-rulings-r4.md` §6.6) settles that *"zones by failure rate"* neither dies nor
 moves. The premise was re-checked rather than defended: the breakdown and the table are all six
@@ -1483,7 +1505,7 @@ passes. Verification is the QA role's output, produced against a running build. 
 
 ---
 
-## CARRIED — items owed to the AUTH BUILD, which has not started
+## CARRIED — items owed to the auth surfaces
 
 Collected so they survive the gap between the agent that found them and the agent that needs
 them. Every one is a defect that would otherwise be discovered by shipping it.
@@ -1604,7 +1626,7 @@ twice over.**
 
 ---
 
-## PRACTICE — three rules from R5 §19–§20 that outlive the feature
+## PRACTICE — three rules that outlive the feature that raised them
 
 **1. A slot defined by what it CURRENTLY HOLDS will drift. Define it by what it FORBIDS.**
 §4.2 was written as *"a caption carries a scope limit or a denominator"* — which was a
@@ -1766,7 +1788,7 @@ being counted as covered.
 
 ---
 
-## PRACTICE — four rules from R5 §23
+## PRACTICE — four more rules about what a claim may assert
 
 **1. A ruling states obligations. Only a verification document states that a check EXISTS — against
 a named test in a named tree. The tense is the tell.**
@@ -1980,7 +2002,7 @@ table, the presence check on a placement rule, the green suite over code that do
 
 ---
 
-## Round 5 — the eight delegated rulings, 2026-09-01
+## D16 – D23 — the eight delegated rulings
 
 **Delegated by the business owner to product-owner, in one sitting, with the instruction to
 rule rather than survey.** Every entry below is decided. None of them says *to be confirmed*,
@@ -3334,7 +3356,7 @@ agents do not ship incompatible answers:
 
 ---
 
-## Round 5 addendum — four rulings raised by the build, 2026-09-01
+## Four rulings the build raised
 
 **Two conflicts and two findings, all four surfaced by agents working next to them and all four
 flagged in file headers rather than papered over.** None was invented by the agent that raised it,
@@ -4156,7 +4178,7 @@ between a fix that holds and one that gets re-argued.
 
 ---
 
-## Round 5 addendum 3 — AC-39's word list, 2026-09-01
+## D29 — the banned-word list
 
 ### D29 — `please` and `invalid` stay banned everywhere. **`failed` comes off the list.** AC-39 splits in two.
 
@@ -4333,7 +4355,7 @@ it the same way it decided `invalid-address`: **a code is not copy.**
 
 ---
 
-## Round 5 addendum 4 — credential authority, 2026-09-01
+## D30 — credential authority
 
 ### D30 — A key cannot carry a scope its issuer does not hold. **RATIFIED**, with two scopes withdrawn and one guard added.
 
@@ -4443,7 +4465,7 @@ that integration wants a purpose-built endpoint with its own audit trail, not a 
 
 ---
 
-## Remediation amendment, 2026-09-02
+## D7a and the amendments made during remediation
 
 ### D7a — Brand green replaces near-black as `--primary`, amending D7 §1.2
 
@@ -4510,7 +4532,7 @@ at `var(--ev-blue)`, `--chart-fill` back at `var(--ev-blue-lt)`, and `--ev-green
 
 ## D-11a — who owns focus when a menu hands off to a layer: **the layer wins**
 
-**Status:** ruled and implemented, 2026-09-02. Supersedes the open question in
+**Status:** ruled and implemented. Supersedes the open question in
 `design/02-shell-fixes.md` §13, which assigned it to product-designer and left it unanswered.
 `shell/qa.keyboard.test.tsx` carried it as an `it.fails`; that test is now inverted.
 
@@ -4540,7 +4562,7 @@ flip the test back to `it.fails`.
 
 ## D-12 — peek is the drawer, not a sixth surface
 
-**Status:** ruled, 2026-09-02. Closes `design/14-system-wide-ux-plan.md` G8.
+**Status:** ruled. Closes the system-wide UX audit's finding G8.
 
 `docs/ref/surfaces.md` already carries the row verbatim: *"a surface consulted against the
 page behind it → drawer, no scrim."* Every requirement G8 states for peek was verified
@@ -4565,7 +4587,7 @@ mode of a drawer.
 
 ## D-13 — motion has no duration tokens, and the request for a duration scale is refused
 
-**Status:** ruled and implemented, 2026-09-02.
+**Status:** ruled and implemented.
 
 A visual proposal asked for six motion tokens. **Minting them is the defect.** `globals.css`
 states the reason at the token: Tailwind's duration scale *is* the token set, and a second

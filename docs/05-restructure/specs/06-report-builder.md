@@ -7,7 +7,7 @@
 > **Acceptance criteria: AC-800 … AC-905**, after §14a appended six. Nothing renumbered, nothing
 > inserted, and nothing outside that range is claimed here.
 >
-> **Reconciled with the built semantic layer, 2026-08-27.** Ten contradictions came back. **Six
+> **Reconciled with the built semantic layer.** Ten contradictions came back. **Six
 > criteria are amended in place** — AC-800 and AC-806 (⛔ blocked on **Q-RB-1**), AC-814
 > (resource-qualified filter fields), AC-826 (`Compare separately` deleted by **R4-1 §1.3**, which
 > this spec had not absorbed), AC-827 (it named a measure that cannot exist), AC-838 (the
@@ -327,7 +327,7 @@ moving a tile between boards breaks saved reports. Escalate before the catalogue
 | `threshold` | `number` | operator | no |
 | `thresholdUnit` | `MetricUnit` | **derived** from the series' measure | yes — an operator never picks a unit; a threshold on a money measure is halalas on the wire and SAR in the field |
 | `evaluationGrain` | `'day' \| 'week' \| 'month'` | operator | no — which bucket's value is tested |
-| `cadence` | `'hourly' \| 'daily' \| null` | **server, once a scheduler exists** | no — how often the server looks. **`null` means *not specified, does not run*, and `null` is what every rule carries today.** ⛔ **Q-RB-7.** **Amended 2026-08-27:** §4.2 made this a **required operator choice** between two values **this spec invented**, while §12.1 states plainly that nothing evaluates. A required field whose legal values were minted by the document that requires them, sitting in a fixture, is **AC-453's failure mode exactly** — a plausible number becomes a policy by being on screen. **A rule may not offer a cadence the scheduler does not implement, and a fixture may not seed one.** When Q-RB-7 lands, the scheduler's real cadences populate this field and the control appears with them |
+| `cadence` | `'hourly' \| 'daily' \| null` | **server, once a scheduler exists** | no — how often the server looks. **`null` means *not specified, does not run*, and `null` is what every rule carries today.** ⛔ **Q-RB-7.** **Amended:** §4.2 made this a **required operator choice** between two values **this spec invented**, while §12.1 states plainly that nothing evaluates. A required field whose legal values were minted by the document that requires them, sitting in a fixture, is **AC-453's failure mode exactly** — a plausible number becomes a policy by being on screen. **A rule may not offer a cadence the scheduler does not implement, and a fixture may not seed one.** When Q-RB-7 lands, the scheduler's real cadences populate this field and the control appears with them |
 | `minReArmMinutes` | `number \| null` | operator | no — the backstop re-arm in §12.4's state machine, for a value that oscillates across the line. `null` means hysteresis only, which is the default. **Added 2026-08-27: it was specified in §12.4's prose and absent from this table**, so the type the spec gives could not express the state machine the spec describes — the under-specified half of *writing a rule about code without reading the code* |
 | `state` | `'armed' \| 'firing' \| 'cooling' \| 'suspended' \| 'error'` | server | **yes** — §12.4 |
 | `enabled` | `boolean` | operator | no |
@@ -514,7 +514,7 @@ not travel. The cost of refusing is one extra click; the cost of warning is a wr
 front of the founder.
 
 **There is no escape hatch, because there is nothing to escape from.**
-**Amended 2026-08-27 (`design/07-rulings-r4.md` §1.3).** This paragraph offered
+**Amended (`design/07-rulings-r4.md` §1.3).** This paragraph offered
 **`Compare separately`** as an opt-in escape from a one-axis overlay. **The ruling deleted the
 overlay**, so it deleted the control with it: two measures render as **two stacked panels sharing
 one window, one grain and one x-axis extent**, each with its own y-axis — **unconditionally, with
@@ -1109,7 +1109,7 @@ value, not an absence; a date range includes the whole end day) — as one emitt
 control kind on an index table. **No second filter model is introduced.** Its `field` is
 **resource-qualified** (`subscription.status`, `trip.status`); an index table's is not, and that
 difference is a **vocabulary** difference inside one model, not a second model.
-**Amended 2026-08-27, and the original wording had to yield to a safety fix.** *"Byte-identical in
+**Amended, and the original wording had to yield to a safety fix.** *"Byte-identical in
 shape"* was written as a shape rule and read as a string rule. **`FilterSpec.field` is a bare
 string, and `subscriptions` and `trips` both carry `status` with unrelated vocabularies** — so a
 two-measure query could apply one resource's value to the other and return a confidently wrong
@@ -1166,7 +1166,7 @@ is rejected with a stated reason and the previous query is retained.
 one x-axis extent, each with its own y-axis, and each labelled with its own measure name. **There
 is no `Compare separately` control**, and no control, URL parameter or saved report puts two
 measures on one axis.
-**Amended 2026-08-27 (`design/07-rulings-r4.md` §1.3).** The original made the two-panel rendering
+**Amended (`design/07-rulings-r4.md` §1.3).** The original made the two-panel rendering
 conditional on a control. **The ruling deleted the control and made the rendering unconditional** —
 with no overlay there is nothing to escape from, and *a checkbox whose only setting is its default
 teaches the operator that a mode exists when it does not*. The ruling post-dates this spec and
@@ -1175,7 +1175,7 @@ Nothing else in AC-826 changes.
 
 **AC-827** — `Registered captains` and `Registered riders` (both stock, both count) can be selected
 together and produce a two-series result.
-**Amended 2026-08-27. The criterion named a measure that cannot exist, and the criterion is what
+**Amended. The criterion named a measure that cannot exist, and the criterion is what
 was wrong.** `Active captains` is computable **as a reading now** and **not as a series over past
 buckets**: `Driver` carries `status` and `joinedAt` and **no status history**, so
 `status === 'active' && joinedAt <= t` applies **today's** status to every past bucket — a captain
@@ -1230,7 +1230,7 @@ post-run it reads the **result**, which is **authoritative**. Where a run return
 the hint forecast and `pie` is selected, the chart switches to the nearest legal type and states
 the switch **inline in the chart card** (**AC-837**'s mechanism). **A pie rendered with seven or
 more parts is a fail whatever the hint said.**
-**Appended 2026-08-27.** The hints are genuinely wrong today — `trip.pickup` hints 12 against a
+**Appended.** The hints are genuinely wrong today — `trip.pickup` hints 12 against a
 real cardinality of 17 — so the gate is a **forecast, not a guarantee**, and the criterion said
 nothing about which reading governs. An understated hint could briefly offer a pie for a split
 that cannot legally have one.
@@ -1448,8 +1448,8 @@ reader — including the disabled chart types and the disabled grains.
 
 ### 14a. Appended from the semantic-layer build (AC-900 … AC-905)
 
-**Six criteria, appended not inserted, from the ten contradictions the built layer returned on
-2026-08-27.** Six existing criteria were **amended in place** and each carries its own note:
+**Six criteria, appended not inserted, from the ten contradictions the built layer returned.**
+Six existing criteria were **amended in place** and each carries its own note:
 **AC-800** and **AC-806** (blocked on Q-RB-1), **AC-814** (namespaced fields), **AC-826**
 (`Compare separately` deleted), **AC-827** (a measure that cannot exist), **AC-838** (the
 cardinality hint is a forecast). §3.4, §4.2 and §6.2 were amended with them.

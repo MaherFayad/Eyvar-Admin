@@ -882,7 +882,7 @@ next time a ruling re-patterns a built screen.
 > table's own rows. They may not remain literals.** — `captainsNeeded`, `starvedZones`,
 > `unservedRequests30d`, `avgFailureRate`, `worstDemandSupplyRatio`.
 
-> **Corrected 2026-08-27 ([`09-rulings-r5.md`](09-rulings-r5.md) §13.1). I wrote "four" by
+> **Corrected ([`09-rulings-r5.md`](09-rulings-r5.md) §13.1). I wrote "four" by
 > counting the tiles I happened to be looking at, and `management.zones.captainsNeeded` — which
 > `05-metrics-content.md` §9.1 ranks FIRST on the board — is zone-derived like the rest.**
 > Worth correcting loudly, because deriving four and leaving the fifth a literal is precisely the

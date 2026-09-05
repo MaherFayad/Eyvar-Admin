@@ -2056,7 +2056,7 @@ that ruling asks for exactly this re-derivation and says it should not be taken 
 ### 21.4 The test I used, stated once so it can be re-run
 
 `design/09-rulings-r5.md` §15 is right that a classification is *"a claim about a tree"*. Mine is a
-claim about `HEAD = 8a65130` plus the working tree of 2026-08-27, and it is mechanical:
+claim about `HEAD = 8a65130` plus the working tree, and it is mechanical:
 
 > ⚠ **THE PREDICATE BELOW IS WRONG AND THE CONCLUSION IT REACHED IS INCOMPLETE. Corrected under it.
 > Left standing because the error is the finding.**

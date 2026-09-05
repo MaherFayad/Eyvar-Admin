@@ -12,7 +12,7 @@
 > **Range: AC-300 – AC-490**, after §9.17 appended six and §9.18 appended thirty-four. Nothing
 > renumbered, nothing inserted.
 >
-> **Reconciled with `design/10-financials-money-flows.md`, 2026-08-27.** The two money flows are
+> **Reconciled with `design/10-financials-money-flows.md`.** The two money flows are
 > specified, `ConfirmMoneyDialog` has a governing rule, and four findings the build raised are
 > ruled. **§9.18 appends AC-457–490; ten existing criteria are amended in place, one is struck
 > (AC-354) and four are blocked (AC-333, AC-334, AC-359 on their questions).** Three of the
@@ -21,7 +21,7 @@
 > named a posting state that AC-452 had already made unreachable. Those are recorded as
 > **D-F28–D-F31** rather than quietly rewritten.
 >
-> **Reconciled with the built data layer, 2026-08-27.** Six findings came back from the wave-3
+> **Reconciled with the built data layer.** Six findings came back from the wave-3
 > financials data layer as *“the spec cannot be implemented as written”*, plus three source-material
 > defects. Every one is ruled on: §3.4c gains a second chargeback recipe (**D-F23**), §3.2/§7.2
 > settle escrow, §3.8's chart **gains five accounts** rather than losing three requirements, §3.9
@@ -1100,7 +1100,7 @@ was meant.
 - **AC-314** No ledger renders a floating bulk-action bar, at any selection state.
 - **AC-315** No ledger row renders a `…` kebab, and no ledger row renders a **control that
   mutates** — no edit, no delete, no reverse, no disposition — at any permission level.
-  **Amended 2026-08-27 (`design/10` §2.2).** The original wording permitted *"a link to its
+  **Amended (`design/10` §2.2).** The original wording permitted *"a link to its
   source document"* and nothing else, which **collided with AC-329**: after a reversal the
   original row must link to the reversing row, and that is a second link on the row. The
   collision is between two criteria of mine, not between a criterion and a build, and the
@@ -1156,7 +1156,7 @@ was meant.
   in the **neutral** tone and creates **no** new posting. Reversing an **escrow hold** whose
   `EscrowHold.settlement` is `held` is refused on the control with `This hold has not been
   released.`; it is not a release and it is not a reversal.
-  **Amended 2026-08-27.** The original read *"whose settlement is `held` or `authorised`"*, and
+  **Amended.** The original read *"whose settlement is `held` or `authorised`"*, and
   **AC-452 made the `held` half unreachable**: no posting carries `settlement: 'held'` — the
   `held | released | reversed` lifecycle lives on `EscrowHold`. A clause naming a state no
   record can be in is checked **vacuously**, which is the false-tick failure in test form
@@ -1225,7 +1225,7 @@ was meant.
   appears in exactly one cost line.
 - **AC-353** Changing the period search param changes every **flow** tile on Overview, and
   **every tile states its window — a tile that covers no window states that it has none.**
-  **Amended 2026-08-27 (`design/10` §7, TL-1).** The original second clause — *"every tile
+  **Amended (`design/10` §7, TL-1).** The original second clause — *"every tile
   states the period it covers"* — **cannot hold for a balance-sheet position**, which has a
   date and not a period, and the original first clause made the passing state a screen that is
   wrong: a position tile that moved when the reporting window narrowed would be **a false
@@ -1236,7 +1236,7 @@ was meant.
 ### 9.6 Revenue & Refunds (AC-354–361)
 
 - **AC-354** ~~Every row in the `Revenue` view is a posting with a source link that resolves to
-  a real trip, payment or subscription.~~ **STRUCK 2026-08-27 (`design/10` §6, VW-2). It
+  a real trip, payment or subscription.~~ **STRUCK (`design/10` §6, VW-2). It
   described a view that cannot exist, and it was mine, not the build's.** `revenue.fares` has
   **no postings** — only journal lines — so it has no subject ledger and cannot be a view of
   postings at all. Revenue & Refunds' first view is `Revenue by plan`, an **aggregate table**
@@ -1448,7 +1448,7 @@ was meant.
   first-run empty state — heading, one-to-two-sentence body and at least one action, and **no
   illustration**. A ledger filtered to zero renders one grey sentence and a clear-filters
   action, with no illustration and no heading.
-  **Amended 2026-08-27 (`design/10` §5, LR-1 / LR-2 / LR-3).** Three changes, and the first is
+  **Amended (`design/10` §5, LR-1 / LR-2 / LR-3).** Three changes, and the first is
   the one that matters: *"a ledger with no postings ever"* did not say **whose** lifetime
   decides it, so a build could — and did — derive it from the count the last query returned,
   and **the criterion as written passed**. A quiet month on a platform ledger with years of
@@ -1578,7 +1578,7 @@ built as the spec was written, and each names what changed.
 
 ### 9.18 Appended from the money-flow design (AC-457–490)
 
-**Source:** `docs/05-restructure/design/10-financials-money-flows.md`, 2026-08-27 — **MC-1…MC-9**
+**Source:** `docs/05-restructure/design/10-financials-money-flows.md` — **MC-1…MC-9**
 (the governing rule for `ConfirmMoneyDialog`), **RV-1…RV-8** (reversal), **RF-1…RF-7** (refund),
 **RC-1…RC-4** (the reason), **LR-1…LR-4**, **VW-1…VW-3**, **TL-1…TL-2**, **D8-b**.
 
@@ -2185,7 +2185,7 @@ the helpers and the seven screens are four other people's work, in that order.
 
 ---
 
-### 14a. The money-flow design pass — routing, 2026-08-27
+### 14a. The money-flow design pass — routing
 
 **`design/10`'s nine built-code defects, sorted by whose problem each is.** A defect that exists
 because a criterion is wrong is named as that, because bending the criterion around a correct

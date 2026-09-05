@@ -348,7 +348,7 @@ Docked at B's foot, `--ev-surface`, 1px `--ev-hairline-control` border, radius 8
 ┃└────────────────────────────────────────────────┘
 ```
 
-Nothing is printed under the surface but a refusal. **Owner ruling, 2026-09-06:** the standing
+Nothing is printed under the surface but a refusal. **Owner ruling:** the standing
 consequence line, the key hint and the `Reply by email` toggle are all removed; see §5.4.
 
 | Element | Component | Notes |
@@ -356,7 +356,7 @@ consequence line, the key hint and the `Reply by email` toggle are all removed; 
 | Register | `Tabs` restyled: `TabsList` flush to the surface's top edge, `TabsTrigger` 32px, `←`/`→` between tabs | each trigger sizes to its own content and starts its label at the inline-start; neither is centred and neither escapes the surface (§5.4) |
 | Field | `Textarea` `rows={2}`, `field-sizing-content`, `max-h` 8 lines, transparent ground, focus ring on the composer surface (`focus-within`) | placeholder blank while refused |
 | `Insert template` | existing `TemplatePicker` trigger as `Button ghost` (`default`, 32px: `xs` is 11px in Latin) with `FileTextIcon` | surface `chat` / `email`; present in both registers; absent on phone (no surface) |
-| `Reply by email` | **not rendered** — owner ruling, 2026-09-06 | The seam keeps the capability: `replyConversation(id, { body, visibility, channel })` still accepts `channel: 'email'`. There is no control for it in the composer, in any state or on any channel, so §8.6.5's toggle does not apply here |
+| `Reply by email` | **not rendered** — owner ruling | The seam keeps the capability: `replyConversation(id, { body, visibility, channel })` still accepts `channel: 'email'`. There is no control for it in the composer, in any state or on any channel, so §8.6.5's toggle does not apply here |
 | Attachment slot | **not rendered** in v1 | see §10 |
 | `Send` / `Add note` | `Button variant="default" size="sm"` | the only filled button on the screen while held (AC-CC-09); disabled while empty with no reason. The toolbar is exactly two controls: `Insert template` at the start, this at the end |
 | Refusal line | `<p id=…>` `text-xs` `--ev-text-2` under the surface, once | §8.6.3 / §8.6.8: real text beneath, never in the placeholder |
@@ -370,7 +370,7 @@ Draft per conversation and register, in memory only, indicated nowhere. `Enter` 
 ### 5.4 The register is unmistakable (AC-CC-11)
 
 **Four carriers at once, none colour alone.** This is the current rule. Six were specified; the
-owner removed two on 2026-09-06 as standing chrome an operator stops reading — the consequence
+owner removed two as standing chrome an operator stops reading — the consequence
 line and the key hint — and they are recorded as removed rather than deferred. The four that
 remain are the ones an operator cannot avoid looking at: the tab they pressed, the ground they
 are typing on, the words in the field before they type, and the button they are about to press.
