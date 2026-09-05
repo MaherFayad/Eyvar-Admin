@@ -138,6 +138,16 @@ const DISPUTE_DETAIL: DetailRoute = {
   patterns: ['P2'],
 }
 
+const INCIDENT_DETAIL: DetailRoute = {
+  kind: 'incident',
+  path: '/support/safety/:incidentId',
+  parentSubTabId: 'support-safety',
+  paramName: 'incidentId',
+  titleKey: 'route.safety.detail',
+  shape: 'detail',
+  patterns: ['P2'],
+}
+
 const TICKET_DETAIL: DetailRoute = {
   kind: 'ticket',
   path: '/support/tickets/:ticketId',
@@ -801,7 +811,13 @@ export const SUB_TABS: SubTabRoute[] = [
     order: 3,
     titleKey: 'subtab.support.disputes',
     subtitleKey: 'subtab.support.disputes.sub',
-    views: views(['disputes', 'view.disputes.disputes'], ['lost-and-found', 'view.disputes.lostAndFound']),
+    /* Open and decided claims are two views (R20: a decided row carries no
+       refused action); lost property is a second collection on the same tab strip. */
+    views: views(
+      ['disputes', 'view.disputes.disputes'],
+      ['decided', 'view.disputes.decided'],
+      ['lost-and-found', 'view.disputes.lostAndFound'],
+    ),
     detailRoutes: [DISPUTE_DETAIL],
     legacyPageIds: ['support'],
     legacySettingsPanes: [],
@@ -840,12 +856,14 @@ export const SUB_TABS: SubTabRoute[] = [
     order: 5,
     titleKey: 'subtab.support.safety',
     subtitleKey: 'subtab.support.safety.sub',
+    /* Spec §8.9: `critical`, not `critical-sos` (severity is not type), and an `all` view. */
     views: views(
       ['open', 'view.safety.open'],
-      ['critical-sos', 'view.safety.criticalSos'],
+      ['critical', 'view.safety.critical'],
       ['closed', 'view.safety.closed'],
+      ['all', 'view.safety.all'],
     ),
-    detailRoutes: [],
+    detailRoutes: [INCIDENT_DETAIL],
     legacyPageIds: ['safety'],
     legacySettingsPanes: [],
     patterns: ['P9'],

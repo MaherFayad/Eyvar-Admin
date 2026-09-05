@@ -211,19 +211,19 @@ describe('the four states', () => {
 
 describe('§11.2 — a refused action is disabled in place and says why', () => {
   it('shows Resolve on a decided claim, disabled, with the date it was decided', async () => {
-    renderApp(INDEX)
-    await screen.findByText('DSP-101')
-    /* `DSP-120` is resolved. The old screen rendered `null` here, so an operator
-       could not see that resolving exists at all. */
-    const row = (await screen.findByText('DSP-120')).closest('tr')
-    expect(row).not.toBeNull()
-    const resolve = within(row as HTMLElement).getByRole('button', {
-      name: en('dispute.action.resolve'),
-    })
+    /* `DSP-120` is resolved. The old screen rendered `null`, so an operator
+       could not see that resolving exists at all. The refusal lives on the
+       record now; the decided view's rows carry no action (R20). */
+    renderApp('/support/disputes/DSP-120')
+    const resolve = await screen.findByRole('button', { name: en('dispute.action.resolve') })
     expect(resolve).toBeDisabled()
-    expect(
-      within(row as HTMLElement).getByText(/A verdict is not reversed here/),
-    ).toBeInTheDocument()
+    expect(screen.getByText(/A verdict is not reversed here/)).toBeInTheDocument()
+  })
+
+  it('lists decided claims on their own view', async () => {
+    renderApp(`${INDEX}?view=decided`)
+    expect(await screen.findByText('DSP-120')).toBeInTheDocument()
+    expect(screen.queryByText('DSP-101')).not.toBeInTheDocument()
   })
 
   /* AC-S-10 on this queue: the owner chip names the holder and Take over confirms. */

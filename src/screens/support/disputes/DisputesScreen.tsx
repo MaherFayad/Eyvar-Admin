@@ -125,6 +125,7 @@ export function DisputesScreen({ row }: { row: SubTabRoute }) {
   const fallback = views.find((v) => v.isDefault)?.id ?? 'disputes'
   const activeTab = views.some((v) => v.id === route.view) ? (route.view as string) : fallback
   const onLostFound = activeTab === LOST_FOUND_VIEW
+  const onDecided = activeTab === 'decided'
 
   const currentUserId = shell.session?.userId ?? 'USR-1'
   const currentUserName = shell.session?.name ?? 'Sarah Al-Rashid'
@@ -144,8 +145,8 @@ export function DisputesScreen({ row }: { row: SubTabRoute }) {
        after the tab and silently delete their own filter (§4.6 item 1). Here the
        two tabs are two collections, so there is no view to send at all — stating
        it beats relying on the spread order. */
-    () => ({ ...disputeTable.params, view: null }),
-    [disputeTable.params],
+    () => ({ ...disputeTable.params, view: onDecided ? 'decided' : 'open' }),
+    [disputeTable.params, onDecided],
   )
 
   const disputes = useAsync<Paginated<Dispute>>(
@@ -724,8 +725,10 @@ export function DisputesScreen({ row }: { row: SubTabRoute }) {
               })),
             },
           ]}
-          rowActions={disputeActions}
-          rowActionsWidth={224}
+          /* Decided rows carry no action: `Resolve` refused on every one of them
+             would level the pitch up (R20); the detail states the refusal. */
+          rowActions={onDecided ? [] : disputeActions}
+          rowActionsWidth={onDecided ? undefined : 136}
           firstRun={{
             heading: t('dispute.empty.heading'),
             body: t('dispute.empty.body'),

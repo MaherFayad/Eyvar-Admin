@@ -72,11 +72,9 @@ import { useMemo, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import {
   claimSafetyIncident,
-  closeSafetyIncident,
   listSafetyIncidents,
   listTrips,
   releaseSafetyIncident,
-  setSafetyProtocolStep,
 } from '@/data/clients'
 import {
   SAFETY_PROTOCOL_STEPS,
@@ -85,7 +83,6 @@ import {
   type SafetyIncident,
   type SafetyIncidentSeverity,
   type SafetyIncidentType,
-  type SafetyProtocolStepKey,
   type SubTabRoute,
   type Trip,
 } from '@/data/types'
@@ -93,10 +90,7 @@ import { useAsync, useIndexTable } from '@/hooks'
 import { formatCount, formatDate, type Language, type Translate } from '@/lib'
 import { ErrorState } from '@/components/ErrorState'
 import { RowCriticalMarker, StatusBadge } from '@/components/StatusBadge'
-import { Button } from '@/components/ui/button'
-import { Checkbox } from '@/components/ui/checkbox'
 import type { DataColumn, ExtraFilterSpec } from '@/components/DataTable'
-import { RefusalLine } from '@/components/table/rowActions'
 import { useShell } from '@/shell/ShellContext'
 import { withOverlay } from '@/shell/routeState'
 import {
@@ -121,17 +115,7 @@ import { ConfirmDialog, type ConfirmRequest } from '@/components/ConfirmDialog'
 import { withFallback } from '../../operations/localCopy'
 import { SAFETY_EN } from './copy'
 
-/**
- * **Q-32** — the open work, which on this queue is `unacknowledged ∪
- * acknowledged`. It agrees with the route table's `isDefault`.
- *
- * §8.9 asks for `critical-sos` to be **renamed `critical`** — *"severity is not
- * type, and a critical incident may be an accident or a medical emergency, not
- * an SOS"* — and for an `all` view to be added, and for notification **N7**'s
- * route to move with the rename (`notifications.ts:108`). None of that landed;
- * `routeTable.ts:602` still declares `open · critical-sos · closed`, and that
- * file has a single owner. Reported, not edited.
- */
+/** Q-32: the open work, `unacknowledged ∪ acknowledged`. Agrees with the route table. */
 const DEFAULT_VIEW = 'open'
 
 /**
@@ -207,7 +191,7 @@ export function SafetyScreen({ row }: { row: SubTabRoute }) {
      * of them from here. Reported to mock-data-engineer; on the current fixture
      * the two agree in rank because both derive from `openedAt` and severity.
      */
-    initialSort: { field: 'slaDueAt', dir: 'asc' },
+    initialSort: { field: 'runningDue', dir: 'asc' },
   })
 
   const params = useMemo(() => ({ ...table.params, view: activeTab }), [table.params, activeTab])
@@ -316,49 +300,6 @@ export function SafetyScreen({ row }: { row: SubTabRoute }) {
     })
   }
 
-  function toggleStep(incident: SafetyIncident, step: SafetyProtocolStepKey, done: boolean) {
-    void actions.run({
-      id: incident.id,
-      errorKey: 'safety.error.row.step',
-      toastKey: 'safety.toast.step',
-      action: () => setSafetyProtocolStep(incident.id, step, done),
-    })
-  }
-
-  function askClose(incident: SafetyIncident) {
-    const held = incident.claim?.state === 'claimed' ? incident.claim : null
-    const close = () =>
-      setConfirm({
-        title: t('safety.close.title', { id: incident.id }),
-        body: t('safety.close.body'),
-        confirmLabel: t('safety.close.confirm'),
-        onConfirm: () => {
-          setConfirm(null)
-          void actions.run({
-            id: incident.id,
-            errorKey: 'safety.error.row.close',
-            toastKey: 'safety.toast.closed',
-            action: () => closeSafetyIncident(incident.id),
-          })
-        },
-      })
-
-    /* **AC-209** — deciding an item somebody else holds takes the take-over
-       confirmation first. On this queue that matters more than anywhere else:
-       two operators closing one incident is two people believing the other one
-       spoke to the person in the car. */
-    if (held === null || held.ownerId === currentUserId) return close()
-    setConfirm({
-      title: t('queue.takeOver.decide.title', { name: held.ownerName }),
-      body: t('queue.takeOver.decide.body', { name: held.ownerName }),
-      confirmLabel: t('queue.takeOver.decide.confirm'),
-      onConfirm: () => {
-        setConfirm(null)
-        close()
-      },
-    })
-  }
-
   const columns = incidentColumns({
     t,
     language,
@@ -377,8 +318,7 @@ export function SafetyScreen({ row }: { row: SubTabRoute }) {
         action: () => releaseSafetyIncident(incident.id),
       }),
     onTakeOver: askTakeOver,
-    onToggleStep: toggleStep,
-    onClose: askClose,
+    detailHref: (id) => `/support/safety/${id}${location.search}`,
   })
 
   return (
@@ -443,8 +383,9 @@ export function SafetyScreen({ row }: { row: SubTabRoute }) {
 
 const CLEARED_BODY: Readonly<Record<string, string>> = {
   open: 'safety.empty.cleared.open',
-  'critical-sos': 'safety.empty.cleared.critical',
+  critical: 'safety.empty.cleared.critical',
   closed: 'safety.empty.cleared.closed',
+  all: 'safety.empty.cleared.open',
 }
 
 const BREACH_FILTER = (t: Translate): readonly ExtraFilterSpec[] => [
@@ -475,13 +416,6 @@ const TYPE_LABEL: Readonly<Record<SafetyIncidentType, string>> = {
   other: 'safety.type.other',
 }
 
-const STEP_LABEL: Readonly<Record<SafetyProtocolStepKey, string>> = {
-  contact: 'safety.step.contact',
-  verify: 'safety.step.verify',
-  act: 'safety.step.act',
-  document: 'safety.step.document',
-}
-
 /* ─────────────────────────────── columns ───────────────────────────────── */
 
 export interface SafetyDeps {
@@ -496,8 +430,7 @@ export interface SafetyDeps {
   onClaim: (row: SafetyIncident) => void
   onRelease: (row: SafetyIncident) => void
   onTakeOver: (row: SafetyIncident) => void
-  onToggleStep: (row: SafetyIncident, step: SafetyProtocolStepKey, done: boolean) => void
-  onClose: (row: SafetyIncident) => void
+  detailHref: (id: string) => string
 }
 
 /**
@@ -527,7 +460,7 @@ export function incidentColumns(deps: SafetyDeps): ReadonlyArray<DataColumn<Safe
       csv: (incident) => incident.id,
       header: t('safety.col.incident'),
       alwaysVisible: true,
-      minWidth: 152,
+      minWidth: 176,
       dataType: 'text',
       sortField: 'openedAt',
       cell: (incident) => {
@@ -547,11 +480,8 @@ export function incidentColumns(deps: SafetyDeps): ReadonlyArray<DataColumn<Safe
                 its badge, and this edge is spent on breach alone (Q-22). */}
             {clock.breached && <RowCriticalMarker />}
             <SubjectIdentity
-              /* §12.1 — the identity opens the record. There is no level-3
-                 detail route on this sub-tab: §3's **F-2** asks for
-                 `/support/safety/:incidentId` and it did not land, so the
-                 identity opens the party's profile overlay instead. Reported. */
-              to={deps.profileHref(incident.againstId ?? incident.reporterId ?? incident.id)}
+              /* §12.1: the identity opens the record, at F-2's route (S-8). */
+              to={deps.detailHref(incident.id)}
               title={incident.summary}
               secondary={secondary}
               label={t('safety.a11y.open', { id: incident.id })}
@@ -717,7 +647,7 @@ export function incidentColumns(deps: SafetyDeps): ReadonlyArray<DataColumn<Safe
     {
       id: 'protocol',
       header: t('safety.col.protocol'),
-      width: 168,
+      width: 96,
       dataType: 'enum',
       filter: {
         kind: 'boolean',
@@ -725,17 +655,8 @@ export function incidentColumns(deps: SafetyDeps): ReadonlyArray<DataColumn<Safe
         trueLabel: t('safety.step.countLabel', { done: '4', total: '4' }),
         falseLabel: t('safety.action.close.blockedOne'),
       },
-      /**
-       * **The working cell.** §8.6's four steps and §8.5's `Close incident`
-       * share one lane, because there is no level-3 detail route on this
-       * sub-tab (**F-2**) and a protocol that cannot be worked from the queue
-       * cannot be worked at all.
-       *
-       * Every control here is gated at RENDER (**AC-316**, Q-25, Q-72): a
-       * checkbox the role cannot use is disabled with its reason, so it can
-       * never show ticked while the record says otherwise — legacy's gate
-       * returns before the re-render and leaves exactly that (`10e` §16.9).
-       */
+      /* The steps and `Close` are worked on the record (S-8); the lane says how
+         far along the protocol is, in words, and a closed row converts in place. */
       cell: (incident) => {
         const failed = deps.failure(incident.id)
         if (failed) {
@@ -747,14 +668,6 @@ export function incidentColumns(deps: SafetyDeps): ReadonlyArray<DataColumn<Safe
             />
           )
         }
-
-        const done = stepsDone(incident)
-        const total = SAFETY_PROTOCOL_STEPS.length
-
-        /* **AC-317** — a closed incident converts in place and its outcome,
-           actor and time are legible without opening it. Q-27: it goes MUTED,
-           never `opacity: .7` (`:10929`), which is the disabled treatment and
-           promises the row will come back. */
         if (incident.status === 'closed') {
           return (
             <DecisionBadge
@@ -772,101 +685,17 @@ export function incidentColumns(deps: SafetyDeps): ReadonlyArray<DataColumn<Safe
             />
           )
         }
-
-        const blocked = total - done
-        /* §11.2 / D17 clause 3 — ONE refusal sentence for the lane, as text,
-           pointed at by every refused control in it; never a `title`. The most
-           specific reason wins: no permission, then the outstanding count. */
-        const refusalId = `safety-protocol-refusal-${incident.id}`
-        const refusal: string | null = !deps.canWrite
-          ? t('queue.action.noPermission')
-          : blocked === 1
-            ? t('safety.action.close.blockedOne')
-            : blocked > 1
-              ? t('safety.action.close.blocked', { count: formatCount(blocked, language) })
-              : null
+        const done = stepsDone(incident)
+        const total = SAFETY_PROTOCOL_STEPS.length
         return (
-          <span className="flex flex-col items-start gap-1">
-          <span className="flex items-center gap-2">
-            {/* **AC-308's visible half: four boxes ARE the count.**
-                §7.3's budget left 144px of content in this lane and a `2 of 4`
-                span beside the boxes did not fit inside it. It is also
-                redundant: four checkboxes, two ticked, states how many remain
-                more directly than a fraction does, and it states it in a form
-                that survives colour being removed. The NUMBER still reaches a
-                screen reader — it is the disabled `Close` button's reason, and
-                every box carries the step's own name. */}
-            <span
-              className="flex items-center gap-1"
-              role="group"
-              aria-label={t('safety.step.countLabel', {
+          <Cell className={done === total ? 'text-foreground' : 'text-muted-foreground'}>
+            <bdi>
+              {t('safety.step.progress', {
                 done: formatCount(done, language),
                 total: formatCount(total, language),
               })}
-            >
-              {SAFETY_PROTOCOL_STEPS.map((key) => {
-                const step = incident.protocol.find((entry) => entry.key === key)
-                const ticked = step?.done ?? false
-                /* **Q-69 / AC-315** — `document` requires the other three.
-                   `contact`, `verify` and `act` may be completed in any order,
-                   because in a real incident you may suspend a captain before
-                   you have verified anything. What you cannot do is document an
-                   outcome that has not happened. */
-                const blockedByOrder =
-                  key === 'document' &&
-                  !ticked &&
-                  incident.protocol.some((entry) => entry.key !== 'document' && !entry.done)
-                const disabled = !deps.canWrite || blockedByOrder
-                return (
-                  <Checkbox
-                    key={key}
-                    checked={ticked}
-                    disabled={disabled}
-                    /* §7.5 — an icon-only control is never colour-alone and
-                       always carries an accessible name. */
-                    aria-label={t('safety.step.a11y', {
-                      step: t(STEP_LABEL[key]),
-                      incident: incident.id,
-                    })}
-                    /* The step's NAME is a description of the control and may
-                       stay a `title`; a refusal may not. */
-                    title={disabled ? undefined : t(STEP_LABEL[key])}
-                    aria-describedby={
-                      blockedByOrder ? `${refusalId}-document` : disabled ? refusalId : undefined
-                    }
-                    onCheckedChange={(next) => deps.onToggleStep(incident, key, next === true)}
-                  />
-                )
-              })}
-            </span>
-            <Button
-              variant="secondary"
-              size="xs"
-              className="shrink-0"
-              onClick={() => deps.onClose(incident)}
-              /* **AC-308** — disabled while any step is outstanding, and the
-                 reason says HOW MANY. Gated at render, so `closeSafetyIncident`'s
-                 422 `protocol_incomplete` is unreachable from this screen. */
-              disabled={refusal !== null}
-              title={refusal === null ? t('safety.action.close.help') : undefined}
-              aria-describedby={refusal === null ? undefined : refusalId}
-            >
-              {t('safety.action.close')}
-            </Button>
-          </span>
-            {refusal !== null && <RefusalLine id={refusalId}>{refusal}</RefusalLine>}
-            {deps.canWrite &&
-              incident.protocol.some(
-                (entry) =>
-                  entry.key === 'document' &&
-                  !entry.done &&
-                  incident.protocol.some((other) => other.key !== 'document' && !other.done),
-              ) && (
-                <RefusalLine id={`${refusalId}-document`}>
-                  {t('safety.step.documentBlocked')}
-                </RefusalLine>
-              )}
-          </span>
+            </bdi>
+          </Cell>
         )
       },
     },

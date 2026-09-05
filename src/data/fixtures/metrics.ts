@@ -2347,7 +2347,7 @@ export const metricSeeds: MetricSeed[] = [
     higherIsBetter: false,
     caption: null,
     sourceResource: 'safety',
-    drilldownRoute: '/support/safety?view=critical-sos',
+    drilldownRoute: '/support/safety?view=critical',
   },
   {
     key: 'support.overview.openIncidents',
@@ -4408,7 +4408,7 @@ export const boardNotices: Record<string, BoardNotice[]> = {
          pluralisation built by concatenation — AC-713. */
       params: { count: 2 },
       tone: 'critical',
-      action: { labelKey: 'notice.action.openSafety', route: '/support/safety?view=critical-sos' },
+      action: { labelKey: 'notice.action.openSafety', route: '/support/safety?view=critical' },
       severity: 100,
     },
   ],

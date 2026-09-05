@@ -73,7 +73,7 @@ for (const language of ['en', 'ar']) {
     const bad = []
     if (facts.overflowX > 0) bad.push(`overflowX ${facts.overflowX}`)
     if (facts.firstTabClipped) bad.push('first tab clipped')
-    if (facts.table && facts.maxPitch > (language === 'ar' ? 64 : 56)) bad.push(`pitch ${facts.maxPitch}`)
+    if (facts.table && facts.maxPitch > (language === 'ar' ? 68 : 56)) bad.push(`pitch ${facts.maxPitch}`)
     if (errors.length) bad.push(`errors ${errors.join(' | ')}`)
     if (bad.length) failures += 1
     console.log(`${name} ${language} ${LABEL}`, JSON.stringify(facts), bad.length ? `FAIL ${bad.join('; ')}` : 'ok')

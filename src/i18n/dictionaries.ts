@@ -442,6 +442,7 @@ const views: Dictionary = {
   'view.tickets.done': 'Done',
 
   'view.disputes.disputes': 'Disputes',
+  'view.disputes.decided': 'Decided',
   'view.disputes.lostAndFound': 'Lost & found',
 
   'view.fairness.suspensionAppeals': 'Suspension appeals',
@@ -450,7 +451,8 @@ const views: Dictionary = {
   'view.fairness.captainEconomics': 'Captain economics',
 
   'view.safety.open': 'Open',
-  'view.safety.criticalSos': 'Critical SOS',
+  'view.safety.all': 'All',
+  'view.safety.critical': 'Critical SOS',
   'view.safety.closed': 'Closed',
 
   'view.communications.inbox': 'Inbox',
@@ -468,6 +470,7 @@ const routes: Dictionary = {
   'route.people.applicantDetail': 'Application',
   'route.tickets.detail': 'Ticket',
   'route.disputes.detail': 'Claim',
+  'route.safety.detail': 'Incident',
   'route.contacts.conversation': 'Conversation',
   'route.pricing.planEditor': 'Edit plan',
 
