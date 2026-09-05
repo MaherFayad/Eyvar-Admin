@@ -101,7 +101,7 @@ export const ONBOARDING_EN: Dictionary = {
   'onboarding.welcome.step2.title': 'Your work arrives in one place',
   'onboarding.welcome.step2.body':
     'Every queue you can see lands in My Work. Claim an item to make it yours, work it on its own screen, then release it. Nothing is assigned to you silently.',
-  'onboarding.welcome.step3.title': 'Jump anywhere from the keyboard',
+  'onboarding.welcome.step3.title': 'Jump from the keyboard',
   'onboarding.welcome.step3.body':
     'Press ⌘K, or Ctrl K on Windows, to open a queue, find a record by its ID, or run an action without leaving the page you are on.',
   'onboarding.welcome.step4.title': 'Your first {count} tasks',

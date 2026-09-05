@@ -32,22 +32,55 @@
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import {
   disableMockLatency,
+  getPlan,
+  getRequest,
   getSubscription,
   getTicket,
   listApplicants,
+  listCashReports,
+  listComplaints,
+  listDisputes,
   listDrivers,
+  listFairnessCases,
+  listOperators,
+  listPlans,
+  listRequests,
+  listSafetyIncidents,
   listSubscriptions,
   listTickets,
   listTrips,
+  listWallets,
   mockFailures,
   resetDataLayer,
+  setSafetyProtocolStep,
+  suspendOperator,
 } from '@/data/clients'
-import type { Applicant, Driver, Subscription, Ticket, Trip } from '@/data/types'
+import type {
+  Applicant,
+  CashReport,
+  Complaint,
+  Dispute,
+  Driver,
+  FairnessCase,
+  RideRequest,
+  SafetyIncident,
+  Subscription,
+  SubscriptionPlan,
+  TeamUser,
+  Ticket,
+  Trip,
+  WalletSummary,
+} from '@/data/types'
 import { EN } from '@/i18n/dictionaries'
 import { COMMANDS_EN } from './copy'
 import { createTranslator } from '@/lib'
 import { APPLICANT_COMMANDS } from './applicants'
 import { CAPTAIN_COMMANDS } from './captains'
+import { CASH_COMMANDS } from './cash'
+import { COMPLAINT_COMMANDS } from './complaints'
+import { DISPUTE_COMMANDS } from './disputes'
+import { FAIRNESS_COMMANDS } from './fairness'
+import { PLAN_COMMANDS } from './pricing'
 import {
   paletteCommands,
   resolveCommands,
@@ -58,10 +91,15 @@ import {
   type CommandContext,
   type CommandHost,
 } from './registry'
+import { REQUEST_COMMANDS } from './requests'
+import { SAFETY_COMMANDS } from './safety'
+import { SESSION_COMMANDS } from './sessionCommands'
 import { SUBSCRIPTION_COMMANDS } from './subscriptions'
-import { TARGET_SOURCES } from './targets'
+import { COMMAND_GROUPS, TARGET_SOURCES } from './targets'
+import { TEAM_COMMANDS } from './team'
 import { TICKET_COMMANDS } from './tickets'
 import { TRIP_COMMANDS } from './trips'
+import { WALLET_COMMANDS } from './wallets'
 
 const t = createTranslator({ dictionary: EN })
 
@@ -88,6 +126,27 @@ function fakeHost(answer: string | null = 'Stated reason') {
   return { host, asked, opened }
 }
 
+/**
+ * A host that has the three session capabilities wired, and records what it was
+ * told. The bare `fakeHost` deliberately does **not** — that absence is the
+ * refusal every session command has to state (F6), and a harness that always
+ * wired them could never assert it.
+ */
+function sessionHost() {
+  const languages: string[] = []
+  const themes: string[] = []
+  let signedOut = 0
+  const host: CommandHost = {
+    ...fakeHost().host,
+    setLanguage: (language) => languages.push(language),
+    setTheme: (theme) => themes.push(theme),
+    signOut: () => {
+      signedOut += 1
+    },
+  }
+  return { host, languages, themes, out: () => signedOut }
+}
+
 function context<T>(
   targets: readonly T[],
   options: { canWrite?: boolean; host?: CommandHost } = {},
@@ -112,7 +171,29 @@ const REGISTRIES = [
   { name: 'applications', entityType: 'applicant', commands: APPLICANT_COMMANDS },
   { name: 'tickets', entityType: 'ticket', commands: TICKET_COMMANDS },
   { name: 'subscriptions', entityType: 'subscription', commands: SUBSCRIPTION_COMMANDS },
+  /* ── F6: the ten domains added to the registry ───────────────────────── */
+  { name: 'requests', entityType: 'request', commands: REQUEST_COMMANDS },
+  /* A wallet is keyed by its rider — `WalletSummary` has no id of its own. */
+  { name: 'wallets', entityType: 'rider', commands: WALLET_COMMANDS },
+  { name: 'complaints', entityType: 'complaint', commands: COMPLAINT_COMMANDS },
+  { name: 'team', entityType: 'operator', commands: TEAM_COMMANDS },
+  { name: 'plans', entityType: 'plan', commands: PLAN_COMMANDS },
+  /**
+   * **`entityType: null` is a fact about the data layer, not a shortcut.**
+   * These four act on records with no `ProfileEntityType`, so `search()` cannot
+   * rank one and `TARGET_SOURCES` has nowhere to put them; `session` acts on no
+   * record at all. Every command in the four carries `hiddenFromPalette`, which
+   * the shape block asserts rather than trusts.
+   */
+  { name: 'safety', entityType: null, commands: SAFETY_COMMANDS },
+  { name: 'cash', entityType: null, commands: CASH_COMMANDS },
+  { name: 'disputes', entityType: null, commands: DISPUTE_COMMANDS },
+  { name: 'fairness', entityType: null, commands: FAIRNESS_COMMANDS },
+  { name: 'session', entityType: null, commands: SESSION_COMMANDS },
 ] as const
+
+/** The registries whose records the palette can find. */
+const FINDABLE = REGISTRIES.filter((registry) => registry.entityType !== null)
 
 const ALL: readonly Command<never>[] = REGISTRIES.flatMap(
   (registry) => registry.commands as readonly Command<never>[],
@@ -143,6 +224,25 @@ let ownedTicket: Ticket
 let resolvedTicket: Ticket
 let liveSubscription: Subscription
 let cancelledSubscription: Subscription
+let openRequest: RideRequest
+let closedRequest: RideRequest
+let wallet: WalletSummary
+let openComplaint: Complaint
+let disposedComplaint: Complaint
+let activeOperator: TeamUser
+let suspendedOperator: TeamUser
+let invitedOperator: TeamUser
+let livePlan: SubscriptionPlan
+let archivedPlan: SubscriptionPlan
+let openIncident: SafetyIncident
+let readyIncident: SafetyIncident
+let closedIncident: SafetyIncident
+let pendingReport: CashReport
+let decidedReport: CashReport
+let openDispute: Dispute
+let resolvedDispute: Dispute
+let openCase: FairnessCase
+let decidedCase: FairnessCase
 
 async function reload(): Promise<void> {
   /* Captains are read too, so the cross-cutting predicate sweep covers the
@@ -168,6 +268,76 @@ async function reload(): Promise<void> {
   const subscriptions = (await listSubscriptions({ pageSize: 500 })).items
   liveSubscription = subscriptions.find((row) => row.status === 'active')!
   cancelledSubscription = subscriptions.find((row) => row.status === 'cancelled')!
+
+  /* ── F6's ten domains, every record read through its own client ─────── */
+  const requests = (await listRequests({ pageSize: 500 })).items
+  openRequest = requests.find(
+    (row) => row.status === 'searching' && (row.claim === null || row.claim.state !== 'claimed'),
+  )!
+  closedRequest = requests.find((row) => row.status === 'assigned' || row.status === 'expired')!
+
+  wallet = (await listWallets({ pageSize: 500 })).items[0]!
+
+  const complaints = (await listComplaints({ pageSize: 500 })).items
+  openComplaint = complaints.find((row) => row.status === 'open')!
+  disposedComplaint = complaints.find(
+    (row) => row.status === 'resolved' || row.status === 'withdrawn',
+  )!
+
+  /**
+   * **The roster fixtures hold no `Suspended` colleague**, so that state is
+   * reached through the client rather than asserted into existence. The one
+   * suspended is deliberately not a `manage_team` holder: F-016 refuses the
+   * last one, and that refusal belongs to the client, not to this suite.
+   *
+   * Reported to mock-data-engineer: `teamUserFixtures` has Active and Invited
+   * rows and no Suspended one, so `operator.reinstate` had no record to act on.
+   */
+  const roster = (await listOperators({ pageSize: 500 })).items
+  activeOperator = roster.find((row) => row.status === 'Active')!
+  invitedOperator = roster.find((row) => row.status === 'Invited')!
+  const spare = roster.find(
+    (row) =>
+      row.status === 'Active' &&
+      row.id !== activeOperator.id &&
+      !row.permissions.includes('manage_team'),
+  )!
+  suspendedOperator = await suspendOperator(spare.id, 'Reached through the client for this suite')
+
+  const plans = await listPlans()
+  livePlan = plans.find((row) => row.status === 'active')!
+  archivedPlan = plans.find((row) => row.status === 'archived')!
+
+  const incidents = (await listSafetyIncidents({ pageSize: 500 })).items
+  /* An incident with work left on it — the protocol refusal's own case. */
+  openIncident = incidents.find(
+    (row) => row.status === 'open' && row.protocol.some((step) => !step.done),
+  )!
+  closedIncident = incidents.find((row) => row.status === 'closed')!
+  /**
+   * The same incident with its four steps ticked, through the client. **Two
+   * snapshots of one record, deliberately**: `unavailable` reads the record it
+   * is handed, so the pair is what tells apart *"this cannot be closed yet"*
+   * from *"this closes"* without needing a second fixture to exist.
+   */
+  let ready = openIncident
+  for (const step of openIncident.protocol) {
+    if (step.done) continue
+    ready = await setSafetyProtocolStep(openIncident.id, step.key, true)
+  }
+  readyIncident = ready
+
+  const reports = (await listCashReports({ pageSize: 500 })).items
+  pendingReport = reports.find((row) => row.status === 'pending')!
+  decidedReport = reports.find((row) => row.status !== 'pending')!
+
+  const disputes = (await listDisputes({ pageSize: 500 })).items
+  openDispute = disputes.find((row) => row.status !== 'resolved')!
+  resolvedDispute = disputes.find((row) => row.status === 'resolved')!
+
+  const cases = (await listFairnessCases({ pageSize: 500 })).items
+  openCase = cases.find((row) => row.status === 'open')!
+  decidedCase = cases.find((row) => row.status !== 'open')!
 }
 
 beforeAll(async () => {
@@ -253,12 +423,52 @@ describe('every registry keeps the Command contract', () => {
    * precisely the state ⌘K was in before this phase, one level up.
    */
   it('gives every registry a target source, and every source its own registry', () => {
-    for (const registry of REGISTRIES) {
+    for (const registry of FINDABLE) {
       const source = TARGET_SOURCES.find((each) => each.entityType === registry.entityType)
       expect(source, `${registry.name} has no target source`).toBeDefined()
       expect(source?.commands, registry.name).toBe(registry.commands)
     }
-    expect(TARGET_SOURCES.length).toBe(REGISTRIES.length)
+    expect(TARGET_SOURCES.length).toBe(FINDABLE.length)
+  })
+
+  /**
+   * **The seam F6 needed and `TARGET_SOURCES` could not be.**
+   *
+   * `TARGET_SOURCES` answers *"how do I find a record of this type"*, and it was
+   * doing a second job it was never shaped for: being the list a surface walks
+   * to discover COMMANDS. A registry with no entity type had no row to sit in
+   * and was therefore invisible — which is the whole of `session`, and four
+   * more besides. `COMMAND_GROUPS` holds all fifteen and names the source or
+   * `null`, so adding a registry to `index.ts` and not to the table is caught
+   * here rather than by an operator who cannot find `Sign out`.
+   */
+  it('holds every registry in COMMAND_GROUPS, with its source or an honest null', () => {
+    expect(COMMAND_GROUPS.map((group) => group.name)).toEqual(
+      REGISTRIES.map((registry) => registry.name),
+    )
+    for (const [index, group] of COMMAND_GROUPS.entries()) {
+      const registry = REGISTRIES[index]!
+      expect(group.commands, group.name).toBe(registry.commands)
+      expect(group.source?.entityType ?? null, group.name).toBe(registry.entityType)
+    }
+  })
+
+  /**
+   * **CM-4, sharpened for the registries the palette cannot reach.** A command
+   * with no target source and no `hiddenFromPalette` would be offered in ⌘K and
+   * then strand the operator at a target step with nothing to pick.
+   */
+  it('hides every command whose records the palette cannot find', () => {
+    for (const group of COMMAND_GROUPS) {
+      if (group.source !== null) continue
+      for (const command of group.commands) {
+        /* Global commands act on no record, so they are reachable as they are;
+           the four route registries are not. */
+        if (command.scope.kind === 'global') continue
+        expect(command.hiddenFromPalette, `${command.id} is offered with no way to find a target`)
+          .toBeDefined()
+      }
+    }
   })
 
   it('declares each source its plural noun and its match noun', () => {
@@ -294,60 +504,129 @@ describe('§11.2 — a refusal is a sentence, at render', () => {
    */
   interface RecordSet {
     name: string
-    /** A command only ever sees records of its own scope's type. */
-    entityType: string
+    /**
+     * The REGISTRY the set belongs to, not the entity type. Five registries now
+     * have no entity type at all (their records have no `ProfileEntityType`),
+     * and `session` has no records; keying on the registry is what lets those
+     * five into the same sweep.
+     */
+    registry: string
     rows: () => readonly unknown[]
   }
 
   const sets: readonly RecordSet[] = [
-    { name: 'trip · eligible', entityType: 'trip', rows: () => [plainTrip] },
-    { name: 'trip · blocked', entityType: 'trip', rows: () => [flaggedTrip] },
-    { name: 'trip · mixed', entityType: 'trip', rows: () => [plainTrip, flaggedTrip] },
-    { name: 'trip · all blocked', entityType: 'trip', rows: () => [flaggedTrip, flaggedTrip] },
-    { name: 'captain · one', entityType: 'driver', rows: () => [activeCaptain] },
-    { name: 'captain · mixed', entityType: 'driver', rows: () => [activeCaptain, suspendedCaptain] },
-    { name: 'captain · all suspended', entityType: 'driver', rows: () => [suspendedCaptain, suspendedCaptain] },
-    { name: 'application · pending', entityType: 'applicant', rows: () => [pendingApplication] },
-    { name: 'application · decided', entityType: 'applicant', rows: () => [decidedApplication] },
+    { name: 'trip · eligible', registry: 'trips', rows: () => [plainTrip] },
+    { name: 'trip · blocked', registry: 'trips', rows: () => [flaggedTrip] },
+    { name: 'trip · mixed', registry: 'trips', rows: () => [plainTrip, flaggedTrip] },
+    { name: 'trip · all blocked', registry: 'trips', rows: () => [flaggedTrip, flaggedTrip] },
+    { name: 'captain · one', registry: 'captains', rows: () => [activeCaptain] },
+    { name: 'captain · mixed', registry: 'captains', rows: () => [activeCaptain, suspendedCaptain] },
+    { name: 'captain · all suspended', registry: 'captains', rows: () => [suspendedCaptain, suspendedCaptain] },
+    { name: 'application · pending', registry: 'applications', rows: () => [pendingApplication] },
+    { name: 'application · decided', registry: 'applications', rows: () => [decidedApplication] },
     {
       name: 'application · mixed',
-      entityType: 'applicant',
+      registry: 'applications',
       rows: () => [pendingApplication, decidedApplication],
     },
     {
       name: 'application · all decided',
-      entityType: 'applicant',
+      registry: 'applications',
       rows: () => [decidedApplication, decidedApplication],
     },
-    { name: 'ticket · free', entityType: 'ticket', rows: () => [freeTicket] },
-    { name: 'ticket · owned', entityType: 'ticket', rows: () => [ownedTicket] },
-    { name: 'ticket · resolved', entityType: 'ticket', rows: () => [resolvedTicket] },
-    { name: 'ticket · mixed', entityType: 'ticket', rows: () => [freeTicket, resolvedTicket] },
+    { name: 'ticket · free', registry: 'tickets', rows: () => [freeTicket] },
+    { name: 'ticket · owned', registry: 'tickets', rows: () => [ownedTicket] },
+    { name: 'ticket · resolved', registry: 'tickets', rows: () => [resolvedTicket] },
+    { name: 'ticket · mixed', registry: 'tickets', rows: () => [freeTicket, resolvedTicket] },
     {
       name: 'ticket · all resolved',
-      entityType: 'ticket',
+      registry: 'tickets',
       rows: () => [resolvedTicket, resolvedTicket],
     },
-    { name: 'subscription · live', entityType: 'subscription', rows: () => [liveSubscription] },
+    { name: 'subscription · live', registry: 'subscriptions', rows: () => [liveSubscription] },
     {
       name: 'subscription · cancelled',
-      entityType: 'subscription',
+      registry: 'subscriptions',
       rows: () => [cancelledSubscription],
     },
     {
       name: 'subscription · mixed',
-      entityType: 'subscription',
+      registry: 'subscriptions',
       rows: () => [liveSubscription, cancelledSubscription],
     },
+
+    /* ── F6's ten domains, each with an eligible row, a blocked row, a mixed
+          set and a wholly blocked one — the four shapes D21's three sentences
+          are distinguished by. ─────────────────────────────────────────── */
+    { name: 'request · open', registry: 'requests', rows: () => [openRequest] },
+    { name: 'request · closed', registry: 'requests', rows: () => [closedRequest] },
+    { name: 'request · mixed', registry: 'requests', rows: () => [openRequest, closedRequest] },
+    { name: 'request · all closed', registry: 'requests', rows: () => [closedRequest, closedRequest] },
+    { name: 'wallet · one', registry: 'wallets', rows: () => [wallet] },
+    { name: 'complaint · open', registry: 'complaints', rows: () => [openComplaint] },
+    { name: 'complaint · disposed', registry: 'complaints', rows: () => [disposedComplaint] },
+    {
+      name: 'complaint · mixed',
+      registry: 'complaints',
+      rows: () => [openComplaint, disposedComplaint],
+    },
+    {
+      name: 'complaint · all disposed',
+      registry: 'complaints',
+      rows: () => [disposedComplaint, disposedComplaint],
+    },
+    { name: 'operator · active', registry: 'team', rows: () => [activeOperator] },
+    { name: 'operator · suspended', registry: 'team', rows: () => [suspendedOperator] },
+    { name: 'operator · invited', registry: 'team', rows: () => [invitedOperator] },
+    {
+      name: 'operator · mixed',
+      registry: 'team',
+      rows: () => [activeOperator, suspendedOperator],
+    },
+    {
+      name: 'operator · all invited',
+      registry: 'team',
+      rows: () => [invitedOperator, invitedOperator],
+    },
+    { name: 'plan · live', registry: 'plans', rows: () => [livePlan] },
+    { name: 'plan · archived', registry: 'plans', rows: () => [archivedPlan] },
+    { name: 'plan · mixed', registry: 'plans', rows: () => [livePlan, archivedPlan] },
+    { name: 'plan · all archived', registry: 'plans', rows: () => [archivedPlan, archivedPlan] },
+    { name: 'incident · open', registry: 'safety', rows: () => [openIncident] },
+    { name: 'incident · closed', registry: 'safety', rows: () => [closedIncident] },
+    { name: 'incident · mixed', registry: 'safety', rows: () => [openIncident, closedIncident] },
+    {
+      name: 'incident · all closed',
+      registry: 'safety',
+      rows: () => [closedIncident, closedIncident],
+    },
+    { name: 'report · pending', registry: 'cash', rows: () => [pendingReport] },
+    { name: 'report · decided', registry: 'cash', rows: () => [decidedReport] },
+    { name: 'report · mixed', registry: 'cash', rows: () => [pendingReport, decidedReport] },
+    { name: 'report · all decided', registry: 'cash', rows: () => [decidedReport, decidedReport] },
+    { name: 'dispute · open', registry: 'disputes', rows: () => [openDispute] },
+    { name: 'dispute · resolved', registry: 'disputes', rows: () => [resolvedDispute] },
+    { name: 'dispute · mixed', registry: 'disputes', rows: () => [openDispute, resolvedDispute] },
+    {
+      name: 'dispute · all resolved',
+      registry: 'disputes',
+      rows: () => [resolvedDispute, resolvedDispute],
+    },
+    { name: 'case · open', registry: 'fairness', rows: () => [openCase] },
+    { name: 'case · decided', registry: 'fairness', rows: () => [decidedCase] },
+    { name: 'case · mixed', registry: 'fairness', rows: () => [openCase, decidedCase] },
+    { name: 'case · all decided', registry: 'fairness', rows: () => [decidedCase, decidedCase] },
+    /* A session command acts on nothing, and the empty set is the real one. */
+    { name: 'session · none', registry: 'session', rows: () => [] },
   ]
 
-  /** Every command paired with every set of ITS OWN entity type, both roles. */
+  /** Every command paired with every set of ITS OWN registry, both roles. */
   function each(
     visit: (command: Command<never>, set: RecordSet, canWrite: boolean) => void,
   ): void {
     for (const registry of REGISTRIES) {
       for (const command of registry.commands as readonly Command<never>[]) {
-        const mine = sets.filter((set) => set.entityType === registry.entityType)
+        const mine = sets.filter((set) => set.registry === registry.name)
         expect(mine.length, `${registry.name} has no set to test against`).toBeGreaterThan(0)
         for (const set of mine) {
           for (const canWrite of [true, false]) visit(command, set, canWrite)
@@ -405,15 +684,37 @@ describe('a destructive command confirms', () => {
    * only reachable by way of `host.confirm`. A command that wrote first and
    * asked afterwards would return `ran`.
    */
+  /**
+   * The eligible target every destructive command is run against. Read through
+   * the clients like everything else here; a destructive command handed an
+   * empty set would return early and pass the assertion without ever reaching
+   * `host.confirm`, which is the one thing this test exists to prove it does.
+   */
+  function eligibleFor(id: string): readonly unknown[] {
+    switch (id) {
+      case 'subscription.cancel':
+        return [liveSubscription]
+      case 'request.expire':
+        return [openRequest]
+      case 'operator.revokeInvite':
+        return [invitedOperator]
+      case 'operator.offboard':
+        return [activeOperator]
+      case 'incident.close':
+        return [readyIncident]
+      default:
+        throw new Error(`${id} is destructive and this table does not know an eligible row for it`)
+    }
+  }
+
   it('asks before it writes, in every registry', async () => {
     for (const registry of REGISTRIES) {
       for (const each of registry.commands) {
         if (each.affordance !== 'destructive') continue
         const { host, asked } = fakeHost(null)
-        const targets = registry.entityType === 'subscription' ? [liveSubscription] : []
         const result = await runCommand(
           each as Command<unknown>,
-          context(targets, { host }) as CommandContext<unknown>,
+          context(eligibleFor(each.id), { host }) as CommandContext<unknown>,
         )
         expect(result.kind, `${each.id} did not stop at the confirmation`).toBe('cancelled')
         expect(asked, `${each.id} wrote without asking`).toHaveLength(1)
@@ -430,7 +731,36 @@ describe('a destructive command confirms', () => {
     const destructive = ALL.filter((each) => each.affordance === 'destructive').map(
       (each) => each.id,
     )
-    expect(destructive).toEqual(['subscription.cancel'])
+    /**
+     * Five, and each one names a thing the console cannot walk back: a
+     * settlement that moved money, a request the rider is told nobody took, an
+     * invitation and a colleague that leave the roster, and an incident legacy
+     * itself admits is reopened by hand (`:13480`). Everything with an inverse
+     * declared beside it is `default` — `plan.publish`, `operator.suspend`,
+     * `incident.suspend` — which is what stops `destructive` becoming
+     * decoration.
+     */
+    expect(destructive).toEqual([
+      'subscription.cancel',
+      'request.expire',
+      'operator.revokeInvite',
+      'operator.offboard',
+      'incident.close',
+    ])
+  })
+
+  /**
+   * **D8's pair, and the first registries to use it.** `decision-affirm` and
+   * `decision-reject` are a shape, not a colour: a work queue renders them side
+   * by side, so a registry that declared one without the other would draw a
+   * queue an operator can only say yes in.
+   */
+  it('declares decision affordances in pairs', () => {
+    for (const registry of REGISTRIES) {
+      const affirm = registry.commands.filter((each) => each.affordance === 'decision-affirm')
+      const reject = registry.commands.filter((each) => each.affordance === 'decision-reject')
+      expect(affirm.length, `${registry.name} affirms`).toBe(reject.length)
+    }
   })
 })
 
@@ -867,6 +1197,555 @@ describe('subscriptions', () => {
       reason: 'This subscription is not on hold.',
     })
     expect(asked).toEqual([])
+  })
+})
+
+/* ══════════════════════════════ dispatch ═════════════════════════════════ */
+
+describe('ride requests', () => {
+  it('refuses a closed request with a sentence, before any write', async () => {
+    const { host, asked } = fakeHost()
+    const result = await runCommand(
+      command(REQUEST_COMMANDS, 'request.assign'),
+      context([closedRequest], { host }),
+    )
+    expect(result).toEqual({
+      kind: 'refused',
+      reason: 'This request is already assigned, expired or cancelled.',
+    })
+    expect(asked).toEqual([])
+  })
+
+  /** **Q-P7's verb.** No target, no dialog, one keystroke. */
+  it('claims the top unclaimed request and names the rider in the toast', async () => {
+    const result = await runCommand(
+      command(REQUEST_COMMANDS, 'request.claimNext'),
+      context([], { host: fakeHost().host }),
+    )
+    expect(result.kind).toBe('ran')
+    if (result.kind !== 'ran') return
+    const claimed = result.outcome?.changed?.[0] as RideRequest | undefined
+    expect(claimed?.claim?.state).toBe('claimed')
+    /* R9 — the toast names the object AND the person the operator is about to
+       phone, which is the fact that makes the row actionable. */
+    expect(result.outcome?.message).toBe(`${claimed?.id} is yours · ${claimed?.riderName}`)
+  })
+
+  /**
+   * The captain picker is a closed option list built **inside `run`** from a
+   * live read — the thing `subscriptions.ts` records as impossible for
+   * `Change captain` before `choice` existed.
+   */
+  it('offers active captains as a closed list and assigns the one picked', async () => {
+    const asked: CommandConfirmRequest[] = []
+    let chosen = ''
+    const host: CommandHost = {
+      openProfile: () => {},
+      confirm: (request) => {
+        asked.push(request)
+        chosen = request.choice?.options.at(-1)?.value ?? ''
+        request.choice?.onSelect(chosen)
+        return Promise.resolve('')
+      },
+    }
+    const result = await runCommand(
+      command(REQUEST_COMMANDS, 'request.assign'),
+      context([openRequest], { host }),
+    )
+    expect(asked[0]?.title).toBe(`Assign captain to ${openRequest.id}?`)
+    expect(asked[0]?.confirmLabel).toBe('Assign captain')
+    expect((asked[0]?.choice?.options.length ?? 0), 'no captains offered').toBeGreaterThan(0)
+    expect(result.kind).toBe('ran')
+    if (result.kind !== 'ran') return
+    const assigned = result.outcome?.changed?.[0] as RideRequest | undefined
+    expect(assigned?.status).toBe('assigned')
+    expect(assigned?.assignedDriverId).toBe(chosen)
+    /* Money is captured on the subscription channel and there is no unassign
+       operation, so D18 fails on both clauses. */
+    expect(result.outcome?.undo).toBeUndefined()
+  })
+
+  it('confirms before closing a request and writes nothing when the operator backs out', async () => {
+    const { host, asked } = fakeHost(null)
+    const result = await runCommand(
+      command(REQUEST_COMMANDS, 'request.expire'),
+      context([openRequest], { host }),
+    )
+    expect(result.kind).toBe('cancelled')
+    expect(asked[0]?.confirmLabel).toBe('Close request')
+    /* §5.7 rule 9 — what will not change, said in the body. */
+    expect(asked[0]?.body).toContain('nothing is charged')
+    expect(await getRequest(openRequest.id)).toMatchObject({ status: openRequest.status })
+  })
+
+  it('finds a request by its id and by its rider', async () => {
+    const source = TARGET_SOURCES.find((each) => each.entityType === 'request')!
+    expect((await source.list(openRequest.id)).map((row) => source.describe(row).id)).toContain(
+      openRequest.id,
+    )
+    expect((await source.list(openRequest.riderName)).map((row) => source.describe(row).id))
+      .toContain(openRequest.id)
+  })
+})
+
+/* ═══════════════════════════════ wallets ═════════════════════════════════ */
+
+describe('rider wallets', () => {
+  /** **AC-384** — the ceiling bounds the field and the refusal names it. */
+  it('bounds the amount by the server’s envelope and never trims it', async () => {
+    const { host, asked } = fakeHost(null)
+    await runCommand(command(WALLET_COMMANDS, 'wallet.goodwill'), context([wallet], { host }))
+    const amount = asked[0]?.amount
+    expect(amount?.maxHalalas, 'no ceiling on the field').toBeGreaterThan(0)
+    expect(amount?.initialHalalas ?? 0).toBeLessThanOrEqual(amount?.maxHalalas ?? 0)
+    assertRealCopy(amount?.message ?? '', 'goodwill amount refusal')
+  })
+
+  it('credits the amount the operator set and names the rider', async () => {
+    let set = 0
+    const host: CommandHost = {
+      openProfile: () => {},
+      confirm: (request) => {
+        set = 1_000
+        request.amount?.onChange(set)
+        return Promise.resolve('The captain never arrived')
+      },
+    }
+    const result = await runCommand(
+      command(WALLET_COMMANDS, 'wallet.goodwill'),
+      context([wallet], { host }),
+    )
+    expect(result.kind).toBe('ran')
+    if (result.kind !== 'ran') return
+    /* R9 — names the object, and the figure the SERVER posted. */
+    expect(result.outcome?.message).toContain(wallet.riderName)
+    expect(result.outcome?.message).toContain('10.00')
+    /* §3.4d — an adjustment is not a correction, so there is no inverse. */
+    expect(result.outcome?.undo).toBeUndefined()
+  })
+
+  it('finds a wallet by its rider’s name and by their id', async () => {
+    const source = TARGET_SOURCES.find((each) => each.entityType === 'rider')!
+    expect((await source.list(wallet.riderName)).map((row) => source.describe(row).id)).toContain(
+      wallet.riderId,
+    )
+    expect((await source.byIds([wallet.riderId])).map((row) => source.describe(row).id)).toEqual([
+      wallet.riderId,
+    ])
+  })
+})
+
+/* ═══════════════════════════ safety incidents ════════════════════════════ */
+
+describe('safety incidents', () => {
+  /**
+   * §11.2, and the reason this domain is here at all: legacy put the same fact
+   * in a `title` attribute on a disabled button (`:13437`). It renders as text
+   * and it names the count.
+   */
+  it('names how many protocol steps are outstanding rather than only refusing', () => {
+    const outstanding = openIncident.protocol.filter((step) => !step.done).length
+    expect(
+      unavailableReason(command(SAFETY_COMMANDS, 'incident.close'), context([openIncident])),
+    ).toBe(`${outstanding} protocol steps are still outstanding on this incident.`)
+    expect(
+      unavailableReason(command(SAFETY_COMMANDS, 'incident.close'), context([closedIncident])),
+    ).toBe('This incident is already closed.')
+    expect(
+      unavailableReason(command(SAFETY_COMMANDS, 'incident.close'), context([readyIncident])),
+    ).toBeNull()
+  })
+
+  it('closes an incident whose protocol is complete, after confirming', async () => {
+    const { host, asked } = fakeHost()
+    const result = await runCommand(
+      command(SAFETY_COMMANDS, 'incident.close'),
+      context([readyIncident], { host }),
+    )
+    expect(asked[0]?.confirmLabel).toBe('Close incident')
+    expect(result.kind).toBe('ran')
+    if (result.kind !== 'ran') return
+    expect(result.outcome?.message).toBe(`${readyIncident.id} closed`)
+    expect((result.outcome?.changed?.[0] as SafetyIncident | undefined)?.status).toBe('closed')
+  })
+
+  /** CM-4 — declared for the row menu, and honest about why ⌘K cannot reach it. */
+  it('states in a sentence why the palette cannot offer these', () => {
+    for (const each of SAFETY_COMMANDS) {
+      expect(each.hiddenFromPalette, each.id).toContain('ProfileEntityType')
+    }
+    expect(paletteCommands(SAFETY_COMMANDS)).toEqual([])
+  })
+})
+
+/* ═════════════════════════════ cash reports ══════════════════════════════ */
+
+describe('cash reports', () => {
+  it('refuses a report that has already been decided', () => {
+    expect(
+      unavailableReason(command(CASH_COMMANDS, 'cashReport.resolve'), context([decidedReport])),
+    ).toBe('This report has already been decided.')
+    expect(
+      unavailableReason(command(CASH_COMMANDS, 'cashReport.resolve'), context([pendingReport])),
+    ).toBeNull()
+  })
+
+  it('collects the reason code the client requires and converts the row in place', async () => {
+    const { host, asked } = fakeHost('Receipt matched the trip')
+    const result = await runCommand(
+      command(CASH_COMMANDS, 'cashReport.resolve'),
+      context([pendingReport], { host }),
+    )
+    expect(asked[0]?.reason?.label).toBe('Reason')
+    /* §5.7 rule 9 — the debt already applied stays either way (`:12165`). */
+    expect(asked[0]?.body).toContain('stays there either way')
+    expect(result.kind).toBe('ran')
+    if (result.kind !== 'ran') return
+    const changed = result.outcome?.changed?.[0] as CashReport | undefined
+    expect(changed?.status).toBe('resolved')
+    expect(changed?.resolutionReasonCode).toBe('Receipt matched the trip')
+    expect(result.outcome?.message).toBe(`${pendingReport.id} approved`)
+  })
+
+  it('escalates with the captain named, and offers no undo', async () => {
+    const { host } = fakeHost('Third under-report this month')
+    const result = await runCommand(
+      command(CASH_COMMANDS, 'cashReport.escalate'),
+      context([pendingReport], { host }),
+    )
+    expect(result.kind).toBe('ran')
+    if (result.kind !== 'ran') return
+    expect(result.outcome?.message).toBe(
+      `${pendingReport.id} escalated · ${pendingReport.captainName}`,
+    )
+    /* A notification left the console (`:12180`), so D18's second clause fails. */
+    expect(result.outcome?.undo).toBeUndefined()
+  })
+})
+
+/* ══════════════════════════════ complaints ═══════════════════════════════ */
+
+describe('complaints', () => {
+  it('refuses a complaint that is already resolved or withdrawn', () => {
+    expect(
+      unavailableReason(command(COMPLAINT_COMMANDS, 'complaint.uphold'), context([disposedComplaint])),
+    ).toBe('This complaint is already resolved or withdrawn.')
+  })
+
+  /** `resolveComplaint` refuses a positive amount on `dismissed`, so no field is offered. */
+  it('offers a compensation field on the upheld path and none on the dismissal', async () => {
+    const upheld = fakeHost(null)
+    await runCommand(
+      command(COMPLAINT_COMMANDS, 'complaint.uphold'),
+      context([openComplaint], { host: upheld.host }),
+    )
+    expect(upheld.asked[0]?.amount).toBeDefined()
+
+    const dismissed = fakeHost(null)
+    await runCommand(
+      command(COMPLAINT_COMMANDS, 'complaint.dismiss'),
+      context([openComplaint], { host: dismissed.host }),
+    )
+    expect(dismissed.asked[0]?.amount).toBeUndefined()
+  })
+
+  it('records the verdict and the note the operator typed', async () => {
+    const { host } = fakeHost('The captain took a longer route without asking')
+    const result = await runCommand(
+      command(COMPLAINT_COMMANDS, 'complaint.dismiss'),
+      context([openComplaint], { host }),
+    )
+    expect(result.kind).toBe('ran')
+    if (result.kind !== 'ran') return
+    const changed = result.outcome?.changed?.[0] as Complaint | undefined
+    expect(changed?.status).toBe('resolved')
+    expect(changed?.resolution?.outcome).toBe('dismissed')
+    expect(changed?.resolution?.compensationHalalas).toBe(0)
+    expect(changed?.resolution?.note).toBe('The captain took a longer route without asking')
+    expect(result.outcome?.message).toBe(`${openComplaint.id} dismissed`)
+  })
+
+  it('finds a complaint by its id and by the rider who filed it', async () => {
+    const source = TARGET_SOURCES.find((each) => each.entityType === 'complaint')!
+    expect((await source.list(openComplaint.id)).map((row) => source.describe(row).id)).toContain(
+      openComplaint.id,
+    )
+    expect((await source.list(openComplaint.riderName)).map((row) => source.describe(row).id))
+      .toContain(openComplaint.id)
+  })
+})
+
+/* ═══════════════════════════════ disputes ════════════════════════════════ */
+
+describe('disputes', () => {
+  it('refuses a dispute that is already resolved', () => {
+    expect(
+      unavailableReason(command(DISPUTE_COMMANDS, 'dispute.refund'), context([resolvedDispute])),
+    ).toBe('This dispute is already resolved.')
+  })
+
+  /** `resolveDispute` refuses a settlement above the claim; the field says so first. */
+  it('caps the settlement at the amount claimed', async () => {
+    const { host, asked } = fakeHost(null)
+    await runCommand(
+      command(DISPUTE_COMMANDS, 'dispute.refund'),
+      context([openDispute], { host }),
+    )
+    expect(asked[0]?.amount?.maxHalalas).toBe(openDispute.amountHalalas)
+    expect(asked[0]?.amount?.initialHalalas).toBe(openDispute.amountHalalas)
+  })
+
+  it('declines with no money moved, and reuses the screen’s own sentence', async () => {
+    const { host, asked } = fakeHost('The trip completed as booked')
+    const result = await runCommand(
+      command(DISPUTE_COMMANDS, 'dispute.decline'),
+      context([openDispute], { host }),
+    )
+    expect(asked[0]?.amount, 'a declined claim has no amount to set').toBeUndefined()
+    expect(result.kind).toBe('ran')
+    if (result.kind !== 'ran') return
+    const changed = result.outcome?.changed?.[0] as Dispute | undefined
+    expect(changed?.resolution?.outcome).toBe('declined')
+    expect(changed?.resolution?.refundHalalas).toBe(0)
+    /* The key belongs to `DisputesScreen`; the command reads it rather than
+       forking it, so the two surfaces state the same fact. */
+    expect(result.outcome?.message).toBe(`${openDispute.id} declined — no money moved`)
+  })
+})
+
+/* ═══════════════════════════════ fairness ════════════════════════════════ */
+
+describe('fairness cases', () => {
+  it('refuses a case that has already been decided', () => {
+    expect(
+      unavailableReason(command(FAIRNESS_COMMANDS, 'fairnessCase.overturn'), context([decidedCase])),
+    ).toBe('This case has already been decided.')
+  })
+
+  /**
+   * Legacy wrote status, decider and timestamp and left `rationale` at `null`
+   * (`:15597`), so every decided appeal in the old console is unexplained. The
+   * client's 422 is why this is `needs-input`, and the field is the contract.
+   */
+  it('will not decide without the reason the captain reads', async () => {
+    const dismissed = fakeHost(null)
+    const stopped = await runCommand(
+      command(FAIRNESS_COMMANDS, 'fairnessCase.overturn'),
+      context([openCase], { host: dismissed.host }),
+    )
+    expect(stopped.kind).toBe('cancelled')
+    expect(dismissed.asked[0]?.reason?.help).toBe('The captain reads this. Say what decided it.')
+
+    const { host } = fakeHost('The suspension rested on one disputed trip')
+    const result = await runCommand(
+      command(FAIRNESS_COMMANDS, 'fairnessCase.overturn'),
+      context([openCase], { host }),
+    )
+    expect(result.kind).toBe('ran')
+    if (result.kind !== 'ran') return
+    const changed = result.outcome?.changed?.[0] as FairnessCase | undefined
+    expect(changed?.status).toBe('overturned')
+    expect(changed?.rationale).toBe('The suspension rested on one disputed trip')
+    expect(result.outcome?.message).toBe(`${openCase.id} overturned · ${openCase.driverName}`)
+  })
+})
+
+/* ════════════════════════════════ the team ═══════════════════════════════ */
+
+describe('the team', () => {
+  it('refuses a colleague whose status the transition does not apply to', () => {
+    expect(
+      unavailableReason(command(TEAM_COMMANDS, 'operator.suspend'), context([suspendedOperator])),
+    ).toBe('This colleague is not active.')
+    expect(
+      unavailableReason(command(TEAM_COMMANDS, 'operator.revokeInvite'), context([activeOperator])),
+    ).toBe('This colleague has no outstanding invitation.')
+    expect(
+      unavailableReason(command(TEAM_COMMANDS, 'operator.reinstate'), context([suspendedOperator])),
+    ).toBeNull()
+  })
+
+  it('reinstates a suspended colleague and names them', async () => {
+    const result = await runCommand(
+      command(TEAM_COMMANDS, 'operator.reinstate'),
+      context([suspendedOperator], { host: fakeHost().host }),
+    )
+    expect(result.kind).toBe('ran')
+    if (result.kind !== 'ran') return
+    expect((result.outcome?.changed?.[0] as TeamUser | undefined)?.status).toBe('Active')
+    expect(result.outcome?.message).toBe(`${suspendedOperator.name} is active again`)
+  })
+
+  it('confirms a revoked invitation and leaves the roster alone on cancel', async () => {
+    const { host, asked } = fakeHost(null)
+    const result = await runCommand(
+      command(TEAM_COMMANDS, 'operator.revokeInvite'),
+      context([invitedOperator], { host }),
+    )
+    expect(result.kind).toBe('cancelled')
+    expect(asked[0]?.confirmLabel).toBe('Revoke invitation')
+    expect(asked[0]?.body).toContain(invitedOperator.email)
+    const roster = (await listOperators({ pageSize: 500 })).items
+    expect(roster.map((row) => row.id)).toContain(invitedOperator.id)
+  })
+
+  it('finds a colleague by name and by email', async () => {
+    const source = TARGET_SOURCES.find((each) => each.entityType === 'operator')!
+    expect((await source.list(activeOperator.name)).map((row) => source.describe(row).id))
+      .toContain(activeOperator.id)
+    expect((await source.list(activeOperator.email)).map((row) => source.describe(row).id))
+      .toContain(activeOperator.id)
+  })
+})
+
+/* ═════════════════════════════ pricing plans ═════════════════════════════ */
+
+describe('subscription plans', () => {
+  it('refuses a plan that is already in the state the command would put it in', () => {
+    expect(
+      unavailableReason(command(PLAN_COMMANDS, 'plan.publish'), context([livePlan])),
+    ).toBe('This plan is already live.')
+    expect(
+      unavailableReason(command(PLAN_COMMANDS, 'plan.archive'), context([archivedPlan])),
+    ).toBe('This plan is already archived.')
+  })
+
+  /**
+   * **D18's trade, taken.** The inverse is the command declared beside it, it
+   * runs through the seam, and nothing left the console — so no dialog, and the
+   * ten-second handle instead.
+   */
+  it('publishes with no dialog and restores the status it actually had', async () => {
+    const { host, asked } = fakeHost()
+    const result = await runCommand(
+      command(PLAN_COMMANDS, 'plan.publish'),
+      context([archivedPlan], { host }),
+    )
+    expect(asked, 'a reversible command should not also confirm').toEqual([])
+    expect(result.kind).toBe('ran')
+    if (result.kind !== 'ran') return
+    expect(result.outcome?.message).toBe(`${archivedPlan.nameEn} is live`)
+    expect(await getPlan(archivedPlan.id)).toMatchObject({ status: 'active' })
+
+    expect(result.outcome?.undo?.doneMessage).toBe(`${archivedPlan.nameEn} is back as it was`)
+    await result.outcome?.undo?.run()
+    /* Back to `archived`, not to a fixed default — the handle closes over the
+       record as it was. */
+    expect(await getPlan(archivedPlan.id)).toMatchObject({ status: 'archived' })
+  })
+
+  it('finds a plan by its English name and by its Arabic one', async () => {
+    const source = TARGET_SOURCES.find((each) => each.entityType === 'plan')!
+    expect((await source.list(livePlan.nameEn)).map((row) => source.describe(row).id)).toContain(
+      livePlan.id,
+    )
+    expect((await source.list(livePlan.nameAr)).map((row) => source.describe(row).id)).toContain(
+      livePlan.id,
+    )
+  })
+})
+
+/* ═════════════════════════════ the session ═══════════════════════════════ */
+
+describe('the session', () => {
+  /**
+   * **The registry lands before the surface wires it.** A host with no
+   * `setLanguage` refuses in a sentence rather than throwing at the press —
+   * which is what lets this ship while `GlobalSearch` is somebody else's file.
+   */
+  it('refuses with a keyed sentence when the shell has not wired the capability', () => {
+    expect(
+      unavailableReason(command(SESSION_COMMANDS, 'session.arabic'), context([])),
+    ).toBe('This console cannot change language from here yet.')
+    expect(
+      unavailableReason(command(SESSION_COMMANDS, 'session.themeDark'), context([])),
+    ).toBe('This console cannot change theme from here yet.')
+    expect(
+      unavailableReason(command(SESSION_COMMANDS, 'session.signOut'), context([])),
+    ).toBe('This console cannot sign you out from here yet.')
+  })
+
+  it('runs through the host once it is wired', async () => {
+    const wired = sessionHost()
+    await runCommand(
+      command(SESSION_COMMANDS, 'session.arabic'),
+      context([], { host: wired.host }),
+    )
+    await runCommand(
+      command(SESSION_COMMANDS, 'session.themeDark'),
+      context([], { host: wired.host }),
+    )
+    await runCommand(
+      command(SESSION_COMMANDS, 'session.signOut'),
+      context([], { host: wired.host }),
+    )
+    expect(wired.languages).toEqual(['ar'])
+    expect(wired.themes).toEqual(['dark'])
+    expect(wired.out()).toBe(1)
+  })
+
+  /**
+   * §11.2's `:4113` argument at its plainest: both directions are declared, and
+   * the one you are already in is present, disabled, and says so. Absence would
+   * be a puzzle.
+   */
+  it('declares both languages and refuses the one already being read', () => {
+    const wired = sessionHost()
+    expect(
+      unavailableReason(
+        command(SESSION_COMMANDS, 'session.english'),
+        context([], { host: wired.host }),
+      ),
+    ).toBe('You are already reading English.')
+    expect(
+      unavailableReason(
+        command(SESSION_COMMANDS, 'session.arabic'),
+        context([], { host: wired.host }),
+      ),
+    ).toBeNull()
+  })
+})
+
+/* ══════════════════════ keyword search finds the command ═════════════════ */
+
+/**
+ * **§6 — the vocabulary an operator actually types.** Three kinds, and the
+ * middle one is the one nobody writes without being told to: the name the
+ * action had in the legacy console, so somebody who learnt that console finds
+ * the command by the word they already know.
+ */
+describe('a command is found by what an operator types', () => {
+  function find(needle: string): string[] {
+    const lower = needle.toLowerCase()
+    return ALL.filter((each) =>
+      each.keywords.some((word) => word.toLowerCase().includes(lower)),
+    ).map((each) => each.id)
+  }
+
+  it('finds a command by an English synonym', () => {
+    expect(find('go live')).toContain('plan.publish')
+    expect(find('take next')).toContain('request.claimNext')
+    expect(find('apology')).toContain('wallet.goodwill')
+  })
+
+  it('finds a command by the name the legacy console gave it', () => {
+    /* `assign_driver` / `Assign driver` (`:2899`, `:9958`). */
+    expect(find('assign driver')).toContain('request.assign')
+    /* `Escalate to Trust & Safety` (`:12235`). */
+    expect(find('escalate to trust safety')).toContain('cashReport.escalate')
+    /* `Save plan` (`:1127`) — legacy's only word for committing a plan. */
+    expect(find('save plan')).toContain('plan.publish')
+    /* `Mark resolved` (`:4375`) — the one complaint button legacy had. */
+    expect(find('mark resolved')).toContain('complaint.uphold')
+    /* `Reinstate account` / `Suspend account` (`:4113`). */
+    expect(find('reinstate account')).toContain('operator.reinstate')
+  })
+
+  it('finds a command by an Arabic term', () => {
+    expect(find('إسناد')).toContain('request.assign')
+    expect(find('تعويض')).toContain('wallet.goodwill')
+    expect(find('إغلاق البلاغ')).toContain('incident.close')
+    expect(find('تسجيل الخروج')).toContain('session.signOut')
   })
 })
 

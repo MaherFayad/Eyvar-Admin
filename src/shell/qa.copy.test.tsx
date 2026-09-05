@@ -335,7 +335,7 @@ describe('AC-74 — "Every operator-facing string in the shell resolves through 
     const user = userEvent.setup()
     renderShell('/operations/people')
     await screen.findByRole('main')
-    await user.click(screen.getByRole('searchbox', { name: en('shell.topbar.search') }))
+    await user.click(screen.getByRole('button', { name: en('command.trigger.label') }))
     await user.keyboard('operations')
 
     /* Waited for by the row's PATH, which appears nowhere else in the document
@@ -598,7 +598,7 @@ describe('AC-30 — "Global search for a legacy destination name returns the des
     const user = userEvent.setup()
     renderShell('/operations/people')
     await screen.findByRole('main')
-    await user.click(screen.getByRole('searchbox', { name: en('shell.topbar.search') }))
+    await user.click(screen.getByRole('button', { name: en('command.trigger.label') }))
     await user.keyboard('Renewal pipeline')
     expect(await screen.findByText('Renewal Pipeline')).toBeInTheDocument()
     expect(screen.getByText('/operations/subscriptions?view=expiring-7d')).toBeInTheDocument()

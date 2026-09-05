@@ -161,7 +161,16 @@ export function TopBar({
       </div>
 
       {/* Slot 2 — §2.1 centres the field on the VIEWPORT. */}
-      <GlobalSearch t={t} onOpenEntity={onOpenEntity} onOpenOnboarding={onOpenOnboarding} />
+      <GlobalSearch
+        t={t}
+        onOpenEntity={onOpenEntity}
+        onOpenOnboarding={onOpenOnboarding}
+        /* F6 — the same three the account menu below is given, so `session.*`
+           in the palette and the menu are one act. */
+        onSetLanguage={onSetLanguage}
+        onSetTheme={onSetTheme}
+        onSignOut={onSignOut}
+      />
 
       {/* `shrink-0`: three chips, the bell and the avatar keep their width and the search field gives (§2.1). */}
       <div className="flex shrink-0 compact:flex-none items-center justify-end gap-1.5">

@@ -683,3 +683,84 @@ in Arabic — 16 captures:
 | working runs out of left-to-right order (Arabic) | 0 |
 | rows in the Calculations view | 12, being six definitions × two classes |
 | enabled `bg-primary` buttons | 0 while the form is clean — `Save` and the preview's `Subscribe` are both disabled |
+
+## 12. Add a plan; add and edit a quick-ride class
+
+The owner asked for quick-ride plans to be added and edited *"same logic as subscription"*, and
+for the subscription view to gain *Add plan*. §12 is both.
+
+### 12.1 The index: one primary, and the row is the record
+
+Both catalogue views carry the screen's one primary on the view row's inline-end slot: **Add plan**
+on Subscription plans, **Add class** on Quick rides. It opens the editor on a blank record at
+`/financials/pricing/plans/new` and `/financials/pricing/quick-rides/new`. The gate is the row's
+`manage_plans`, stated on the disabled control (`title`) rather than refused after a click; Rate
+card and Cancellation fees show no primary.
+
+A quick-ride class has no money page of its own, so its row **is** the editor (R2-4): a click and
+`Enter` open `/financials/pricing/quick-rides/:typeId/edit`, and the lane's `Edit` repeats it.
+The row now shows the Arabic name under the English one, as the plan row does, because both are
+required on save.
+
+### 12.2 The class editor
+
+The plan editor's shape, on a class: `FullBleedEditorShell`, a Details / Calculations stadium in
+`?tab=`, and a phone-frame preview with its own EN / AR toggle.
+
+| View | Holds |
+|---|---|
+| **Details** | *Class*: English name, Arabic name (RTL in both document directions), *Offered to riders*. *Rates*: base fare, per km, per minute, typed in SAR and held in halalas. |
+| **Calculations** | Assumptions: distance, duration, **surge multiplier**, commission. Then *Fare for the example trip*: the three rates again, above the working they feed. |
+| **Preview** | The booking sheet: *Book a ride*, the class name, the estimated fare for the example trip, a *Surge ×1.5* chip while a multiplier is in force, *Not offered* while the switch is off, the three rates in one line, and a disabled *Book*. |
+
+**The rates are the record's own and are saved.** This is the one place §12 departs from the plan
+editor, and it is the store's rule, not a new one: `DB.quickRideTypes` is written under
+`manage_plans` (spec §4.3 row 587, §10 permission table), and the legacy page edited the three
+numbers in place (`saveRideTypes()`, `:12377`). A rate typed on either view arms `Save`; the
+calculator's other numbers (trip, surge, commission) are trial values under §11.8's rule and never
+reach the save. The commission starts at the live rate card's on-demand rate and `Reset to rate
+card` returns to it.
+
+**Surge is in.** Spec §8.5 names the quick-ride example as *"a real defect: it must include surge,
+because the quick-ride fare does"*. The chain is `QUICK_RIDE_PRICING_DEFINITIONS`, evaluated by the
+same `deriveChain` the plan uses (AC-397's one-string rule holds): fare before surge → **fare with
+surge** (rounded, being what the rider is charged) → captain earns (rounded) → Eyvar keeps (the
+residual, M-3). The assumptions note states the live card's highest city cap.
+
+### 12.3 Add plan
+
+The same `PlanEditorScreen` at `/financials/pricing/plans/new`: names and numbers start blank
+(`null`, never `0`), status `Draft`, no features, both classes offered. The pricing half is the live
+rate card's — the disabled fields show the card's subscription commission and its Economy and
+Comfort rates, with the sentence *A new plan takes its rates from the live rate card* in place of the
+Stage-A one — and `createPlan()` assigns the same on the server side, so the record that comes back
+matches what the operator saw. The features card now always renders, with **Add feature** and a
+**Remove** per line; a new line is blank in both languages and blocks `Save` until filled, which is
+the rule the server enforces (AC-448). Saving returns to the catalogue with *Plan added*; the class
+editor returns to Quick rides with *Class added*.
+
+`SubscriptionPlan.id` is now `string`: the three built-in plans keep their `PlanKey`, and a plan
+added here carries a slug from its English name (`weekend-saver`, `weekend-saver-2`). Subscriptions
+still reference `PlanKey`.
+
+### 12.4 Verified (2026-09-05, `fin/quick-ride-editor`)
+
+`npm run typecheck` clean. `quickRides.test.tsx` — six tests: the row opens the editor on its
+class; *Add class* creates a class that appears in the list and is stored in halalas; a rate on
+the Calculations view moves the fare and arms `Save`; the surge multiplier moves the fare, leaves
+`Save` disabled and resets; a blank name blocks `Save` with the message on the input; *Add plan*
+creates a plan that appears in the catalogue. The wider run (`financials/pricing`, `data/clients`,
+`i18n`, `shell`, `components`) is 1,944 of 1,945 with the one failure in onboarding's
+`WelcomeDialog.tsx:140` (a deleted `sm:` variant), which is not finance work.
+
+Chromium at 1280, console `en` and `ar`:
+
+| Fact | Result |
+|---|---|
+| enabled primaries on the index | `Add class` on Quick rides, `Add plan` on Subscription plans, none elsewhere |
+| Economy, example trip | fare `20.50 SAR` = 2.50 + 10 × 1.10 + 20 × 0.35; captain `15.99`, Eyvar `4.51` at the card's 22 % |
+| per km 1.10 → 2, surge 1 → 1.5 | before surge `29.50`, with surge `44.25`, preview `44.25 SAR` with a *Surge ×1.5* chip, `Save` enabled |
+| `/quick-rides/new` | blank form, every figure an em dash, `Save` disabled |
+| `/plans/new` | six disabled pricing inputs carrying the live card's `20%`, `0%`, `0.40`, `1.20`, `0.55`, `1.75`; *Add feature* present |
+| `overflowX` / height | 0 / 900 on every capture, both directions |
+

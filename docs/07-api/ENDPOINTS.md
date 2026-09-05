@@ -8,7 +8,7 @@ The source of truth is the docblock above each exported function in
 client and regenerate. Conventions, envelopes, auth and error shapes live in
 [CONTRACT.md](CONTRACT.md); this file is only *what exists*.
 
-**344 endpoints across 49 client modules.**
+**348 endpoints across 49 client modules.**
 
 ## `src/data/clients/alerts.ts`
 
@@ -386,9 +386,13 @@ client and regenerate. Conventions, envelopes, auth and error shapes live in
 |---|---|---|---|---|---|
 | GET | `/api/v1/cancellation-rules` | `CancellationRule[]` | - | - | `listCancellationRules()` |
 | GET | `/api/v1/plans` | `SubscriptionPlan[], in `sortOrder`` | - | - | `listPlans()` |
+| POST | `/api/v1/plans` | `SubscriptionPlan, with a server-assigned id and the pricing half taken` | `SavePlanInput` | **422** on the same rules as PUT | `createPlan()` |
 | GET | `/api/v1/plans/:id` | `SubscriptionPlan` | - | - | `getPlan()` |
 | PUT | `/api/v1/plans/:id` | `SubscriptionPlan` | `SavePlanInput` | **422** when either name is empty, a feature is missing a language or exceeds | `savePlan()` |
 | GET | `/api/v1/quick-ride-types` | `QuickRideType[]` | - | - | `listQuickRideTypes()` |
+| POST | `/api/v1/quick-ride-types` | `QuickRideType, with a server-assigned id` | `SaveQuickRideTypeInput` | **422** on the same rules as PUT | `createQuickRideType()` |
+| GET | `/api/v1/quick-ride-types/:id` | `QuickRideType` | - | **404** when the class does not exist | `getQuickRideType()` |
+| PUT | `/api/v1/quick-ride-types/:id` | `QuickRideType` | `SaveQuickRideTypeInput` | **404** when the class does not exist<br>**422** when either name is empty or a rate is not a whole number of halalas | `saveQuickRideType()` |
 | GET | `/api/v1/rate-cards` | `RateCard[], newest first` | `status` | - | `listRateCards()` |
 | GET | `/api/v1/rate-cards/live` | `RateCard` | - | - | `getLiveRateCard()` |
 | GET | `/api/v1/surge-suspensions` | `SurgeSuspension[]` | - | - | `listSurgeSuspensions()` |

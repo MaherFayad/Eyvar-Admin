@@ -166,3 +166,19 @@ export function parseMoneyInput(raw: string): Halalas | null {
   // §8.3.1 requires anyway (a negative zero must never render as a signed zero).
   return (negative ? -magnitude : magnitude) || 0
 }
+
+/**
+ * `parseMoneyInput`'s inverse: integer halalas to the major-unit string an
+ * operator edits. What prefills a money **input**, never what renders a money
+ * output — that is `formatMoney`, which carries the currency code.
+ *
+ * On the digits, not by `n / 100`: `1999 / 100` is a float that renders
+ * differently once in a while, and a prefilled amount that changes when it
+ * round-trips is a bug nobody reproduces.
+ */
+export function formatMoneyInput(halalas: Halalas): string {
+  const magnitude = Math.abs(halalas)
+  const major = Math.trunc(magnitude / 100)
+  const minor = magnitude % 100
+  return `${halalas < 0 ? '-' : ''}${major}.${String(minor).padStart(2, '0')}`
+}

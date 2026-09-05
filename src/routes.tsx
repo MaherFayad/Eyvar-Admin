@@ -200,6 +200,9 @@ const LedgerControlsScreen = lazy(() =>
 const FinancialsPlanEditorScreen = lazy(() =>
   import('@/screens/financials').then((m) => ({ default: m.PlanEditorScreen })),
 )
+const FinancialsQuickRideEditorScreen = lazy(() =>
+  import('@/screens/financials').then((m) => ({ default: m.QuickRideEditorScreen })),
+)
 
 /* R4-6b - Market & Zones is a P1 table with a P5 strip above it, and the strip
    filters the table. It is in `METRIC_BOARD_SUB_TABS` because the board half is
@@ -300,7 +303,11 @@ export function AppRoutes() {
           path={detail.path}
           element={
             <Chunk pattern="P3">
-              <FinancialsPlanEditorScreen />
+              {detail.kind === 'quick-ride-editor' ? (
+                <FinancialsQuickRideEditorScreen />
+              ) : (
+                <FinancialsPlanEditorScreen />
+              )}
             </Chunk>
           }
         />

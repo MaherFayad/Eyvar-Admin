@@ -51,7 +51,7 @@
  * `src/screens/queues/hooks.ts` states for its three hooks.
  */
 
-import { PLAN_PRICING_DEFINITIONS, PLAN_EXAMPLE_INPUTS } from '@/data/types'
+import { PLAN_PRICING_DEFINITIONS, PLAN_EXAMPLE_INPUTS, QUICK_RIDE_PRICING_DEFINITIONS } from '@/data/types'
 import type { DerivedFieldDefinition } from '@/data/types'
 import { formatMoney } from '@/lib'
 
@@ -283,7 +283,12 @@ export interface DerivedValue {
  * `derivePlanClass` reads that rather than a second list which could disagree
  * with it.
  */
-const MONEY_SCOPE_KEYS: ReadonlySet<string> = new Set(['perMinuteHalalas', 'perKmHalalas'])
+const MONEY_SCOPE_KEYS: ReadonlySet<string> = new Set([
+  'perMinuteHalalas',
+  'perKmHalalas',
+  'baseFareHalalas',
+  'perMinHalalas',
+])
 
 /**
  * Render one scope value as it should appear inside the working.
@@ -414,37 +419,48 @@ export function derivePlanClass(
   definitions: readonly DerivedFieldDefinition[] = PLAN_PRICING_DEFINITIONS,
   renderName?: SubstitutionRenderer,
 ): DerivedValue[] {
-  const scope: Record<string, number | null> = {
-    exampleMinutes:
-      inputs.exampleMinutes === undefined ? PLAN_EXAMPLE_INPUTS.exampleMinutes : inputs.exampleMinutes,
-    exampleKm: inputs.exampleKm === undefined ? PLAN_EXAMPLE_INPUTS.exampleKm : inputs.exampleKm,
-    commissionPercent: inputs.commissionPercent,
-    discountPercent: inputs.discountPercent,
-    executeDays: inputs.executeDays,
-    perMinuteHalalas:
-      planClass === 'economy' ? inputs.economyPerMinuteHalalas : inputs.comfortPerMinuteHalalas,
-    perKmHalalas:
-      planClass === 'economy' ? inputs.economyPerKmHalalas : inputs.comfortPerKmHalalas,
-  }
+  return deriveChain(
+    {
+      exampleMinutes:
+        inputs.exampleMinutes === undefined ? PLAN_EXAMPLE_INPUTS.exampleMinutes : inputs.exampleMinutes,
+      exampleKm: inputs.exampleKm === undefined ? PLAN_EXAMPLE_INPUTS.exampleKm : inputs.exampleKm,
+      commissionPercent: inputs.commissionPercent,
+      discountPercent: inputs.discountPercent,
+      executeDays: inputs.executeDays,
+      perMinuteHalalas:
+        planClass === 'economy' ? inputs.economyPerMinuteHalalas : inputs.comfortPerMinuteHalalas,
+      perKmHalalas:
+        planClass === 'economy' ? inputs.economyPerKmHalalas : inputs.comfortPerKmHalalas,
+    },
+    definitions,
+    renderName,
+  )
+}
 
-  /* Which names in the scope hold money, grown as the chain computes: a
-     definition whose `unit` is `halalas` puts a money value into the scope, and the
-     NEXT definition's working has to render it in major units too. Seeded with
-     the two rate inputs; `grossPerTrip` and the rest are added as they land. */
+/**
+ * Evaluate every definition, in order, over one scope. Each result is written
+ * back under its own id, so a later definition reads the value this chain just
+ * computed rather than a second copy of the arithmetic (AC-397).
+ */
+export function deriveChain(
+  seed: Record<string, number | null>,
+  definitions: readonly DerivedFieldDefinition[],
+  renderName?: SubstitutionRenderer,
+): DerivedValue[] {
+  const scope: Record<string, number | null> = { ...seed }
+  /* Which names hold money, grown as the chain computes: a `halalas` definition
+     puts a money value into the scope and the next working must print it in
+     major units too. Seeded with the rate inputs. */
   const moneyIds = new Set(MONEY_SCOPE_KEYS)
 
   const out: DerivedValue[] = []
   for (const definition of definitions) {
-    /* **Substituted BEFORE the write-back, and that is the point.** The working
-       has to show the values the expression READ, and `scope[definition.id]`
-       is about to be overwritten with the value it produced. Building the
-       string after the assignment would substitute a definition that reads its
-       own id with its own result. */
+    /* Substituted BEFORE the write-back: the working shows the values the
+       expression READ, and `scope[definition.id]` is about to be overwritten. */
     const parts = substituteParts(definition.expression, scope, moneyIds, renderName)
     const substituted = parts === null ? null : parts.map((part) => part.text).join('')
     const raw = evaluateExpression(definition.expression, scope)
-    /* M-1 — the first and only rounding in the chain is the one the definition
-       declares. `platformKeeps` takes the residual after it, so the legs sum. */
+    /* M-1 — the chain rounds only where a definition declares it. */
     const value = raw === null ? null : definition.rounds ? roundHalalas(raw) : raw
     scope[definition.id] = value
     if (definition.unit === 'halalas') moneyIds.add(definition.id)
@@ -461,6 +477,24 @@ export function derivePlanClass(
     })
   }
   return out
+}
+
+/** The quick-ride chain's inputs — one class, surge in (§12). */
+export interface QuickRidePricingInputs {
+  baseFareHalalas: number | null
+  perKmHalalas: number | null
+  perMinHalalas: number | null
+  surgeMultiplier: number | null
+  commissionPercent: number | null
+  exampleMinutes: number | null
+  exampleKm: number | null
+}
+
+export function deriveQuickRide(
+  inputs: QuickRidePricingInputs,
+  renderName?: SubstitutionRenderer,
+): DerivedValue[] {
+  return deriveChain({ ...inputs }, QUICK_RIDE_PRICING_DEFINITIONS, renderName)
 }
 
 /**

@@ -85,6 +85,8 @@ export type DetailKind =
   | 'applicant'
   | 'ticket'
   | 'plan-editor'
+  /** Financials › Pricing › one quick-ride class, and the create form (§12). */
+  | 'quick-ride-editor'
   | 'entity'
   | 'report'
   | 'dashboard'

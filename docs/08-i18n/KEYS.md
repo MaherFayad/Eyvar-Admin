@@ -9,9 +9,9 @@ this file is stale or when the `defaultValue` ratchet slips.
 
 | | |
 |---|---:|
-| **Translatable keys, all dictionaries** | **6476** |
-| Reachable from `EN` (what the shell renders) | 6126 |
-| Keys in `AR` | 6476 |
+| **Translatable keys, all dictionaries** | **6820** |
+| Reachable from `EN` (what the shell renders) | 6470 |
+| Keys in `AR` | 6820 |
 | **Keys Arabic is missing** | **0** |
 | Keys in `AR` and not in `EN` (plural forms, unregistered screens) | 350 |
 | Plural forms (`key#category`) inside `EN` | 65 |
@@ -21,7 +21,7 @@ this file is stale or when the `defaultValue` ratchet slips.
 | `defaultValue` forwarding a Dictionary (exempt) | 2 |
 | **English values carrying an em dash (the ratchet)** | **84** |
 | **Arabic values carrying an em dash (the ratchet)** | **87** |
-| **English values over their word budget (the ratchet)** | **147** |
+| **English values over their word budget (the ratchet)** | **145** |
 
 `AR` is **complete**: every key reachable from `EN` resolves in Arabic, so no
 screen mixes the two languages. `arExtra` is not drift -- Arabic declares six CLDR
@@ -257,14 +257,14 @@ Both ceilings only ever fall.
 
 ## The word budget
 
-Ceiling **147**, measured **147**. **X18**: a slot an operator scans holds a
+Ceiling **145**, measured **145**. **X18**: a slot an operator scans holds a
 fixed number of words. A key is put in a class by its name; the mapping is in
 the generator header. Anything longer moves to `InfoHint` or the detail surface.
 Measured on English only, and a placeholder counts as one word.
 
 | Class | Budget, in words | Over |
 |---|---:|---:|
-| title | 4 | 81 |
+| title | 4 | 79 |
 | empty body | 12 | 31 |
 | button | 3 | 16 |
 | empty title | 5 | 11 |
@@ -403,8 +403,6 @@ Measured on English only, and a placeholder counts as one word.
 | title | 5 | `auth.enroll.title` | Set up your verification code |
 | title | 5 | `auth.otp.superseded.title` | That code has been replaced |
 | title | 5 | `driver.timeline.trip-no-show.title` | Trip recorded as a no-show |
-| title | 5 | `fairness.overturn.title` | Overturn the decision against {name}? |
-| title | 5 | `fairness.uphold.title` | Uphold the decision against {name}? |
 | title | 5 | `fin.bulk.apply.confirm.title#one` | Apply {amount} from 1 deduction? |
 | title | 5 | `fin.bulk.apply.confirm.title#other` | Apply {amount} from {count} deductions? |
 | title | 5 | `fin.bulk.release.confirm.title#one` | Release {amount} from 1 hold? |
@@ -413,12 +411,12 @@ Measured on English only, and a placeholder counts as one word.
 | title | 5 | `fin.bulk.waive.confirm.title#other` | Waive {amount} on {count} deductions? |
 | title | 5 | `fin.debt.repay.title` | Record a repayment from {captain}? |
 | title | 5 | `fin.overview.positions.heading` | Where the money is held |
+| title | 5 | `fin.quickEditor.calc.heading` | Fare for the example trip |
 | title | 5 | `nav.count.operations-corporate` | {count} corporate accounts awaiting approval |
 | title | 5 | `nav.count.operations-my-work` | {count} items in your work |
 | title | 5 | `onboarding.step.finance.routing.title` | Know which queue reaches you |
 | title | 5 | `onboarding.step.owner.position.title` | State the current contribution margin |
 | title | 5 | `onboarding.step.owner.pricing.title` | Settle how captains are paid |
-| title | 5 | `onboarding.welcome.step3.title` | Jump anywhere from the keyboard |
 | title | 5 | `policy.sla.breach.title` | When a target is breached |
 | title | 5 | `rider.timeline.trip-no-show.title` | Trip recorded as a no-show |
 | title | 5 | `ticket.logCall.title` | Log a call on {id} |
@@ -429,8 +427,9 @@ Measured on English only, and a placeholder counts as one word.
 
 | File | Exports | Keys |
 |---|---|---:|
-| `src/screens/financials/copy.ts` | `FINANCIALS_EN` | 860 |
+| `src/screens/financials/copy.ts` | `FINANCIALS_EN` | 899 |
 | `src/screens/reports/copy.ts` | `REPORTS_EN` | 570 |
+| `src/commands/copy.ts` | `COMMANDS_EN` | 390 |
 | `src/screens/operations/people/copy.ts` | `PEOPLE_EN` | 338 |
 | `src/components/profile/copy.ts` | `PROFILE_EN` | 275 |
 | `src/screens/metrics/copy.ts` | `OVERVIEW_EN` | 266 |
@@ -450,7 +449,6 @@ Measured on English only, and a placeholder counts as one word.
 | `src/screens/onboarding/copy.ts` | `ONBOARDING_EN` | 104 |
 | `src/screens/operations/trips/copy.ts` | `TRIPS_EN` | 104 |
 | `src/components/profile/trip/copy.ts` | `TRIP_PROFILE_EN` | 89 |
-| `src/commands/copy.ts` | `COMMANDS_EN` | 88 |
 | `src/i18n/vocabulary/copy.ts` | `DRIVER_VOCABULARY_EN`, `RIDER_VOCABULARY_EN`, `VOCABULARY_EN` | 88 |
 | `src/screens/operations/requests/copy.ts` | `REQUESTS_EN` | 80 |
 | `src/screens/support/fairness/copy.ts` | `FAIRNESS_EN` | 77 |

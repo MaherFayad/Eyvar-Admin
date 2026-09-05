@@ -2677,6 +2677,21 @@
       "statuses": []
     },
     {
+      "method": "POST",
+      "path": "/api/v1/plans",
+      "client": "src/data/clients/pricing.ts",
+      "function": "createPlan",
+      "params": null,
+      "body": "SavePlanInput",
+      "returns": "SubscriptionPlan, with a server-assigned id and the pricing half taken",
+      "statuses": [
+        {
+          "code": "422",
+          "when": "on the same rules as PUT"
+        }
+      ]
+    },
+    {
       "method": "GET",
       "path": "/api/v1/plans/:id",
       "client": "src/data/clients/pricing.ts",
@@ -2908,6 +2923,55 @@
       "body": null,
       "returns": "QuickRideType[]",
       "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/quick-ride-types",
+      "client": "src/data/clients/pricing.ts",
+      "function": "createQuickRideType",
+      "params": null,
+      "body": "SaveQuickRideTypeInput",
+      "returns": "QuickRideType, with a server-assigned id",
+      "statuses": [
+        {
+          "code": "422",
+          "when": "on the same rules as PUT"
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/quick-ride-types/:id",
+      "client": "src/data/clients/pricing.ts",
+      "function": "getQuickRideType",
+      "params": null,
+      "body": null,
+      "returns": "QuickRideType",
+      "statuses": [
+        {
+          "code": "404",
+          "when": "when the class does not exist"
+        }
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v1/quick-ride-types/:id",
+      "client": "src/data/clients/pricing.ts",
+      "function": "saveQuickRideType",
+      "params": null,
+      "body": "SaveQuickRideTypeInput",
+      "returns": "QuickRideType",
+      "statuses": [
+        {
+          "code": "404",
+          "when": "when the class does not exist"
+        },
+        {
+          "code": "422",
+          "when": "when either name is empty or a rate is not a whole number of halalas"
+        }
+      ]
     },
     {
       "method": "GET",

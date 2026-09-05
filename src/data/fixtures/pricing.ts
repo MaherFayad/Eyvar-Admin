@@ -306,6 +306,7 @@ export const quickRideTypeFixtures: QuickRideType[] = [
   {
     id: 'economy',
     name: 'Economy',
+    nameAr: 'اقتصادية',
     baseFareHalalas: 250,
     perKmHalalas: 110,
     perMinHalalas: 35,
@@ -314,6 +315,7 @@ export const quickRideTypeFixtures: QuickRideType[] = [
   {
     id: 'comfort',
     name: 'Comfort',
+    nameAr: 'مريحة',
     baseFareHalalas: 400,
     perKmHalalas: 160,
     perMinHalalas: 50,
@@ -322,6 +324,7 @@ export const quickRideTypeFixtures: QuickRideType[] = [
   {
     id: 'large',
     name: 'Large',
+    nameAr: 'كبيرة',
     baseFareHalalas: 600,
     perKmHalalas: 210,
     perMinHalalas: 65,

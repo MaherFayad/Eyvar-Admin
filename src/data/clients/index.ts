@@ -431,6 +431,10 @@ export {
   PRICING_OPERATIONS,
   getLiveRateCard,
   getPlan,
+  createPlan,
+  getQuickRideType,
+  saveQuickRideType,
+  createQuickRideType,
   listCancellationRules,
   listPlans,
   listQuickRideTypes,
@@ -441,6 +445,7 @@ export {
   savePlan,
   suspendSurge,
   type SavePlanInput,
+  type SaveQuickRideTypeInput,
 } from './pricing'
 
 export { AUDIT_OPERATIONS, auditLogSize, listAuditEntries, resetAudit } from './audit'

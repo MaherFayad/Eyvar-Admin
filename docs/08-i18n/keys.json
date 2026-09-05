@@ -1,8 +1,8 @@
 {
   "totals": {
-    "keys": 6476,
-    "en": 6126,
-    "ar": 6476,
+    "keys": 6820,
+    "en": 6470,
+    "ar": 6820,
     "arMissing": 0,
     "arExtra": 350,
     "copyFiles": 37,
@@ -12,7 +12,7 @@
     "defaultValueForwarded": 2,
     "emDashEn": 84,
     "emDashAr": 87,
-    "overBudget": 147
+    "overBudget": 145
   },
   "registered": [
     {
@@ -20,7 +20,7 @@
       "exports": [
         "FINANCIALS_EN"
       ],
-      "keys": 860,
+      "keys": 899,
       "notInEN": 0
     },
     {
@@ -29,6 +29,14 @@
         "REPORTS_EN"
       ],
       "keys": 570,
+      "notInEN": 0
+    },
+    {
+      "file": "src/commands/copy.ts",
+      "exports": [
+        "COMMANDS_EN"
+      ],
+      "keys": 390,
       "notInEN": 0
     },
     {
@@ -182,14 +190,6 @@
         "TRIP_PROFILE_EN"
       ],
       "keys": 89,
-      "notInEN": 0
-    },
-    {
-      "file": "src/commands/copy.ts",
-      "exports": [
-        "COMMANDS_EN"
-      ],
-      "keys": 88,
       "notInEN": 0
     },
     {
@@ -2393,22 +2393,6 @@
       "value": "Trip recorded as a no-show"
     },
     {
-      "file": "src/screens/support/fairness/copy.ts",
-      "key": "fairness.overturn.title",
-      "class": "title",
-      "words": 5,
-      "budget": 4,
-      "value": "Overturn the decision against {name}?"
-    },
-    {
-      "file": "src/screens/support/fairness/copy.ts",
-      "key": "fairness.uphold.title",
-      "class": "title",
-      "words": 5,
-      "budget": 4,
-      "value": "Uphold the decision against {name}?"
-    },
-    {
       "file": "src/screens/financials/copy.ts",
       "key": "fin.bulk.apply.confirm.title#one",
       "class": "title",
@@ -2473,6 +2457,14 @@
       "value": "Where the money is held"
     },
     {
+      "file": "src/screens/financials/copy.ts",
+      "key": "fin.quickEditor.calc.heading",
+      "class": "title",
+      "words": 5,
+      "budget": 4,
+      "value": "Fare for the example trip"
+    },
+    {
       "file": "src/i18n/dictionaries.ts",
       "key": "nav.count.operations-corporate",
       "class": "title",
@@ -2513,14 +2505,6 @@
       "value": "Settle how captains are paid"
     },
     {
-      "file": "src/screens/onboarding/copy.ts",
-      "key": "onboarding.welcome.step3.title",
-      "class": "title",
-      "words": 5,
-      "budget": 4,
-      "value": "Jump anywhere from the keyboard"
-    },
-    {
       "file": "src/screens/admin/policy/copy.ts",
       "key": "policy.sla.breach.title",
       "class": "title",
@@ -2548,7 +2532,7 @@
   "overBudgetByClass": [
     [
       "title",
-      81
+      79
     ],
     [
       "empty body",

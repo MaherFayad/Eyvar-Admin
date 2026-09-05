@@ -77,7 +77,15 @@ function renderShell(path: string) {
   )
 }
 
-const searchField = () => screen.getByRole('searchbox', { name: en('shell.topbar.search') })
+/**
+ * The palette is a centred modal (RULINGS, 2026-09-05): the top bar holds a
+ * trigger and the query lives in the dialog's own input. The behaviour these
+ * three tests assert is unchanged; only the door is.
+ */
+async function openSearch(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(screen.getByRole('button', { name: en('command.trigger.label') }))
+  return await screen.findByRole('searchbox', { name: en('shell.topbar.search') })
+}
 
 /* ════════════ 1 · a failed search is not "no matches" ══════════════════ */
 
@@ -87,7 +95,7 @@ describe('a search that fails says so, and does not report "no matches"', () => 
     mockFailures.always('search.query')
     renderShell('/operations/overview')
 
-    await user.type(searchField(), 'Nora')
+    await user.type(await openSearch(user), 'Nora')
 
     /* The two are OPPOSITE instructions — one says the spelling is wrong, the
        other says nothing was asked. Only one of them may appear. */
@@ -103,7 +111,7 @@ describe('a search that fails says so, and does not report "no matches"', () => 
     const user = userEvent.setup()
     renderShell('/operations/overview')
 
-    await user.type(searchField(), 'zzzzqqqq')
+    await user.type(await openSearch(user), 'zzzzqqqq')
 
     await waitFor(() => expect(screen.getByText(/No matches for/i)).toBeInTheDocument())
     expect(screen.queryByText(en('shell.search.error'))).toBeNull()
@@ -117,7 +125,7 @@ describe("the escape hatch goes to a screen that reads the operator's query", ()
     const user = userEvent.setup()
     renderShell('/operations/overview')
 
-    await user.type(searchField(), 'Al-Harbi')
+    await user.type(await openSearch(user), 'Al-Harbi')
     const hatch = await screen.findByText(/Search for "Al-Harbi"/)
     await user.click(hatch)
 

@@ -50,7 +50,11 @@ export interface PlanFeature {
  * and are therefore not fields.
  */
 export interface SubscriptionPlan {
-  id: PlanKey
+  /**
+   * The three built-in plans carry a `PlanKey`; a plan added from the editor
+   * carries a server-assigned slug. Subscriptions still reference `PlanKey`.
+   */
+  id: string
   nameEn: string
   nameAr: string
   durationDays: number
@@ -163,6 +167,8 @@ export interface RateCard {
 export interface QuickRideType {
   id: string
   name: string
+  /** What an Arabic rider sees when booking; required on save like a plan's. */
+  nameAr: string
   baseFareHalalas: Halalas
   perKmHalalas: Halalas
   perMinHalalas: Halalas
@@ -371,6 +377,65 @@ export const PLAN_PRICING_DEFINITIONS: readonly DerivedFieldDefinition[] = [
     /** The residual, so the legs always sum exactly (M-3). New; legacy has no such line. */
     isResidual: true,
     perClass: true,
+  },
+]
+
+/**
+ * The quick-ride editor's chain (FINANCIALS-UX-PLAN §12), one class at a time.
+ * Surge is IN, because the quick-ride fare carries it (spec §8.5, D-F4's
+ * second case). `surgedFare` rounds because it is what the rider is charged;
+ * `driverEarns` rounds and `platformKeeps` is the residual (M-3).
+ */
+export const QUICK_RIDE_PRICING_DEFINITIONS: readonly DerivedFieldDefinition[] = [
+  {
+    id: 'driverSharePercent',
+    labelKey: 'pricing.derived.driverShare',
+    inputs: ['commissionPercent'],
+    expression: '100 − commissionPercent',
+    unit: 'percent',
+    rounds: false,
+    isResidual: false,
+    perClass: false,
+  },
+  {
+    id: 'baseFare',
+    labelKey: 'pricing.derived.quick.base',
+    inputs: ['baseFareHalalas', 'perKmHalalas', 'perMinHalalas'],
+    expression: 'baseFareHalalas + exampleKm × perKmHalalas + exampleMinutes × perMinHalalas',
+    unit: 'halalas',
+    rounds: false,
+    isResidual: false,
+    perClass: false,
+  },
+  {
+    id: 'surgedFare',
+    labelKey: 'pricing.derived.quick.surged',
+    inputs: ['baseFare', 'surgeMultiplier'],
+    expression: 'baseFare × surgeMultiplier',
+    unit: 'halalas',
+    rounds: true,
+    isResidual: false,
+    perClass: false,
+  },
+  {
+    id: 'driverEarns',
+    labelKey: 'pricing.derived.driverEarns',
+    inputs: ['surgedFare', 'commissionPercent'],
+    expression: 'surgedFare × (1 − commissionPercent/100)',
+    unit: 'halalas',
+    rounds: true,
+    isResidual: false,
+    perClass: false,
+  },
+  {
+    id: 'platformKeeps',
+    labelKey: 'pricing.derived.platformKeeps',
+    inputs: ['surgedFare', 'driverEarns'],
+    expression: 'surgedFare − driverEarns',
+    unit: 'halalas',
+    rounds: false,
+    isResidual: true,
+    perClass: false,
   },
 ]
 

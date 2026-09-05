@@ -1568,6 +1568,11 @@
      and a literal 72 appearing in `sheet.tsx` when build item 16 lands is
      exactly the D15 defect. Owner of its future consumer: `ui/sheet.tsx`. */
   --ev-drawerhead-h: 72px;
+  /* The centred command palette (Standing owner override, 2026-09-05). Both
+     are viewport units so the panel's top edge never moves as the list grows;
+     Tailwind's spacing scale carries no viewport unit, so they are tokens. */
+  --ev-palette-top: 16vh;
+  --ev-palette-max-h: 60vh;
   /* M — 12 -> 8, and 12 is FALSIFIED, not merely re-preferred. Stat tile
      `02b895df` top-left corner: the horizontal inset is 1 destination px at 1px
      below the top edge. A 12px radius predicts 3 destination px there; 8px
@@ -2742,6 +2747,10 @@
   /* D-2' amended — the `wide:` step. Same one consumer. */
   --spacing-page-pad-wide: var(--ev-page-pad-wide);
   --spacing-drawerhead: var(--ev-drawerhead-h);
+  /* `top-palette-top` and `max-h-palette-max` on `DialogContent`'s palette
+     size. Named here so the surface never writes a viewport unit inline. */
+  --spacing-palette-top: var(--ev-palette-top);
+  --spacing-palette-max: var(--ev-palette-max-h);
   /* ── THE MOBILE SET, 2026-09-02. ────────────────────────────────────────
      The tap floor is a MIN, so its call sites are `min-h-tap` and `min-w-tap`
      — never `h-tap`, which would make a floor into a height and break the
