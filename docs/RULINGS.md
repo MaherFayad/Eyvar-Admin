@@ -24,12 +24,12 @@ The same digits mean different things with different prefixes. Write the exact f
 | Form | Means | Text lives in |
 |---|---|---|
 | `R1`…`R19`, `R5a` | `DESIGN.md` ruling | `_partials/00-header.md`, "Rulings on contested points" |
-| `D1`…`D14`, `D1a` | Project decision | `05-restructure/DECISIONS.md` |
+| `D1`…`D34`, `D1a`, `D7a` | Project decision | `05-restructure/DECISIONS.md` |
 | `D-1`…`D-13` (hyphen) | `DESIGN.md` §6.2 sanctioned deviation | `_partials/06-eyvar-mapping.md`; D-11a, D-12, D-13 in DECISIONS.md |
 | `D3`, `D11` written next to "§6.3" | Legacy defect number | `_partials/06-eyvar-mapping.md` §6.3 |
 | `R-1`…`R-4` | Round 3 ruling | `05-restructure/design/00-decisions-r3.md` |
 | `R4-1`…`R4-11` | Round 4 ruling | `05-restructure/design/07-rulings-r4.md` |
-| `R5-1`…`R5-14` | Round 5 ruling | `05-restructure/design/09-rulings-r5.md` and DECISIONS.md "Round 5" |
+| `R5-1`…`R5-14` | Round 5 ruling | `05-restructure/design/09-rulings-r5.md` and DECISIONS.md "D16 – D23 — the eight delegated rulings" |
 | `AC-nnn` | Acceptance criterion | `05-restructure/specs/` |
 | `Q-n`, `V-n`, `B-n`, `F-n`, `W4-Fn` | Audit question or finding | the round document that raised it |
 
@@ -55,13 +55,13 @@ hue", and `pairRefusal`'s rule for what may share one y-axis.
 
 ### A surface recesses, and nothing casts a shadow (2026-09-06)
 
-The owner ruled on how layers stack. **D15 — a surface is recessed.** A card, container,
+The owner ruled on how layers stack. **D33 — a surface is recessed.** A card, container,
 popover, dropdown, dialog, sheet or command palette is DARKER than the page it sits on, in
 both themes. The page is the lightest layer; nothing is ever raised above it. In light the
 page stays white and a card reads as a grey panel on it. In dark the page keeps its value and
 a card sits below it.
 
-**D16 — no shadows and no glows.** The three shadow tiers are deleted and no surface carries a
+**D34 — no shadows and no glows.** The three shadow tiers are deleted and no surface carries a
 drop shadow, an inset highlight or a glow. Separation is the value step plus a hairline,
 nothing else. A dark card therefore keeps a real hairline edge, because the inset highlight
 that used to draw it is gone. The modal scrim survives: a scrim is what makes a modal modal,
@@ -166,8 +166,8 @@ One line each. The text lives in `05-restructure/DECISIONS.md`; grep the ID.
 | D12 — The view switcher is a STADIUM segmented control, and R15 gets one narrow exception |
 | D13 — the ad-hoc **Report Builder** is a semantic layer before it is a screen |
 | D14 — the auth spec governs auth STRUCTURE; D7's visual language governs its look |
-| D15 — a surface RECESSES: a card, container, popover, dialog or sheet is darker than the page it sits on, in both themes |
-| D16 — no shadows and no glows; a surface is separated from its ground by the value step and a hairline, nothing else |
+| D33 — a surface RECESSES: a card, container, popover, dialog or sheet is darker than the page it sits on, in both themes |
+| D34 — no shadows and no glows; a surface is separated from its ground by the value step and a hairline, nothing else |
 | D-11a — who owns focus when a menu hands off to a layer: **the layer wins** |
 | D-12 — peek is the drawer, not a sixth surface |
 | D-13 — motion has no duration tokens, and the request for a duration scale is refused |
@@ -217,9 +217,9 @@ Round 5, [`design/09-rulings-r5.md`](05-restructure/design/09-rulings-r5.md):
 | 22. The fourth population — and R5-14, which is what stops there being a fifth |
 | 24. R5-10 was over-specified — the `mod 4` clause never binds |
 
-The reconciled audit, [`design/17-reconciled-findings.md`](05-restructure/design/17-reconciled-findings.md),
-lists which audit claims survived verification and which did not. Its §3 is the reason a
-grep is a lead and never a finding.
+A grep is a lead and never a finding: a claim binds only once someone has opened the file
+and read the line. `CLAUDE.md` states the rule; it is here because it decides which of two
+contradicting sources wins, and the answer is always the one that was read.
 
 ## Adding a ruling
 
