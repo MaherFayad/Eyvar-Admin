@@ -8,7 +8,7 @@ The source of truth is the docblock above each exported function in
 client and regenerate. Conventions, envelopes, auth and error shapes live in
 [CONTRACT.md](CONTRACT.md); this file is only *what exists*.
 
-**343 endpoints across 49 client modules.**
+**344 endpoints across 49 client modules.**
 
 ## `src/data/clients/alerts.ts`
 
@@ -122,6 +122,7 @@ client and regenerate. Conventions, envelopes, auth and error shapes live in
 | GET | `/api/v1/conversations/:id/messages` | `Paginated<Message>` | `page · pageSize` | - | `listConversationMessages()` |
 | POST | `/api/v1/conversations/:id/messages` | `Message` | `{ body: string, visibility: 'customer' \| 'internal' }` | **422** when `body` is empty<br>**409** when the conversation is closed | `replyConversation()` |
 | POST | `/api/v1/conversations/:id/messages/:messageId/retry` | `Message   (the **same** message, with a fresh delivery attempt)` | - | **404** naming the conversation, or the message inside it<br>**409** `conversation_closed`<br>**409** `retry_refused` when the message's current delivery is not `failed` — | `retryMessage()` |
+| POST | `/api/v1/conversations/:id/read` | `Conversation` | - | **404** naming the id | `markConversationRead()` |
 | POST | `/api/v1/conversations/:id/release` | `Conversation` | - | - | `releaseConversation()` |
 | POST | `/api/v1/conversations/:id/reopen` | `Conversation` | - | **409** `conversation_not_closed` — reopening an open conversation would | `reopenConversation()` |
 | POST | `/api/v1/conversations/:id/snooze` | `Conversation` | `{ until }` | **409** when the conversation is closed | `snoozeConversation()` |

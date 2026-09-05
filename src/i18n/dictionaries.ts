@@ -37,7 +37,7 @@
  */
 
 import type { Dictionary, Language } from '@/lib'
-import { FILE_SIZE_MESSAGES_EN, SLA_MESSAGES_EN } from '@/lib'
+import { DATE_MESSAGES_EN, FILE_SIZE_MESSAGES_EN, SLA_MESSAGES_EN } from '@/lib'
 /* A Phase 1 screen owns its own copy and exports it as a `Dictionary`; the
    assembly below is the only place they meet. One import and one spread per
    screen, so adding a screen never edits another screen's strings.
@@ -215,7 +215,8 @@ import { ADMIN_DATA_EN } from '@/screens/admin/data/copy'
 import { ADMIN_TEAM_EN } from '@/screens/admin/team/copy'
 import { ADMIN_WORKSPACE_EN } from '@/screens/admin/workspace/copy'
 import { ASSURANCE_EN } from '@/screens/operations/assurance/copy'
-import { CONVERSATIONS_EN } from '@/screens/support/conversations/copy'
+import { CONVERSATIONS_EN } from '@/screens/support/inbox/copy'
+import { INBOX_EN } from '@/screens/support/inbox/copy'
 import { DISPUTES_EN } from '@/screens/support/disputes/copy'
 import { FAIRNESS_EN } from '@/screens/support/fairness/copy'
 import { MY_WORK_EN } from '@/screens/operations/my-work/copy'
@@ -1150,6 +1151,7 @@ export const EN: Dictionary = {
   ...form,
   ...SLA_MESSAGES_EN,
   ...FILE_SIZE_MESSAGES_EN,
+  ...DATE_MESSAGES_EN,
   ...COMMANDS_EN,
   ...ADMIN_ACTIVITY_EN,
   ...ADMIN_DATA_EN,
@@ -1157,6 +1159,7 @@ export const EN: Dictionary = {
   ...ADMIN_WORKSPACE_EN,
   ...ASSURANCE_EN,
   ...CONVERSATIONS_EN,
+  ...INBOX_EN,
   ...DISPUTES_EN,
   ...FAIRNESS_EN,
   ...MY_WORK_EN,

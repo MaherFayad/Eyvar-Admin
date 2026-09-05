@@ -536,6 +536,8 @@ export type {
 } from './conversation'
 
 export {
+  CHAT_FIRST_RESPONSE_SECONDS,
+  CHAT_RESOLUTION_MINUTES,
   CONVERSATION_CHANNELS,
   CONVERSATION_STATUSES,
   MESSAGE_DELIVERY_STATES,
@@ -546,7 +548,9 @@ export {
   deliveryCanRetry,
   deliveryIsWellFormed,
   isConversationEvent,
+  lastMessageAuthorKindOf,
   messageSubjectIsWellFormed,
+  stampChatClocks,
 } from './conversation'
 
 /* ── the operator lifecycle (P6-T5) and the workspace pane (P6-T1) ────── */

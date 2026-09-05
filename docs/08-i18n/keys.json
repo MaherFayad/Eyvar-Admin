@@ -1,17 +1,17 @@
 {
   "totals": {
-    "keys": 6455,
-    "en": 6109,
-    "ar": 6455,
+    "keys": 6476,
+    "en": 6126,
+    "ar": 6476,
     "arMissing": 0,
-    "arExtra": 346,
+    "arExtra": 350,
     "copyFiles": 37,
     "unregisteredKeys": 194,
-    "pluralForms": 63,
+    "pluralForms": 65,
     "defaultValue": 0,
     "defaultValueForwarded": 2,
-    "emDashEn": 89,
-    "emDashAr": 93,
+    "emDashEn": 84,
+    "emDashAr": 87,
     "overBudget": 147
   },
   "registered": [
@@ -20,7 +20,7 @@
       "exports": [
         "FINANCIALS_EN"
       ],
-      "keys": 852,
+      "keys": 860,
       "notInEN": 0
     },
     {
@@ -76,7 +76,7 @@
       "exports": [
         "ADMIN_TEAM_EN"
       ],
-      "keys": 214,
+      "keys": 206,
       "notInEN": 0
     },
     {
@@ -88,11 +88,12 @@
       "notInEN": 0
     },
     {
-      "file": "src/screens/support/conversations/copy.ts",
+      "file": "src/screens/support/inbox/copy.ts",
       "exports": [
-        "CONVERSATIONS_EN"
+        "CONVERSATIONS_EN",
+        "INBOX_EN"
       ],
-      "keys": 184,
+      "keys": 178,
       "notInEN": 0
     },
     {
@@ -100,7 +101,7 @@
       "exports": [
         "COMMUNICATIONS_EN"
       ],
-      "keys": 178,
+      "keys": 173,
       "notInEN": 0
     },
     {
@@ -116,7 +117,7 @@
       "exports": [
         "POLICY_EN"
       ],
-      "keys": 168,
+      "keys": 170,
       "notInEN": 0
     },
     {
@@ -160,6 +161,14 @@
       "notInEN": 0
     },
     {
+      "file": "src/screens/onboarding/copy.ts",
+      "exports": [
+        "ONBOARDING_EN"
+      ],
+      "keys": 104,
+      "notInEN": 0
+    },
+    {
       "file": "src/screens/operations/trips/copy.ts",
       "exports": [
         "TRIPS_EN"
@@ -191,14 +200,6 @@
         "VOCABULARY_EN"
       ],
       "keys": 88,
-      "notInEN": 0
-    },
-    {
-      "file": "src/screens/onboarding/copy.ts",
-      "exports": [
-        "ONBOARDING_EN"
-      ],
-      "keys": 81,
       "notInEN": 0
     },
     {
@@ -322,12 +323,6 @@
       "screens": [
         "EntityPageScreen.tsx",
         "SubTabScreen.tsx"
-      ]
-    },
-    {
-      "dir": "src/screens/support/contacts",
-      "screens": [
-        "ContactCentreScreen.tsx"
       ]
     }
   ],
@@ -506,12 +501,6 @@
       "lang": "ar",
       "key": "admin.team.sessions.title",
       "value": "الجلسات — {name}"
-    },
-    {
-      "file": "src/i18n/ar/adminTeam.ts",
-      "lang": "ar",
-      "key": "admin.team.matrix.desc",
-      "value": "ما يستطيع كل دور فعله. تعديلها موقوف على نموذج الأدوار — انظر الملاحظة أسفل الجدول."
     },
     {
       "file": "src/i18n/ar/adminTeam.ts",
@@ -784,13 +773,13 @@
       "value": "لم تصل — {reason}"
     },
     {
-      "file": "src/screens/support/conversations/copy.ts",
+      "file": "src/screens/support/inbox/copy.ts",
       "lang": "en",
       "key": "conversations.promise.paused",
       "value": "Snoozed — both clocks are paused."
     },
     {
-      "file": "src/screens/support/conversations/copy.ts",
+      "file": "src/screens/support/inbox/copy.ts",
       "lang": "en",
       "key": "conversations.delivery.failedReason",
       "value": "Not delivered — {reason}"
@@ -1222,36 +1211,6 @@
       "value": "لا توجد خطوات متاحة لهذا الدور بعد — يمكن للمالك مراجعة صلاحياتك من إدارة النظام › الفريق والصلاحيات."
     },
     {
-      "file": "src/i18n/ar/onboarding.ts",
-      "lang": "ar",
-      "key": "onboarding.step.finance.ledger.body",
-      "value": "تعلّم اصطلاح الإشارة، وتعلّم أن الصف المُقيَّد لا يُعدَّل أبدًا — بل يُعكَس بصف ثانٍ. لا شيء في المالية يتراجع عن نفسه."
-    },
-    {
-      "file": "src/i18n/ar/onboarding.ts",
-      "lang": "ar",
-      "key": "onboarding.step.finance.escrow.body",
-      "value": "افتح صف ضمان واحدًا واقرأه كاملًا. الإفراج ينقل المال إلى كابتن، ولا تراجع عنه — إلا بقيد عكسي."
-    },
-    {
-      "file": "src/i18n/ar/onboarding.ts",
-      "lang": "ar",
-      "key": "onboarding.step.ops.application.body",
-      "value": "اقرأ المستندات، ثم وافق أو ارفض. يمنحك الصف علامة صح وعلامة خطأ و«عرض» — لا قائمة تُفتح."
-    },
-    {
-      "file": "src/i18n/ar/onboarding.ts",
-      "lang": "ar",
-      "key": "onboarding.step.ops.requests.body",
-      "value": "راقب مؤقّت SLA وأنت تحمله. اقرأ ما معنى الإخلال — الإخلال هدف لم يُدرَك، لا تقصير في التصرّف."
-    },
-    {
-      "file": "src/i18n/ar/onboarding.ts",
-      "lang": "ar",
-      "key": "onboarding.step.support.boundary.body",
-      "value": "يمكنك رؤية كل حادثة سلامة ولا يمكنك البتّ فيها — ذلك لمدير العمليات. اقرأ حادثة واحدة، وقف عند ذلك."
-    },
-    {
       "file": "src/screens/onboarding/copy.ts",
       "lang": "en",
       "key": "onboarding.intro.opsManager",
@@ -1262,36 +1221,6 @@
       "lang": "en",
       "key": "onboarding.trackEmpty",
       "value": "No steps are available for this role yet — an owner can check your permissions in Admin › Team & Access."
-    },
-    {
-      "file": "src/screens/onboarding/copy.ts",
-      "lang": "en",
-      "key": "onboarding.step.finance.ledger.body",
-      "value": "Learn the sign convention, and learn that a posted row is never edited — it is reversed by a second row. Nothing in Financials undoes itself."
-    },
-    {
-      "file": "src/screens/onboarding/copy.ts",
-      "lang": "en",
-      "key": "onboarding.step.finance.escrow.body",
-      "value": "Open one escrow row and read it through. Release moves money to a captain, and there is no undo — only a reversing entry."
-    },
-    {
-      "file": "src/screens/onboarding/copy.ts",
-      "lang": "en",
-      "key": "onboarding.step.ops.application.body",
-      "value": "Read the documents, then approve or reject. The row gives you a tick, a cross and View — there is no menu to open."
-    },
-    {
-      "file": "src/screens/onboarding/copy.ts",
-      "lang": "en",
-      "key": "onboarding.step.ops.requests.body",
-      "value": "Watch the SLA clock while you hold it. Read what a breach means — a breach is a missed target, not a failure to act."
-    },
-    {
-      "file": "src/screens/onboarding/copy.ts",
-      "lang": "en",
-      "key": "onboarding.step.support.boundary.body",
-      "value": "You can see every safety incident and you cannot decide one — an Ops Manager does. Read one incident, and stop there."
     },
     {
       "file": "src/i18n/ar/policy.ts",
@@ -1728,14 +1657,6 @@
       "value": "A broadcast is a one-off push message to a whole audience. Every send is recorded here."
     },
     {
-      "file": "src/screens/support/conversations/copy.ts",
-      "key": "conversations.empty.cleared.unassigned",
-      "class": "empty body",
-      "words": 15,
-      "budget": 12,
-      "value": "Every conversation has an operator. New ones appear here the moment a customer writes in."
-    },
-    {
       "file": "src/screens/entity/DriverCopy.ts",
       "key": "entity.driver.ledger.empty.body",
       "class": "empty body",
@@ -1758,14 +1679,6 @@
       "words": 14,
       "budget": 12,
       "value": "Postings appear the moment a fare, a payout or a credit touches this account."
-    },
-    {
-      "file": "src/screens/support/conversations/copy.ts",
-      "key": "conversations.empty.firstRun.body",
-      "class": "empty body",
-      "words": 13,
-      "budget": 12,
-      "value": "Chat and email conversations appear here as soon as a customer opens one."
     },
     {
       "file": "src/screens/entity/copy.ts",
@@ -2432,6 +2345,14 @@
       "value": "Answer one ticket end to end"
     },
     {
+      "file": "src/screens/onboarding/copy.ts",
+      "key": "onboarding.welcome.step2.title",
+      "class": "title",
+      "words": 6,
+      "budget": 4,
+      "value": "Your work arrives in one place"
+    },
+    {
       "file": "src/screens/admin/workspace/copy.ts",
       "key": "admin.integrations.reveal.key.rotated.title",
       "class": "title",
@@ -2592,6 +2513,14 @@
       "value": "Settle how captains are paid"
     },
     {
+      "file": "src/screens/onboarding/copy.ts",
+      "key": "onboarding.welcome.step3.title",
+      "class": "title",
+      "words": 5,
+      "budget": 4,
+      "value": "Jump anywhere from the keyboard"
+    },
+    {
       "file": "src/screens/admin/policy/copy.ts",
       "key": "policy.sla.breach.title",
       "class": "title",
@@ -2619,11 +2548,11 @@
   "overBudgetByClass": [
     [
       "title",
-      79
+      81
     ],
     [
       "empty body",
-      33
+      31
     ],
     [
       "button",

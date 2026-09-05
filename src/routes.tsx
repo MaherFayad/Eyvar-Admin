@@ -142,8 +142,9 @@ const FairnessScreen = lazy(() =>
 const CaseDetailScreen = lazy(() =>
   import('@/screens/support/fairness').then((m) => ({ default: m.CaseDetailScreen })),
 )
+/* The three-pane inbox replaced the console at this route (design 12, Phase D). */
 const ContactCentreScreen = lazy(() =>
-  import('@/screens/support/contacts').then((m) => ({ default: m.ContactCentreScreen })),
+  import('@/screens/support/inbox').then((m) => ({ default: m.InboxScreen })),
 )
 
 /* Admin / Settings */

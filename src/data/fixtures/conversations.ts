@@ -81,7 +81,20 @@
  */
 
 import { offsetFromNow } from '../mock/clock'
+import {
+  CHAT_FIRST_RESPONSE_SECONDS,
+  CHAT_RESOLUTION_MINUTES,
+  lastMessageAuthorKindOf,
+  stampChatClocks,
+} from '../types/conversation'
 import type { Conversation, ConversationCloseReason, Message } from '../types/conversation'
+
+/**
+ * A hand-written row. `lastMessageAuthorKind` is derived from the messages by
+ * `normaliseConversation` below, never typed by hand, so it cannot disagree
+ * with the thread (CONTACT-CENTRE-REDESIGN-PLAN §4).
+ */
+type ConversationSeed = Omit<Conversation, 'lastMessageAuthorKind'>
 import { cycle, cycleRef, refsOf, type FixtureRef } from './cycle'
 import { driverFixtures } from './drivers'
 import { riderFixtures } from './riders'
@@ -756,7 +769,7 @@ const CNV_115_MESSAGES: Message[] = [
 
 /* ──────────────────────────── the rows ──────────────────────────────── */
 
-const namedConversations: Conversation[] = [
+const namedConversations: ConversationSeed[] = [
   {
     id: 'CNV-101',
     channel: 'chat',
@@ -1845,7 +1858,7 @@ const ARCHIVE_CLOSE_REASONS: readonly ConversationCloseReason[] = [
  * 24-hour one) — a population large enough to count, on the one distinction a
  * naive `slaDueAt < now` destroys. The eight `phone` rows stay `unset`.
  */
-export const fillerConversations: Conversation[] = Array.from({ length: 40 }, (_, i) => {
+export const fillerConversations: ConversationSeed[] = Array.from({ length: 40 }, (_, i) => {
   const captainThread = i % 5 === 4
   const party = captainThread
     ? cycleRef(CONVERSATION_CAPTAINS, i)
@@ -1872,8 +1885,10 @@ export const fillerConversations: Conversation[] = Array.from({ length: 40 }, (_
   /* **D22's promise, by channel.** `null` on `phone`: *'call notes have no
      promise'*, which is a different fact from a promise of zero and the reason
      these rows keep `slaSource: 'unset'` while every other channel gains one. */
-  const resolutionMinutes = channel === 'phone' ? null : channel === 'chat' ? 20 : 1_440
-  const firstResponseSeconds = channel === 'phone' ? null : channel === 'chat' ? 45 : 4 * 60 * 60
+  const resolutionMinutes =
+    channel === 'phone' ? null : channel === 'chat' ? CHAT_RESOLUTION_MINUTES : 1_440
+  const firstResponseSeconds =
+    channel === 'phone' ? null : channel === 'chat' ? CHAT_FIRST_RESPONSE_SECONDS : 4 * 60 * 60
   const resolutionDueAt =
     resolutionMinutes === null
       ? null
@@ -1994,14 +2009,30 @@ export const fillerConversations: Conversation[] = Array.from({ length: 40 }, (_
        responded, which never happens in the archive because every archived row
        was answered. */
     firstResponseBreachedAt: null,
-  } satisfies Conversation
+  } satisfies ConversationSeed
 })
+
+/**
+ * The derived fields every row carries. A live chat without a first-response
+ * clock is stamped from its opening instant (D22), so `No clock` never renders
+ * on one; `lastMessageAuthorKind` follows the thread. Hand-written clocks are
+ * kept: the stamp fills an absence, it does not overrule a row.
+ */
+function normaliseConversation(seed: ConversationSeed): Conversation {
+  const needsChatClock =
+    seed.channel === 'chat' && seed.status !== 'closed' && seed.firstResponseDueAt === null
+  return {
+    ...seed,
+    ...(needsChatClock ? stampChatClocks(seed.createdAt) : {}),
+    lastMessageAuthorKind: lastMessageAuthorKindOf(seed.messages),
+  }
+}
 
 /** 55 rows — fifteen hand-written states and forty of archive. */
 export const conversationFixtures: Conversation[] = [
   ...namedConversations,
   ...fillerConversations,
-]
+].map(normaliseConversation)
 
 /**
  * Operator availability — the seed for `listAgentPresence()`.
@@ -2013,7 +2044,7 @@ export const conversationFixtures: Conversation[] = [
  *
  * **The concurrent-chat cap is D22's — three — and it is still not a number in
  * this layer.** It lives as a constant in the console
- * (`screens/support/conversations/presence.ts`) because `types/policy.ts` has
+ * (`hooks/usePresence.ts`) because `types/policy.ts` has
  * no field for it. It belongs in Admin › Operational Policy › Limits (D20), and
  * until it does, two places could disagree about it. Raised, not invented here.
  *

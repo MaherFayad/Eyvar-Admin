@@ -5,7 +5,7 @@
  * the field and sends nothing (§8.6.4).
  */
 
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { listMessagingTemplates } from '@/data/clients'
 import type { MessagingTemplate, MessagingTemplateSurface } from '@/data/types/email'
 import { useAsync } from '@/hooks'
@@ -26,9 +26,24 @@ export interface TemplatePickerProps {
   disabled?: boolean
   onInsert: (text: string) => void
   t: Translate
+  /** The inbox composer's toolbar wants a ghost trigger (design 12 §5); the ticket form keeps secondary. */
+  variant?: 'secondary' | 'ghost'
+  /** Leads the label; the inbox passes `FileTextIcon`. */
+  icon?: ReactNode
+  /** `default` keeps the label at the 12px floor; `xs` is 11px in Latin (V-3). */
+  size?: 'xs' | 'default'
 }
 
-export function TemplatePicker({ surface, reasonCode, disabled = false, onInsert, t }: TemplatePickerProps) {
+export function TemplatePicker({
+  surface,
+  reasonCode,
+  disabled = false,
+  onInsert,
+  t,
+  variant = 'secondary',
+  icon = null,
+  size = 'xs',
+}: TemplatePickerProps) {
   const [open, setOpen] = useState(false)
   const templates = useAsync<MessagingTemplate[]>(
     async (signal) => (await listMessagingTemplates({ pageSize: 200 }, signal)).items,
@@ -43,7 +58,8 @@ export function TemplatePicker({ surface, reasonCode, disabled = false, onInsert
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
-        <Button variant="secondary" size="xs" disabled={disabled}>
+        <Button variant={variant} size={size} disabled={disabled}>
+          {icon}
           {t('ticket.template.insert')}
         </Button>
       </DropdownMenuTrigger>
