@@ -84,7 +84,7 @@ export function Thread({
         aria-label={t('inbox.thread.label', { name: customerName })}
         aria-busy={status === 'loading' ? true : undefined}
         tabIndex={-1}
-        className="min-h-0 flex-1 overflow-y-auto px-4 py-3"
+        className="min-h-0 flex-1 overflow-y-auto px-4 pt-3 pb-4"
       >
         {status === 'loading' && (
           <div className="flex flex-col gap-3">

@@ -85,7 +85,9 @@ export function ConversationListItem({
         >
           <Avatar name={conversation.entityName} channel={conversation.channel} />
         </span>
-        <span className="flex min-w-0 flex-1 flex-col">
+        {/* gap-0.5: the name and the preview sat on one another at gap 0. The
+            row's own height is the token, so the pitch is unchanged (§3.1). */}
+        <span className="flex min-w-0 flex-1 flex-col gap-0.5">
           <span className="flex items-center gap-2">
             <span className={cn('min-w-0 flex-1 truncate text-sm text-foreground', unread ? 'font-semibold' : 'font-medium')}>
               {conversation.entityName}
