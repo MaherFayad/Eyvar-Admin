@@ -63,7 +63,11 @@ export function TemplatePicker({
           {t('ticket.template.insert')}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="min-w-64">
+      {/* A template is a name plus a sample sentence, not a one-line command, so
+          the menu's `w-max` sized itself to the widest sample and filled the
+          pane. A fixed width, and text that wraps, put `line-clamp-2` back to
+          work; the primitive's own cap still decides when it scrolls. */}
+      <DropdownMenuContent align="start" className="w-80">
         {templates.status === 'loading' && (
           <DropdownMenuLabel className="font-normal text-muted-foreground">{t('ticket.template.loading')}</DropdownMenuLabel>
         )}
@@ -97,7 +101,10 @@ export function TemplatePicker({
 
 function TemplateItem({ template, onInsert }: { template: MessagingTemplate; onInsert: (text: string) => void }) {
   return (
-    <DropdownMenuItem className="flex flex-col items-start gap-0.5" onSelect={() => onInsert(template.sampleText)}>
+    <DropdownMenuItem
+      className="flex flex-col items-start gap-0.5 whitespace-normal"
+      onSelect={() => onInsert(template.sampleText)}
+    >
       <span className="text-sm text-foreground">{template.name}</span>
       <span className="line-clamp-2 text-xs text-muted-foreground">{template.sampleText}</span>
     </DropdownMenuItem>
