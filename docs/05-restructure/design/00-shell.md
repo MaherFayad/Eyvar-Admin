@@ -37,7 +37,7 @@
 > | **V4** | The **route trail is deleted** — the screen said the same thing three times. The subtitle row is renamed the **meta row** and narrowed: it carries only content derived from the data on screen, and null renders nothing. Carve-out: on a `first-run` empty state a header action the empty state's own action row repeats is **omitted** from the header rather than disabled — it has moved, not gone. |
 > | **V5** | **One page width.** `SingleColumnPage` has no `capped` mode and the `width` prop is deleted. `capped` moved the `<h1>` 244px between two sibling sub-tabs at 1920. Measure belongs to the tile grid, the form column and the prose block, where it cannot move the page frame. |
 > | **V6** | **A workspace tile's badge is never toned.** The tile rolls up the **count**, not the tone: a tile's number is a sum of heterogeneous queues, and a sum has no status. The old rule left four of five tiles permanently amber. |
-> | **V7** | **There is no sub-tab collapse and no popover. The level-2 column is always visible.** AC-32 and AC-33 are void with it. The 1344px breakpoint survives on its other two consumers — the detail rail and the tile grid — and its number does not change. |
+> | **V7** | **There is no sub-tab collapse and no popover. The level-2 column is always visible.** AC-32 and AC-33 are void with it. The wide breakpoint survives on its other two consumers — the detail rail and the tile grid — and its number later moved to **1280** under **O1** (`DECISIONS.md` D21b). |
 >
 > **V9** (no icon on the error state) is **superseded** by `04-index-screen-redesign.md`.
 
@@ -1337,7 +1337,7 @@ applied to output. A money *input* carries `SAR` as an in-field inline-start pre
 
 ### 9.4 The union problem — Operations › People
 
-Spec §5.1 and `PHASE-PLAN.md` are explicit: *"A merged sub-tab carries the union of its patterns,
+Spec §5.1 is explicit: *"A merged sub-tab carries the union of its patterns,
 not one of them."* Operations › People is an index table **and** a work queue **and** a two-column
 detail on one route. The anatomy above survives it because of one rule:
 

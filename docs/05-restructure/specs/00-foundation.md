@@ -113,13 +113,13 @@ profile is an overlay on level 3, not a fourth level (§4.3). Every path is prov
 | Superseded | By | Where recorded |
 |---|---|---|
 | Revision 1's 10 modules / 41 one-to-one pages | 5 workspaces, 34 sub-tabs | **D1** |
-| `PHASE-PLAN.md` Phase 1's 8-module page list | The same | **D1**. `PHASE-PLAN.md` needs a matching revision before Phase 1 starts — flagged in §14. |
+| The 8-module page list | The same | **D1**. Superseded by the 5 workspaces / 35 sub-tabs — flagged in §14. |
 | `DESIGN.md` §6.2 **D-4** (hover-expanding icon rail) | The two-level rail | §3.12 — product-designer writes the replacement |
 | `DESIGN.md` §6.3 **D3** as a *defect* (settings is a route, not an overlay) | Settings is a route, deliberately | §3.12 — reclassify to sanctioned |
 | §6.4's **work-queue** row for `fraud` | Metric tiles + chart cards (§3.7) | §3.4, resolved — see the note under Management |
 
 Two corrections from revision 1 that the coordinator has already applied upstream and that this
-revision therefore states as fact rather than as findings: `zones` was missing from `PHASE-PLAN.md`'s
+revision therefore states as fact rather than as findings: `zones` was missing from the original build plan's
 Phase 1 table, and `live` is **not** a full-bleed screen — §8.1 explicitly rejects the §2.5 mapping
 for it, and only `plan-edit` unmounts the shell (§3.10).
 
@@ -549,7 +549,7 @@ The two-level model **replaces** D-4; it does not supplement it. There is no hov
 the second column holds the labels the hover expansion existed to reveal. Leaving D-4 in place would
 sanction a behaviour the product no longer has.
 
-`PHASE-PLAN.md` §"Open item — navigation deviation" names the process: product-designer proposes the
+The process is named once and not re-derived: product-designer proposes the
 wording in 0.2, it is recorded in `docs/06-design-reference/_partials/06-eyvar-mapping.md`, and
 `DESIGN.md` is rebuilt with `python docs/06-design-reference/build-design.py` **before 0.7 ships**.
 `DESIGN.md` is generated and is never hand-edited (`TEAM-BRIEF.md`).
@@ -698,7 +698,7 @@ state**, owned here, not per-page. Renderers gate on visibility — an off-scree
 
 The point of this section: **step 0.4 adds every primitive in one pass and `components.json` is
 frozen afterwards.** A primitive missed here blocks a Phase 1 agent who is forbidden from running
-the CLI (`PHASE-PLAN.md` §"Parallelism rules"). Err toward adding.
+the CLI (`CLAUDE.md`, the parallelism rules). Err toward adding.
 
 ### 5.1 Pattern keys
 
@@ -1674,7 +1674,7 @@ which have no resolver today), and inducible failure on every shell read (**AC-3
 
 | Blocked | On | Who |
 |---|---|---|
-| `PHASE-PLAN.md` Phase 1 module table | Rewriting against 5 workspaces / 34 sub-tabs — it still lists 8 modules and 41 pages | Coordinator |
+| ~~The original module table~~ | **Withdrawn** — it listed 8 modules and 41 pages against 5 workspaces and 35 sub-tabs | Coordinator |
 | The **Financials › Pricing & Plans** spec | **Q7** — which of the four pricing models is real | Finance lead |
 | The **role → landing workspace** behaviour (**AC-07**) | **Q2** — is auth in scope | Business owner |
 | **AC-33** (nav collapse persists across reload) | **Q1** — what persists, and in what | Engineering lead |

@@ -4,7 +4,7 @@
 **Pattern:** `docs/ref/patterns.md` → Index table (§3.1–3.3) beneath Metric tiles (§3.7),
 the shape `R4-6` gave Market & Zones and named *"the same shape `management-growth`
 already carries"* (`design/07-rulings-r4.md:793`)
-**Task:** `MANAGEMENT-OPERATIONS-PLAN.md` T7.1, under decision **O3** (*"Yes, as four P1
+**Decided** as four P1
 tables behind `?view=` on the Growth sub-tab, with the board above them"*)
 **Status:** ready to build
 

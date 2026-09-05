@@ -1,6 +1,6 @@
 # 02 — Work queues: Requests · Trip Assurance · My Work · Safety & Incidents · Captain Fairness
 
-> **Wave 2** of `PHASE-PLAN.md`. Five sub-tabs across two workspaces, all carrying
+> Five sub-tabs across two workspaces, all carrying
 > `DESIGN.md` §6.4 pattern **P8 — Work queue (§8.4)**.
 >
 > **Reads:** `specs/00-foundation.md` §3.4, §3.6 (M3, M6), §5.1, §7.3, §8.5, §12 ·

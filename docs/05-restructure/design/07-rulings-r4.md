@@ -879,7 +879,7 @@ the reason is not tidiness:
 | # | Gap | Owner | Size |
 |---:|---|---|---|
 | 1 | **`zones` is not a resource in `src/data`.** There is no fixture, no client, no type — `grep -rln zone src/data/` returns only metrics, pricing, navCounts and legacyPages, none of which holds a zone row | **mock-data-engineer** | Small — the shape is §6.6.5, and `DB.zones` is already seeded in the legacy file |
-| 2 | **The zone-health table has no build slot.** §6.4 clause 2 says *"the zone-health table **is built**"* and never said **when**. It is not in any wave of `PHASE-PLAN.md`, because D1's wave 4 scoped Market & Zones as a board and R4-6 changed that after the wave was written | **coordinator** | A sequencing decision, not a design one |
+| 2 | **The zone-health table has no build slot.** §6.4 clause 2 says *"the zone-health table **is built**"* and never said **when**. It is not in any wave of the original build plan, because D1's wave 4 scoped Market & Zones as a board and R4-6 changed that after the wave was written | **coordinator** | A sequencing decision, not a design one |
 
 **Gap 2 is the real one, and it is mine to have caused.** R4-6 amended a sub-tab's pattern after
 its wave had been planned, and I wrote *"nobody has to undo anything"* without noticing that

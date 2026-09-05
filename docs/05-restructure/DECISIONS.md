@@ -2062,7 +2062,7 @@ invisible to the library it belongs in.
 - **A second seam beside `clients/`.** Rejected. `src/data/clients/` is 33 typed clients, each with
   a `DATA_SOURCE` branch per function, an endpoint comment, and a registered operation id for
   failure injection. **Preferences that skip that seam are the seventh fixture-importing screen
-  wearing different clothes** (`REMEDIATION-PLAN.md` §2.1). One more client is the cheap answer.
+  wearing different clothes.** One more client is the cheap answer.
 - **Doing nothing until a backend exists.** Rejected. `clients/session.ts:96` already ships
   `getPreferences`/`updatePreferences` against `/me/preferences` in exactly this shape, in both
   modes, today. **The seam is not hypothetical; it is built and unused.**
@@ -2419,7 +2419,7 @@ carry the meaning in one order, the fix is a second full template — never a co
   its `permission` argument and reads `ctx.session.canWrite`. It now evaluates the key against
   `ctx.session.permissions`, and `CommandSession.canWrite` is deleted.
 - **`AdminTeamScreen.tsx:20,36`'s hardcoded `ALL_PERMISSIONS` / `ROLE_PERMISSIONS` are superseded.**
-  They were an engineer's guess at this ruling and `REMEDIATION-PLAN.md` §5 correctly says they must
+  They were an engineer's guess at this ruling and they must
   not be wired until the real answer lands. **This is the real answer.**
 - **`AC-61` becomes testable and `AC-56` gains real denials to assert against.**
 - **D13's two permission holes are closed, and they are closed by construction:**
@@ -2766,14 +2766,14 @@ must be re-pointed at them.
 - **P5-T4 … P5-T9 are unblocked and sized.** P5-T6 loses its routing half and keeps availability and
   the cap.
 - **`ContactCentreScreen`'s `INITIAL_AGENTS` and `CPT_METRICS` (`:32,:62`) are superseded** by
-  `AgentPresence` over `clients/realtime.ts`. `REMEDIATION-PLAN.md` §2.2's *"new
+  `AgentPresence` over `clients/realtime.ts`. The *"new
   `clients/contactCentre.ts`"* is **not needed** — `clients/conversations.ts` already covers it. One
   fewer client to build.
 - **P5-T7 keeps P6-T2 as its precondition** (sender identity and templates), unchanged.
 - **`whatsapp` shipping as a modelled-but-empty channel is what makes the facet honest**: the
   operator sees that email exists and is empty rather than assuming chat is all there is.
 - **Ticket fixtures contradict rider fixtures** — `TKT-501` names `RDR-1041` *Mohammed Al-Ghamdi*,
-  `riders.ts:22` names them *Nora Al-Harbi* (`REMEDIATION-PLAN.md` §4.6 item 4). **Two support
+  `riders.ts:22` names them *Nora Al-Harbi*. **Two support
   screens will disagree in front of a customer.** Fix before P5-T4, not after.
 
 #### Acceptance criteria
@@ -2898,7 +2898,7 @@ done-condition each.
 - **P6-T2, T3, T4 keep their scope** and now each have a done-condition.
 - **P6-T5 … T8 are unblocked by D17.**
 - **Four new clients**: `integrations`, `rbac`, `securityPolicy`, `templates`. `disputes` from
-  `REMEDIATION-PLAN.md` §2.2 is unaffected by this ruling; **`contactCentre` is cancelled by D19.**
+  The presence seam is unaffected by this ruling; **`contactCentre` is cancelled by D19.**
 - **`INITIAL_CITIES` (`AdminPolicyScreen.tsx:24`) and `CITIES_DATA` (`ZonesMapView.tsx:110`) are
   deleted**, not reconciled. One store.
 
@@ -3225,7 +3225,7 @@ read does not scan trips.**
 
 **The fixture value must be COMPUTED from `fixtures/trips.ts` at fixture-build time, never typed by
 hand**, and a test must assert the two agree. A hand-written timestamp on a driver whose trips say
-otherwise is exactly the class of contradiction that `REMEDIATION-PLAN.md` §4.6 item 4 already
+otherwise is exactly the class of contradiction the fixture audit already
 records for the ticket fixtures, and it would be worse here because a retention matrix would report
 it as a business result.
 
@@ -3446,7 +3446,7 @@ the real protection a cap was reaching for.
 - **`specs/03-financials.md` AC-476 is struck and replaced by AC-975.** The struck text stays in the
   file with a pointer here, per the register's own practice — **a MUST that is struck quietly grows
   back** (§6.2 D-14's Clause B reasoning, applied to a criterion instead of a rule).
-- **`OPERATOR-EXPERIENCE-PLAN.md` P4-T1 keeps Payouts.** No amendment to its screen list.
+- **The bulk-work pass keeps Payouts.** No amendment to its screen list.
 - **`PayoutsScreen.tsx`'s header note (`:70`–`:81`) stops being an open flag and cites this entry.**
   The engineer was right not to pick, and right to ship the build with the flag rather than stall.
 - **The fourth bulk command must be enumerated in the spec**, not only in the screen. Whoever
@@ -3708,7 +3708,7 @@ wrong, and it costs one row in one table.
 
 **Three figures are in circulation and all three are wrong.** `src/i18n/dictionaries.ts:22` says
 *"200 operator-facing strings"* — that was true of the shell alone, before forty screens.
-`REMEDIATION-PLAN.md` §4.2 says 483 `defaultValue` call sites — **that number has moved; it is 243
+An earlier count said 483 `defaultValue` call sites — **that number has moved; it is 243
 today across 16 files**, because §4.2's extraction is partly done. The coordinator's ≈2,300 is
 closer than either and still low.
 
@@ -3728,7 +3728,7 @@ quoted the next time anyone sizes this.
 
 #### Three preconditions, in order, and none of them is translation
 
-**Arabic cannot start until these land**, and they are `REMEDIATION-PLAN.md` §4.2 verbatim:
+**Arabic cannot start until these land:**
 
 1. **Extract the 243 unkeyed strings** into their screens' `copy.ts` and merge into `EN`. **A string
    with no key has nothing for an Arabic dictionary to hold** — this is not a step that can be
@@ -3773,7 +3773,7 @@ work around in Arabic:
 
 #### What it means for the build
 
-- **`REMEDIATION-PLAN.md` Wave 5 is the precondition and Wave 6's "Arabic dictionary" is the
+- **The key-hygiene wave is the precondition and the "Arabic dictionary" wave is the
   project.** Wave 5 must complete — all three steps, including the revert — before a translator
   is briefed. Briefing one earlier means translating a moving target.
 - **The glossary is product-owner's and is written before the dictionary**: the twenty or so domain
@@ -3820,9 +3820,9 @@ Arabic console to an English one, which `00d` predicts they will not.
 | | **AC-335** | **Unchanged, and restated as the invariant.** Its middle clause is scoped to postings |
 | | §9.8 | Must enumerate all four Payouts bulk commands and their refusal predicates |
 | `specs/00-foundation.md` | **AC-46** | Unchanged in wording; **satisfiable by construction** once D25 lands. Its eleven current failures close with it |
-| `OPERATOR-EXPERIENCE-PLAN.md` | **P4-T1** | **Keeps Payouts.** No screen-list amendment |
+| the bulk-work pass | **P4-T1** | **Keeps Payouts.** No screen-list amendment |
 | | New, implied | Report Library, Dashboards and Alerts each declare `Delete` — three one-line changes, not on P4-T1's list but closing three of the eleven |
-| `REMEDIATION-PLAN.md` | §4.2 | **The 483 figure is stale; it is 243.** The Arabic total is ≈3,875, not 200 and not 2,300 |
+| the `defaultValue` count | — | **The 483 figure is stale; it is 243.** The Arabic total is ≈3,875, not 200 and not 2,300 |
 | | §4.5 | Two detectors added: the selection-without-commands guard (**AC-981**) and the id-prefix injectivity guard (**AC-988**) |
 | | Wave 5 → Wave 6 | Wave 5's three steps are now explicitly the **precondition** for briefing a translator |
 | `docs/02-verification/03-financials-qa.md` | AC-382 verdict | Re-run against the amended wording |
@@ -4274,7 +4274,7 @@ already give. **Nothing in this ruling would have caught it.**
 That is the trade, and it is taken with the reason stated: **a guard with nine false positives to one
 true catch gets suppressed by the next person under a deadline**, and a suppressed guard catches
 nothing at all. The register has already watched a rule get disabled in code to make a commit pass
-(`translate.ts:98`, `REMEDIATION-PLAN.md` §0). **The way that happens is not malice; it is a guard
+(`translate.ts:98`). **The way that happens is not malice; it is a guard
 that has cried wolf nine times.**
 
 #### AC-39 splits, and the half that cannot be mechanised is labelled as such
@@ -4605,7 +4605,7 @@ runtime — because a test that greps for a utility by writing it also ships it.
 
 ## D-F32 — a `Metric` derived from a server response is not a minted literal
 
-**Status:** ruled and implemented (FINANCIALS-UX-PLAN §3.1, Q-F14).
+**Status:** ruled and implemented. Closes **Q-F14** (`specs/03-financials.md` §13a).
 
 `src/screens/financials/shared/Figures.tsx` opened with a rule: *a Financials figure is not a
 `Metric`, so it must not borrow `MetricTile`*. The premise was stated in the same paragraph —
@@ -4634,3 +4634,40 @@ reading when `PlanRevenueDetail` lands.
 **What was NOT decided here.** Whether Financials may use the categorical chart palette
 (Q-F11), whether a period closes (Q-F8), and whether a contribution-% target exists (Q-F10)
 are all still open and all still ship as the plan's defaults.
+
+---
+
+## D21a — Admin: three things the workspace deliberately does not do
+
+**Status:** decided.
+
+| | Decision |
+|---|---|
+| **Scoping a role to cities or zones** | **Not now.** D16 stands. The demand is recorded; if it arrives, the cheapest shape is a `cityIds` column on the per-user permission delta. |
+| **Impersonation, or *Act as*** | **Out.** The legacy console had it. D20 rules it out and this confirms it: the mock-user switch covers what QA needs, and an audit trail that can say *someone acted as someone else* is a different product. |
+| **Bulk invite from a CSV** | **Not now.** Five operators do not need it. A second city might, and then it is one screen. |
+
+Three that **are** in force, so the reasoning is not re-derived: custom roles exist, with the
+six built-ins locked and *Duplicate as custom* the only way to start one; the compensation cap
+is a role default **plus** a per-operator override, displayed as an override; an invite goes out
+as an email the product can show **and** as a copyable link, because email is not always where a
+new hire looks. On-call is the two-name rota, and the tile computes from the rota rather than
+carrying a literal.
+
+---
+
+## D21b — Five cross-cutting rules settled during the Management and Operations pass
+
+**Status:** decided and implemented.
+
+| # | Rule |
+|---|---|
+| **O1** | **`--ev-bp-wide` is 1280px**, not 1344. Every `wide:` layout was designed for the operator's screen, and the 64px gap above D2's floor was arithmetic rather than a decision. The six `wide:` widths in `globals.css` are measured against 1280. |
+| **O8** | **A nav badge counts what the sub-tab's default view shows**, computed by the same client that draws the view, and its accessible name says so. A badge whose number disagrees with the screen it points at is worse than no badge. |
+| **O9** | **An empty cell is blank when the value does not apply** — a decided application has no SLA. A muted word appears only when the absence is a fact the operator acts on: `No owner`, `Not settled`, `Not set`. Never an em dash, never a fill, never an icon. |
+| **O10** | **A directional glyph is chosen by `dir` in code**, through the one helper `directionalIcon(dir, Start, End)`. No CSS rotation site remains. |
+| **O11** | **The back arrow on a detail route is the page header's**, beside the title where the eye lands. Top bar slot 1 stays empty on every route. |
+
+Two that stay open and are named where they block: a licensed tile provider for the two maps
+(`Basemap` isolates the URL), and `Driver.position` on the wire, without which the dispatch map
+cannot claim where a captain is.

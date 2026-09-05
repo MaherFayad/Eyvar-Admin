@@ -3,7 +3,7 @@
 > **Author:** Head of Operations / Business Owner
 > **Audience:** founders, engineering lead, ops lead, finance lead
 > **Basis:** `docs/00-index/GROUND-TRUTH-INVENTORY.md` (41 pages · 21 settings sub-tabs · 1,042 functions · 355 click handlers), 60 module documents in `docs/01-modules/`, and `docs/04-relations/data/db-usage-matrix.tsv` (1,183 collection↔function edges).
-> **Companion documents:** [`PAGE-TRACEABILITY-MATRIX.md`](PAGE-TRACEABILITY-MATRIX.md) (the 41-row audit) · [`MIGRATION-NOTES.md`](MIGRATION-NOTES.md) (sequencing).
+> **Companion document:** [`PAGE-TRACEABILITY-MATRIX.md`](PAGE-TRACEABILITY-MATRIX.md) — where each of the 41 legacy pages went.
 
 ---
 

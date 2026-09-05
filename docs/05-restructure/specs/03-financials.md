@@ -2033,6 +2033,16 @@ Pricing & Plans Stage A. That is six of the seven sub-tabs buildable today.
 
 ---
 
+### 13a. Five that only Finance or the owner can close
+
+| # | Question | Who answers | What ships while it is open |
+|---|---|---|---|
+| **Q-F8** | Does an accounting period **close**, and may a posting be backdated into a closed one? | product-owner, with Finance | Every lede says *period* and never *closed*. Nothing in the product asserts a close. |
+| **Q-F10** | Is there a contribution-margin **target**, who sets it, and from when? | Finance lead | The comparison is `previous-period` only. No target line is drawn. |
+| **Q-F11** | May Financials use the categorical chart palette outside the report-builder and metric-board override? | business owner | A single hue everywhere in Financials. |
+| **Q-F13** | **Which Financials reads honour a period window?** Each read is either windowed — and then it draws the period control — or it is not, and then it prints no period. Half-answering this is what produces a screen that shows a date range it does not use. | api-contract-steward | The screens are unchanged until the table exists. |
+| **Q-F14** | ~~May a `Metric` be derived from a server response?~~ **Closed.** A `Metric` whose value, comparison and series all come from one server response is not a minted literal. Recorded as **D-F32**. | — | — |
+
 ## 14. Handoff
 
 **Artifact:** this file.
