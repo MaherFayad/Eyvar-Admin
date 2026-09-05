@@ -652,3 +652,46 @@ one table an operator lives in reads as slugs in Arabic), **T3.1** (the applicat
 queue hides its own work), **T1.4** (a badge nobody can reconcile is a badge nobody
 reads), **T9.10** (a back button an operator cannot see is not a back button), and
 **T9.3 with T9.1** (an em dash on every second cell is the first thing the owner sees).
+
+## 6. Status, 2026-09-05
+
+Implemented in three waves of parallel agents on branch `integration/mgmt-ops`, cut from the
+feature branch at 9169323. Full suite on 02484ae: 4397 passed, 2 skipped, 2 failed. Both
+failures are `src/data/clients/auth.test.ts` cases stale since the onboarding commit 9169323
+on the feature branch, outside this plan. `npm run typecheck`, `npm run i18n:keys` and
+`npm run api:contract` are clean; the em-dash ceilings are 92 English and 95 Arabic
+(from 112 and 115), the word-budget ceiling is 147 (from 192).
+
+**Landed.** Phases 1, 3, 4, 6, 8 and 9 in full; Phase 2 under O1 (`wide` is 1280); Phase 5
+except the parts below; Phase 7 in full (T7.1 Growth tables with spec, design, four clients
+and 48 tests; T7.2; T7.3). Beyond the plan: claims persist across reads in every queue
+client, subscription requests route to their own tab, Arabic plural families for thirteen
+count strings, `ConfirmDialog` restores focus, `EmptyState` and column headers carry an
+`InfoHint` slot, boards no longer scroll the window, the language toast speaks the language
+chosen, and 117 behavioural tests cover the four queues and the shared adapter.
+
+**Decisions taken by the orchestrator, reversible.** O1 with `--ev-page-pad-wide` 32 and
+`--ev-detail-rail-w` 300; O9 blank cells; O10 icons chosen by `dir` in code; O11 the page
+header keeps the back arrow; Subscriptions `Paid` hidden by default; Corporate `Billing` 132;
+the held-by owner chip is plain text on every queue; roster sub-tabs carry no nav badge.
+
+**Open, with an owner.**
+- Identity truncation on Subscriptions, Trips, Captains and Compliance at 1280 in both
+  languages: the widest fixture names (40 to 51 characters) exceed any column budget. Product
+  decision: fewer default columns, or shorter fixture names. `ops-identity-widths.mjs` has
+  the arithmetic.
+- The applicant detail rail is 1130px tall; the checklist is now first, the rail still
+  overflows the first viewport (`ops-routes.mjs` fails on it). product-designer.
+- My Work's third fill is the `Yours` success chip; Alerts rows are 65px in Arabic against a
+  56px budget. product-designer.
+- One em dash remains on `/management/overview`: `src/screens/onboarding/copy.ts:60`
+  (outside this plan's screens). content-designer.
+- `nav.count.*`, `table.pageSize.option` and the shared queue `one`/`other` helpers still
+  lack plural families (documented in `docs/ref/i18n.md`). i18n-arabic-engineer.
+- The three `management-zones` lead series render only under `?view=table`. product-designer.
+- Two interactive elements now sit in a header cell carrying a hint, against AC-80's letter.
+  Ruling needed.
+- Four spec contradictions recorded in `docs/02-verification/operations-work-queues-qa.md`
+  (AC-240, AC-285, AC-292, AC-207). product-owner.
+- Non-persisting decision writes (`approveApplicant`, `assignRequest` and siblings) share the
+  shape the claim fix corrected. mock-data-engineer.
