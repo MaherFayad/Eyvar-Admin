@@ -1,90 +1,45 @@
 /**
- * `GlobalSearch` (S-05) — design spec §5, spec §4.3.4, **D9 /
- * `design/05-command-centre.md`**.
+ * `GlobalSearch` (S-05) — the command centre's DOORS and its dialog.
  *
- * ## What this file became
+ * It was a search box, then an anchored palette. **It is now a centred modal**,
+ * on the owner's override of 2026-09-05 (`docs/RULINGS.md`), and the top-bar
+ * control is a 240px trigger rather than a field. The split is unchanged:
  *
- * It was a search box. **It is now the command centre's field**, and the
- * difference is the owner's own sentence: *"command K should open a command
- * center … so there is really rich context menu, not just search but making
- * actions also."*
- *
- * The mechanics of §5 survive verbatim — the anchored popover, the 400px field,
- * the chip inside the input, the two-line row, the escape hatch, the
- * legacy-name resolution, the four states. What changed is that the surface can
- * now **execute**, is **populated before a key is pressed**, and can descend
- * into a target and a confirmation without leaving the field.
- *
- * The split of responsibility is deliberate and is the reason this file is
- * shorter than it was:
- *
- *   - **this file** owns the FIELD and the POPOVER — §2.6's anchoring, ⌘K, the
- *     magnifier, the keycap, the escape hatch's destination, and handing the
- *     model what only a routed component knows;
- *   - **`@/commands/usePalette`** owns every decision about rows, order,
- *     refusals and transitions;
+ *   - **this file** owns the trigger, the three doors, the dialog and the keys
+ *     the model does not claim;
+ *   - **`@/commands/usePalette`** owns rows, order, refusals and transitions;
  *   - **`@/components/command`** owns the pixels.
  *
  * Rules applied
- *   §2.6 / §5   an **anchored popover on the field**, expanding IN PLACE. Never
- *               a centred command palette — **CQ-1** re-affirmed this *after*
- *               the confirm step was designed: §2.6's reason (never relocate
- *               the thing the operator aimed at) is unchanged by the surface
- *               growing, so the list is capped at 8 rows with an internal
- *               scroll and the confirm step REPLACES the list.
- *   §5          the field is 400px, 28px tall, centred on the viewport, with a
- *               leading magnifier and a trailing `⌘ K` / `Ctrl K` keycap.
- *   §5          the scope is a **removable chip INSIDE the input**, followed by
- *               the query. The palette's command and target chips take the same
- *               position and the same shape, because they are the same idea:
- *               something committed, still visible, still removable.
- *   §5 / §3     `Backspace` on an EMPTY query removes the last chip — which is
- *               now how the palette ascends. **`Escape` ascends from
- *               target/confirm and closes only from root** (§6). Two meanings
- *               for one key is a real cost; the alternative throws away a typed
- *               target, which is worse.
- *   §5 / CQ-2   section order is derived from the query's shape. A leading verb
- *               puts `Do` first; everything else keeps §5's
- *               `Destinations · Records`.
+ *   override    a CENTRED MODAL over the Dialog scrim, 640 wide with its top
+ *               edge at 16vh. This supersedes §2.6 and CQ-1 for this surface;
+ *               R4-3 is untouched, because the palette is a modal like
+ *               re-authentication and never writes the URL.
+ *   §5 / §3     the query and the committed chips live in the palette's input
+ *               row. `Backspace` on an empty query ascends, `Escape` ascends
+ *               from a chip and closes at root, `Enter` runs or descends.
  *   §5 / AC-30  legacy names resolve through the route table's `legacyPageIds`.
- *   §5 / R8     nothing typed → the four context blocks, or a PROMPT when there
- *               is nothing to offer. Never a "no results" error.
- *   §11.3       loading is a **skeleton shaped like the result rows**.
- *   §11.2/AC-39 a **failed read is its own state**, with a retry.
- *   AC-60/CQ-3  destinations and records the role cannot open never appear —
- *               the server filters and the client does not re-add any. An
- *               **action** the role cannot use is the opposite: §11.2, present
- *               and disabled with its reason.
- *   §14         the chips' POSITION mirrors; the `⌘ K` glyph order does not.
- *               The magnifier does not mirror.
- *   R-3 §1.3    tier 2, through `PopoverContent`.
- *
- * ## The three defects closed here in 0.9 are still closed
- *
- * **1.** A failed search said "no matches". They are opposite instructions and
- * are two states; the model keeps them apart, and a failed search that still
- * has matching *commands* now renders the error line **above** them rather than
- * instead of the whole list — the `Do` section is local and still answers.
- *
- * **2.** The escape hatch dropped the query on a metric board. It still goes to
- * an index route, which is the only kind that reads `?q=`.
- *
- * **3. The `Actions` group was removed rather than left dead — and this is the
- * commit that earns it back.** The reason it was removed was exact: every
- * command is `scope: entity` with `arity: 'needs-target'`, so a row rendered
- * before the target-collection step existed could not run, and a row that
- * cannot run is a §11.2 breach in a new place. The target step (P3-T6) is that
- * step. The group is back, it executes, and it is called `Do`.
+ *   §5          the escape hatch is ALWAYS last while a query is present.
+ *   §7.3.3      a modal HAS a scrim, so it OWNS THE KEYBOARD and DOES trap
+ *               focus. Closing returns focus to the opener (AC-CP10).
+ *   §14         the chips' position mirrors; the `⌘ K` glyph order does not,
+ *               and the magnifier does not mirror.
+ *   §13.2 / Q-P8 three doors: `⌘K` / `Ctrl K`, the trigger, and `/` when focus
+ *               is not in a typing target.
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Command, CommandGroup, CommandItem } from '@/components/ui/command'
+import { Command, CommandDialog, CommandGroup, CommandItem } from '@/components/ui/command'
 import { Kbd } from '@/components/ui/kbd'
-import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover'
-import { CommandPalette, PaletteChips } from '@/components/command/CommandPalette'
+import {
+  CommandPalette,
+  MagnifierGlyph,
+  PaletteFooter,
+  PaletteInputRow,
+} from '@/components/command/CommandPalette'
 import { commandSession, usePalette } from '@/commands'
-import { cn } from '@/lib/utils'
+import { isTypingTarget } from '@/commands/shortcuts'
 import { useAsync, useLanguage } from '@/hooks'
 import { resolveProfile } from '@/data/clients'
 import type { ProfileEntityType, ProfileRef } from '@/data/types'
@@ -102,20 +57,18 @@ export interface GlobalSearchProps {
 }
 
 /**
- * Where the escape hatch goes when nothing is scoped.
- *
- * **An index route, because an index route is what reads `?q=`.** Every one of
- * them runs `useIndexTable` → `useUrlTableState`, which takes the query off the
- * URL, so the operator arrives with their words already in the search box.
- * `/operations/overview` is a metric board and reads nothing, which is what
- * made the old row a dead end.
- *
- * People is the choice because it is the product's primary record index and the
- * only collection legacy's own name search covered (`09b` §17.1). It is not a
- * permanent answer: the right one is per-scope, and it belongs in the route
- * table beside the scope chip that does not exist yet.
+ * Where the escape hatch goes when nothing is scoped: an **index route**,
+ * because an index route is what reads `?q=`. People is the product's primary
+ * record index and the only collection legacy's own name search covered
+ * (`09b` §17.1). The right answer is per-scope and belongs in the route table.
  */
 const ESCAPE_HATCH_PATH = '/operations/people'
+
+/** §14 — the chip names the key the operator actually has. */
+function isApplePlatform(): boolean {
+  if (typeof navigator === 'undefined') return false
+  return /Mac|iPhone|iPad|iPod/i.test(navigator.userAgent)
+}
 
 export function GlobalSearch({ t, onOpenEntity, onOpenOnboarding }: GlobalSearchProps) {
   const navigate = useNavigate()
@@ -123,71 +76,62 @@ export function GlobalSearch({ t, onOpenEntity, onOpenOnboarding }: GlobalSearch
   const route = useRouteState()
   const { language } = useLanguage()
   const inputRef = useRef<HTMLInputElement>(null)
-  /**
-   * The field, so the popover can tell that a click on it is **not** an outside
-   * interaction.
-   *
-   * §2.6 puts the anchor in the top bar and the content in a portal, so as far
-   * as Radix is concerned the field the popover belongs to is outside it: a
-   * `pointerdown` on the input dismissed the palette. It was invisible while the
-   * only interaction was typing — focus re-opened it on the same gesture — and
-   * surfaced the moment the palette grew rows worth clicking, because clicking a
-   * row moves focus off the input and clicking back in then closes the surface
-   * the operator is in the middle of using. **They are one control, and this is
-   * what says so.**
-   */
-  const anchorRef = useRef<HTMLDivElement>(null)
+  const triggerRef = useRef<HTMLButtonElement>(null)
   const [open, setOpen] = useState(false)
-  /** The removable chip INSIDE the input. `null` is unscoped. §5, unchanged. */
+  /** The removable chip INSIDE the input row. `null` is unscoped. §5. */
   const [scope, setScope] = useState<string | null>(null)
+  /** `cmdk`'s active row, controlled so `Tab` and `→` can move it. */
+  const [active, setActive] = useState('')
 
-  /* §5 — `⌘K` / `Ctrl K` from anywhere opens and focuses. One listener, on the
-     document, owned by the shell. */
+  /**
+   * Opening with nothing focused would hand Radix `document.body` as the node
+   * to restore to. Focusing the trigger first makes AC-CP10 true for every
+   * door without the dialog having to guess who opened it.
+   */
+  const openPalette = useCallback((source: 'shortcut' | 'trigger' | 'slash') => {
+    if (source !== 'trigger') triggerRef.current?.focus()
+    track('palette.opened', { source })
+    setOpen(true)
+  }, [])
+
+  /* §5 / Q-P8 — the two keyboard doors, on one document listener owned by the
+     shell. `/` yields to every field in the product (`isTypingTarget`). */
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
-      if (event.key.toLowerCase() !== 'k') return
-      if (!event.metaKey && !event.ctrlKey) return
+      if (event.key.toLowerCase() === 'k' && (event.metaKey || event.ctrlKey)) {
+        event.preventDefault()
+        openPalette('shortcut')
+        return
+      }
+      if (event.key !== '/' || event.metaKey || event.ctrlKey || event.altKey) return
+      if (isTypingTarget(event.target)) return
       event.preventDefault()
-      setOpen(true)
-      inputRef.current?.focus()
+      openPalette('slash')
     }
     document.addEventListener('keydown', onKeyDown)
     return () => document.removeEventListener('keydown', onKeyDown)
-  }, [])
+  }, [openPalette])
 
-  const close = useCallback(() => {
-    setOpen(false)
-    inputRef.current?.focus()
-  }, [])
+  const close = useCallback(() => setOpen(false), [])
 
   /**
-   * **P3-T7's second pre-seed source: the open 360° profile.**
-   *
-   * The URL carries the entity's **id** and not its type (`?entity=DRV-0204`),
-   * and the palette needs the type to know which registry applies. One resolve,
-   * only while a layer is open, and a failure simply means no pre-seed — an
-   * unresolvable overlay is the profile layer's own error to state, not the
-   * palette's.
+   * **The second pre-seed source: the open 360° profile.** The URL carries the
+   * entity's id and not its type (`?entity=DRV-0204`), and the palette needs
+   * the type to know which registry applies. A failure means no pre-seed.
    */
   const overlayEntityId = route.overlay === 'entity' ? route.overlayValue : null
   const profile = useAsync<ProfileRef>((signal) => resolveProfile(overlayEntityId ?? '', signal), {
     deps: [overlayEntityId],
-    /* The entity id is the fetcher's only input. Keyed identically to
-       `ProfileLayer` and `EntityPageScreen`, on purpose: opening the 360° layer
-       and then the palette resolves the same ref once, not twice. */
+    /* Keyed identically to `ProfileLayer` and `EntityPageScreen`, on purpose:
+       opening the layer and then the palette resolves the same ref once. */
     cacheKey: 'profile.resolve',
     enabled: overlayEntityId !== null,
   })
 
   /**
-   * **CQ-7 / Q4** — one boolean, built in one place, read only by
-   * `roleRefusal`. When D17's twenty keys land, this call changes and no domain
-   * registry does.
-   *
-   * Memoised because it is the seed of `CommandContext`, which is the seed of
-   * every refusal predicate and every row: a fresh object here would rebuild
-   * the whole list on every keystroke and hand `cmdk` a new item identity each
-   * time, which resets its active row mid-typing.
+   * **CQ-7 / Q4** — one boolean, built in one place. Memoised because it is the
+   * seed of `CommandContext`: a fresh object would rebuild every row on every
+   * keystroke and reset `cmdk`'s active row mid-typing.
    */
   const session = useMemo(
     () => commandSession(shell.permissions.permissions),
@@ -195,15 +139,13 @@ export function GlobalSearch({ t, onOpenEntity, onOpenOnboarding }: GlobalSearch
   )
 
   /* The layer takes an id: `?entity=` is an overlay param on the current route
-     (AC-21, AC-22), and the type is resolved on the way in. Stable for the same
-     reason as `session`. */
+     (AC-21, AC-22), and the type is resolved on the way in. */
   const openProfile = useCallback(
     (_entityType: ProfileEntityType, entityId: string) => onOpenEntity(entityId),
     [onOpenEntity],
   )
 
-  /* One row for the checklist while it is open work: incomplete, undismissed,
-     and with at least one reachable step. */
+  /* One row for the checklist while it is open work. */
   const onboarding = shell.onboarding
   const guide = useMemo(
     () =>
@@ -232,8 +174,8 @@ export function GlobalSearch({ t, onOpenEntity, onOpenOnboarding }: GlobalSearch
     subTabId: route.subTabId,
     openEntityId: overlayEntityId,
     openEntityType: profile.data?.entityType ?? null,
-    /* §8.4 — the same counts the rail badges read. One read at the shell, two
-       surfaces, so a queue's number cannot differ between them. */
+    /* §8.4 — the same counts the rail badges read, so a queue's number cannot
+       differ between the two surfaces. */
     navCounts: shell.navCounts,
     permissions: shell.permissions,
     navigate,
@@ -242,160 +184,118 @@ export function GlobalSearch({ t, onOpenEntity, onOpenOnboarding }: GlobalSearch
   })
 
   const hasQuery = palette.query.trim() !== ''
+  const blocks = useMemo(
+    () => palette.blocks.filter((block) => block.rows.length > 0),
+    [palette.blocks],
+  )
+
+  /**
+   * The keys `usePalette` does not claim. `Tab` jumps to the next group's first
+   * row (Juicebox) and `→` descends where the row says it can; both need the
+   * active row, which is why `cmdk` is controlled here.
+   */
+  const onKeyDown = useCallback(
+    (event: React.KeyboardEvent<HTMLInputElement>) => {
+      if (palette.handleKeyDown(event)) return
+      if (event.key === 'Backspace' && palette.query === '' && scope !== null) {
+        event.preventDefault()
+        setScope(null)
+        return
+      }
+      if (event.key === 'Tab' && palette.confirm === null && blocks.length > 1) {
+        event.preventDefault()
+        const at = blocks.findIndex((block) =>
+          block.rows.some((row) => row.key.toLowerCase() === active.toLowerCase()),
+        )
+        const step = event.shiftKey ? -1 : 1
+        const next = (((at === -1 ? 0 : at + step) % blocks.length) + blocks.length) % blocks.length
+        const first = blocks[next]?.rows[0]
+        if (first) setActive(first.key)
+        return
+      }
+      if (event.key === 'ArrowRight' && palette.confirm === null) {
+        const caret = event.currentTarget.selectionStart ?? 0
+        if (caret < palette.query.length) return
+        const row = blocks
+          .flatMap((block) => block.rows)
+          .find((candidate) => candidate.key.toLowerCase() === active.toLowerCase())
+        if (row?.onDescend) {
+          event.preventDefault()
+          row.onDescend()
+        }
+      }
+    },
+    [active, blocks, palette, scope],
+  )
 
   return (
-    /**
-     * **`Command` wraps the Popover, and that placement is load-bearing.**
-     *
-     * `cmdk` attaches its arrow-key handler to `[cmdk-root]` and collects items
-     * from `[cmdk-list-sizer]`. The list is inside the popover — portalled —
-     * and the **input is not**: §2.6 requires the field to stay in the top bar.
-     * With the root inside the popover, the field's `keydown` never reached
-     * `cmdk` at all, so `↑ ↓` and `Enter` did nothing and the palette was
-     * mouse-only. §5 has asked for those three keys since it was written.
-     *
-     * Wrapping instead makes the input a real DOM descendant of the root, so
-     * the keys bubble to `cmdk`'s own handler with nothing synthesised. Item
-     * collection is unaffected because it is scoped to the **list**, which is
-     * where it always was. `display: contents` is what keeps the extra element
-     * from becoming a box in the top bar's flex row.
-     */
-    <Command className="contents" shouldFilter={false} loop>
-      <Popover open={open} onOpenChange={setOpen}>
-        {/* PopoverAnchor, not PopoverTrigger: the field is the anchor AND stays
-          the focused element. A trigger would steal focus back from the input
-          on every open. */}
-        <PopoverAnchor asChild>
-          <div
-            ref={anchorRef}
-            className={cn(
-              'flex h-control w-100 items-center gap-1.5 rounded-lg border border-input bg-card px-2',
-              /* **400px does not fit in a 390px bar**, and the failure was not a
-                 visual one: the field overflowed its flex slot, sat on top of the
-                 compact shell's navigation control, and swallowed the tap. The
-                 control was visible, enabled, stable and unclickable — which is
-                 the worst shape a defect can take, because it looks fine in a
-                 screenshot. Measured before the fix: Playwright timed out for 30s
-                 clicking the hamburger, reporting the search magnifier as the
-                 element intercepting pointer events.
-                 Below the breakpoint the field takes the slack instead of a fixed
-                 width. Desktop-first, as the variant requires: the unprefixed
-                 `w-100` is still the answer above 768. */
-              'compact:w-auto compact:min-w-0 compact:flex-1',
-              /* A 2px ring on TOP of a 2px offset drew a 4px green halo around
-                 a 28px field — the loudest thing in the top bar, for a control
-                 that is merely focused. The ring keeps its 2px so the indicator
-                 stays unmistakable; only the gap that detached it from the
-                 field is gone, and the border adopts the ring colour so the
-                 focused field reads as one object rather than two. */
-              'focus-within:border-ring focus-within:ring-2 focus-within:ring-ring',
-            )}
-          >
-            {/* §9.5 — a magnifier is an object; it does not mirror. */}
-            <MagnifierGlyph />
+    <>
+      {/* Q-P2 — a 240px trigger that LOOKS like a field, so the operator who
+          reaches for "the search box" still lands in the palette's input. */}
+      <button
+        ref={triggerRef}
+        type="button"
+        onClick={() => openPalette('trigger')}
+        /* The keycap is a legend and would otherwise land in the accessible
+           name; `aria-keyshortcuts` is where a shortcut belongs (§13.2). */
+        aria-label={t('command.trigger.label')}
+        aria-keyshortcuts="Meta+K Control+K"
+        className="flex h-control w-60 shrink-0 items-center gap-1.5 rounded-lg border border-input bg-card px-2 text-start outline-hidden compact:w-auto compact:min-w-0 compact:flex-1 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        <MagnifierGlyph />
+        <span className="min-w-0 flex-1 truncate text-sm text-muted-foreground">
+          {t('command.trigger.label')}
+        </span>
+        {/* A chord hint on a device with no keyboard is decoration that costs
+            width. It is a `<kbd>` with no semantics and no tab stop, so hiding
+            it takes nothing out of the keyboard's or the reader's path. */}
+        <Kbd className="shrink-0 compact:hidden">
+          {t(isApplePlatform() ? 'shell.topbar.searchShortcut' : 'shell.topbar.searchShortcutWin')}
+        </Kbd>
+      </button>
 
-            {/* §2.6 / §5 — chips live INSIDE the input box, before the query.
-              Their POSITION mirrors because the box is a logical flex row;
-              nothing about them is physically placed. */}
-            {scope && (
-              <button
-                type="button"
-                onClick={() => setScope(null)}
-                aria-label={t('shell.search.removeScope', { scope })}
-                className="inline-flex h-5 shrink-0 items-center gap-1 rounded-lg bg-neutral px-1.5 text-2xs font-semibold text-neutral-foreground outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                {scope}
-                <span aria-hidden="true">✕</span>
-              </button>
-            )}
-            {/* §3 — one chip per committed step: `[Suspend captain] [2 captains]`. */}
-            <PaletteChips chips={palette.chips} />
-
-            <input
-              ref={inputRef}
-              type="search"
-              value={palette.query}
-              placeholder={palette.placeholder}
-              aria-label={t('shell.topbar.search')}
-              /* While a write is in flight the field is READ-ONLY, never
-               disabled: the operator must still be able to read and select what
-               they typed, and a disabled input drops out of the tab order
-               mid-task. Same rule as the freeze contract, same reason. */
-              readOnly={palette.busy}
-              onFocus={() => setOpen(true)}
-              onChange={(event) => {
-                palette.setQuery(event.target.value)
-                setOpen(true)
-              }}
-              onKeyDown={(event) => {
-                /* §5 — `Backspace` on an EMPTY query removes the scope chip. The
-                 palette's own chips are ascended past first, so the scope chip
-                 is reached last, which is the order they were added in. */
-                if (palette.handleKeyDown(event)) return
-                if (event.key === 'Backspace' && palette.query === '' && scope !== null) {
-                  event.preventDefault()
-                  setScope(null)
-                  return
-                }
-                /* Only from the ROOT state, and only once the palette has
-                 declined the key. */
-                if (event.key === 'Escape') close()
-              }}
-              className="min-w-0 flex-1 bg-transparent text-sm text-foreground outline-hidden placeholder:text-muted-foreground"
-            />
-
-            {/* §14 — the chip's position mirrors with the row; the glyph ORDER
-              inside it does not, which is why `⌘ K` is one string in one key. */}
-            {/* A chord hint on a device with no keyboard is decoration that
-                costs width the query needs. Painted away rather than removed
-                from the DOM is right here and wrong for the top bar chips: this
-                is a `<kbd>` with no semantics and no tab stop, so hiding it
-                takes nothing out of the screen reader's or the keyboard's path
-                — there is nothing in either to take. */}
-            <Kbd className="shrink-0 compact:hidden">{t('shell.topbar.searchShortcut')}</Kbd>
-          </div>
-        </PopoverAnchor>
-
-        <PopoverContent
-          align="start"
-          sideOffset={6}
-          /**
-           * Wider than the 400px field, and now for a stated reason.
-           *
-           * Every row carries a second line describing what the destination is
-           * FOR, which is the line that replaced one restating the title. At the
-           * field's own width those descriptions truncate mid-word on all five
-           * rows — trading a useless line for an unreadable one. The panel is
-           * anchored `start`, so it grows only to the inside edge and stays
-           * visibly hung off the field it came from.
-           */
-          /* `p-1` because the `cmdk` root that used to supply it now sits outside
-           the popover; the inner spacing is unchanged. */
-          className="w-140 gap-0 p-1"
-          aria-label={t('command.palette.label')}
-          /* §7.3.3 — a popover does not trap. Focus stays in the field so the
-           operator keeps typing; ↑ ↓ drive the list from there. The confirm
-           step's reason textarea takes focus itself, because that is the one
-           state where the thing being typed is not the query. */
-          onOpenAutoFocus={(event) => event.preventDefault()}
-          /* **The field is not "outside" the popover, and Radix has no way to
-             know that.** §2.6 puts the anchor in the top bar and the content in
-             a portal, so a `pointerdown` or a focus landing on the input reads
-             to `DismissableLayer` as an interaction outside the layer, and it
-             dismisses. It was invisible while the only interaction was typing —
-             the input's own `focus` re-opened the popover on the same gesture —
-             and it surfaced the moment the palette grew rows worth clicking: a
-             row click moves focus off the input, and clicking or tabbing back in
-             then closed the surface the operator was halfway through using,
-             taking the committed command with it. They are one control; this is
-             the line that says so. */
-          onInteractOutside={(event) => {
-            if (anchorRef.current?.contains(event.target as Node)) event.preventDefault()
-          }}
-          onFocusOutside={(event) => {
-            if (anchorRef.current?.contains(event.target as Node)) event.preventDefault()
-          }}
+      <CommandDialog
+        open={open}
+        onOpenChange={setOpen}
+        title={t('command.palette.label')}
+        description={t('command.palette.description')}
+        /* AC-CP1 — the input, deterministically. Radix would otherwise focus
+           the first tabbable, which is a committed chip when one is present. */
+        onOpenAutoFocus={(event) => {
+          event.preventDefault()
+          inputRef.current?.focus()
+        }}
+      >
+        {/**
+         * `shouldFilter={false}` because `usePalette` has already ranked; `loop`
+         * so `↑` from the first row reaches the last. `value` is controlled so
+         * `Tab` and `→` can move the highlight, and `cmdk` still drives it
+         * through `onValueChange` when the rows change.
+         */}
+        <Command
+          shouldFilter={false}
+          loop
+          value={active}
+          onValueChange={setActive}
+          label={t('command.palette.label')}
+          className="flex h-auto min-h-0 flex-1 flex-col rounded-none p-0"
         >
+          <PaletteInputRow
+            palette={palette}
+            t={t}
+            inputRef={inputRef}
+            onKeyDown={onKeyDown}
+            scope={
+              scope === null
+                ? null
+                : {
+                    label: scope,
+                    removeLabel: t('shell.search.removeScope', { scope }),
+                    onRemove: () => setScope(null),
+                  }
+            }
+          />
+
           <CommandPalette
             palette={palette}
             t={t}
@@ -403,55 +303,33 @@ export function GlobalSearch({ t, onOpenEntity, onOpenOnboarding }: GlobalSearch
               /* §5 — ALWAYS the last row while there is a query, present
                  whether or not anything matched, and it carries the query to a
                  screen that reads it. Not offered mid-chain: a target step is
-                 not a search, and a `Search for "nora"` row there would leave
-                 the operator's half-composed command behind. */
+                 not a search. */
               hasQuery && palette.step === 'root' ? (
                 <CommandGroup>
                   <CommandItem
                     value="__escape-hatch__"
+                    className="h-9 gap-2 py-0"
                     onSelect={() => {
                       close()
                       navigate(`${ESCAPE_HATCH_PATH}?q=${encodeURIComponent(palette.query)}`)
                     }}
                   >
                     <MagnifierGlyph />
-                    <span>
+                    <span className="truncate text-sm text-foreground">
                       {scope
-                        ? t('shell.search.escapeHatch', {
-                            query: palette.query,
-                            scope,
-                          })
-                        : t('shell.search.escapeHatchUnscoped', {
-                            query: palette.query,
-                          })}
+                        ? t('shell.search.escapeHatch', { query: palette.query, scope })
+                        : t('shell.search.escapeHatchUnscoped', { query: palette.query })}
                     </span>
+                    <span data-slot="command-shortcut" className="ms-auto" />
                   </CommandItem>
                 </CommandGroup>
               ) : null
             }
           />
-        </PopoverContent>
-      </Popover>
-    </Command>
-  )
-}
 
-/** §9.5 — the magnifier does not mirror. */
-function MagnifierGlyph() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={1.5}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-      focusable="false"
-      className="size-4 shrink-0 text-muted-foreground"
-    >
-      <circle cx="11" cy="11" r="7" />
-      <path d="M20 20l-3.5-3.5" />
-    </svg>
+          <PaletteFooter palette={palette} t={t} language={language} />
+        </Command>
+      </CommandDialog>
+    </>
   )
 }

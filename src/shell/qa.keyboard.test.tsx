@@ -153,8 +153,9 @@ describe('AC-64 (amended, D5) — "the rail\'s four workspace tiles → the pinn
       railTile('admin'),
       /* The sub-tab list is ONE stop, landing on its first row. */
       within(column).getAllByRole('link')[0]!,
-      /* …then the top bar. */
-      screen.getByRole('searchbox', { name: en('shell.topbar.search') }),
+      /* …then the top bar, whose first stop is the palette trigger — the field
+         became a button when the palette became a centred modal (RULINGS). */
+      screen.getByRole('button', { name: en('command.trigger.label') }),
     ]
 
     const seen: Element[] = []
@@ -235,7 +236,7 @@ describe('AC-65 — "Every icon-only control in the shell has an accessible name
     expect(screen.queryByRole('button', { name: en('shell.nav.showSubTabs') })).toBeNull()
     expect(screen.getByRole('button', { name: en('shell.topbar.notifications') })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: en('shell.topbar.account') })).toBeInTheDocument()
-    expect(screen.getByRole('searchbox', { name: en('shell.topbar.search') })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: en('command.trigger.label') })).toBeInTheDocument()
     /* The wordmark is icon-only too, and it is a link. */
     expect(screen.getByRole('link', { name: 'Eyvar' })).toBeInTheDocument()
   })

@@ -106,4 +106,26 @@ export const COMMANDS_AR: Dictionary = {
   'ticket.toast.reopened.undoFailed.other': '{count} من التذاكر لا تزال مفتوحة',
   'subs.action.cancel.blocked.other': '{count} من الاشتراكات المحدَّدة ملغاة أو منتهية بالفعل.',
   'subs.action.cancel.blocked.all': 'كل الاشتراكات المحدَّدة ({count}) ملغاة أو منتهية بالفعل.',
+
+  /* ── pal/surface ──────────────────────────────────────────────────────
+     R4 — a keycap legend is a Latin mark and is left alone; its POSITION
+     mirrors with the row, its glyph order does not (§14). R8 — Western
+     digits. The prefix hint keeps `>` and `#`, which are typed keys. */
+  'command.trigger.label': 'ابحث أو نفِّذ أمرًا',
+  'command.palette.description': 'ابحث عن سجل أو صفحة، أو نفِّذ أمرًا، ثم اضغط Enter.',
+  'command.key.arrows': '↑↓',
+  'command.key.enter': '↵',
+  'command.key.tab': 'Tab',
+  'command.key.backspace': '⌫',
+  'command.key.esc': 'Esc',
+  'command.footer.move': 'تنقّل',
+  'command.footer.select': 'اختيار',
+  'command.footer.nextGroup': 'المجموعة التالية',
+  'command.footer.back': 'رجوع',
+  'command.footer.confirm': 'تأكيد',
+  'command.footer.cancel': 'إلغاء',
+  'command.footer.suggestions': '{count} اقتراحًا',
+  'command.footer.results': '{count} نتيجة',
+  'command.footer.prefixes': '> الأوامر · # المعرّفات',
+  'command.step.confirm': 'تأكيد',
 }

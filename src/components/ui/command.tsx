@@ -5,9 +5,10 @@
  * picker (§4.5).
  *
  * Rules applied
- *   §2.6       global search EXPANDS IN PLACE from the top-bar field into a 480px
- *              ANCHORED POPOVER. It never relocates to the centre - it is not a
- *              command palette, and §2.6 forbids moving it.
+ *   override   global search is a CENTRED MODAL, 640 wide with its top edge at
+ *              16vh (RULINGS, "The command palette is a centred modal",
+ *              2026-09-05). This supersedes §2.6 and CQ-1 for this surface and
+ *              for nothing else; every combobox below is untouched.
  *   §2.6       the SCOPE IS A REMOVABLE CHIP INSIDE THE INPUT, followed by the
  *              query. Never a separate dropdown outside the field. `Backspace` on
  *              an empty query removes the chip.
@@ -61,32 +62,40 @@ function Command({
   )
 }
 
+/**
+ * Restyled on arrival. Three changes, all defects in the stock component:
+ * the title and description were OUTSIDE `DialogContent`, so nothing labelled
+ * the dialog; the geometry was three arbitrary overrides, and is now
+ * `size="palette"`; and the copy defaulted to two English literals, which
+ * AC-74 forbids, so both are required props.
+ */
 function CommandDialog({
-  title = "Command Palette",
-  description = "Search for a command to run...",
+  title,
+  description,
   children,
   className,
   showCloseButton = false,
+  onOpenAutoFocus,
   ...props
 }: React.ComponentProps<typeof Dialog> & {
-  title?: string
-  description?: string
+  title: string
+  description: string
   className?: string
   showCloseButton?: boolean
+  onOpenAutoFocus?: React.ComponentProps<typeof DialogContent>["onOpenAutoFocus"]
 }) {
   return (
     <Dialog {...props}>
-      <DialogHeader className="sr-only">
-        <DialogTitle>{title}</DialogTitle>
-        <DialogDescription>{description}</DialogDescription>
-      </DialogHeader>
       <DialogContent
-        className={cn(
-          "top-1/3 translate-y-0 overflow-hidden rounded-xl! p-0",
-          className
-        )}
+        size="palette"
+        className={className}
         showCloseButton={showCloseButton}
+        onOpenAutoFocus={onOpenAutoFocus}
       >
+        <DialogHeader className="sr-only">
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>{description}</DialogDescription>
+        </DialogHeader>
         {children}
       </DialogContent>
     </Dialog>
@@ -153,7 +162,10 @@ function CommandGroup({
     <CommandPrimitive.Group
       data-slot="command-group"
       className={cn(
-        "overflow-hidden p-1 text-foreground **:[[cmdk-group-heading]]:px-2 **:[[cmdk-group-heading]]:py-1.5 **:[[cmdk-group-heading]]:text-xs **:[[cmdk-group-heading]]:font-medium **:[[cmdk-group-heading]]:text-muted-foreground",
+        /* 8px above the label, 4px below it. D18 licenses the uppercase
+           eyebrow on the profile band and nowhere else, so the group label is
+           muted and small rather than small-caps. */
+        "overflow-hidden p-1 text-foreground **:[[cmdk-group-heading]]:px-2 **:[[cmdk-group-heading]]:pt-2 **:[[cmdk-group-heading]]:pb-1 **:[[cmdk-group-heading]]:text-xs **:[[cmdk-group-heading]]:font-medium **:[[cmdk-group-heading]]:text-muted-foreground",
         className
       )}
       {...props}

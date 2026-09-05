@@ -64,7 +64,22 @@ function mount(props: HarnessProps = {}, path = '/operations/people') {
   )
 }
 
+/** The top bar holds a TRIGGER; the query lives in the dialog's own input. */
+const trigger = () => screen.getByRole('button', { name: en('command.trigger.label') })
 const field = () => screen.getByRole('searchbox', { name: en('shell.topbar.search') })
+
+/**
+ * The characters the operator typed are bolded inside the title, so the title's
+ * text node splits and `getByText` cannot see it whole. The row is what the
+ * assertion is about, so it is found as one.
+ */
+function rowNamed(scope: HTMLElement, text: string): HTMLElement {
+  const row = within(scope)
+    .getAllByRole('option')
+    .find((option) => (option.textContent ?? '').includes(text))
+  if (!row) throw new Error(`no row reading "${text}"`)
+  return row
+}
 
 /**
  * The `Do` heading carries a COUNT, and the count is whatever the registry
@@ -76,8 +91,8 @@ const DO_HEADING = /^Do \(/
 const findDoGroup = () => screen.findByRole('group', { name: DO_HEADING })
 
 async function openPalette(user: ReturnType<typeof userEvent.setup>) {
-  await user.click(field())
-  return field()
+  await user.click(trigger())
+  return await screen.findByRole('searchbox', { name: en('shell.topbar.search') })
 }
 
 /** `DRV-0202` is the one suspended captain in the roster; `DRV-0101` is active. */
@@ -297,7 +312,7 @@ describe('P3-T5 and P3-T6 — root → target → confirm, one field', () => {
 
     await user.type(input, 'suspend')
     const doGroup = await findDoGroup()
-    await user.click(within(doGroup).getByText(en('people.action.suspend')))
+    await user.click(rowNamed(doGroup, en('people.action.suspend')))
     await screen.findByRole('group', { name: en('command.target.heading') })
 
     /* Backspace on an EMPTY field ascends — the field is empty because
@@ -339,11 +354,11 @@ describe('P3-T5 and P3-T6 — root → target → confirm, one field', () => {
 
     await user.type(input, 'suspend')
     const doGroup = await findDoGroup()
-    await user.click(within(doGroup).getByText(en('people.action.suspend')))
+    await user.click(rowNamed(doGroup, en('people.action.suspend')))
 
     await user.type(input, suspended.name)
     const targets = await screen.findByRole('group', { name: en('command.target.heading') })
-    expect(within(targets).getByText(suspended.name)).toBeInTheDocument()
+    expect(rowNamed(targets, suspended.name)).toBeInTheDocument()
     expect(within(targets).getByText(en('people.action.suspend.blocked.one'))).toBeInTheDocument()
   })
 })
