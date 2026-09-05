@@ -11,20 +11,19 @@
 > deviation which does not name its rule is not sanctioned. **Nothing in §6.2 suspends
 > anything in §7.**
 >
-> **Claim marking.** §1–§5 use `[observed]` / `[Polaris]`. §7 needs three more, because
+> **Claim marking.** §1–§5 use `[observed]` / `[recalled]`. §7 needs three more, because
 > its subject is not visible in a screenshot:
 >
 > - `[observed]` — visible in a screenshot cited on the same line.
-> - `[Polaris]` — recalled from the Polaris design system, not verifiable here.
+> - `[recalled]` — general design-system knowledge, not verifiable here.
 > - `[source]` — read out of `eyvar_ops_panel_v40_fixed.html` at the cited line. Trust it;
 >   every one was grepped, none was recalled.
 > - `[computed]` — arithmetic on `[source]` values. Contrast ratios use the sRGB relative
 >   luminance formula from WCAG 2.x, rounded to two decimals.
 > - `[WCAG]` — the text of a WCAG 2.2 success criterion.
 >
-> **What the screenshots cannot do.** The 159 captures in
-> `docs/06-design-reference/shopify-admin-web/` can evidence *contrast* and *resting
-> focus styling*, and they are cited for exactly that in §7.1 and §7.2. They cannot
+> **What a still image cannot do.** The visual evidence behind §1–§5 can show *contrast* and
+> *resting focus styling*, and it is cited for exactly that in §7.1 and §7.2. It cannot
 > evidence tab order, ARIA, accessible names, live-region politeness, or screen-reader
 > output — a still image has no DOM. **Nothing in §7.3, §7.4 or §7.5 carries an
 > `[observed]` tag, and no reviewer may cite a screenshot to close a finding in those
@@ -80,7 +79,7 @@ others: `table.dt th` (`:149`), `.ptable th` (`:263`), `.kpi-lbl` (`:110`), `.td
 `.dc-km` (`:177`), `.ms-lbl` (`:219`, `:367`), `.settings-tab-group-lbl` (`:233`),
 `.settings-meta` (`:247`), `.live-card-route` (`:354`), `.live-sec-hdr` (`:363`),
 `.ex-cell` (`:269`), `.feat-rm` (`:260`), `.csel-val.placeholder` (`:305`),
-`.csel-opt-hint` (`:321`), `.aud-diff` (`:324`), `.preview-strip .lbl` (`:276`),
+`.csel-opt-hint` (`:321`), `.aud-diff` (`:324`), `.preview-strip.lbl` (`:276`),
 `.ch-tgl` (`:90`), `.neu` (`:113`), `.settings-soon` (`:242`) `[source]`. Every one of
 those is failing text.
 
@@ -132,9 +131,9 @@ systems.
 
 **Rule for text on tinted fills.** A tonal badge is not exempt because its fill is pale.
 The text is measured against **the badge's own fill**, never against the card behind it,
-and never against the darkest fill in the family. Shopify's tonal badges are built the
+and never against the darkest fill in the family. The baseline's tonal badges are built the
 same way — pale fill, deep same-hue text `[observed]`
-`03-products/products-list-default.webp`, `02-orders/orders-list-with-metrics-row.webp`.
+,.
 
 #### 7.1.4 Non-text UI, measured
 
@@ -166,10 +165,8 @@ Two findings deserve naming.
 on white and sits at 1.88–1.89:1 on `--bg` and `--amber-lt` `[computed]`. Wherever it is a
 *fill*, *dot*, or *stroke* that a user must perceive to read the state, it fails. It is
 fine as the light half of a tonal pair — `--amber-lt` behind `--amber-dk` text is 8.72:1.
-This matches Shopify, which uses **dark** text and icons on amber and reserves
+This matches the baseline, which uses **dark** text and icons on amber and reserves
 white-on-solid for green and red `[observed]`
-`04-customers/customer-detail-erasure-request-banner.webp`,
-`11-apps-and-channels/app-detail-shop-channel-needs-attention.webp`.
 
 **Input boundaries are the only thing identifying an Eyvar field, and they are invisible
 at 1.39:1.** SC 1.4.11 exempts a component boundary when the component's own fill already
@@ -177,8 +174,8 @@ differs by 3:1 from its surroundings — but Eyvar inputs are `background:var(--
 (`:252`) inside white cards, so the border does all the work alone. This is the one place
 in §7 that requires extending `:root`, and §6.4's rule permits that ("extend `:root`
 instead"): a `--border-input` token computed at ≥3:1 against `#FFFFFF`. §1.1.3 records the
-same split in Shopify — `border-input` is "deliberately stronger than card borders so
-fields read as targets" `[observed]` `04-customers/customer-new-form-empty.webp`.
+same split — `border-input` is "deliberately stronger than card borders so fields read as
+targets" `[observed]`.
 
 **Rules**
 
@@ -249,10 +246,10 @@ invisible on `.btn.p` (`:79`) and marginal on `#trend-tooltip` (`:316`) `[source
 3:1 — which is what SC 1.4.11 requires of a focus indicator `[WCAG]`.
 
 **This overrides §1.1.3, which records `border-focus` as a "dark/near-black 2px ring"
-`[observed]` `03-products/product-edit-pricing-inventory-shipping.webp`.** That is a
-description of Shopify, whose primary is near-black; Eyvar's primary is brand blue by
-R3 and §6.2 D-1, and a near-black ring on Eyvar's blue primary would be the same
-collision in a different colour. **Eyvar's focus ring is `--blue`.** The width — 2 px — is
+`[observed]`.** That is a
+description of a baseline whose primary is near-black. A ring that repeats the primary's own
+colour is the same collision in a different colour, whatever that colour is. **Eyvar's focus
+ring is its own token, distinct from the primary fill.** The width — 2 px — is
 taken from §1.4, which already carves out the focus ring as the single permitted stroke
 wider than 1 px, so §7.2 does not conflict with §1.4.
 
@@ -281,7 +278,7 @@ five selectors §6.3 D20 names.
 
 | # | Selector | Line | What replaces the outline |
 |---|---|---|---|
-| A1 | `.field input:focus, .field select:focus` | `:253` | `border-color:var(--blue)` on a `.5px` border |
+| A1 | `.field input:focus,.field select:focus` | `:253` | `border-color:var(--blue)` on a `.5px` border |
 | A2 | `.feat-row input:focus` | `:259` | `border-color:var(--blue)` on a `.5px` border |
 | A3 | `.ptable td input[type=number]:focus` | `:268` | `border-color:var(--blue)` on a `.5px` border |
 | A4 | `select:focus` | `:290` | `border-color:var(--blue)!important` on a `.5px` border |
@@ -341,7 +338,7 @@ compliance.
   attached to `:focus-visible`.
 - MUST make the focus target the element that is visually rendered. A zero-size focusable
   input behind a styled sibling (`:185`) MUST be replaced by a natively focusable control,
-  or MUST forward the ring to the rendered element via `:has()` / `:focus-within`.
+  or MUST forward the ring to the rendered element via `:has` / `:focus-within`.
 - MUST NOT let an ancestor clip the ring: any container in §7.2.3 Group D that holds
   focusable children MUST either drop `overflow:hidden` or reserve ≥4 px of inner padding
   on the clipped edge.
@@ -379,7 +376,7 @@ unless `.on` (`:70–71`), and `.card.clpsd>*:not(.ch)` is `display:none!importa
 #### 7.3.2 Escape and Enter
 
 **The file handles the Escape key nowhere.** Zero occurrences of `Escape` `[source]`.
-`closeModal()` (`:5216`) is reachable only by clicking `.modal-close` or clicking the
+`closeModal` (`:5216`) is reachable only by clicking `.modal-close` or clicking the
 scrim (`:475`) `[source]`. `#modal-overlay` (`:191`) has no `role="dialog"`, no
 `aria-modal`, no key handler, and no focus trap, so a keyboard user who opens a modal can
 tab straight out of it into the page behind the scrim and interact with content they
@@ -404,7 +401,7 @@ The trap rule is not uniform, and §5.5 is why:
 |---|---|---|
 | `#modal-overlay` (`:191`), `.sb.mob-open` (`:432`) — has a scrim | **Trap.** Tab and Shift+Tab cycle inside; the page behind is inert. | Both render a backdrop (`:191`, `:434`) and block the page |
 | Non-scrimmed drawer / side panel | **Do not trap.** Tab leaves the panel and continues into the page. | §5.5: "MUST omit the scrim and keep the page behind interactive" — a trap would contradict it |
-| `.csel-menu` (`:308`), `.notif-panel` (`:576`) — popovers | **Do not trap.** Arrow keys move within; Tab closes and moves on. | Popover convention `[Polaris]` |
+| `.csel-menu` (`:308`), `.notif-panel` (`:576`) — popovers | **Do not trap.** Arrow keys move within; Tab closes and moves on. | Popover convention `[recalled]` |
 
 This is not a conflict with §5.5; it is §5.5 applied. **The scrim decides the trap.** If a
 surface dims the page, it owns the keyboard. If it does not, it does not.
@@ -419,8 +416,8 @@ content. That is exactly the condition SC 2.4.1 exists for `[WCAG]`.
 #### 7.3.5 The hover-gated row actions
 
 ```css
-.ra{display:flex;gap:5px;opacity:0;transition:opacity .1s}   /* :153 */
-table.dt tr:hover .ra{opacity:1}                              /* :154 */
+.ra{display:flex;gap:5px;opacity:0;transition:opacity.1s}   /*:153 */
+table.dt tr:hover.ra{opacity:1}                              /*:154 */
 ```
 
 `.ra` appears **26 times** `[source]`, each wrapping one to three `<button>` elements —
@@ -434,8 +431,8 @@ are unreachable by anyone.
 This is §6.3 D19. **The fix is two lines:**
 
 ```css
-table.dt tr:hover .ra,
-table.dt tr:focus-within .ra { opacity: 1 }
+table.dt tr:hover.ra,
+table.dt tr:focus-within.ra { opacity: 1 }
 ```
 
 `:focus-within` matches an ancestor while any descendant holds focus, so focusing the
@@ -630,8 +627,8 @@ Two related cases:
 
 #### 7.5.1 The toast announces nothing
 
-`toast()` at `:5269` builds a `<div>`, styles it inline, and appends it to `#toast-stack`
-via `ensureToastStack()` `[source]`. Neither the toast nor the stack carries `role`,
+`toast` at `:5269` builds a `<div>`, styles it inline, and appends it to `#toast-stack`
+via `ensureToastStack` `[source]`. Neither the toast nor the stack carries `role`,
 `aria-live`, or `aria-atomic` — the file has **zero `aria-` attributes of any kind**
 `[source]`. The toast has **352 call sites** (§6.3 D7). **Every one of them is silent to a
 screen reader.**
@@ -752,9 +749,9 @@ The file contains **zero** occurrences of `prefers-reduced-motion` `[source]`.
 
 | Keyframes | Declared at | Duration | What it animates |
 |---|---|---|---|
-| `ping-pulse` (`:331`) | `:329` (`.ping-warn`), `:330` (`.ping-dead`), `:9156` (inline, calling state) | 1.4s / 0.7s / 0.7s | `opacity` 1 → .3 → 1 |
-| `live-dot` (`:342`) | `:341` (`.map-tab.active .tab-dot`) | 2s | `box-shadow` spread 3px → 6px |
-| `reqPulse` (`:145`) | `:2084` (inline), `:4811` (inline) | 1.4s | `opacity` 1 → .25 → 1 |
+| `ping-pulse` (`:331`) | `:329` (`.ping-warn`), `:330` (`.ping-dead`), `:9156` (inline, calling state) | 1.4s / 0.7s / 0.7s | `opacity` 1 →.3 → 1 |
+| `live-dot` (`:342`) | `:341` (`.map-tab.active.tab-dot`) | 2s | `box-shadow` spread 3px → 6px |
+| `reqPulse` (`:145`) | `:2084` (inline), `:4811` (inline) | 1.4s | `opacity` 1 →.25 → 1 |
 | `spin` (injected at `:8727`, `:11384`) | `:8724`, `:11380` (inline) | 0.8s | `transform:rotate` |
 
 **Two corrections to §6.3 D24.** D24 names four looping animations as `ping-pulse`,
@@ -802,12 +799,12 @@ The guard, complete:
 ```css
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
-    animation-duration: .01ms !important;
+    animation-duration:.01ms !important;
     animation-iteration-count: 1 !important;
-    transition-duration: .01ms !important;
+    transition-duration:.01ms !important;
     scroll-behavior: auto !important;
   }
-  .ping-warn, .ping-dead, .map-tab.active .tab-dot { animation: none !important }
+.ping-warn,.ping-dead,.map-tab.active.tab-dot { animation: none !important }
 }
 ```
 
@@ -907,7 +904,7 @@ subsection.
 | `.avatar` | `:68` | 30 × 30 | PASS | — |
 | `.modal-close` | `:197` | 28 × 28 | PASS | — |
 | `.csel-btn` | `:301` | h 33 | PASS | — |
-| `.csel.sm .csel-btn` | `:323` | h 29 | PASS | — |
+| `.csel.sm.csel-btn` | `:323` | h 29 | PASS | — |
 | `.field input`, `.field select` | `:252` | h 33 | PASS | — |
 | `.sb-item` | `:41` | h ≈ 33 | PASS | — |
 | `.settings-tab` | `:235` | h ≈ 40 | PASS | — |
@@ -986,7 +983,7 @@ unenforceable one.
 | **The map tile canvas** (`#map-leaflet`, `:349`) | Treated as a decorative graphic | — but a **text equivalent of everything the map conveys MUST exist beside it**, which is in scope and is §8.1's |
 | **Native mobile applications** | The scope line is desktop web | a native client ships |
 | **Print stylesheets** | None exists | one is authored |
-| **Browsers without `:focus-visible` or `:has()`** | Both are baseline in every current evergreen engine | an enterprise customer pins an older engine |
+| **Browsers without `:focus-visible` or `:has`** | Both are baseline in every current evergreen engine | an enterprise customer pins an older engine |
 
 Everything Eyvar authors *over* the map — `.map-ctrl` (`:215`), `.map-tab` (`:337`),
 `.map-fchip` (`:345`), `.map-stat` (`:365`), `.live-card` (`:351`) — is fully in scope.
@@ -1011,7 +1008,7 @@ Shift+Tab from the first control does not reach the page behind the scrim.
 ```js
 // non-native click targets — MUST be 0 (file-wide today: 253)
 $$('[onclick]').filter(e => !['BUTTON','A','INPUT','SELECT','TEXTAREA','LABEL']
-  .includes(e.tagName) && !e.hasAttribute('tabindex')).length
+.includes(e.tagName) && !e.hasAttribute('tabindex')).length
 
 // unassociated labels + unscoped headers — MUST be 0 (file-wide today: 235 + 470)
 $$('label:not([for])').filter(l => !l.querySelector('input,select,textarea')).length
@@ -1049,9 +1046,8 @@ once against each row of §6.4's surface map and re-run when that pattern change
 - MUST run the six-step review in §7.8.3 before a screen ships, and MUST record the result
   in the ticket.
 - MUST NOT close an accessibility finding on the strength of an automated scan alone.
-- MUST NOT cite a screenshot from `docs/06-design-reference/shopify-admin-web/` to close a
-  finding in §7.3, §7.4 or §7.5. A still image cannot evidence tab order, ARIA, or
-  screen-reader output.
+- MUST NOT cite a still image to close a finding in §7.3, §7.4 or §7.5. A still image cannot
+  evidence tab order, ARIA, or screen-reader output.
 - MUST run one full screen-reader pass per **pattern** in §6.4, not per screen, and MUST
   re-run it when that pattern changes.
 - SHOULD add the two console one-liners of §7.8.3 step 3 to CI, asserting `0`, once §7.4's

@@ -37,18 +37,19 @@ those.
 | How a screen must look | `docs/05-restructure/design/` |
 | What the backend must return | `docs/07-api/` (generated) |
 | Every string key | `docs/08-i18n/KEYS.md` (generated) |
-| How the legacy app behaved | `eyvar_ops_panel_v40_fixed.html`: grep the page id, read the render function, cite the line |
-| Visual reference | Navattic frames in `docs/06-design-reference/navattic-web/` govern colour, spacing, radii and type (D7). Shopify captures in `shopify-admin-web/` govern structure only |
+| What the original prototype does | `eyvar_ops_panel_v40_fixed.html`: grep the page id, read the render function, cite the line |
+| Colour, spacing, radii and type | The token layer: `src/styles/globals.css` and `docs/ref/tokens.md`. It is the visual authority (D7) |
 
 Precedence in one line: owner overrides and decisions in `docs/RULINGS.md`, then the
 `DESIGN.md` Rulings table, then §6.2 sanctioned deviations, then §7–§9, then §1–§5. In the
-report builder and metric boards, Amplitude fidelity outranks `DESIGN.md` where they conflict.
+report builder and metric boards, the specs in `docs/05-restructure/specs/` outrank `DESIGN.md`
+where they conflict.
 
-## Current phase
+## Working on this codebase
 
-The 41-page rebuild is complete. Work now is remediation and UX polish on feature branches.
-The Phase 0 freeze on `components.json` and `src/components/ui/` is over: add a shadcn
-primitive when a screen needs it, restyle it on arrival, and say so in the handoff.
+Work happens on feature branches: one screen or one defect per branch. `components.json` and
+`src/components/ui/` are open — add a shadcn primitive when a screen needs it, restyle it to
+the tokens on arrival, and say so in the handoff.
 
 ## The rules that bite
 

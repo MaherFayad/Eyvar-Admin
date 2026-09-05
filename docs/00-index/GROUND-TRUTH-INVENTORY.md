@@ -1017,8 +1017,8 @@ silently excluded most of the system. To avoid repeating it:
 4. Treat a 100% result against fewer than ~2,470 symbols as evidence the
    universe is wrong, not that coverage is complete.
 
-Coverage measured against §J: **2,470 / 2,470 (100%)** after the Pass 1
-remediation cycle. See `docs/02-verification/remediation-log.md`.
+Coverage measured against §J: **2,470 / 2,470 (100%)**. A coverage figure is only as good
+as the symbol universe it is measured against, so re-derive §J before quoting it.
 
 ---
 

@@ -1,12 +1,13 @@
 # DESIGN.md — Eyvar Admin Design Rules
 
 **Status:** binding for all new UI work in this repo.
-**Source of truth — two sets, and they govern different things (`DECISIONS.md` D7):**
 
-| Set | Governs | Where |
-|---|---|---|
-| **Navattic** — 15 frames | **Everything visual.** Colour, spacing, radii, borders, type scale, page organisation, nav treatment, card treatment, table style and the spacing inside it. | [`docs/06-design-reference/navattic-web/`](docs/06-design-reference/navattic-web/) |
-| **Shopify admin (Polaris)** — 159 screenshots | **Structure only**, and the derivation trail behind §1–§5. It no longer governs a single visual value. | [`docs/06-design-reference/shopify-admin-web/`](docs/06-design-reference/shopify-admin-web/) |
+**Where the authority sits (`DECISIONS.md` D7).** Colour, spacing, radii, borders, type
+scale, nav treatment, card treatment, table style and the spacing inside it are settled by
+the **token layer**: `src/styles/globals.css`, summarised in
+[`docs/ref/tokens.md`](docs/ref/tokens.md). Everything else — which page shape a screen
+takes, what a pattern owes, how a state behaves — is settled here, in §6 onward, and by the
+Rulings table.
 
 **Scope:** desktop web admin surfaces of Eyvar Admin.
 
@@ -71,7 +72,7 @@
   - [7.6 Motion and autoplay](#76-motion-and-autoplay)
   - [7.7 Targets and density](#77-targets-and-density)
   - [7.8 Conformance target](#78-conformance-target)
-- [8. Patterns Shopify Does Not Cover](#8-patterns-shopify-does-not-cover)
+- [8. Patterns the baseline does not cover](#8-patterns-the-baseline-does-not-cover)
   - [8.1 Real-time monitoring surfaces](#81-real-time-monitoring-surfaces)
   - [8.2 Derived and computed values](#82-derived-and-computed-values)
   - [8.3 Money and ledgers](#83-money-and-ledgers)
@@ -88,54 +89,48 @@
   - [9.7 The untokenised width](#97-the-untokenised-width)
   - [9.8 Review checklist](#98-review-checklist)
 
-## How this document was built
+## How to read a claim
 
-Every rule in §1–§5 was derived by reading the screenshots — not by recalling Polaris
-docs. Claims are tagged so you can tell them apart:
+§1–§5 are the baseline chapters this document inherited. They are descriptive, and each
+claim is tagged so you can tell how much weight it carries:
 
-- `[observed]` — visible in a screenshot cited on the same line. Trust it.
-- `[Polaris]` — knowledge of the Shopify design system that these screenshots do **not**
-  prove. Useful, but verify before relying on it for anything load-bearing.
+- `[observed]` — evidenced on the line that carries it. Trust it.
+- `[recalled]` — general design-system knowledge that the evidence does **not** prove.
+  Useful, but verify before relying on it for anything load-bearing.
 - `[inferred]` / `[standard]` — reasoned from evidence or from established practice.
   Weakest tier. Never cite one of these to win an argument.
 
-Five independent analysts each took one layer (foundations, layout, data display, forms,
-feedback) and read 25–68 screens apiece. Two auditors then attacked the result: one
-re-opened the screenshots to falsify the `[observed]` claims, one checked every statement
-about Eyvar's codebase against the source and hunted for rule conflicts. Three further
-authors wrote §7–§9, which cover ground Shopify has no answer for. Corrections from both
-audits are folded in; §6.5 records what was found wrong.
+§6.5 records what an audit found wrong. §7–§9 are written for Eyvar directly and carry no
+tags, because nothing in them is inherited.
 
 ## What each section is
 
 | § | Contains | Binding on Eyvar? |
 |---|---|---|
-| 1–5 | **How Shopify does it.** Descriptive, evidenced from screenshots. | Only where §6 adopts it. |
+| 1–5 | **The inherited baseline.** Descriptive, tagged by evidence. | Only where §6 adopts it. |
 | 6 | **The translation to Eyvar** — sanctioned deviations, defects, page map. | Yes. |
 | 7 | **Accessibility.** | Yes. |
-| 8 | **Patterns Shopify does not cover** — real-time, computed values, money, queues. | Yes. |
+| 8 | **Patterns the baseline does not cover** — real-time, computed values, money, queues. | Yes. |
 | 9 | **Bidirectionality & localisation.** | Yes. |
 
-## What D7 changed, and what it did not
+## What D7 settles, and what it does not
 
-The business owner replaced the **visual** reference. `DECISIONS.md` **D7** is the decision;
-`docs/05-restructure/design/03-navattic-language.md` is the specification that implements it,
-and **it holds the token set** — read that before you read §1's colour or §6.1's inventory.
+**Settled by the token layer.** The visual content of §1–§5 — colour, spacing, radii,
+borders, type scale, page organisation, nav treatment, card treatment, table style — and
+§6.1's token values. Read `src/styles/globals.css` before you read §1's colour or §6.1's
+inventory; where the two disagree the stylesheet is right.
 
-**Replaced.** The visual content of §1–§5 — colour, spacing, radii, borders, type scale,
-page organisation, nav treatment, card treatment, table style — and §6.1's token values.
-
-**Untouched, and this is not negotiable.** §7 accessibility, §8 the patterns Shopify never
-covered, §9 bidirectionality. None of the three was ever Shopify-specific. Every contrast
-ratio, focus ring, logical property and required state still binds. **A re-skin that drops a
-ratio is a failed re-skin** — where a sampled Navattic colour fails §7, the design spec gives
-the nearest compliant value with its arithmetic rather than shipping the sample.
+**Not touched, and this is not negotiable.** §7 accessibility, §8 the patterns the baseline
+never covered, §9 bidirectionality. Every contrast ratio, focus ring, logical property and
+required state still binds. **A re-skin that drops a ratio is a failed re-skin** — a colour
+that fails §7 is replaced by the nearest compliant value, with the arithmetic recorded next
+to the token.
 
 **The precedence ladder below is unchanged.**
 
-**§1–§5's screenshot citations are provenance, not authority.** They are kept so the
-derivation stays auditable — you can still open the cited frame and check what the analyst
-saw. You may not cite one to settle what Eyvar ships. Each of §1–§5 says so at its head.
+**§1–§5's citations are provenance, not authority.** They are kept so the derivation stays
+auditable. You may not cite one to settle what Eyvar ships. Each of §1–§5 says so at its
+head.
 
 ## Precedence
 
@@ -148,10 +143,10 @@ Rulings table (R1–R19)   ←  highest. Settles conflicts the sources leave ope
         ↑
 §7, §8, §9   ←  Eyvar-specific law. Overrides §1–§5 within its subject.
         ↑
-§1–§5   ←  Shopify as observed. The default when nothing above speaks.
+§1–§5   ←  the inherited baseline. The default when nothing above speaks.
 ```
 
-A MUST in §1–§5 is a description of Shopify, not an order to Eyvar, unless §6 adopts it.
+A MUST in §1–§5 describes the baseline, not an order to Eyvar, unless §6 adopts it.
 Where §6.2 suspends a rule, it names the rule. Where §7–§9 override one, they say so
 inline. If you find a collision this ladder does not settle, that is a defect in this
 document — file it, do not guess.
@@ -204,7 +199,7 @@ with the primary last. No breadcrumbs beyond the top bar's `Title > Subtitle` (�
 
 **Surfaces (D7).** **The content region is white and so is a card** — a card is carried by
 its 1px `--ev-hairline` border and its 8px radius, not by a fill step. The only greys are
-the two nav columns (`--ev-bg-nav`) and the one subdued fill `--ev-bg2` `#f5f7f9`, which
+the nav grounds (`--ev-bg-nav`, `--ev-bg-rail`) and the one subdued fill `--ev-bg2`, which
 does six jobs: table header row, filter-chip strip, card section header, promo band, inner
 empty panel, avatar fill. One card per concern. Hairlines are 1px, not `.5px` (§6.3 D17).
 
@@ -214,13 +209,11 @@ the chart series and selection — **never a text colour on a tinted ground** (4
 `--ev-bg2`). Links = `--ev-blue-dk` + underline, never bare blue. Red appears in exactly four
 places and nowhere else (R5a). Five badge tones, no red badge (R7).
 
-**Type (D7).** 13px body — Navattic's body size, so this is no longer a deviation. Page
-title **22px**. Card title 17px. Secondary 12px. Hierarchy comes from weight, not size.
+**Type (D7).** 13px body, set by `--text-xs` in the token layer. Page title **22px**. Card title 17px. Secondary 12px. Hierarchy comes from weight, not size.
 Labels are not hints - a field label is body size at full contrast (§6.3 D22). No uppercase,
 no letter-spacing on labels, nav section headings or table headers (§6.3 D18).
 
-**Tables (D7).** **Columns carry vertical 1px hairlines** — Navattic rules its columns and
-Shopify does not. Header row 32px on `--ev-bg2` with 12px sentence-case labels. Rows 40px
+**Tables (D7).** **Columns carry vertical 1px hairlines.** Header row 32px on `--ev-bg2` with 12px sentence-case labels. Rows 40px
 (56px with an avatar or a second line). Cell padding 12px inline. Numbers right-aligned with
 tabular figures, in every locale (R4, §9.2). Row height uniform. Row actions visible to the
 keyboard, never hover-only (§6.3 D19). Ledgers are append-only: no row actions, no bulk
@@ -244,37 +237,36 @@ live", opacity-only, and it may never encode severity (R18).
 do not mirror (§9.2).
 
 **Before you write CSS:** the value must be a `--ev-*` token in `src/styles/globals.css`,
-and **the complete post-D7 token set — every value, with its measurement or its derivation —
-is `docs/05-restructure/design/03-navattic-language.md` §1.** §6.1's legacy inventory is
-historical; §6.6 closed the "these categories are frozen" rule when the stack was adopted.
-Tailwind's own palette is **not** a token set: `bg-blue-500` bypasses `--ev-*` while looking
-legitimate (§6.6).
+and **that file is the complete token set** — every value carries its measurement or its
+derivation in a comment beside it. `docs/ref/tokens.md` is the readable summary. §6.1's
+inventory is provenance, not authority. Tailwind's own palette is **not** a token set:
+`bg-blue-500` bypasses `--ev-*` while looking legitimate (§6.6).
 
 ## Rulings on contested points
 
-The sources genuinely disagree in places — Shopify ships more than one answer, and the
-analysts inherited the contradiction. Each ruling below settles one. These are decisions,
-not observations; overturn them deliberately, in writing, by editing this table.
+The inherited sections contradict each other in places. Each ruling below settles one
+collision for Eyvar. These are decisions, not observations; overturn them deliberately, in
+writing, by editing this table.
 
 | # | Conflict | Ruling for Eyvar |
 |---|---|---|
-| R1 | Two banner families ship: a saturated split-strip banner in the store admin, a soft tinted card in account/auth — §5.2 | Use the **soft tinted card** everywhere. It reads better at Eyvar's smaller type sizes, survives a future dark mode, and does not lock text to white-on-colour. |
-| R2 | The contextual save bar uses a green primary in account settings, a neutral one in the store admin. §2.3 additionally recommends a *light* Save, derived from Shopify's dark top bar — Eyvar's top bar is white, so a light Save would be invisible — §2.3, §4.6 | **AMENDED BY D7.** Save is **the same primary as every other primary**, and under D7 that primary is **near-black `--ev-ink`**, not brand blue. Never green, never white-on-white. The reasoning is untouched; one colour name changed. The §2.3 "light Save" recommendation does not apply to Eyvar and is void. |
-| R3 | Shopify's primary action is near-black `#303030` and reserves blue strictly for links — §1.1.4, §4.6 | **REWRITTEN BY D7 — the old ruling is void, do not cite it.** D7 kills §6.2 **D-1**, so brand blue is no longer the primary action colour. Navattic's primary button measures **`#0C1116`**, a cool near-black, so §1.1.4 and §4.6's near-black MUSTs — which the old R3 declared non-binding — now describe Eyvar too: **the primary action is `--ev-ink`.** The old ruling's *second* half survives on new evidence: `--ev-blue` `#2b6ef0` is **4.574 : 1** on white and **4.259 : 1** on `--ev-bg2`, so it cannot carry 13px text on a tinted ground. Links still take **`--ev-blue-dk` plus an underline** — no longer because blue is spoken for, but because blue is not a compliant text colour. Blue's remaining roles: focus ring, chart series, selection. Measurements: `design/03-navattic-language.md` §1.3, §7. |
+| R1 | §5.2 carries two banner families: a saturated split-strip and a soft tinted card | Use the **soft tinted card** everywhere. It reads better at Eyvar's smaller type sizes, survives a future dark mode, and does not lock text to white-on-colour. |
+| R2 | §2.3 and §4.6 give the contextual save bar two different primaries, and §2.3 additionally recommends a *light* Save — which was derived for a dark top bar. Eyvar's top bar is white, so a light Save would be invisible | **AMENDED BY D7.** Save is **the same primary as every other primary**. Never green, never white-on-white. Save is not special, and that is the whole rule. The §2.3 "light Save" recommendation does not apply to Eyvar and is void. |
+| R3 | §1.1.4 and §4.6 put the primary action in near-black and reserve blue strictly for links, while §6.2 D-1 made brand blue the primary | **REWRITTEN BY D7.** D7 kills §6.2 **D-1**: brand blue is no longer the primary action colour, and §1.1.4 and §4.6's near-black MUSTs now describe Eyvar too. **The primary action is the `--primary` slot, and nothing else on the screen is filled.** Blue is not a compliant text colour here — `--ev-blue` `#2b6ef0` measures **4.574: 1** on white and **4.259: 1** on `--ev-bg2`, so it cannot carry 13px text on a tinted ground. Links take **`--ev-blue-dk` plus an underline**. Blue's remaining roles: the info tone and a link on white. Values and their arithmetic: `src/styles/globals.css`. |
 | R4 | Numeric columns are right-aligned on orders/discounts, left-aligned on customers — §3.1 | **Always right-align numeric, currency, and count columns**, with tabular figures. The customers index is the outlier. In Arabic this alignment does **not** flip — see §9.2. |
-| R5 | No critical/red badge appears in any of the 159 screens; red is reserved for destructive buttons — §3.4, §1.7 | **No red badge for ordinary lifecycle state.** Critical page-level state is a banner; critical *row-level* state in a work queue is the documented exception — see §8.4, which defines the only sanctioned row-critical treatment. Eyvar's 49 existing `b b-red` usages are a defect (§6.3 D11), not a precedent. |
-| R6 | Copy is inconsistent in one place — a missing trailing period on an empty-state line — §3.6, §5.7 | Do not copy typos. Full sentences take a period; fragments, labels and button text do not. The governing rule is §5.7. |
+| R5 | §3.4 and §1.7 leave no critical/red badge tone at all, and reserve red for destructive buttons | **No red badge for ordinary lifecycle state.** Critical page-level state is a banner; critical *row-level* state in a work queue is the documented exception — see §8.4, which defines the only sanctioned row-critical treatment. A `b b-red` badge in the prototype is a defect (§6.3 D11), not a precedent. |
+| R6 | §3.6 and §5.7 punctuate an empty-state line two different ways | Full sentences take a period; fragments, labels and button text do not. The governing rule is §5.7. |
 | R7 | The badge palette is specified three ways: six tones (§1.1.5), five tones (§3.4), and "no critical at all" (R5) | The palette is **five tones: success, warning, info, neutral, new**. There is no critical badge tone (R5). "New" is a tone; §3.4's five-item list is superseded by this one. Any sixth tone requires an edit to this row. |
 | R8 | Empty states: §1.5 and §5.7 require an illustration unconditionally; §3.6 forbids one in an empty card; §3.8 forbids one in a timeline | Illustration **only** on a whole-page, zero-records-ever empty state. An empty card, section, timeline, or filtered-to-zero result gets one grey sentence and, where an action exists, one plain-button action — no illustration, no heading. §3.6's "emptiness is meaningful" exception is void: it was untestable. |
 | R9 | Toast length: §5.1 caps a toast at "≤ ~5 words", while §5.1 and §5.7 both require echoing the object's exact name | The **echo wins**. A toast is one line that names the object exactly, capped at 60 characters; past that, truncate the object name with an ellipsis, never the verb. The five-word cap is void. |
 | R10 | Toast vs banner: §5.0 says pair them when there is a next step; §4.4 says prefer a toast over a persistent banner; §5.2 forbids a banner where a toast would do | One event, one surface, decided by lifetime: **transient confirmation → toast; standing condition or a next step the user must act on → banner**. Pair the two only when the action both completed *and* left a standing condition, and never show more than one page-level banner. |
-| R11 | The left nav is measured at 240px (§1 calibration), 256px (§2.1), and 232px (§6.1) | The Shopify figure is **~240px**, the calibration constant. §2.1's 256px and §6.1's 232px are estimation error, not disagreement about the product. This does not bind Eyvar, whose rail is 52/236px by §6.2 D-4. **SPENT UNDER D7:** it reconciles three measurements of a nav that no longer governs anything. Kept, not deleted — renumbering this table would break every citation of it. |
+| R11 | The inherited left nav is stated at 240px (§1 calibration), 256px (§2.1) and 232px (§6.1) | The figure is **~240px**, the calibration constant; §2.1's 256px and §6.1's 232px are estimation error, not three different navs. **None of it binds Eyvar**, whose rail widths are tokens (§6.2 D-4). **SPENT UNDER D7.** Kept, not deleted — renumbering this table would break every citation of it. |
 | R12 | §1.6 issues six motion MUSTs, then states that all of it is inferred and none observed | §1.6 is **demoted to SHOULD in full** and is not citable in review. Motion that actually binds Eyvar is §7.6 (reduced motion) and §8.1 (ambient/looping animation). |
-| R13 | The same 768x523 captures are calibrated four different ways in four section preambles: 1.875x, 2x of a 1536px viewport, 1.93x, and 0.53x. Every pixel figure in the document inherits one of the four; the 2x reading made all of §2 about 6% high | **One calibration: the measured scale is ~1.90x.** More importantly: **every px figure in §1-§5 is indicative, not binding.** The screenshots cannot support exact measurement, so what binds is the *relationship* (nav narrower than content, card radius larger than badge radius, the 4px grid) and, for Eyvar, the token values in §6.1. Never cite a §1-§5 pixel number in review. Where a figure was individually re-measured and named in a ruling (the drawer widths, the popover width, the card radius), that figure stands as measured and is not rescaled. **STRENGTHENED BY D7:** §1-§5's px figures now describe a product that does not govern Eyvar at all, so they are doubly non-binding. The carve-out survives as a rule about *rescaling*, but **the three figures it names were re-measured against Navattic and two of them moved** - drawer **406 -> 480**, card radius **12 -> 8**; the popover width is not evidenced in the new set and is unchanged. `design/03-navattic-language.md` §1.4. |
-| R14 | `Paid` ships as a green badge in billing history and a grey one on orders - and §3.4 states a MUST that the same label never changes tone | **`Paid` is success (green).** The "same label, same tone" rule stands; Shopify breaks it, Eyvar does not. |
-| R15 | Badge, toast and avatar geometry is stated two ways: §1.4 says rounded rectangles (~8px) and never circles; §3.4 says fully-rounded pills, §5.1 says a rounded pill, §3.8 says a circular avatar | **Rounded rectangles.** Badges and toasts are rounded rectangles, not stadium pills — the badge radius is **4px**, the card and control radius **8px**, so the ladder §1.4 asserts survives. Eyvar's existing `border-radius:999px` badges (`:117`) are a defect under this ruling. **THE AVATAR CLAUSE IS KILLED BY D7.** "~30px rounded squares, never circles" is falsified: Navattic's identity avatar is a **32px circle**, and this is measured rather than eyeballed — the horizontal inset one destination pixel below the top edge is 5px, which a 9-destination-px-radius **circle** predicts at 4.88 and an 8px rounded square predicts at 1.54. **Avatars are 32px circles.** `design/03-navattic-language.md` §4.5, §6. |
-| R16 | §1.1.5 has a MUST that info banners carry "no coloured strip at all... not as a blue fill" - falsified by the document's own evidence, which shows a `#EDF4FF` fill | **All four banner tones are pale tinted cards** (this is R1 applied consistently). The §1.1.5 MUST is void. |
-| R17 | Shopify ships two warning fills - peach `#F4D6B1` for `Payment pending`, yellow `#F6EA98` for `Unfulfilled` - which §1.1.5 collapses into one tone without saying so | **Eyvar has one warning tone** (the five-tone palette of R7). Where a surface needs to separate "waiting on someone else" from "waiting on you", separate them with the *label*, not a second fill. |
+| R13 | The evidence behind §1–§5 is calibrated four different ways in four section preambles: 1.875x, 2x of a 1536px viewport, 1.93x and 0.53x. Every pixel figure in the document inherits one of the four, and the 2x reading makes all of §2 about 6% high | **One calibration: the measured scale is ~1.90x.** More importantly: **every px figure in §1-§5 is indicative, not binding.** The evidence cannot support exact measurement, so what binds is the *relationship* (nav narrower than content, card radius larger than badge radius, the 4px grid) and, for Eyvar, the token layer. Never cite a §1-§5 pixel number in review. Where a figure was individually re-measured and named in a ruling (the drawer widths, the popover width, the card radius), that figure stands as measured and is not rescaled. **STRENGTHENED BY D7:** §1-§5's px figures describe a baseline that does not govern Eyvar's surface at all, so they are doubly non-binding. The carve-out survives as a rule about *rescaling*, but **two of the three figures it names moved when they were re-measured** - drawer **406 -> 480**, card radius **12 -> 8**; the popover width is unchanged. The live geometry is the token layer. |
+| R14 | The inherited sections give `Paid` a green badge in one place and a grey one in another, while §3.4 states a MUST that the same label never changes tone | **`Paid` is success (green).** The "same label, same tone" rule stands, and Eyvar keeps it. |
+| R15 | Badge, toast and avatar geometry is stated two ways: §1.4 says rounded rectangles (~8px) and never circles; §3.4 says fully-rounded pills, §5.1 says a rounded pill, §3.8 says a circular avatar | **Rounded rectangles.** Badges and toasts are rounded rectangles, not stadium pills — the badge radius is **4px**, the card and control radius **8px**, so the ladder §1.4 asserts survives. A `border-radius:999px` badge is a defect under this ruling. **THE AVATAR CLAUSE IS KILLED BY D7.** "~30px rounded squares, never circles" does not hold: **an identity avatar is a 32px circle**, and that is measured rather than eyeballed — the horizontal inset one pixel below the top edge is 5px, which a 9px-radius **circle** predicts at 4.88 and an 8px rounded square predicts at 1.54. **Avatars are 32px circles** for a person, 8px rounded squares for a non-person identity. |
+| R16 | §1.1.5 has a MUST that info banners carry "no coloured strip at all... not as a blue fill", contradicted by the evidence cited on its own line, which shows a pale blue fill | **All four banner tones are pale tinted cards** (this is R1 applied consistently). The §1.1.5 MUST is void. |
+| R17 | The inherited evidence carries two warning fills — a peach and a yellow, on two different waiting states — which §1.1.5 collapses into one tone without saying so | **Eyvar has one warning tone** (the five-tone palette of R7). Where a surface needs to separate "waiting on someone else" from "waiting on you", separate them with the *label*, not a second fill. |
 | R5a | R5 sends critical state to a page-level banner, but a work queue's critical state is **per row**, and §5.2 forbids stacking banners - so the document had no legal way to render "this row is breached", which is the entire point of the screen. Raised and solved in §8.4.6 | R5 stands - no red badges. It is **amended** to enumerate the complete set of permitted red uses: (1) a destructive button, (2) one page-level critical banner, (3) a breached-row leading-edge marker (a 3px inset edge, not a pill - it cannot be mistaken for a badge tone), (4) a map marker. A breached row also carries the word `overdue`, so colour is never the only carrier. Any fifth use of red needs a row in §6.2. |
 | R18 | §1.6 caps every UI transition at 300ms, which makes every ambient looping animation in the product illegal - including the "feed is live" dot, which is load-bearing on a monitoring screen. Raised and solved in §8.1.6 | §1.6 governs **transitions only**. Ambient loops are a separate class with a narrow licence: permitted **only** to signal "this feed is live", opacity-only, 1200-2500ms, never dropping below 0.4 opacity, and **never encoding severity**. This kills `live-dot` (`:342`), `ping-pulse` (`:331`) and `reqPulse` (`:145`) as currently written. |
 | R19 | §6.4’s “no new colour token” rule and §7’s 3:1 non-text contrast requirement collide on the **unchecked** checkbox and radio. Their boundary is `--ev-hairline` on white, which measures below 3:1, and the token set holds no darker neutral. Raised in 0.4 as **R-4**. | **§7 wins; one neutral is licensed.** `--ev-hairline-strong`, used **only** for the resting boundary of an unchecked control — checkbox, radio, and any future control whose entire affordance *is* its outline. It is not a border token, not a divider, not a hover state, and it never appears on a surface that already carries a `--border`. The “no new colour” rule exists to stop palette drift, not to license a control the operator cannot see, and a control boundary is precisely what WCAG 2.2 non-text contrast was written for. Any second use of it needs a row in §6.2. |
@@ -287,41 +279,21 @@ not observations; overturn them deliberately, in writing, by editing this table.
 
 > ### ⚠ D7 — this section is PROVENANCE, not authority
 >
-> `DECISIONS.md` **D7** replaced the **visual** reference. Navattic governs colour, spacing,
-> radii, borders, the type scale, page organisation, nav treatment, card treatment and table
-> style. **Everything visual below describes Shopify and no longer describes what Eyvar
-> ships.**
->
-> The screenshot citations are **kept on purpose**: they are what makes the derivation
-> auditable — open the cited frame and you can check what the analyst saw. **They may not be
-> cited to settle what Eyvar ships.** For that, read
-> `docs/05-restructure/design/03-navattic-language.md`, whose §1 holds the complete token set
-> with every value's measurement or derivation.
+> **Nothing visual below describes what Eyvar ships.** Colour, spacing, radii, borders, the
+> type scale, nav treatment, card treatment and table style are settled by the token layer,
+> `src/styles/globals.css`, summarised in `docs/ref/tokens.md`.
 >
 > What still binds from this section is **structure** — what a page is made of, what goes in
 > a header, what a state is for — and only where §6 adopts it. Every pixel figure was already
 > non-binding under **R13**; under D7 it is non-binding twice over.
-
-
-> **Source & method.** Everything below was derived by reading 33 screenshots in
-> `docs/06-design-reference/shopify-admin-web/` spread across all 16 folders (auth, home, orders,
-> products, customers, online store, marketing, analytics, finances, discounts, settings, apps,
-> notifications, shortcuts, global search, account).
 >
-> **Measurement scale — R13, the single calibration for the whole document.** Every capture is
-> exactly **768 × 523 px**, of which the bottom ~50 px is the Mobbin watermark strip; the UI area is
-> 768 × ~473 px. The measured scale is **≈1.90×** (top-bar bottom edge at y≈29–30 for a 56 px bar;
-> nav/content boundary at x≈129 for a ~245 px nav). §1's earlier 1.875×, §2's 2×/1536 px, §3's 1.93×
-> and §4's 0.53× are all superseded by this one figure. All "px" numbers below are **CSS px at a
-> ~1460 px viewport**, converted from measured image pixels, and are therefore **approximations**
-> (±2 px). **Px figures in §1–§5 are indicative, not binding.** Where a finding or a contradiction
-> ruling names a specific corrected figure, that named figure governs.
+> **Claim marking.** `[observed]` = measurable in the evidence cited on that line.
+> `[recalled]` = general design-system knowledge, **not** verifiable here.
+> Where the two disagree, the `[observed]` value wins.
 >
-> **Claim marking.** `[observed]` = visibly measurable in a screenshot cited on that line.
-> `[Polaris]` = recalled from the Polaris design system, **not** verifiable in these captures.
-> Where the two disagree, the `[observed]` value wins for Eyvar Admin.
->
-> The Mobbin watermark strip at the bottom of every capture is not product UI and was ignored.
+> **All "px" numbers below are approximations** (±2 px), converted from measured image
+> pixels at a ~1460 px viewport under one calibration of ≈1.90× (R13). Where a ruling names
+> a specific corrected figure, that named figure governs.
 
 ---
 
@@ -332,21 +304,21 @@ not observations; overturn them deliberately, in writing, by editing this table.
 The admin is built from exactly **three** neutral layers plus one inverted layer. There is no
 "white page" — the canvas is always a light grey and cards are always white on top of it.
 
-| Token (proposed) | Value (approx.) | Where seen | Evidence |
-|---|---|---|---|
-| `bg-canvas` — page background `[Polaris]` (name) / value `[inferred]` | `#F1F1F1` warm light grey — sampled | Behind every card on every page | `03-products/products-list-default.webp`, `08-finances/finances-overview-earnings-donut-and-payouts.webp` |
-| `bg-surface` — card background `[Polaris]` (name) / value `[inferred]` | `#FFFFFF` | Every card, table, popover, modal, auth card | `02-orders/order-detail-paid-fulfilled-gift-card.webp`, `00-auth/login-password-step-empty.webp` |
-| `bg-nav` — sidebar `[inferred]` | **`#EBEBEB`** — one step **darker** than the canvas, not the same colour. Sampled on both sides of the x≈129 boundary: nav `#EBEBEB`, canvas `#F1F1F1`. There is still **no border, divider or shadow** between them — the step is tonal only | Left nav on all admin pages | `03-products/products-list-default.webp`, `09-discounts/discounts-list-with-code.webp`, `02-orders/orders-list-with-metrics-row.webp`, `08-finances/finances-overview-earnings-donut-and-payouts.webp`, `04-customers/customers-list-single-customer.webp` |
-| `bg-nav-selected` `[inferred]` | `#FFFFFF` rounded pill + hairline/very soft shadow | "Products" / "Customers" / "Analytics" active nav item — and, contrary to §2.1's earlier claim, **nested** active items too (see §2.1) | `03-products/products-list-default.webp`, `07-analytics/analytics-dashboard-saved-toast-last-7-days.webp`, `03-products/inventory-quantities-by-variant.webp` |
-| `bg-surface-secondary` `[inferred]` | ~`#F7F7F7`–`#FAFAFA` | Nested sub-blocks inside cards (fulfillment line-item block, the "This app needs to" strip on the install screen) | `11-apps-and-channels/app-install-permissions-consent.webp` |
-| `bg-inverse` — dark top bar `[Polaris]` (name) / value `[inferred]` | `#1A1A1A`–`#1C1C1C` near-black | Global top bar on every admin page; contextual save bar; toasts | `03-products/products-list-default.webp`, `15-account/account-general-unsaved-changes.webp` |
-| `bg-inverse-field` `[inferred]` | ~`#303030` (one step lighter than the bar) | The global search field sitting inside the dark top bar | `02-orders/orders-list-with-metrics-row.webp` |
-| `bg-backdrop` — modal scrim `[inferred]` | Black at ~40–50% opacity (canvas goes `#EBEBEB` → ~`#777777` behind a modal) | Behind confirm modals, the settings modal, the global search modal | `03-products/products-list-archive-confirm-modal.webp`, `10-settings/settings-store-details-edit-profile-modal.webp` |
+| Token (proposed) | Value (approx.) | Where seen |
+| --- | --- | --- |
+| `bg-canvas` — page background `[recalled]` (name) / value `[inferred]` | `#F1F1F1` warm light grey — sampled | Behind every card on every page |
+| `bg-surface` — card background `[recalled]` (name) / value `[inferred]` | `#FFFFFF` | Every card, table, popover, modal, auth card |
+| `bg-nav` — sidebar `[inferred]` | **`#EBEBEB`** — one step **darker** than the canvas, not the same colour. Sampled on both sides of the x≈129 boundary: nav `#EBEBEB`, canvas `#F1F1F1`. There is still **no border, divider or shadow** between them — the step is tonal only | Left nav on all admin pages |
+| `bg-nav-selected` `[inferred]` | `#FFFFFF` rounded pill + hairline/very soft shadow | "Products" / "Customers" / "Analytics" active nav item — and, contrary to §2.1's earlier claim, **nested** active items too (see §2.1) |
+| `bg-surface-secondary` `[inferred]` | ~`#F7F7F7`–`#FAFAFA` | Nested sub-blocks inside cards (fulfillment line-item block, the "This app needs to" strip on the install screen) |
+| `bg-inverse` — dark top bar `[recalled]` (name) / value `[inferred]` | `#1A1A1A`–`#1C1C1C` near-black | Global top bar on every admin page; contextual save bar; toasts |
+| `bg-inverse-field` `[inferred]` | ~`#303030` (one step lighter than the bar) | The global search field sitting inside the dark top bar |
+| `bg-backdrop` — modal scrim `[inferred]` | Black at ~40–50% opacity (canvas goes `#EBEBEB` → ~`#777777` behind a modal) | Behind confirm modals, the settings modal, the global search modal |
 
 > **All hex values in §1.1 are sampled from compressed, downscaled WebP captures and are
-> approximations, not tokens — hence `[inferred]`.** The token *names* are `[Polaris]` (recalled from
-> the design system, not visible in any capture). Sample from a live product or the Polaris token
-> package before committing a value.
+> approximations, not tokens — hence `[inferred]`.** The token *names* are `[recalled]` (recalled from
+> the design system, not sampled). Nothing here is a token; Eyvar's tokens are in
+> `src/styles/globals.css`.
 
 The nav is a *near*-canvas grey: one tonal step darker, with nothing drawn between the two columns.
 The "panel" reads as a panel because of that step **plus** the white pill on the selected item — but
@@ -354,23 +326,23 @@ it is emphatically not a contrasting sidebar fill.
 
 #### 1.1.2 Text colors
 
-| Token (proposed) | Value (approx.) | Used for | Evidence |
-|---|---|---|---|
-| `text` `[Polaris]` (name) / value `[inferred]` | `#303030` near-black (never pure `#000`) — note this is **body text only**; the primary *button* fill is a different value, `#3E3E3E` (§1.1.4) | Page titles, card headings, table cell primary values, body copy | `03-products/products-list-default.webp` |
-| `text-secondary` `[Polaris]` (name) / value `[inferred]` | `#616161` medium grey | Table column headers, helper text under fields, timestamps, card subtitles, nav section labels | `04-customers/customer-new-form-empty.webp` ("This customer will receive notifications…"), `02-orders/orders-list-with-metrics-row.webp` (column headers) |
-| `text-disabled` `[Polaris]` (name) / value `[inferred]` | `#B5B5B5` light grey | Disabled button labels ("Send invoice", "Post", greyed "Export"), disabled checkbox labels, empty-cell em-dashes | `02-orders/draft-order-validation-error-banner.webp`, `09-discounts/discounts-empty-state.webp`, `04-customers/customer-new-form-empty.webp` |
-| `text-inverse` `[inferred]` | `#FFFFFF` / ~`#E3E3E3` for secondary on dark | Top bar labels, toast text, primary-button labels | `03-products/products-list-default.webp` |
-| `text-link` `[inferred]` | Strong blue ~`#005BD3` | Inline links — "Learn more", "process of erasure requests", the customer email address on a customer row, "tax rates", the blue product title in a picked-resource row | `04-customers/customer-detail-erasure-request-banner.webp`, `04-customers/customers-list-single-customer.webp`, `02-orders/order-fulfill-item-page.webp` |
-| `text-critical-inline` `[inferred]` | Red-brown ~`#825F62`–`#76584D` | Low-stock inventory counts in the products index — **"0 in stock" / "5 in stock" are not blue links**, they are a critical low-stock tone; the trailing qualifier ("for 24 variants") stays subdued grey | `03-products/products-list-default.webp` |
+| Token (proposed) | Value (approx.) | Used for |
+| --- | --- | --- |
+| `text` `[recalled]` (name) / value `[inferred]` | `#303030` near-black (never pure `#000`) — note this is **body text only**; the primary *button* fill is a different value, `#3E3E3E` (§1.1.4) | Page titles, card headings, table cell primary values, body copy |
+| `text-secondary` `[recalled]` (name) / value `[inferred]` | `#616161` medium grey | Table column headers, helper text under fields, timestamps, card subtitles, nav section labels |
+| `text-disabled` `[recalled]` (name) / value `[inferred]` | `#B5B5B5` light grey | Disabled button labels ("Send invoice", "Post", greyed "Export"), disabled checkbox labels, empty-cell em-dashes |
+| `text-inverse` `[inferred]` | `#FFFFFF` / ~`#E3E3E3` for secondary on dark | Top bar labels, toast text, primary-button labels |
+| `text-link` `[inferred]` | Strong blue ~`#005BD3` | Inline links — "Learn more", "process of erasure requests", the customer email address on a customer row, "tax rates", the blue product title in a picked-resource row |
+| `text-critical-inline` `[inferred]` | Red-brown ~`#825F62`–`#76584D` | Low-stock inventory counts in the products index — **"0 in stock" / "5 in stock" are not blue links**, they are a critical low-stock tone; the trailing qualifier ("for 24 variants") stays subdued grey |
 
 #### 1.1.3 Borders
 
-| Token (proposed) | Value (approx.) | Used for | Evidence |
-|---|---|---|---|
-| `border` `[Polaris]` (name) / value `[inferred]` | `#E3E3E3` hairline | Card outlines, dividers between card sections, table row dividers, popover/menu separators | `10-settings/settings-billing-overview-bills-and-credits.webp`, `02-orders/order-detail-more-actions-menu.webp` |
-| `border-input` `[inferred]` | ~`#CDCDCD`–`#8A8A8A` (darker than `border`) | Text input, select and textarea outlines — deliberately stronger than card borders so fields read as targets | `04-customers/customer-new-form-empty.webp`, `03-products/product-edit-pricing-inventory-shipping.webp` |
-| `border-critical` `[inferred]` | Red ~`#D72C0D` | Invalid input outline | `00-auth/login-email-validation-error.webp` |
-| `border-focus` `[inferred]` | **Desaturated blue ~`#687B9F`–`#8493B7`, ~2 px** — not near-black | The only genuine focus state in the set: the open "Option name" combobox. `product-edit-pricing-inventory-shipping.webp` was mis-cited here — it contains **no** focused field; every input on it, the quantity field included, carries the resting hairline | `03-products/product-edit-variant-option-name-dropdown.webp` |
+| Token (proposed) | Value (approx.) | Used for |
+| --- | --- | --- |
+| `border` `[recalled]` (name) / value `[inferred]` | `#E3E3E3` hairline | Card outlines, dividers between card sections, table row dividers, popover/menu separators |
+| `border-input` `[inferred]` | ~`#CDCDCD`–`#8A8A8A` (darker than `border`) | Text input, select and textarea outlines — deliberately stronger than card borders so fields read as targets |
+| `border-critical` `[inferred]` | Red ~`#D72C0D` | Invalid input outline |
+| `border-focus` `[inferred]` | **Desaturated blue ~`#687B9F`–`#8493B7`, ~2 px** — not near-black | The only genuine focus state in the set: the open "Option name" combobox. was mis-cited here — it contains **no** focused field; every input on it, the quantity field included, carries the resting hairline |
 
 All borders are **1 px**. There is no 2 px border anywhere except focus rings and the selected-state
 outline on segmented/toggle controls.
@@ -379,15 +351,15 @@ outline on segmented/toggle controls.
 
 The brand accent for **actions** is not a hue — it is **near-black**. Blue is reserved for **links**.
 
-| Role | Value (approx.) | Evidence |
-|---|---|---|
-| Primary button fill `[inferred]` | **`#3E3E3E`** near-black, white label — sampled over the large flat fill of the auth primary. This is **not** the same value as body text (`#303030`); the document previously used one number for both | "Add product", "Create discount", "Create order", "Install app", "Turn on automation", "Log in", "Archive products" — `00-auth/login-password-step-empty.webp`, `03-products/products-list-default.webp`, `09-discounts/discounts-list-with-code.webp`, `06-marketing/marketing-automation-template-detail-modal.webp` |
-| Secondary button `[inferred]` | White fill, `#E3E3E3`-ish border, `#303030` label | "Export", "Import", "More actions", "Cancel", "Refund", "Return", "Edit" — `02-orders/order-detail-paid-fulfilled-gift-card.webp` |
-| Tertiary / plain `[inferred]` | No fill, no border, blue or dark label | "Add custom item", "View all sales channels", "Add customs information" — `02-orders/draft-order-validation-error-banner.webp` |
-| Link blue `[inferred]` | ~`#005BD3` | See `text-link` above |
-| Save-bar primary — **green** `[inferred]` | **`#367C62`** green fill, white label — sampled; the earlier `~#2CA36A` was a recalled value, not a measured one | The account-area contextual save bar — `15-account/account-general-unsaved-changes.webp` |
-| Save-bar primary — **white** `[inferred]` | White fill, dark label, on the dark bar | The store-admin contextual save bar — `03-products/product-edit-pricing-inventory-shipping.webp`, `09-discounts/discount-create-eligibility-and-active-dates.webp` |
-| Selected radio / checked checkbox `[inferred]` | Solid near-black `#303030` | `09-discounts/discount-create-eligibility-and-active-dates.webp`, `03-products/product-edit-pricing-inventory-shipping.webp` |
+| Role | Value (approx.) |
+| --- | --- |
+| Primary button fill `[inferred]` | **`#3E3E3E`** near-black, white label — sampled over the large flat fill of the auth primary. This is **not** the same value as body text (`#303030`); the document previously used one number for both |
+| Secondary button `[inferred]` | White fill, `#E3E3E3`-ish border, `#303030` label |
+| Tertiary / plain `[inferred]` | No fill, no border, blue or dark label |
+| Link blue `[inferred]` | ~`#005BD3` |
+| Save-bar primary — **green** `[inferred]` | **`#367C62`** green fill, white label — sampled; the earlier `~#2CA36A` was a recalled value, not a measured one |
+| Save-bar primary — **white** `[inferred]` | White fill, dark label, on the dark bar |
+| Selected radio / checked checkbox `[inferred]` | Solid near-black `#303030` |
 
 Note the **inconsistency worth not copying**: the same "contextual save bar" component uses a green
 Save in the account surface and a white Save in the store admin. Eyvar should pick one.
@@ -399,54 +371,53 @@ Two *distinct* expressions of status exist in these captures, and they must not 
 **A. Badges — tonal (pale fill + dark same-hue text), with either a leading dot or a leading glyph
 depending on where the badge sits (see §1.5).**
 
-| Tone | Fill / text (approx.) | Example labels | Evidence |
-|---|---|---|---|
-| Success `[inferred]` | Pale mint `#C3FED8`-ish fill, deep green `#0C5132` text | `Active`, `Live`, `Fulfilled (1)` on the fulfilment **card header**, `Paid` in billing history | `03-products/products-list-default.webp`, `02-orders/order-fulfill-item-page.webp`, `02-orders/order-detail-paid-fulfilled-gift-card.webp` (green `Fulfilled (1)` card badge), `10-settings/settings-billing-overview-bills-and-credits.webp` |
-| Warning `[inferred]` | **Shopify ships two fills in this family**, visible side by side in one row: `Payment pending` = peach/orange **`#F4D6B1`**, `Unfulfilled` = yellow **`#F6EA98`**. Dark brown ~`#4F3812` text in both. Neither is the `#FFEFC9` this table previously claimed. **Eyvar collapses the pair into one warning tone (R7 — the palette is five tones); pick the yellow and use it for both** | `Unfulfilled`, `Payment pending` | `02-orders/orders-list-with-metrics-row.webp`, `02-orders/order-fulfill-item-page.webp` |
-| Info `[inferred]` | Pale blue fill ~`#DCE8F1`, deep blue text | `Draft` (products & discounts lists) — sampled blue, **not** grey; §3.4's neutral listing was wrong. Also `Hidden` on blog posts | `03-products/products-list-default.webp`, `04-customers/customer-segment-templates-panel.webp`, `05-online-store/blog-posts-list.webp` |
-| New `[inferred]` | Pale lavender/violet fill, purple text | Category chips (`Clothing`) in the bulk editor; tag chips | `03-products/products-bulk-editor-grid.webp` |
-| Neutral `[inferred]` | `#E3E3E3`–`#F0F0F0` fill, `#303030` text, dark dot | `Archived`, `Refunded`, `Voided`, and the **title-row** `Fulfilled` / `Paid` badges on an order detail page | `03-products/products-list-default.webp`, `14-global-search/search-modal-order-results-list.webp`, `02-orders/order-detail-paid-fulfilled-gift-card.webp` |
-| Critical `[Polaris]` | Pale red fill, deep red text — **not directly observed as a badge** in any screenshot read | — | — |
+| Tone | Fill / text (approx.) | Example labels |
+| --- | --- | --- |
+| Success `[inferred]` | Pale mint `#C3FED8`-ish fill, deep green `#0C5132` text | `Active`, `Live`, `Fulfilled (1)` on the fulfilment **card header**, `Paid` in billing history |
+| Warning `[inferred]` | **The baseline ships two fills in this family**, visible side by side in one row: `Payment pending` = peach/orange **`#F4D6B1`**, `Unfulfilled` = yellow **`#F6EA98`**. Dark brown ~`#4F3812` text in both. Neither is the `#FFEFC9` this table previously claimed. **Eyvar collapses the pair into one warning tone (R7 — the palette is five tones); pick the yellow and use it for both** | `Unfulfilled`, `Payment pending` |
+| Info `[inferred]` | Pale blue fill ~`#DCE8F1`, deep blue text | `Draft` (products & discounts lists) — sampled blue, **not** grey; §3.4's neutral listing was wrong. Also `Hidden` on blog posts |
+| New `[inferred]` | Pale lavender/violet fill, purple text | Category chips (`Clothing`) in the bulk editor; tag chips |
+| Neutral `[inferred]` | `#E3E3E3`–`#F0F0F0` fill, `#303030` text, dark dot | `Archived`, `Refunded`, `Voided`, and the **title-row** `Fulfilled` / `Paid` badges on an order detail page |
+| Critical `[recalled]` | Pale red fill, deep red text — **not directly observed as a badge** in any screenshot read | — |
 
 Two honest complications, neither of which is resolved by deleting evidence:
 
-- **`Paid` genuinely ships in two tones.** Green in `10-settings/settings-billing-history.webp`; grey
-  in `02-orders/order-detail-paid-fulfilled-gift-card.webp` and
-  `14-global-search/search-modal-order-results-list.webp`. **R14 rules that Eyvar's `Paid` is the
-  success (green) tone**, product-wide. The grey rendering is Shopify's inconsistency, not a second
+- **`Paid` genuinely ships in two tones.** Green in; grey
+  in  and
+. **R14 rules that Eyvar's `Paid` is the
+  success (green) tone**, product-wide. The grey rendering is the baseline's inconsistency, not a second
   Eyvar tone.
 - **`Fulfilled` likewise.** Green with a delivery-truck glyph on the fulfilment card header, grey with
   a dot in the page title row of the *same* screen, and grey in the global-search results list. The
-  earlier citation of `14-global-search/search-modal-order-results-list.webp` as evidence for a
+  earlier citation of  as evidence for a
   *green* `Fulfilled` is wrong — every order badge in that file samples neutral grey
   (`#F0F0F0`–`#F1F1F1`). Eyvar takes the success tone, per the same reasoning as R14.
-- **`Code` is not a badge at all.** In `09-discounts/discounts-list-with-code.webp` it is plain text in
+- **`Code` is not a badge at all.** In  it is plain text in
   the `Method` column — no pill, no fill. It belongs to §3.4's "plain text when the value is
   descriptive" rule, not to this table.
 
 **B. Banners — solid saturated header strip + white card body.** This is the modern admin banner
 and it is *not* the tonal style.
 
-| Tone | Header strip (approx.) | Body | Evidence |
-|---|---|---|---|
-| Success `[inferred]` | Saturated green **`#45815D`** (sampled; the earlier `~#1F8A4C` was recalled), white text, white check icon | White, dark text | `03-products/product-detail-created-success-banner.webp` |
-| Critical `[inferred]` | Saturated red **`#D03822`** (sampled; the earlier `~#E02F2F` was recalled), white text, white alert icon | White, dark text | `02-orders/draft-order-validation-error-banner.webp` |
-| Warning `[inferred]` | Amber ~`#F0A93B`, **dark** text/icon (not white) | White, dark text | `04-customers/customer-detail-erasure-request-banner.webp`, `11-apps-and-channels/app-detail-shop-channel-needs-attention.webp` |
-| Info `[inferred]` | **Both treatments ship.** Plain white surface + hairline + blue circular leading icon in `11-apps-and-channels/point-of-sale-subscription-plans.webp`; a genuine pale blue fill (sampled **`#EDF4FF`**) in `02-orders/order-fulfill-item-page.webp` and inside form flows (§4.4) | — | `11-apps-and-channels/point-of-sale-subscription-plans.webp`, `02-orders/order-fulfill-item-page.webp` |
+| Tone | Header strip (approx.) | Body |
+| --- | --- | --- |
+| Success `[inferred]` | Saturated green **`#45815D`** (sampled; the earlier `~#1F8A4C` was recalled), white text, white check icon | White, dark text |
+| Critical `[inferred]` | Saturated red **`#D03822`** (sampled; the earlier `~#E02F2F` was recalled), white text, white alert icon | White, dark text |
+| Warning `[inferred]` | Amber ~`#F0A93B`, **dark** text/icon (not white) | White, dark text |
+| Info `[inferred]` | **Both treatments ship.** Plain white surface + hairline + blue circular leading icon in; a genuine pale blue fill (sampled **`#EDF4FF`**) in and inside form flows (§4.4) | — |
 
 **Which of the two Eyvar ships — R1 and R16.** R1 already picks the **soft tinted card** over the
 saturated split strip for every tone. R16 extends that to the info tone specifically: **all four
 banner tones are pale tinted cards.** The warning surface has the same two-way split as info —
-saturated amber strip in the store admin (`customer-detail-erasure-request-banner`), pale yellow card
-in the forms surface (`10-settings/settings-payments-manual-methods-cod-activated.webp`, §4.4) — and
+saturated amber strip on one surface, pale yellow card
+in the forms surface (§4.4) — and
 R1 settles it the same way.
 
 **C. Legacy tonal banner** still exists in auth: pale green fill + green icon + dark text
-(`00-auth/login-email-verified-banner.webp`). Do not reproduce this third style.
+. Do not reproduce this third style.
 
 **D. Inline field error `[observed]`**: red input border + very pale red field fill (~`#FFF0F0`) +
 red filled alert icon + red 12 px message below the field
-(`00-auth/login-email-validation-error.webp`).
 
 **Rules**
 - MUST use `bg-canvas` (`#F1F1F1`) for the app canvas and `bg-surface` (`#FFFFFF`) for every card; a card MUST NEVER sit directly on a white page.
@@ -457,11 +428,11 @@ red filled alert icon + red 12 px message below the field
 - MUST render status **badges** in the tonal style (pale fill + dark same-hue text) and status **banners** in one consistent family; MUST NOT mix two banner expressions in one product. *(R1 picks the soft tinted card.)*
 - MUST use dark text on the warning/amber surface and white text on green/red surfaces; MUST verify ≥4.5:1 contrast for each pairing before shipping.
 - ~~MUST express "info" banners as a neutral white surface with a blue leading icon, not as a blue fill.~~
-  **→ Deleted under R16.** Falsified by the document's own evidence: `order-fulfill-item-page.webp`
+  **→ Deleted under R16.** Falsified by the document's own evidence:
   ships an info banner whose fill samples `#EDF4FF`, a real blue tint. Both treatments exist in
-  Shopify; under R1/R16 Eyvar's info banner is a **pale tinted card**, like the other three tones.
-- MUST render `Paid` in the success tone product-wide (R14). Shopify ships it green in billing and grey on order detail; Eyvar does not reproduce that split.
-- MUST collapse Shopify's two warning fills (`Payment pending` peach `#F4D6B1`, `Unfulfilled` yellow `#F6EA98`) into the **single** Eyvar warning tone required by R7; MUST NOT introduce a second amber.
+  the baseline; under R1/R16 Eyvar's info banner is a **pale tinted card**, like the other three tones.
+- MUST render `Paid` in the success tone product-wide (R14). The baseline ships it two ways; Eyvar does not reproduce that split.
+- MUST collapse the baseline's two warning fills (peach `#F4D6B1`, yellow `#F6EA98`) into the **single** Eyvar warning tone required by R7; MUST NOT introduce a second amber.
 - SHOULD ship exactly six badge tones (success, warning, critical, info, new, neutral) and SHOULD NOT invent a seventh.
   **→ Superseded by R7: the Eyvar palette is five tones — success, warning, info, neutral, new. There is no critical badge.**
 - SHOULD pick one primary color for the contextual save bar and use it in every surface — never green in one area and white in another.
@@ -470,31 +441,31 @@ red filled alert icon + red 12 px message below the field
 
 ### 1.2 Typography
 
-One family throughout (Polaris uses Inter with a system fallback stack `[Polaris]`; the captures show
+One family throughout (Inter with a system fallback stack `[recalled]`; the evidence shows
 a single geometric-humanist sans everywhere `[observed]`). The ramp is unusually **small and tight** —
 body text is 13 px, not 14 or 16 — which is what makes the admin feel dense and tool-like.
 
-| Role | Size / weight (approx.) | Color | Where used | Evidence |
-|---|---|---|---|---|
-| Page title `[observed]` | ~20 px / 600–650, tight leading | `text` | "Products", "Discounts", "Analytics", "Finances", "Customers", "#1003" | `03-products/products-list-default.webp`, `08-finances/finances-overview-earnings-donut-and-payouts.webp` |
-| Modal / sheet title `[observed]` | ~15–16 px / 600 | `text` | "Archive 3 products?", "Edit profile", "Abandoned checkout" | `03-products/products-list-archive-confirm-modal.webp`, `10-settings/settings-store-details-edit-profile-modal.webp` |
-| Section / card heading `[observed]` | ~13–14 px / 600 | `text` | "Pricing", "Inventory", "Shipping", "Notes", "Customer", "Timeline", "Earnings", "Active dates" | `03-products/product-edit-pricing-inventory-shipping.webp`, `02-orders/order-detail-paid-fulfilled-gift-card.webp` |
-| Body `[observed]` | ~13 px / 400, ~20 px line-height | `text` | Card copy, table cells, menu items, nav labels, list rows | `04-customers/customer-detail-erasure-request-banner.webp` |
-| Small / subdued `[observed]` | ~12 px / 400 | `text-secondary` | Field helper text, timestamps ("1 minute ago"), page subtitles ("January 8, 2024 at 11:50 pm from Draft Orders"), nav section labels ("Sales channels", "Apps"), footnotes ("Only you and other staff can see comments") | `02-orders/order-detail-paid-fulfilled-gift-card.webp`, `03-products/products-list-default.webp` |
-| Table column header `[observed]` | ~12–13 px / 500, sentence case (**never** uppercase, **never** letter-spaced) | `text-secondary` | "Product", "Status", "Inventory", "Payment status", "Combinations" | `03-products/products-list-default.webp`, `09-discounts/discounts-list-with-code.webp` |
-| Button label `[observed]` | ~13 px / 500–600 | context | All buttons, in every size | `03-products/products-list-default.webp` |
-| Field label `[observed]` | ~12–13 px / 400–500 | `text` | "First name", "Price", "Start date" | `04-customers/customer-new-form-empty.webp` |
-| Badge label `[observed]` | ~11–12 px / 500 | tone text | `Active`, `Unfulfilled` | `02-orders/orders-list-with-metrics-row.webp` |
-| Metric / KPI number `[observed]` | ~18–20 px / 600 | `text` | "$34.00", "0%", "$19.00", "$18.00" on analytics & finances cards | `07-analytics/analytics-dashboard-saved-toast-last-7-days.webp`, `08-finances/finances-overview-earnings-donut-and-payouts.webp` |
-| Display (marketing surfaces only) `[observed]` | ~28–32 px / 600–700 | `text` | "POS Lite" / "POS Pro" / "$79" on the plan-picker | `11-apps-and-channels/point-of-sale-subscription-plans.webp` |
+| Role | Size / weight (approx.) | Color | Where used |
+| --- | --- | --- | --- |
+| Page title `[observed]` | ~20 px / 600–650, tight leading | `text` | "Products", "Discounts", "Analytics", "Finances", "Customers", "#1003" |
+| Modal / sheet title `[observed]` | ~15–16 px / 600 | `text` | "Archive 3 products?", "Edit profile", "Abandoned checkout" |
+| Section / card heading `[observed]` | ~13–14 px / 600 | `text` | "Pricing", "Inventory", "Shipping", "Notes", "Customer", "Timeline", "Earnings", "Active dates" |
+| Body `[observed]` | ~13 px / 400, ~20 px line-height | `text` | Card copy, table cells, menu items, nav labels, list rows |
+| Small / subdued `[observed]` | ~12 px / 400 | `text-secondary` | Field helper text, timestamps ("1 minute ago"), page subtitles ("January 8, 2024 at 11:50 pm from Draft Orders"), nav section labels ("Sales channels", "Apps"), footnotes ("Only you and other staff can see comments") |
+| Table column header `[observed]` | ~12–13 px / 500, sentence case (**never** uppercase, **never** letter-spaced) | `text-secondary` | "Product", "Status", "Inventory", "Payment status", "Combinations" |
+| Button label `[observed]` | ~13 px / 500–600 | context | All buttons, in every size |
+| Field label `[observed]` | ~12–13 px / 400–500 | `text` | "First name", "Price", "Start date" |
+| Badge label `[observed]` | ~11–12 px / 500 | tone text | `Active`, `Unfulfilled` |
+| Metric / KPI number `[observed]` | ~18–20 px / 600 | `text` | "$34.00", "0%", "$19.00", "$18.00" on analytics & finances cards |
+| Display (marketing surfaces only) `[observed]` | ~28–32 px / 600–700 | `text` | "POS Lite" / "POS Pro" / "$79" on the plan-picker |
 
 Observations that matter:
 - There are only **two weights in practice**: regular (400) and semibold (600ish). Medium (500) shows up on button/table-header labels. No light, no black, no italics anywhere in 33 captures.
-- **Card heading and body differ by ~1 px and one weight step.** Hierarchy inside a card comes from weight and spacing, not size. `03-products/product-edit-pricing-inventory-shipping.webp` is the clearest example.
+- **Card heading and body differ by ~1 px and one weight step.** Hierarchy inside a card comes from weight and spacing, not size.  is the clearest example.
 - **All caps is never used.** Not for table headers, not for badges, not for nav sections.
-- Numbers in tables are right-aligned; labels are left-aligned (`02-orders/orders-list-with-metrics-row.webp`, `10-settings/settings-billing-overview-bills-and-credits.webp`).
+- Numbers in tables are right-aligned; labels are left-aligned.
 
-`[Polaris]` token names for the same ramp: `--p-font-size-300` (12), `--p-font-size-325` (13),
+`[recalled]` token names for the same ramp: `--p-font-size-300` (12), `--p-font-size-325` (13),
 `--p-font-size-350` (14), `--p-font-size-400` (16), `--p-font-size-500` (20); weights
 `--p-font-weight-regular` / `-medium` / `-semibold` / `-bold`.
 
@@ -513,50 +484,50 @@ Observations that matter:
 ### 1.3 Spacing & grid
 
 **Base unit: 4 px.** Every measured gap resolves to a multiple of 4, with 8 / 12 / 16 / 20 / 24 doing
-almost all the work. `[observed]` across all captures; `[Polaris]` names these
+almost all the work. `[observed]` across all captures; `[recalled]` names these
 `--p-space-100` = 4, `-200` = 8, `-300` = 12, `-400` = 16, `-500` = 20, `-600` = 24, `-800` = 32.
 
-| Measurement | Value (approx.) | Evidence |
-|---|---|---|
-| Top bar height `[observed]` | **56 px** | `03-products/products-list-default.webp` |
-| Left nav width `[observed]` | **240 px** | every admin page |
-| Nav item height `[observed]` | ~28–32 px, 8 px horizontal padding, 8 px icon→label gap | `03-products/products-list-default.webp` |
-| Page gutter (canvas → card) `[observed]` | **24 px** left and right | `03-products/products-list-default.webp` |
-| Page top padding (bar → title) `[observed]` | ~20–24 px | `09-discounts/discounts-list-with-code.webp` |
-| Title → first card `[observed]` | ~20–24 px | `03-products/products-list-default.webp` |
-| **Card padding** `[observed]` | **16 px** on all sides | `02-orders/order-detail-paid-fulfilled-gift-card.webp`, `03-products/product-edit-pricing-inventory-shipping.webp` |
-| **Gap between stacked cards** `[observed]` | **16 px** | `03-products/product-edit-pricing-inventory-shipping.webp`, `10-settings/settings-billing-overview-bills-and-credits.webp` |
-| Gap between side-by-side cards `[observed]` | ~16–20 px | `07-analytics/analytics-dashboard-saved-toast-last-7-days.webp` (3-up metric grid) |
-| Card heading → first content `[observed]` | ~12 px | `03-products/product-edit-pricing-inventory-shipping.webp` |
-| **Form field vertical rhythm** `[observed]` | label→input **4 px**; input→helper text **4 px**; field block→next field block **16 px** | `04-customers/customer-new-form-empty.webp` |
-| Two fields on one row: horizontal gap `[observed]` | **16 px**, equal widths | `04-customers/customer-new-form-empty.webp` ("First name" / "Last name") |
-| Input height `[observed]` | ~32 px, ~8–12 px horizontal padding | `04-customers/customer-new-form-empty.webp` |
-| Button height `[observed]` | ~28–32 px (medium); page-header buttons ~28 px | `03-products/products-list-default.webp` |
-| Gap between adjacent buttons `[observed]` | **8 px** | `02-orders/order-detail-paid-fulfilled-gift-card.webp` (Refund / Return / Edit / More actions) |
-| Checkbox/radio → label gap `[observed]` | **8 px**; between stacked options **12 px** | `09-discounts/discount-create-eligibility-and-active-dates.webp` |
+| Measurement | Value (approx.) |
+| --- | --- |
+| Top bar height `[observed]` | **56 px** |
+| Left nav width `[observed]` | **240 px** |
+| Nav item height `[observed]` | ~28–32 px, 8 px horizontal padding, 8 px icon→label gap |
+| Page gutter (canvas → card) `[observed]` | **24 px** left and right |
+| Page top padding (bar → title) `[observed]` | ~20–24 px |
+| Title → first card `[observed]` | ~20–24 px |
+| **Card padding** `[observed]` | **16 px** on all sides |
+| **Gap between stacked cards** `[observed]` | **16 px** |
+| Gap between side-by-side cards `[observed]` | ~16–20 px |
+| Card heading → first content `[observed]` | ~12 px |
+| **Form field vertical rhythm** `[observed]` | label→input **4 px**; input→helper text **4 px**; field block→next field block **16 px** |
+| Two fields on one row: horizontal gap `[observed]` | **16 px**, equal widths |
+| Input height `[observed]` | ~32 px, ~8–12 px horizontal padding |
+| Button height `[observed]` | ~28–32 px (medium); page-header buttons ~28 px |
+| Gap between adjacent buttons `[observed]` | **8 px** |
+| Checkbox/radio → label gap `[observed]` | **8 px**; between stacked options **12 px** |
 
 **Page width & layout**
 
-| Layout | Measurement | Evidence |
-|---|---|---|
-| Detail / form page max width `[observed]` | **~950–1000 px**, centered in the remaining space after the 240 px nav | `02-orders/order-detail-paid-fulfilled-gift-card.webp` (195→701 img px ⇒ ~950 px), `04-customers/customer-new-form-empty.webp` |
-| Index / list page `[observed]` | **Fluid full width** — stretches to viewport minus 24 px gutters (~1150 px at 1440) | `03-products/products-list-default.webp`, `02-orders/orders-list-with-metrics-row.webp` |
-| Settings modal content max width `[observed]` | **~1000 px**, with its own ~280 px internal settings nav | `10-settings/settings-store-details-edit-profile-modal.webp` |
-| **Two-column detail layout (main + right sidebar)** `[observed]` | main ~640 px : sidebar ~290 px ⇒ **≈ 2 : 1**, with a ~16–20 px column gap. Sidebar holds small standalone cards (Notes, Customer, Publishing, Tags, Fraud analysis) each 16 px apart | `02-orders/order-detail-paid-fulfilled-gift-card.webp`, `03-products/product-detail-created-success-banner.webp` |
-| **Annotated form layout (label column + card)** `[observed]` | description ~310 px : content ~620 px ⇒ **1 : 2**, ~20 px gap; the description column is plain text on the canvas, the content column is a card | `04-customers/customer-new-form-empty.webp`, `15-account/account-general-unsaved-changes.webp` |
-| Analytics metric grid `[observed]` | 3 equal columns, **~19–20 px gutters** — card edges measure 142→338, 350→546, 557→753 img px, so the gaps are 11 and 10 img px. Both the ~16 px stated here and §3.7's ~12 px were low (C10) | `07-analytics/analytics-dashboard-today-no-data.webp`, `07-analytics/analytics-dashboard-saved-toast-last-7-days.webp` |
+| Layout | Measurement |
+| --- | --- |
+| Detail / form page max width `[observed]` | **~950–1000 px**, centered in the remaining space after the 240 px nav |
+| Index / list page `[observed]` | **Fluid full width** — stretches to viewport minus 24 px gutters (~1150 px at 1440) |
+| Settings modal content max width `[observed]` | **~1000 px**, with its own ~280 px internal settings nav |
+| **Two-column detail layout (main + right sidebar)** `[observed]` | main ~640 px: sidebar ~290 px ⇒ **≈ 2: 1**, with a ~16–20 px column gap. Sidebar holds small standalone cards (Notes, Customer, Publishing, Tags, Fraud analysis) each 16 px apart |
+| **Annotated form layout (label column + card)** `[observed]` | description ~310 px: content ~620 px ⇒ **1: 2**, ~20 px gap; the description column is plain text on the canvas, the content column is a card |
+| Analytics metric grid `[observed]` | 3 equal columns, **~19–20 px gutters** — card edges measure 142→338, 350→546, 557→753 img px, so the gaps are 11 and 10 img px. Both the ~16 px stated here and §3.7's ~12 px were low (C10) |
 
 **Table metrics**
 
-| Measurement | Value (approx.) | Evidence |
-|---|---|---|
-| Table header row height `[observed]` | ~40 px | `03-products/products-list-default.webp` |
-| Row height, text only `[observed]` | ~36–40 px | `02-orders/orders-list-with-metrics-row.webp`, `03-products/products-bulk-editor-grid.webp` |
-| Row height, with a **40 px** thumbnail `[observed]` | ~52–56 px. The thumbnail is ~40×40 px, not 32 — ≈23×20 img px at 1.90× (C11; §3.1 was right) | `03-products/products-list-default.webp` |
-| Row height, two-line (title + subtitle) `[observed]` | ~56 px | `14-global-search/search-modal-order-results-list.webp`, `09-discounts/discounts-list-with-code.webp` |
-| First column left padding `[observed]` | ~12–16 px, aligned with the leading checkbox | `03-products/products-list-default.webp` |
-| Cell horizontal gap `[observed]` | ~16–24 px between columns | `02-orders/orders-list-with-metrics-row.webp` |
-| Tabs strip inside the list card `[observed]` | ~40 px tall, sits **inside** the card above the table, separated by a hairline | `03-products/products-list-default.webp` |
+| Measurement | Value (approx.) |
+| --- | --- |
+| Table header row height `[observed]` | ~40 px |
+| Row height, text only `[observed]` | ~36–40 px |
+| Row height, with a **40 px** thumbnail `[observed]` | ~52–56 px. The thumbnail is ~40×40 px, not 32 — ≈23×20 img px at 1.90× (C11; §3.1 was right) |
+| Row height, two-line (title + subtitle) `[observed]` | ~56 px |
+| First column left padding `[observed]` | ~12–16 px, aligned with the leading checkbox |
+| Cell horizontal gap `[observed]` | ~16–24 px between columns |
+| Tabs strip inside the list card `[observed]` | ~40 px tall, sits **inside** the card above the table, separated by a hairline |
 
 **Rules**
 - MUST build every spacing value from a 4 px base unit; MUST NOT ship arbitrary values like 10, 14, 18, or 22 px.
@@ -576,41 +547,41 @@ almost all the work. `[observed]` across all captures; `[Polaris]` names these
 Corner radii step in 4 px increments and correlate with component size: the bigger the surface, the
 rounder it is.
 
-| Component class | Radius (approx.) | `[Polaris]` token | Evidence |
-|---|---|---|---|
-| Card / panel / table container `[observed]` | **~12 px** | `--p-border-radius-300` | `03-products/products-list-default.webp`, `08-finances/finances-overview-earnings-donut-and-payouts.webp` |
-| Modal / sheet `[observed]` | **~12–16 px** | `--p-border-radius-300`/`-400` | `03-products/products-list-archive-confirm-modal.webp`, `10-settings/settings-store-details-edit-profile-modal.webp` |
-| Button / input / select / popover / menu `[observed]` | **~8 px** | `--p-border-radius-200` | `04-customers/customer-new-form-empty.webp`, `02-orders/order-detail-more-actions-menu.webp` |
-| Badge / chip / tag `[observed]` | **~8 px** (soft rectangle, **not** a full pill). Zoomed: ~3–4 img px radius on an 11 img px badge — a stadium would need 5.5 | `--p-border-radius-200` | `03-products/products-list-default.webp`, `03-products/products-bulk-editor-grid.webp` |
-| Toast `[observed]` | **~8 px** — measured ~4–5 img px radius on a 23 img px pill; a true stadium would be 11.5 | `--p-border-radius-200` | `03-products/products-list-products-imported-toast.webp`, `07-analytics/analytics-dashboard-saved-toast-last-7-days.webp` |
-| Avatar / initial badge `[observed]` | **~8 px rounded square** — never a circle | `--p-border-radius-200` | `02-orders/order-detail-paid-fulfilled-gift-card.webp` ("JS"), `00-auth/login-password-step-empty.webp` ("JM") |
+| Component class | Radius (approx.) | `[recalled]` token |
+| --- | --- | --- |
+| Card / panel / table container `[observed]` | **~12 px** | `--p-border-radius-300` |
+| Modal / sheet `[observed]` | **~12–16 px** | `--p-border-radius-300`/`-400` |
+| Button / input / select / popover / menu `[observed]` | **~8 px** | `--p-border-radius-200` |
+| Badge / chip / tag `[observed]` | **~8 px** (soft rectangle, **not** a full pill). Zoomed: ~3–4 img px radius on an 11 img px badge — a stadium would need 5.5 | `--p-border-radius-200` |
+| Toast `[observed]` | **~8 px** — measured ~4–5 img px radius on a 23 img px pill; a true stadium would be 11.5 | `--p-border-radius-200` |
+| Avatar / initial badge `[observed]` | **~8 px rounded square** — never a circle | `--p-border-radius-200` |
 
 **→ R15 confirms this block and overrides the sections that contradicted it.** Badges, toasts and
 avatars are rounded rectangles/squares at ~8 px — never stadium pills, never circles. §3.4's "fully
 rounded ends", §5.1's "rounded pill" and §3.8's "circular avatar" are corrected accordingly.
-| Thumbnail (product image) `[observed]` | **~8 px** | `--p-border-radius-200` | `03-products/products-list-default.webp` |
-| Nav item / tab `[observed]` | **~8 px** | `--p-border-radius-200` | `03-products/products-list-default.webp` |
-| Checkbox `[observed]` | **~4 px** | `--p-border-radius-100` | `09-discounts/discount-create-eligibility-and-active-dates.webp` |
-| Radio / status dot / progress track `[observed]` | Full circle | `--p-border-radius-full` | `09-discounts/discount-create-eligibility-and-active-dates.webp` |
+| Thumbnail (product image) `[observed]` | **~8 px** | `--p-border-radius-200` | |
+| Nav item / tab `[observed]` | **~8 px** | `--p-border-radius-200` | |
+| Checkbox `[observed]` | **~4 px** | `--p-border-radius-100` | |
+| Radio / status dot / progress track `[observed]` | Full circle | `--p-border-radius-full` | |
 
 **Border width is always 1 px.** The only exceptions are the focus ring (~2 px, dark) and the selected
 segment on segmented controls.
 
 **Elevation — the border-vs-shadow decision:**
 
-| Surface | Treatment | Evidence |
-|---|---|---|
-| **Card on the canvas** `[observed]` | 1 px `#E3E3E3` border **plus** a barely-there downward shadow (≈ `0 1px 0 rgba(0,0,0,.05)`). It is essentially a bordered surface, not a floating one. | `03-products/products-list-default.webp`, `10-settings/settings-billing-overview-bills-and-credits.webp` |
-| **Nested block inside a card** `[observed]` | 1 px border **only**, no shadow, often on a `#F7F7F7` fill | `11-apps-and-channels/app-install-permissions-consent.webp` |
-| **Popover / dropdown menu** `[observed]` | Clear soft shadow, minimal or no visible border — it must read as detached from the page | `02-orders/order-detail-more-actions-menu.webp`, `03-products/products-list-sort-popover.webp`, `13-navigation-shortcuts/quick-create-menu-with-keyboard-shortcuts.webp` |
-| **Notification popover** `[observed]` | Same as popover: shadow, anchored under the bell, **~400 px wide** — it spans x 556→757 = ~201 **image** px, which this table previously read as CSS px. §2.6 has it right | `12-notifications/alerts-popover-with-channel-issue.webp` |
-| **Modal** `[observed]` | Large soft shadow **plus** a page-wide dark scrim; no border | `03-products/products-list-archive-confirm-modal.webp`, `06-marketing/marketing-automation-template-detail-modal.webp` |
-| **Settings modal (full-screen sheet)** `[observed]` | Inset ~8 px from the left/right, top edge ~68 px down, rounded top corners, shadow + scrim; the admin remains dimly visible behind | `10-settings/settings-billing-overview-bills-and-credits.webp` |
-| **Right-side guide drawer** `[observed]` | Panel flush to the right edge, hairline left border, no scrim (the page stays interactive). **Corrected in 0.2's R-3 pass: there is no measurable shadow.** Three scanlines across the panel edge read `241,241,241,242,235,242,255` — canvas, then the hairline, then card white, with no falloff between them. This row previously said “hairline left border + soft shadow”; the shadow half is not in the pixels. *(Eyvar still gives its drawer `--ev-shadow-2`, as a **deviation** argued in `docs/05-restructure/design/00-decisions-r3.md` §1.5: Eyvar's drawer opens over full-bleed content, where a hairline on white is a 1.1:1 step.)* | `01-home/home-guide-side-panel-in-progress.webp` |
-| **Floating bulk-action bar** `[observed]` | White surface, **light hairline** border + shadow, ~8 px radius, anchored bottom-center **inside** the list card. It is *not* dark-outlined (C13; §5.4 corrected). **Corrected in 0.2's R-3 pass: the shadow is not “pronounced”** — it measures peak α ≈ 0.075 over ~8 px, statistically the same as a popover's 0.07, and a full tier below the modal's 0.15. It takes the same elevation token as a popover | `03-products/products-list-bulk-selection-action-bar.webp` |
-| **Toast** `[observed]` | Dark near-black **rounded rectangle** (~8 px radius, not a stadium — R15), shadow, bottom-center **of the viewport** (x≈384, not the content region's x≈448 — C9), ~44 px tall, with a trailing `×` | `03-products/products-list-products-imported-toast.webp` (family), `07-analytics/analytics-dashboard-saved-toast-last-7-days.webp`, `04-customers/customer-detail-erasure-request-banner.webp` |
-| **Auth card** `[observed]` | White card, ~12 px radius, moderate shadow, floating on a photographic/gradient backdrop | `00-auth/login-password-step-empty.webp` |
-| **Contextual save bar** `[observed]` | Replaces the top bar in place — dark, no radius, no shadow, full bleed | `15-account/account-general-unsaved-changes.webp`, `09-discounts/discount-create-eligibility-and-active-dates.webp` |
+| Surface | Treatment |
+| --- | --- |
+| **Card on the canvas** `[observed]` | 1 px `#E3E3E3` border **plus** a barely-there downward shadow (≈ `0 1px 0 rgba(0,0,0,.05)`). It is essentially a bordered surface, not a floating one. |
+| **Nested block inside a card** `[observed]` | 1 px border **only**, no shadow, often on a `#F7F7F7` fill |
+| **Popover / dropdown menu** `[observed]` | Clear soft shadow, minimal or no visible border — it must read as detached from the page |
+| **Notification popover** `[observed]` | Same as popover: shadow, anchored under the bell, **~400 px wide** — it spans x 556→757 = ~201 **image** px, which this table previously read as CSS px. §2.6 has it right |
+| **Modal** `[observed]` | Large soft shadow **plus** a page-wide dark scrim; no border |
+| **Settings modal (full-screen sheet)** `[observed]` | Inset ~8 px from the left/right, top edge ~68 px down, rounded top corners, shadow + scrim; the admin remains dimly visible behind |
+| **Right-side guide drawer** `[observed]` | Panel flush to the right edge, hairline left border, no scrim (the page stays interactive). **Corrected in 0.2's R-3 pass: there is no measurable shadow.** Three scanlines across the panel edge read `241,241,241,242,235,242,255` — canvas, then the hairline, then card white, with no falloff between them. This row previously said “hairline left border + soft shadow”; the shadow half is not in the pixels. *(Eyvar still gives its drawer `--ev-shadow-2`, as a **deviation** argued in `docs/05-restructure/design/00-decisions-r3.md` §1.5: Eyvar's drawer opens over full-bleed content, where a hairline on white is a 1.1:1 step.)* |
+| **Floating bulk-action bar** `[observed]` | White surface, **light hairline** border + shadow, ~8 px radius, anchored bottom-center **inside** the list card. It is *not* dark-outlined (C13; §5.4 corrected). **Corrected in 0.2's R-3 pass: the shadow is not “pronounced”** — it measures peak α ≈ 0.075 over ~8 px, statistically the same as a popover's 0.07, and a full tier below the modal's 0.15. It takes the same elevation token as a popover |
+| **Toast** `[observed]` | Dark near-black **rounded rectangle** (~8 px radius, not a stadium — R15), shadow, bottom-center **of the viewport** (x≈384, not the content region's x≈448 — C9), ~44 px tall, with a trailing `×` |
+| **Auth card** `[observed]` | White card, ~12 px radius, moderate shadow, floating on a photographic/gradient backdrop |
+| **Contextual save bar** `[observed]` | Replaces the top bar in place — dark, no radius, no shadow, full bleed |
 
 The governing principle `[observed]`: **shadow signals "temporarily above the page and dismissible";
 border signals "part of the page."** Cards are page furniture and get borders. Popovers, modals,
@@ -631,62 +602,62 @@ drawers, toasts and the bulk-action bar are transient and get shadows.
 
 ### 1.5 Iconography
 
-| Property | Value | Evidence |
-|---|---|---|
-| Nav icon size `[observed]` | ~16 px (rendered in a ~20 px box `[Polaris]`) | `03-products/products-list-default.webp` |
-| Top bar icon size `[observed]` | ~20 px (search, bell) | `02-orders/orders-list-with-metrics-row.webp` |
-| In-card action icon `[observed]` | ~16 px (pencil, kebab `⋯`, chevron `›`, copy) | `02-orders/order-detail-paid-fulfilled-gift-card.webp` |
-| Inline / affix icon `[observed]` | ~14–16 px (calendar and clock inside date/time inputs, `?` help circles, `$` currency prefix) | `09-discounts/discount-create-eligibility-and-active-dates.webp`, `03-products/product-edit-pricing-inventory-shipping.webp` |
-| Badge status dot `[observed]` | ~6–8 px filled circle — on **list-row** badges | `02-orders/orders-list-with-metrics-row.webp` |
-| Badge status glyph `[observed]` | ~16 px filled glyph — on **fulfilment card-header** badges: a package glyph on the yellow `Unfulfilled`, a delivery-truck glyph on the green `Fulfilled (1)` | `02-orders/order-fulfill-item-page.webp`, `02-orders/order-detail-paid-fulfilled-gift-card.webp` |
-| Style `[observed]` | **Filled / solid-weight monoline**, geometric, no outline-stroke look, no two-tone. Corners are soft. Icons inherit `currentColor` — grey when subdued, near-black when primary, white on the dark bar. | all captures |
-| Banner leading icon `[observed]` | ~16 px, filled, white on green/red strips, dark on the amber strip, blue-in-circle for info | `03-products/product-detail-created-success-banner.webp`, `11-apps-and-channels/point-of-sale-subscription-plans.webp` |
+| Property | Value |
+| --- | --- |
+| Nav icon size `[observed]` | ~16 px (rendered in a ~20 px box `[recalled]`) |
+| Top bar icon size `[observed]` | ~20 px (search, bell) |
+| In-card action icon `[observed]` | ~16 px (pencil, kebab `⋯`, chevron `›`, copy) |
+| Inline / affix icon `[observed]` | ~14–16 px (calendar and clock inside date/time inputs, `?` help circles, `$` currency prefix) |
+| Badge status dot `[observed]` | ~6–8 px filled circle — on **list-row** badges |
+| Badge status glyph `[observed]` | ~16 px filled glyph — on **fulfilment card-header** badges: a package glyph on the yellow `Unfulfilled`, a delivery-truck glyph on the green `Fulfilled (1)` |
+| Style `[observed]` | **Filled / solid-weight monoline**, geometric, no outline-stroke look, no two-tone. Corners are soft. Icons inherit `currentColor` — grey when subdued, near-black when primary, white on the dark bar. |
+| Banner leading icon `[observed]` | ~16 px, filled, white on green/red strips, dark on the amber strip, blue-in-circle for info |
 
 **Where icons ARE used** `[observed]`:
 left nav (one per top-level item), top bar (search, bell, store avatar), card header actions
-(pencil = edit, `⋯` = overflow), popover menu items (`02-orders/order-detail-more-actions-menu.webp` —
+(pencil = edit, `⋯` = overflow), popover menu items ( —
 Duplicate, Cancel order, Archive, Print… each with a leading 16 px icon), the quick-create menu
-(`13-navigation-shortcuts/quick-create-menu-with-keyboard-shortcuts.webp`), banner leading icons,
+, banner leading icons,
 input affixes, timeline composer toolbar (emoji, mention, hash, attach), disclosure carets on
 buttons and selects, the back arrow `←` on every detail page, and collapse chevrons on collapsible
 cards.
 
 **Where icons are deliberately NOT used** `[observed]`:
-- **Table column headers** — text only, plus a sort caret on the active column (`03-products/products-list-default.webp`).
-- **Form field labels** — never iconized (`04-customers/customer-new-form-empty.webp`).
-- **Primary and secondary buttons in the page header** — "Add product", "Export", "Import" are text-only; the only glyph is a trailing disclosure caret on split/menu buttons (`03-products/products-list-default.webp`).
+- **Table column headers** — text only, plus a sort caret on the active column.
+- **Form field labels** — never iconized.
+- **Primary and secondary buttons in the page header** — "Add product", "Export", "Import" are text-only; the only glyph is a trailing disclosure caret on split/menu buttons.
 - **Badges** — *partially*. **List badges** use a leading dot and no glyph
-  (`02-orders/orders-list-with-metrics-row.webp`). **Fulfilment card-header badges do carry a leading
-  16 px glyph** — a package on `Unfulfilled` (`02-orders/order-fulfill-item-page.webp`), a delivery
-  truck on the green `Fulfilled (1)` (`02-orders/order-detail-paid-fulfilled-gift-card.webp`). The
+. **Fulfilment card-header badges do carry a leading
+  16 px glyph** — a package on `Unfulfilled`, a delivery
+  truck on the green `Fulfilled (1)`. The
   earlier "a dot, never a glyph" claim was false.
-- **Card headings** — "Pricing", "Notes", "Customer" carry no leading icon (`03-products/product-edit-pricing-inventory-shipping.webp`).
-- **Empty states** — use a full illustration, not a scaled-up icon (`09-discounts/discounts-empty-state.webp`, `04-customers/customers-empty-state.webp`).
+- **Card headings** — "Pricing", "Notes", "Customer" carry no leading icon.
+- **Empty states** — use a full illustration, not a scaled-up icon.
 
 **Avatar / initial-badge pattern** `[observed]`:
 - ~28–30 px rounded square (8 px radius), two uppercase initials, ~11–12 px semibold, centered. The
   **timeline commenter avatar is ~30 px** (R15) — §3.8's "~32 px circular" was wrong on shape and
   close on size.
 - **Two distinct treatments ship, not one.** A *pale* tint with **dark** initials — lavender "JM" on
-  the login screen (`00-auth/login-password-step-empty.webp`) — and a *saturated* tint with **white**
+  the login screen  — and a *saturated* tint with **white**
   initials — pink/rose "JS" in the order timeline
-  (`02-orders/order-detail-paid-fulfilled-gift-card.webp`,
-  `02-orders/order-detail-timeline-comment-composer.webp`), green for the store avatar in the top bar
-  (`03-products/products-list-default.webp`), green "MS" in settings
-  (`10-settings/settings-store-details-edit-profile-modal.webp`). The palette is **not** uniformly
+  (
+), green for the store avatar in the top bar
+, green "MS" in settings
+. The palette is **not** uniformly
   pale and the text is **not** uniformly dark. Eyvar should pick one of the two and apply it
   everywhere.
 - `[inferred]` The tint appears to be derived from the identity rather than randomised per render.
   This cannot be observed: it would require seeing the same identity across renders *and* a
   re-render, and neither is in the capture set. Treat it as a design decision to make, not a fact.
-- When a real photo exists it replaces the initials in the same 8 px rounded square (`15-account/account-general-unsaved-changes.webp`).
+- When a real photo exists it replaces the initials in the same 8 px rounded square.
 
 **Rules**
 - MUST ship a single icon set in one filled monoline style at 16 px (20 px only in the top bar); MUST NOT mix outline and filled sets.
 - MUST have icons inherit `currentColor` so they take the subdued/primary/inverse text color of their context.
 - MUST NOT put icons on table column headers, form labels, card headings, or page-header buttons.
 - ~~MUST use a dot, not a glyph, inside badges.~~ **Falsified.** Downgraded to: **MUST NOT mix dot and glyph within one badge family.** List-row badges take a dot; fulfilment card-header badges take a 16 px glyph; pick one treatment per family and hold it.
-- MUST render avatars as ~28–30 px rounded squares (never circles) with two initials, and MUST pick **one** tint treatment — pale fill + dark initials, or saturated fill + white initials — rather than shipping both as Shopify does. The tint SHOULD be deterministic per identity `[inferred]`; MUST NOT randomize per render.
+- MUST render avatars as ~28–30 px rounded squares (never circles) with two initials, and MUST pick **one** tint treatment — pale fill + dark initials, or saturated fill + white initials — rather than shipping both, as the baseline does. The tint SHOULD be deterministic per identity `[inferred]`; MUST NOT randomize per render.
 - MUST use an illustration, not an enlarged icon, for empty states.
   **→ Narrowed by R8: illustrations belong to whole-page, zero-records-ever empty states only. Empty cards, sections and timelines get one grey sentence.**
 - SHOULD put a leading icon on every item in a popover menu once any item has one.
@@ -701,21 +672,21 @@ cards.
 > motion rules that bind Eyvar are §7.6 (reduced motion) and §8.1 (ambient animation).
 
 Static screenshots cannot show timing curves. Everything in this subsection is **`[inferred]`** from
-the component's anchoring, geometry, and captured state, plus general Polaris behavior — none of it
+the component's anchoring, geometry and captured state, plus general design-system behaviour — none of it
 is measurable in these files. It is included so the team has a starting contract, not a verified spec.
 
 | Element | Inferred behavior | Basis (captured evidence of the resting state) |
 |---|---|---|
-| **Toast** `[inferred]` | Slides up ~8–16 px from the bottom edge while fading in (~150–200 ms, ease-out); rests bottom-center ~40 px above the viewport bottom; auto-dismisses after ~4–5 s or on `×`; exits by fading + sliding down (~150 ms). Multiple toasts would stack or replace. | Resting position and dark pill captured in `07-analytics/analytics-dashboard-saved-toast-last-7-days.webp`, `03-products/product-detail-created-success-banner.webp`, `04-customers/customer-detail-erasure-request-banner.webp` |
-| **Popover / dropdown menu** `[inferred]` | Fades in with a small scale-up (~0.96→1) or a short slide from the trigger edge, ~100–150 ms ease-out; origin anchored to the trigger; dismiss is a faster fade (~100 ms). | Anchoring visible in `02-orders/order-detail-more-actions-menu.webp` (flush under "More actions"), `03-products/products-list-sort-popover.webp`, `12-notifications/alerts-popover-with-channel-issue.webp` |
-| **Modal** `[inferred]` | Scrim fades in (~150 ms) while the dialog fades and scales/translates a few px upward; exit reverses, slightly faster. | `03-products/products-list-archive-confirm-modal.webp`, `06-marketing/marketing-automation-template-detail-modal.webp` |
-| **Settings modal (full sheet)** `[inferred]` | Larger travel than a dialog — slides up from the bottom edge into its inset position, ~200–250 ms. | `10-settings/settings-billing-overview-bills-and-credits.webp` |
-| **Right-side drawer / guide panel** `[inferred]` | Slides in from the right edge (~200 ms, ease-out) with no scrim; page content is not blocked. | `01-home/home-guide-side-panel-in-progress.webp` |
-| **Contextual save bar** `[inferred]` | Replaces the top bar via a short cross-fade or downward slide the moment a field becomes dirty, ~150 ms; reverses on save/discard. | `15-account/account-general-unsaved-changes.webp`, `03-products/product-edit-pricing-inventory-shipping.webp` |
-| **Global search modal** `[inferred]` | Fades/scales in from the top bar search field, ~120 ms; results list updates without re-animating the container. | `14-global-search/search-modal-order-results-list.webp` |
-| **Collapsible card / accordion** `[inferred]` | Height animates with the chevron rotating 180°, ~150–200 ms. | `01-home/home-setup-guide-first-10-sales-expanded.webp` family, chevrons in `01-home/home-guide-side-panel-in-progress.webp` |
-| **Progress / task completion** `[inferred]` | Progress bar width tweens; a task's ring icon fills to a check on completion. | `01-home/home-guide-side-panel-in-progress.webp` (1/6 completed bar, filled check on the done task) |
-| **Bulk-action bar** `[inferred]` | Fades/slides up from the bottom of the list card when the first row is selected. | `03-products/products-list-bulk-selection-action-bar.webp` |
+| **Toast** `[inferred]` | Slides up ~8–16 px from the bottom edge while fading in (~150–200 ms, ease-out); rests bottom-center ~40 px above the viewport bottom; auto-dismisses after ~4–5 s or on `×`; exits by fading + sliding down (~150 ms). Multiple toasts would stack or replace. | Resting position and dark pill captured in |
+| **Popover / dropdown menu** `[inferred]` | Fades in with a small scale-up (~0.96→1) or a short slide from the trigger edge, ~100–150 ms ease-out; origin anchored to the trigger; dismiss is a faster fade (~100 ms). | Anchoring visible in (flush under "More actions") |
+| **Modal** `[inferred]` | Scrim fades in (~150 ms) while the dialog fades and scales/translates a few px upward; exit reverses, slightly faster. | |
+| **Settings modal (full sheet)** `[inferred]` | Larger travel than a dialog — slides up from the bottom edge into its inset position, ~200–250 ms. | |
+| **Right-side drawer / guide panel** `[inferred]` | Slides in from the right edge (~200 ms, ease-out) with no scrim; page content is not blocked. | |
+| **Contextual save bar** `[inferred]` | Replaces the top bar via a short cross-fade or downward slide the moment a field becomes dirty, ~150 ms; reverses on save/discard. | |
+| **Global search modal** `[inferred]` | Fades/scales in from the top bar search field, ~120 ms; results list updates without re-animating the container. | |
+| **Collapsible card / accordion** `[inferred]` | Height animates with the chevron rotating 180°, ~150–200 ms. | family, chevrons in |
+| **Progress / task completion** `[inferred]` | Progress bar width tweens; a task's ring icon fills to a check on completion. | (1/6 completed bar, filled check on the done task) |
+| **Bulk-action bar** `[inferred]` | Fades/slides up from the bottom of the list card when the first row is selected. | |
 | **Hover / focus states** `[inferred]` | Instant-feeling background tint change (~50–100 ms); focus rings appear without animation. | — |
 
 **Rules**
@@ -733,7 +704,7 @@ is measurable in these files. It is included so the team has a starting contract
 
 Things this pass could **not** establish from the screenshots and that Eyvar must decide or verify
 separately:
-- Exact hex values. Every colour above is sampled from a compressed, downscaled WebP and is an approximation; the `[Polaris]` names are recalled, not sampled. Four of the values previously printed here were recalled Polaris tokens rather than measurements and have been replaced with sampled ones (primary fill `#3E3E3E` not `#303030`; account Save green `#367C62` not `~#2CA36A`; success strip `#45815D` not `~#1F8A4C`; critical strip `#D03822` not `~#E02F2F`). **Sample from a live product or the Polaris token package before committing tokens.**
+- Exact hex values. Every colour above is sampled from a compressed, downscaled capture and is an approximation; the `[recalled]` names are recalled, not sampled. **No value here is a token.** Eyvar's tokens are in `src/styles/globals.css`, each with its own measurement.
 - A **critical-tone badge** never appeared in **any screenshot read (≈135 of the 159 on disk)** — only critical banners and critical inline field errors. 24 captures are cited by no section of this document, so the frequently repeated "in any of the 159 screens" was never earned; R5's *ruling* stands, the evidence claim behind it was inflated.
 - **Dark mode** does not appear in any capture. The dark top bar is a fixed inverse surface, not a theme.
 - **Hover, focus-visible, active, and loading states** are almost entirely absent from static captures (one disabled-button and one focused-field state were visible).
@@ -746,45 +717,16 @@ separately:
 
 > ### ⚠ D7 — this section is PROVENANCE, not authority
 >
-> `DECISIONS.md` **D7** replaced the **visual** reference. Navattic governs colour, spacing,
-> radii, borders, the type scale, page organisation, nav treatment, card treatment and table
-> style. **Everything visual below describes Shopify and no longer describes what Eyvar
-> ships.**
->
-> The screenshot citations are **kept on purpose**: they are what makes the derivation
-> auditable — open the cited frame and you can check what the analyst saw. **They may not be
-> cited to settle what Eyvar ships.** For that, read
-> `docs/05-restructure/design/03-navattic-language.md`, whose §1 holds the complete token set
-> with every value's measurement or derivation.
+> **Nothing visual below describes what Eyvar ships.** Colour, spacing, radii, borders, the
+> type scale, nav treatment, card treatment and table style are settled by the token layer,
+> `src/styles/globals.css`, summarised in `docs/ref/tokens.md`.
 >
 > What still binds from this section is **structure** — what a page is made of, what goes in
 > a header, what a state is for — and only where §6 adopts it. Every pixel figure was already
 > non-binding under **R13**; under D7 it is non-binding twice over.
-
-
-> **Evidence base.** Every `[observed]` claim below comes from a screenshot in
-> `docs/06-design-reference/shopify-admin-web/` that was opened and inspected for this section
-> (38 images across 00-auth, 01-home, 02-orders, 03-products, 04-customers, 05-online-store,
-> 06-marketing, 07-analytics, 08-finances, 09-discounts, 10-settings, 11-apps-and-channels,
-> 12-notifications, 13-navigation-shortcuts, 14-global-search, 15-account).
-> Claims marked `[Polaris]` come from knowledge of the Polaris design system and were **not**
-> verifiable in these images — treat them as advisory, not evidence.
 >
-> **How the measurements were derived — R13, the single calibration.** All source images are
-> 768 × 523 px, of which the bottom ~50 px is a Mobbin watermark strip that is ignored. The UI area is
-> therefore 768 × ~473 px. Pixel edges were sampled programmatically (top bar bottom edge at y≈29–30,
-> nav/content boundary at x≈129, card edges at x≈195/526/536/700).
->
-> This section previously assumed a **2× downscale of a ~1536 CSS-px viewport**. That assumption is
-> **wrong and is the outlier** among the document's four calibrations — it is what produced the 256 px
-> nav that R11 had to overrule. The one calibration for the whole document is **≈1.90×**: a 56 px top
-> bar at y≈29–30 implies 1.87–1.93×, and the nav boundary at x≈129 implies ~245 px, not 256.
->
-> **Every figure in §2 has been rescaled by 1.90/2.00 = 0.95** and is **approximate, ±8 px**.
-> **Px figures in §1–§5 are indicative, not binding** — use them as ratios and targets, not as gospel.
-> Where a ruling in the header or the contradiction audit names a specific figure — the left nav at
-> **~240 px** (R11), the drawer widths at **~406 px / ~648 px** (C12) — that named figure governs over
-> the rescale.
+> `[observed]` claims are evidenced on the line that carries them. `[recalled]` claims are
+> general design-system knowledge and are advisory, not evidence.
 
 ---
 
@@ -794,16 +736,13 @@ The admin is a fixed three-part shell: a dark top bar spanning the full viewport
 navigation column beneath it, and a scrolling content region. Only the top bar is dark; the nav
 column is a **near-canvas grey one step darker than the content canvas** — sampled at **`#EBEBEB`** on
 the nav side of the x≈129 boundary and **`#F1F1F1`** on the content side. There is still **no border,
-shadow or panel edge** drawn between them: the separation is tonal only. (This corrects an earlier
-claim that both sides sampled `#F1F1F1`; the step is consistent across
-`products-list-default`, `discounts-list-with-code`, `orders-list-with-metrics-row`,
-`finances-overview-earnings-donut-and-payouts` and `customers-list-single-customer`.)
-`[observed]` `docs/06-design-reference/shopify-admin-web/03-products/products-list-default.webp`,
-`.../09-discounts/discounts-list-with-code.webp`
+shadow or panel edge** drawn between them: the separation is tonal only, and the step is
+consistent across every surface sampled. `[observed]`
+
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────────────┐
-│ ▨ shopify        [ 🔍  Search                        ⌘K ]         🔔  ( My Store 🟢 )│ ← top bar, ~56px, dark #1A1A1A
+│ ▨ logo           [ 🔍  Search                        ⌘K ]         🔔  ( My Store 🟢)│ ← top bar, ~56px, dark #1A1A1A
 ├────────────────────┬─────────────────────────────────────────────────────────────┤
 │  ⌂ Home            │                                                             │
 │  ▤ Orders      (1) │   Products                          [Export][Import][⋯][+ Add]│ ← page header
@@ -836,17 +775,16 @@ claim that both sides sampled `#F1F1F1`; the step is consistent across
 
 | Zone | Contents | Approx. geometry |
 |---|---|---|
-| Left | Shopify glyph + wordmark, sitting inside the nav column's width | starts ~16 px from the left edge |
+| Left | Product glyph + wordmark, sitting inside the nav column's width | starts ~16 px from the left edge |
 | Centre | Search field: magnifier icon, placeholder "Search", `⌘K` hint right-aligned inside the field | ~514 px wide, **centred on the viewport**, not on the content region |
 | Right | Notification bell (red dot when unread), then a store-switcher pill: store name + square avatar with initials | pill ends ~16 px from the right edge |
 
 The search field being centred on the *viewport* (its centre lands on x≈384 of 768) rather than on
 the content region is deliberate and consistent across every framed screenshot read. `[observed]`
-`.../01-home/home-sales-chart-and-things-to-do-next.webp`,
-`.../02-orders/orders-list-with-metrics-row.webp`
+
 
 The bell renders a small red dot badge when alerts are pending and takes a lit/active treatment
-while its popover is open. `[observed]` `.../12-notifications/alerts-popover-with-channel-issue.webp`
+while its popover is open. `[observed]`
 
 **Left navigation** — **~240 px** wide (R11), full height below the top bar, with the content region
 starting ~23 px to the right of its edge. The 256 px figure this section used to print was an artefact
@@ -854,8 +792,8 @@ of the wrong 2× calibration; the boundary at x≈129 img px measures ~245 px at
 ~240 px as the constant. §3's ~247 px is the same measurement rounded differently and is not a
 disagreement about the product. `[observed]`
 
-Anatomy, top to bottom `[observed]` across `.../03-products/products-list-default.webp`,
-`.../02-orders/order-detail-unfulfilled-payment-pending.webp`, `.../08-finances/finances-overview-earnings-donut-and-payouts.webp`:
+Anatomy, top to bottom `[observed]` across,
+,:
 
 1. **Primary items**, each a 16 px leading icon + label: Home, Orders, Products, Customers,
    Content, Finances, Analytics, Marketing, Discounts.
@@ -873,16 +811,16 @@ Anatomy, top to bottom `[observed]` across `.../03-products/products-list-defaul
    "uppercase-ish" description was wrong, and contradicted §1.2's own MUST.)
 5. **`Apps` group** — same pattern; shows `⊕ Add apps` when empty, and installed apps (e.g. Email,
    with a pin affordance and its own nested Templates / Settings) when populated.
-   `[observed]` `.../06-marketing/email-app-overview-campaigns-table.webp`
+   `[observed]`
 6. **`⚙ Settings`** pinned to the bottom of the column, separated from the scrolling list.
 
 **Active-item treatment** `[observed]`: a top-level active item gets a filled white pill inset
 ~6 px from both nav edges, with a slightly heavier label weight. **A nested active item gets the same
 full-width rounded white pill**, plus an elbow/connector marker running from the parent row into it
 and a heavier label. The earlier claim that nested items get "a marker instead of a pill" is
-contradicted by both files it cited: `.../03-products/inventory-quantities-by-variant.webp`
-(Inventory active) and `.../04-customers/customer-segments-row-actions-menu.webp` (Segments active)
-both render the pill. Also `.../05-online-store/blog-posts-list.webp` with Blog posts active.
+contradicted by both files it cited:
+(Inventory active) and  (Segments active)
+both render the pill. Also  with Blog posts active.
 
 **Only one section is expanded at a time** — the section that owns the current route. Every framed
 capture read shows sub-items under one parent only and none under the others, but this is a universal
@@ -916,7 +854,7 @@ measurement. `[inferred]`
 **Page header** sits at the top of the content region and aligns to the content block, not to the
 nav edge — its title's left edge lines up with the left edge of the first card, and its rightmost
 button's right edge lines up with the right edge of the right rail. `[observed]`
-`.../02-orders/order-detail-unfulfilled-payment-pending.webp`
+
 
 Header slots, left to right `[observed]`:
 
@@ -926,11 +864,10 @@ Header slots, left to right `[observed]`:
 - **Title** (h1, ~20–24 px, semibold).
 - **Status badge(s)** inline, immediately after the title, on the same baseline —
   `● Payment pending` + `⊙ Unfulfilled` on an order, `Draft` on a new segment.
-  `.../04-customers/customer-segment-new-query-editor.webp`
+
 - **Subtitle / metadata line** on a second row under the title, muted:
   "January 8, 2024 at 9:48 pm from Draft Orders";
   "New York NY, United States • Customer for less than 5 seconds"
-  (`.../04-customers/customer-detail-no-orders-yet.webp`).
 - **Right cluster**: secondary buttons, then a `More actions ▾` disclosure, then the primary button
   (dark fill). Disabled actions render greyed in place rather than being removed
   (`Duplicate`, `Use segment` on a draft segment). `[observed]`
@@ -940,14 +877,14 @@ Header slots, left to right `[observed]`:
 **Widths** (approximate and **indicative, not binding** — rescaled from the old 2× figures by ×0.95
 per R13; the *ratios* are what matter and they are unchanged):
 
-| Element | Approx. | Evidence |
-|---|---|---|
-| Centred page max-width | **~955 px** (was ~1000 at 2×) | card block spans x≈195→700 of 768 (×1.90) `[observed]` |
-| Main column (two-column) | **~625 px** (was ~660) | x≈196→525 `[observed]` |
-| Right rail | **~310 px** (was ~320) | x≈536→700 `[observed]` |
-| Column gutter | **~20 px** | x≈525→536 `[observed]` |
-| Content side gutter (nav edge → card) | **~23 px** | x≈128→141 on full-width pages `[observed]` |
-| Narrow single column (consent/confirmation) | **~705 px** (was ~740) | x≈263→633 `[observed]` |
+| Element | Approx. |
+| --- | --- |
+| Centred page max-width | **~955 px** (was ~1000 at 2×) |
+| Main column (two-column) | **~625 px** (was ~660) |
+| Right rail | **~310 px** (was ~320) |
+| Column gutter | **~20 px** |
+| Content side gutter (nav edge → card) | **~23 px** |
+| Narrow single column (consent/confirmation) | **~705 px** (was ~740) |
 
 The centred block is centred on the **content region** (nav excluded), not the viewport: the block
 centre lands at x≈448, which is exactly `(128 + 768) / 2`. `[observed]`
@@ -956,10 +893,10 @@ centre lands at x≈448, which is exactly `(128 + 768) / 2`. `[observed]`
 
 | Layout | Used for | Example |
 |---|---|---|
-| **Full-width, left-aligned** (no max-width, ~23 px gutters) | Index/list pages and data grids | `.../03-products/products-list-default.webp`, `.../02-orders/orders-list-with-metrics-row.webp`, `.../03-products/purchase-orders-list.webp`, `.../05-online-store/blog-posts-list.webp` |
-| **Centred single column (~955 px)** | Overview/dashboard pages built from cards | `.../08-finances/finances-overview-earnings-donut-and-payouts.webp`, `.../01-home/home-sales-chart-and-things-to-do-next.webp` |
-| **Centred two-column, ~625 + ~310** | Every record detail and every create/edit form | order detail, customer detail, `.../03-products/product-add-new-blank-form.webp`, `.../09-discounts/discount-create-shipping-with-code.webp`, `.../02-orders/order-fulfill-item-page.webp` |
-| **Centred narrow (~705 px)** | Consent / confirmation / single-decision pages | `.../11-apps-and-channels/app-install-permissions-consent.webp` |
+| **Full-width, left-aligned** (no max-width, ~23 px gutters) | Index/list pages and data grids | |
+| **Centred single column (~955 px)** | Overview/dashboard pages built from cards | |
+| **Centred two-column, ~625 + ~310** | Every record detail and every create/edit form | order detail, customer detail |
+| **Centred narrow (~705 px)** | Consent / confirmation / single-decision pages | |
 
 ```
         ← ~23px →│←───────────── centred block, ~955px ──────────────→│
@@ -997,7 +934,7 @@ header rather than inline fields.
 One important exception: on task-shaped pages the **primary action lives at the bottom of the rail
 summary card, not in the page header** — `Fulfill item` is a full-width dark button inside the
 `Summary` rail card while the header carries only `Print packing slip`. `[observed]`
-`.../02-orders/order-fulfill-item-page.webp`
+
 
 **Rules**
 - Page headers MUST align to the content block: title left edge = first card left edge; last button
@@ -1012,7 +949,7 @@ summary card, not in the page header** — `Fulfill item` is a full-width dark b
   list, and MUST be the rightmost element.
 - Index pages and data grids MUST be full-width; detail pages, forms, and overviews MUST be capped
   at ~955 px and centred **on the content region**, not the viewport.
-- Two-column pages MUST use a **~2 : 1** main-to-rail ratio — ~625 px main + ~310 px rail with a
+- Two-column pages MUST use a **~2: 1** main-to-rail ratio — ~625 px main + ~310 px rail with a
   ~20 px gutter at this calibration. The ratio binds; the px figures are indicative.
 - The right rail MUST hold only status, publishing, summary, and metadata; primary form fields MUST
   stay in the main column.
@@ -1028,15 +965,14 @@ summary card, not in the page header** — `Fulfill item` is a full-width dark b
 When a form becomes dirty, the top bar is **replaced in place** by a save bar of the same height and
 the same dark fill. The frame does not shift, nothing is pushed down, and the left nav stays
 mounted. `[observed]`
-`.../03-products/product-add-new-blank-form.webp`, `.../09-discounts/discount-create-shipping-with-code.webp`
 
 ```
   ── normal ────────────────────────────────────────────────────────────────────
- │ ▨ shopify      [ 🔍 Search              ⌘K ]        🔔   ( My Store 🟢 )      │
+ │ ▨ logo         [ 🔍 Search              ⌘K ]        🔔   ( My Store 🟢)      │
   ── dirty ─────────────────────────────────────────────────────────────────────
- │ ▨ shopify      ⚠ Unsaved product                    [ Discard ] [  Save  ]   │
+ │ ▨ logo         ⚠ Unsaved product                    [ Discard ] [  Save  ]   │
   ── dirty, nothing valid to save ──────────────────────────────────────────────
- │ ▨ shopify      ⚠ Unsaved changes                    [ Discard ] [  Save  ]   │
+ │ ▨ logo         ⚠ Unsaved changes                    [ Discard ] [  Save  ]   │
                                                                    └ greyed ┘
 ```
 
@@ -1045,36 +981,34 @@ Observed details:
 - The logo/wordmark **stays** in the left slot; the search field and the right cluster are removed
   entirely. `[observed]`
 - The message sits left-of-centre. **On store-admin surfaces it is preceded by a small warning
-  glyph** (`.../03-products/product-edit-pricing-inventory-shipping.webp` shows ⚠ + "Unsaved
-  product"). **The account surface is the exception: no glyph** — `.../15-account/account-general-unsaved-changes.webp`
+  glyph** ( shows ⚠ + "Unsaved
+  product"). **The account surface is the exception: no glyph** —
   shows a bare "Unsaved changes". Labels are
-  **entity-specific**: `Unsaved product` (`.../03-products/product-edit-pricing-inventory-shipping.webp`),
-  `Unsaved discount` (`.../09-discounts/discount-create-shipping-with-code.webp`),
+  **entity-specific**: `Unsaved product`,
+  `Unsaved discount`,
   and the generic `Unsaved changes`
-  (`.../05-online-store/navigation-add-menu-with-add-item-panel.webp`,
-  `.../07-analytics/analytics-customize-metrics-library-sidebar.webp`,
-  `.../15-account/account-general-unsaved-changes.webp`).
+  (
+).
 - The right pair is `Discard` (low-contrast, dark-on-dark) + `Save` (light/white fill, dark label).
   `[observed]`
 - **Disabled Save** renders as greyed label on the dark bar with no fill change to the bar itself —
   seen while the Add-menu-item sheet has an empty required field, and in the bulk editor before any
   cell is touched. `[observed]`
-  `.../05-online-store/navigation-add-menu-with-add-item-panel.webp`,
-  `.../03-products/products-bulk-editor-grid.webp`
+
 - **Variants exist and should be treated as exceptions, not licence.** The account surface uses
-  `Cancel` + a *green* `Save` (`.../15-account/account-general-unsaved-changes.webp`); the analytics
+  `Cancel` + a *green* `Save`; the analytics
   customise mode uses `Cancel` + a dark `Save`
-  (`.../07-analytics/analytics-customize-metrics-library-sidebar.webp`). The store-admin surfaces
+. The store-admin surfaces
   consistently use `Discard` + light `Save`.
-- **The nav is not dimmed on any surface.** In `.../15-account/account-general-unsaved-changes.webp`
+- **The nav is not dimmed on any surface.** In
   the left nav column and the page canvas both sample `#F6F5F8` — identical, no dimming. (That page's
   nav is the *account* nav — General / Security — not the admin nav.) The element that *is* dimmed is
-  the Shopify **wordmark** inside the save bar itself. The earlier "left nav is visibly dimmed" claim
+  the **wordmark** inside the save bar itself. The earlier "left nav is visibly dimmed" claim
   is deleted. `[observed]`
 - **Bottom-of-form repeat**: at the end of a long form the main column ends with a single
   right-aligned `Save` button whose right edge aligns to the right edge of the *whole content
   block* (i.e. the rail's right edge, not the main column's). No `Discard` was observed paired with
-  it. `[observed]` `.../03-products/product-edit-seo-listing-and-empty-variants.webp`
+  it. `[observed]`
 
 **Rules**
 - Unsaved state MUST replace the top bar in place, at identical height, with no layout shift.
@@ -1087,14 +1021,14 @@ Observed details:
   `Save`, in that order.
 - `Save` MUST be disabled (greyed, non-interactive) while the form is invalid or nothing has
   actually changed. `Discard` MUST remain enabled.
-- **→ Superseded by R2: Save is the brand-blue primary, like every other primary. The light/white
-  Save recommended below is derived from Shopify's *dark* top bar; Eyvar's top bar is white (§6.2 D-3),
-  so a light Save would be invisible on it.**
+- **→ Superseded by R2: Save is the same primary as every other primary. The light/white Save
+  recommended below was derived for a *dark* top bar; Eyvar's top bar is white (§6.2 D-3), so a
+  light Save would be invisible on it.**
 - The app MUST pick one save-bar button style and use it everywhere. Eyvar Admin SHOULD standardise
-  on `Discard` + light `Save`; do NOT reproduce Shopify's green/`Cancel` account variant.
+  on `Discard` + `Save`; do NOT reproduce the baseline's green/`Cancel` account variant.
 - Long forms (taller than ~1.5 viewports) SHOULD repeat a single right-aligned `Save` at the end of
   the main column, aligned to the right edge of the full content block.
-- Navigating away with unsaved changes MUST be intercepted `[Polaris]` — not verifiable in these
+- Navigating away with unsaved changes MUST be intercepted `[recalled]` — not verifiable in these
   screenshots.
 
 ---
@@ -1103,11 +1037,10 @@ Observed details:
 
 Settings is **not a page in the frame**. It is a near-full-screen overlay card that sits on top of
 the admin, dimming everything behind it, with the dark top bar still visible above it. `[observed]`
-`.../10-settings/settings-billing-history.webp`, `.../10-settings/settings-store-details-saved-toast.webp`
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────────┐
-│ ▨ shopify        [ 🔍 Search           ⌘K ]        🔔   ( My Store 🟢 )        │ ← real top bar stays
+│ ▨ logo           [ 🔍 Search           ⌘K ]        🔔   ( My Store 🟢)        │ ← real top bar stays
 ├──┬───────────────────────────────────────────────────────────────────────┬───┤
 │▒▒│ ⚙ Settings                                                          ✕ │▒▒▒│ ← overlay header ~56px
 │▒▒├───────────────────────────────────────────────────────────────────────┤▒▒▒│
@@ -1126,7 +1059,7 @@ the admin, dimming everything behind it, with the dark top bar still visible abo
 └──┴───────────────────────────────────────────────────────────────────────┴───┘
 ```
 
-Shell geometry `[observed]`, sampled from `.../10-settings/settings-billing-history.webp`:
+Shell geometry `[observed]`, sampled from:
 
 - Overlay card inset ~8 px from the left and right viewport edges (x≈4→764 of 768), top edge at
   y≈34 → roughly 12 px below the 56 px top bar, rounded corners, running to the bottom of the
@@ -1136,9 +1069,9 @@ Shell geometry `[observed]`, sampled from `.../10-settings/settings-billing-hist
 - Inside, a **centred inner block ~1026 px** wide containing the nav card (~289 px) + ~27 px gutter
   + the content pane (~707 px). The block is centred on the overlay, leaving generous empty margins
   on both sides. (Rescaled ×0.95 per R13 — the audit verified these proportions to within a few px at
-  the old calibration; the ratio `nav : gutter : pane` is what binds.)
+  the old calibration; the ratio `nav: gutter: pane` is what binds.)
 
-Nav list `[observed]`, in order: a store identity header (square avatar + store name + `*.myshopify.com`
+Nav list `[observed]`, in order: an account identity header (square avatar + account name + its
 domain), then Store details, Plan, Billing, Users and permissions, Payments, Checkout, Customer
 accounts, Shipping and delivery, Taxes and duties, Locations, Gift cards, Markets,
 Apps and sales channels, Domains, Customer events, Brand, Notifications, Custom data, Languages,
@@ -1149,22 +1082,21 @@ Behaviour notes `[observed]`:
 
 - **The overlay body appears to scroll as one unit** — the settings nav scrolls off the top along
   with the content pane rather than being independently sticky
-  (`.../10-settings/settings-payments-manual-methods-cod-activated.webp` shows the nav scrolled to
+  ( shows the nav scrolled to
   its last items while the payments pane is scrolled). `[inferred]` — this is read off a single
   scrolled frame; a sticky nav could look identical at that scroll offset.
 - **Inner sub-page navigation** replaces the pane, keeping the nav: the pane header becomes
   `← <Sub-page title>` with its own right-aligned actions —
   `← Billing cycle: Jan 12, 2024   [Download] [Export CSV file]`
-  (`.../10-settings/settings-billing-cycle-detail.webp`).
 - **Deep flows drop the nav entirely** and take the full overlay width as a two-column
   checkout-style layout: `← Review and subscribe` with a form column on the left (~680 px) and a
   sticky order-summary card on the right (~447 px), no settings nav visible.
-  (`.../10-settings/settings-plan-review-and-subscribe.webp`)
+
 - **Modals stack on top of the overlay**: a centred ~625 px dialog with title + `✕`, body, and a
   footer of `Cancel` + primary, dimming the settings overlay behind it.
-  (`.../10-settings/settings-payments-setup-shopify-payments-modal.webp`)
+
 - Surfaces you might expect in the main frame live here instead — **Apps and sales channels** is a
-  settings page, not a frame page (`.../11-apps-and-channels/apps-and-sales-channels-installed-list.webp`).
+  settings page, not a frame page.
 - Settings pages use the same footer convention as frame pages:
   `Learn more about bills.` / `Learn more about apps.` / `Learn more about payments.`, centred under
   the content pane.
@@ -1193,10 +1125,7 @@ Behaviour notes `[observed]`:
 Four categories drop the admin frame entirely. Each substitutes its own top bar.
 
 **A. Theme editor** `[observed]`
-`.../05-online-store/theme-editor-live-preview-desktop.webp`,
-`.../05-online-store/theme-editor-home-page-section-tree.webp`,
-`.../05-online-store/theme-editor-color-scheme-picker.webp`,
-`.../05-online-store/theme-editor-product-template-mobile-preview.webp`
+
 
 ```
 ┌───────────────────────────────────────────────────────────────────────────────┐
@@ -1230,7 +1159,7 @@ Four categories drop the admin frame entirely. Each substitutes its own top bar.
   `[observed]`
 - Toasts appear over the preview (`Changes saved.`), bottom-centre of the preview area.
 
-**B. Bulk product editor** `[observed]` `.../03-products/products-bulk-editor-grid.webp`
+**B. Bulk product editor** `[observed]`
 
 Full-bleed spreadsheet. Own light bar (~56 px): `⇤ Back` + `Editing 3 products` on the left;
 `▥ Columns` + a disabled `Save` on the right. Below it, an edge-to-edge grid with a sticky header
@@ -1238,21 +1167,19 @@ row, a frozen first column (product title + thumbnail), indented variant sub-row
 cells (chips, selects, steppers), and horizontal overflow. No nav, no page header, no max-width.
 
 **C. Checkout-style / transactional pages** `[observed]`
-`.../10-settings/settings-plan-review-and-subscribe.webp`
+
 
 Form column + sticky priced summary card with a full-width primary (`Subscribe`) and a reassurance
 line beneath it (`Change or cancel your plan at any time.`). Runs inside the settings overlay with
 the settings nav removed.
 
 **D. Auth pages** `[observed]`
-`.../00-auth/login-email-filled.webp`, `.../00-auth/login-two-factor-authenticator-code.webp`,
-`.../00-auth/oauth-choose-an-account.webp`, `.../00-auth/signup-create-account-email-password.webp`
 
 No frame at all. A full-bleed dark gradient background (deep purple → teal) with a centred white
 card, ~475 px wide, ~16 px radius, ~34 px padding, vertically centred. Card contents, in fixed
 order: wordmark → h1 → one-line subtitle → field(s) → full-width dark primary button → `or` divider
 → a row of three equal social-provider buttons → a secondary link line
-(`New to Shopify? Get started →`) → small legal links (`Help  Privacy  Terms`) at the card's
+(`New here? Get started →`) → small legal links (`Help  Privacy  Terms`) at the card's
 bottom-left.
 
 Signup breaks the single card into a **~1206 px split card**: form panel left, marketing
@@ -1261,7 +1188,7 @@ selector (`I'm located in 🇺🇸 United States ⌄`) top-right of the form pan
 
 A fifth, degenerate case: the deactivated-store page keeps a **stub top bar** carrying only the
 account switcher, and centres a ~874 px single column with no nav.
-`[observed]` `.../15-account/store-deactivated-reopen-page.webp`
+`[observed]`
 
 **Rules**
 - Immersive editors (theme editor, bulk editor) MUST replace the whole frame — no admin nav, no
@@ -1286,9 +1213,7 @@ account switcher, and centres a ~874 px single column with no nav.
 ### 2.6 Navigation affordances
 
 **Global search** `[observed]`
-`.../14-global-search/search-modal-order-results-list.webp`,
-`.../14-global-search/search-modal-scoped-to-apps.webp`,
-`.../14-global-search/search-modal-scoped-to-orders-empty.webp`
+
 
 The top-bar field expands **in place** into a ~657 px panel anchored to the field's own x-position,
 overlapping the top bar and floating over dimmed page content. It is an anchored popover, not a
@@ -1322,7 +1247,7 @@ centred command palette.
   it does not collapse to zero height, and it does not show a "no results" error. `[observed]`
 
 **Resource shortcut menu** `[observed]`
-`.../13-navigation-shortcuts/quick-create-menu-with-keyboard-shortcuts.webp`
+
 
 A menu anchored **above** its trigger listing resource types, each row being
 `icon · label · keyboard shortcut · ›`: Orders `# O`, Draft orders `# D`, Customers `# C`,
@@ -1347,17 +1272,17 @@ Depth beyond one level is handled by overlays and modals rather than by deeper t
   `All · Paid · Open · Failed · Processing · Refunded · Canceled` on billing history,
   `All · Campaigns · Automations` on the email app, `Installed` on apps and sales channels.
 - The trailing `+` on a tab row creates a new saved view. `[observed]`
-  `.../03-products/products-list-create-view-modal.webp` (by name),
-  `.../03-products/products-list-default.webp`
+   (by name),
+
 - The tab row's right end carries the table's own controls: search, filter, view/columns, sort.
   `[observed]`
 - Entering search mode replaces the tab row with a full-width query field plus filter chips
   (`Product vendor ▾`, `Tagged with ▾`, `Status ▾`, `Add filter +`, `Clear all`) and a
-  `Cancel` / `Save as` pair. `[observed]` `.../03-products/products-list-search-and-filters.webp`
+  `Cancel` / `Save as` pair. `[observed]`
 
 **"Learn more about X" footer links** `[observed]`: a single muted sentence, **centred beneath the
 last card** of the content block, of the form `Learn more about <link>.` — orders
-(`.../02-orders/orders-list-with-metrics-row.webp`), purchase orders, blog posts, fulfilling orders,
+, purchase orders, blog posts, fulfilling orders,
 segments, bills, apps, payments. It is never in a page footer bar, never in the rail, and never more
 than one per page.
 
@@ -1365,19 +1290,19 @@ than one per page.
 
 | Surface | Geometry | Example |
 |---|---|---|
-| Alerts popover | **~400 px**, right-aligned to the bell, header `Alerts` + filter + help, footer `No more alerts` (spans x 556→757 img px; §1.4's "~200 px" read image pixels as CSS pixels) | `.../12-notifications/alerts-popover-with-channel-issue.webp` |
-| Right side panel (persistent) | ~352 px, pinned below the top bar, own `Title ✕` header; the content column narrows to make room | `.../01-home/home-guide-side-panel-in-progress.webp` |
-| Right sheet (transient, over content) | **~406 px** (C12 — 203 img px measured), full height, own header + sticky `Cancel` / primary footer, primary disabled until valid | `.../05-online-store/navigation-add-menu-with-add-item-panel.webp` |
-| Two-column templates panel | **~648 px** (C12 — 324 img px, ~42% of the viewport). A drawer that needs internal columns is sized to them | `.../04-customers/customer-segment-templates-panel.webp` |
-| Centre modal | ~625 px, title + `✕`, body, `Cancel` + primary footer. Modals are **vertically centred**, not upper-third (§5.3 corrected) | `.../10-settings/settings-payments-setup-shopify-payments-modal.webp` |
-| Bulk action bar | floating **white** rounded bar — white surface, light hairline border, soft shadow (C13; it is *not* dark-outlined) — anchored bottom-centre **of the table card**, appears with a `N selected` row under the tabs | `.../03-products/products-list-bulk-selection-action-bar.webp` |
-| Toast | small dark rounded rectangle (~8 px radius, not a stadium — R15), bottom-centre **of the viewport**, with a `✕`. Measured centre x≈384 = viewport centre in every sample; the content region's centre is x≈448, so the toast sits ~64 img px left of it. §5.1 was right; this section was wrong (C9) | `.../10-settings/settings-store-details-saved-toast.webp`, `.../03-products/products-list-products-imported-toast.webp` |
+| Alerts popover | **~400 px**, right-aligned to the bell, header `Alerts` + filter + help, footer `No more alerts` (spans x 556→757 img px; §1.4's "~200 px" read image pixels as CSS pixels) | |
+| Right side panel (persistent) | ~352 px, pinned below the top bar, own `Title ✕` header; the content column narrows to make room | |
+| Right sheet (transient, over content) | **~406 px** (C12 — 203 img px measured), full height, own header + sticky `Cancel` / primary footer, primary disabled until valid | |
+| Two-column templates panel | **~648 px** (C12 — 324 img px, ~42% of the viewport). A drawer that needs internal columns is sized to them | |
+| Centre modal | ~625 px, title + `✕`, body, `Cancel` + primary footer. Modals are **vertically centred**, not upper-third (§5.3 corrected) | |
+| Bulk action bar | floating **white** rounded bar — white surface, light hairline border, soft shadow (C13; it is *not* dark-outlined) — anchored bottom-centre **of the table card**, appears with a `N selected` row under the tabs | |
+| Toast | small dark rounded rectangle (~8 px radius, not a stadium — R15), bottom-centre **of the viewport**, with a `✕`. Measured centre x≈384 = viewport centre in every sample; the content region's centre is x≈448, so the toast sits ~64 img px left of it. §5.1 was right; this section was wrong (C9) | |
 
 **Channel / embedded-app context header** `[observed]`: pages belonging to a sales channel or an
 embedded app get a slim context row **above** the page header, spanning the content region:
 channel/app icon + name on the left, `↗` open-external and `⋯` overflow on the right — then the
-normal page header below it. `.../05-online-store/blog-posts-list.webp`,
-`.../06-marketing/email-app-overview-campaigns-table.webp`
+normal page header below it.,
+
 
 **Rules**
 - Global search MUST open as a popover anchored to the top-bar field, MUST be reachable via `⌘K` /
@@ -1415,35 +1340,25 @@ normal page header below it. `.../05-online-store/blog-posts-list.webp`,
 
 > ### ⚠ D7 — this section is PROVENANCE, not authority
 >
-> `DECISIONS.md` **D7** replaced the **visual** reference. Navattic governs colour, spacing,
-> radii, borders, the type scale, page organisation, nav treatment, card treatment and table
-> style. **Everything visual below describes Shopify and no longer describes what Eyvar
-> ships.**
->
-> The screenshot citations are **kept on purpose**: they are what makes the derivation
-> auditable — open the cited frame and you can check what the analyst saw. **They may not be
-> cited to settle what Eyvar ships.** For that, read
-> `docs/05-restructure/design/03-navattic-language.md`, whose §1 holds the complete token set
-> with every value's measurement or derivation.
+> **Nothing visual below describes what Eyvar ships.** Colour, spacing, radii, borders, the
+> type scale, nav treatment, card treatment and table style are settled by the token layer,
+> `src/styles/globals.css`, summarised in `docs/ref/tokens.md`.
 >
 > What still binds from this section is **structure** — what a page is made of, what goes in
 > a header, what a state is for — and only where §6 adopts it. Every pixel figure was already
 > non-binding under **R13**; under D7 it is non-binding twice over.
 
 
-How the Shopify admin presents records: the index table, the toolbar that filters it, the
+How an operations admin presents records: the index table, the toolbar that filters it, the
 bulk-selection layer on top of it, the badges that carry state, the cards that hold
 everything, and the analytics/timeline surfaces that are not tables at all.
 
-**Measurement note — R13, the single calibration.** The screenshots are 768 × 523 px
-renders (bottom ~50 px is the Mobbin watermark strip; UI area 768 × ~473 px). The dark
-global bar measures ~29–30 px in the images and ships at 56 px, so all image pixels below
-are scaled by **≈1.90×** to give real values. §3's earlier ≈1.93×, §1's 1.875×, §2's
-2×/1536 px and §4's 0.53× are all superseded by this one figure. Every number is therefore
-**approximate** — treat them as "this size, ±2 px", not as tokens. **Px figures in §1–§5
-are indicative, not binding.** Where an exact value matters, measure in a live admin.
+**Measurement note — R13, the single calibration.** Every number below is scaled by
+**≈1.90×** from measured image pixels, one calibration for the whole document. Treat each as
+"this size, ±2 px", never as a token. **Px figures in §1–§5 are indicative, not binding.**
+Where an exact value matters, measure it in the running app.
 
-**Frame of reference** (from `03-products/products-list-default.webp`, consistent across
+**Frame of reference** (from, consistent across
 every index screenshot read): left nav **~240 px** (R11 — the ~247 px this section used to
 print is the same x≈129 boundary rounded at a slightly different scale, not a disagreement
 about the product), content column ≈1167 px wide, and on two-column detail pages a main
@@ -1456,62 +1371,60 @@ column ≈645 px + right rail ≈295 px with a ≈21 px gutter.
 The index table is one **card**, not a bare `<table>`. The tab bar, the search/filter row,
 the header row, the rows, and the bulk action bar all live inside the same rounded white
 surface on the grey canvas. `[observed]`
-`docs/06-design-reference/shopify-admin-web/03-products/products-list-default.webp`
+
 
 **Anatomy, left to right**
 
-| Element | Behaviour | Evidence |
-|---|---|---|
-| Selection checkbox | ~14 px box, ~16 px from the card's left edge; present in the header row and every body row | `03-products/products-list-default.webp` |
-| Thumbnail | **Two shapes, by resource kind.** On product-shaped resources (products, inventory, timeline product previews) it is a **~40×40 px rounded square** — ≈23×20 img px. On **editorial** resources it is a **4:3 landscape tile, ~84×60 px** — ≈42×30 img px on the blog-posts index. Present only on resources that have media; missing media renders a grey placeholder tile with an image glyph | `03-products/products-list-default.webp` (Example Hat / Example Pants — square), `05-online-store/blog-posts-list.webp` (landscape tile) |
-| Primary cell | The record's name, as a link. Semibold when the record's identity is a code or number (`#1002`, `FREESHIPPING10`), regular weight when it is a title (`Custom Notebook`) | `02-orders/orders-list-with-metrics-row.webp`, `09-discounts/discounts-list-with-code.webp` |
-| Secondary line | Optional grey second line inside the primary cell, e.g. variant descriptor `Brown / A5 / Grid`, or the discount's rule summary `Free shipping on all products • For all countries • One use per customer` | `03-products/inventory-quantities-by-variant.webp`, `09-discounts/discounts-list-with-code.webp` |
-| Inline row icons | Small glyphs after the primary link marking "has note" / "has comment" — two orders show one and two glyphs respectively | `02-orders/orders-list-with-metrics-row.webp` |
-| Status cell | A badge (see §3.4) | `03-products/products-list-default.webp` |
-| Data cells | Text, numbers, or inline links | as below |
-| Row overflow | Some indexes end each row with a `…` kebab opening row actions (`Use segment / Duplicate / Export / Rename / Delete`) | `04-customers/customer-segments-row-actions-menu.webp` |
+| Element | Behaviour |
+| --- | --- |
+| Selection checkbox | ~14 px box, ~16 px from the card's left edge; present in the header row and every body row |
+| Thumbnail | **Two shapes, by resource kind.** On product-shaped resources (products, inventory, timeline product previews) it is a **~40×40 px rounded square** — ≈23×20 img px. On **editorial** resources it is a **4:3 landscape tile, ~84×60 px** — ≈42×30 img px on the blog-posts index. Present only on resources that have media; missing media renders a grey placeholder tile with an image glyph |
+| Primary cell | The record's name, as a link. Semibold when the record's identity is a code or number (`#1002`, `FREESHIPPING10`), regular weight when it is a title (`Custom Notebook`) |
+| Secondary line | Optional grey second line inside the primary cell, e.g. variant descriptor `Brown / A5 / Grid`, or the discount's rule summary `Free shipping on all products • For all countries • One use per customer` |
+| Inline row icons | Small glyphs after the primary link marking "has note" / "has comment" — two orders show one and two glyphs respectively |
+| Status cell | A badge (see §3.4) |
+| Data cells | Text, numbers, or inline links |
+| Row overflow | Some indexes end each row with a `…` kebab opening row actions (`Use segment / Duplicate / Export / Rename / Delete`) |
 
 **Row height and density.** Rows with a 40 px thumbnail measure ≈52–56 px; text-only rows
 measure ≈38–40 px. `[observed]` (products rows ≈28 px apart in-image; segments rows ≈20 px
 apart). Rows carrying a two-line primary cell grow to fit rather than truncating the
-second line. `[observed]` `09-discounts/discounts-list-with-code.webp`
+second line. `[observed]`
 
 **Header row.** Small, subdued, non-bold column labels on the card's surface — there is no
-filled grey header band. `[observed]` `04-customers/customer-segments-list.webp`
+filled grey header band. `[observed]`
 
 **Sorting.** Exactly one header carries a small chevron indicating the active sort column
 and direction — `Product ⌃` on products, `Date ⌄` on orders, `Last activity ⌄` on
 segments. Other headers show no affordance in the resting state. `[observed]`
-`03-products/products-list-default.webp`, `02-orders/orders-list-with-metrics-row.webp`,
-`04-customers/customer-segments-list.webp`
+
 
 **Alignment — and an honest inconsistency.** Currency and count columns are right-aligned
 (header and value share a right edge) on orders (`Total` → `$20.00`), purchase orders
 (`Total` → `$0.00`), discounts (`Used` → `0`) and products (`Markets` → `2`). `[observed]`
 But the customers index left-aligns both `Orders → 2 orders` and `Amount spent → $19.00`.
-`[observed]` `04-customers/customers-list-single-customer.webp`. Shopify itself is not
-consistent here; Eyvar should pick right-alignment and apply it everywhere.
+`[observed]`. The baseline is not
+consistent here; Eyvar picks right-alignment and applies it everywhere.
 
 **Column visibility.** Two different controls exist. Wide indexes (orders, inventory) put a
 **columns icon** in the icon cluster between the filter and sort icons. `[observed]`
-`02-orders/orders-list-with-metrics-row.webp`, `03-products/inventory-quantities-by-variant.webp`.
+,.
 The full-screen bulk editor instead uses an explicit labelled **`Columns`** button in its
-top bar. `[observed]` `03-products/products-bulk-editor-grid.webp`. Which columns are
-visible and in what order is per-view state. `[Polaris]`
+top bar. `[observed]`. Which columns are
+visible and in what order is per-view state. `[recalled]`
 
 **Horizontal overflow.** Wide tables clip at the card's right edge (`Tags` is cut off on
 the orders index). `[observed]` for the clipping. That they **scroll horizontally**, and
-that the checkbox + primary cell stay pinned while they do, are both `[Polaris]` — a static
+that the checkbox + primary cell stay pinned while they do, are both `[recalled]` — a static
 frame cannot show a scroll.
 
 **Editable tables.** When a table's job is data entry rather than navigation, cells become
 controls in place: the variants matrix renders price/available/on-hand as text inputs with
 a per-row `Edit` button, and inventory renders `Available` / `On hand` as steppered number
 fields. The row structure is otherwise identical. `[observed]`
-`03-products/product-edit-variants-matrix-table.webp`,
-`03-products/inventory-quantities-by-variant.webp`
 
-**Hover.** Not directly observable in static screenshots. `[Polaris]` Rows take a subtle
+
+**Hover.** Not directly observable in static screenshots. `[recalled]` Rows take a subtle
 grey hover fill and the primary link underlines; the whole row is a click target for the
 primary link.
 
@@ -1524,7 +1437,7 @@ customers, discounts, segments, purchase orders, apps.
 - Index tables MUST be rendered inside a single card that also contains the view tabs, the filter row, and the bulk action bar.
 - The first data cell MUST be the record's identity and MUST be a link to the record's detail page.
 - A thumbnail column MUST be present only for resources with media, and MUST render a placeholder tile rather than collapsing when media is absent.
-- Numeric, currency, and count columns MUST be right-aligned, header and value sharing a right edge. Do not reproduce Shopify's customers-index exception.
+- Numeric, currency, and count columns MUST be right-aligned, header and value sharing a right edge. Do not reproduce the baseline's left-aligned exception.
 - Text and date columns MUST be left-aligned.
 - Exactly one header MUST show the active sort indicator; the rest MUST show no resting affordance.
 - Row height SHOULD be ~40 px for text rows and ~52–56 px for rows with a thumbnail, and MUST be uniform within a table.
@@ -1542,7 +1455,6 @@ The toolbar is a two-state control strip at the top of the index card.
 left-aligned. The active tab sits in a subtle rounded grey fill. The right end of the same
 row holds icon-only buttons: **search** (magnifier), **filter** (sliders), optionally
 **columns**, and **sort**. `[observed]`
-`03-products/products-list-default.webp`, `02-orders/orders-list-with-metrics-row.webp`
 
 Tab sets are resource-specific and mirror the resource's lifecycle:
 `All / Active / Draft / Archived` (products), `All / Unfulfilled / Unpaid / Open / Closed`
@@ -1552,28 +1464,27 @@ Tab sets are resource-specific and mirror the resource's lifecycle:
 **Saved views.** The `+` creates a view; a `Create view` tooltip sits above it.
 `[observed]` for the tooltip's existence, wording and position;
 `[inferred]` that **hover** is what triggers it — a static frame shows the tooltip, not the
-gesture that summoned it. `03-products/products-list-draft-tab-create-view-tooltip.webp`. A saved view,
+gesture that summoned it.. A saved view,
 once **selected**, grows a chevron (`Draft ⌄`) which opens its own actions menu — unselected
 tabs stay plain. `[observed]` same file. A saved view created from a filter set appears as a
 new tab after the built-in ones (`All Active Draft Archived Custom`). `[observed]`
-`03-products/products-list-bulk-selection-action-bar.webp`
+
 
 **Create-view modal.** Title `Create new view`, an `✕` close at top right, a single `Name`
 field with an inline `0/40` character counter right-aligned inside the field, and
 `Cancel` + a primary `Create view` that is **disabled until the name is non-empty**. Modal
-width ≈620 px. `[observed]` `03-products/products-list-create-view-modal.webp`
+width ≈620 px. `[observed]`
 
 **Search state.** Clicking the magnifier **replaces the tab row** with a full-width search
 field (magnifier prefix, placeholder `Searching all orders` / `Search customers`), and
 places `Cancel` + `Save as` at its right end. The sort icon remains. A second row below
 holds the filter chips. `[observed]`
-`02-orders/orders-list-search-mode-add-filter.webp`, `03-products/products-list-search-and-filters.webp`
 
 **Filter chips.** Each chip is a pill button with a trailing chevron
 (`Product vendor ⌄`, `Tagged with ⌄`, `Status ⌄`). The final chip is `Add filter +`. When
 anything is applied, a plain-text `Clear all` button appears at the end of the chip row.
-`[observed]` `03-products/products-list-search-and-filters.webp`. With nothing applied only
-`Add filter +` shows. `[observed]` `02-orders/orders-list-search-mode-add-filter.webp`
+`[observed]`. With nothing applied only
+`Add filter +` shows. `[observed]`
 
 **Save as.** `Save as` is disabled while the query and filters are empty and becomes
 enabled as soon as either is set — compare the greyed button in the orders screenshot with
@@ -1583,11 +1494,11 @@ the active one in the products screenshot. `[observed]` (same two files)
 label, a **radio group** of sort fields (`Product title, Created, Updated, Inventory,
 Product type, Vendor`), a divider, then two direction rows with arrow icons — `↑ A–Z` and
 `↓ Z–A` — with the active direction highlighted. `[observed]`
-`03-products/products-list-sort-popover.webp`
+
 
 **A legacy pattern not to copy.** Blog posts use an older toolbar: a persistent search box
 plus always-visible dropdown filter buttons, a `Saved` star, and a labelled `Sort` button.
-`[observed]` `05-online-store/blog-posts-list.webp`. Two toolbars in one product is drift;
+`[observed]`. Two toolbars in one product is drift;
 Eyvar should ship one.
 
 **Rules**
@@ -1611,8 +1522,8 @@ Eyvar should ship one.
 labels, and a selection header where the header checkbox is checked/indeterminate and the
 column labels are replaced by the count `3 selected`, left-aligned next to the checkbox.
 Column headers are absent entirely while selection is active. Both end states are
-`[observed]` (`03-products/products-list-default.webp`,
-`03-products/products-list-bulk-selection-action-bar.webp`); that **ticking a checkbox is
+`[observed]` (
+); that **ticking a checkbox is
 what converts** one into the other is `[inferred]` — the causation is read across two
 independent screenshots, not seen.
 
@@ -1641,28 +1552,27 @@ Add to collection(s)
 Remove from collection(s)
 ```
 
-`[observed]` `03-products/products-list-bulk-more-actions-menu.webp`. Notably
+`[observed]`. Notably
 `Delete products` is **not** rendered in red inside the menu — the destructive weight is
 carried by the confirmation dialog, not the menu item. `[observed]`
 
 **Destructive confirmation.** A centred modal, ~620 px wide, that names the **verb and the
 count** in its title and explains the consequence in one short paragraph:
 
-> **Archive 3 products?**
-> Archiving products will hide them from your sales channels and Shopify admin. You'll
-> find them using the status filter in your product list.
-> `Cancel` · **`Archive products`**
+> **Suspend 3 captains?**
+> Suspending a captain removes them from dispatch. Their open trips are unaffected, and you
+> can reinstate them from the status filter.
+> `Cancel` · **`Suspend captains`**
 
-`[observed]` `03-products/products-list-archive-confirm-modal.webp`. Archive uses the
+`[observed]`. Archive uses the
 normal dark primary button. True deletion escalates to a **red** primary: `Delete segment`
 in `Delete Email subscribers?`. `[observed]`
-`04-customers/customer-segment-delete-confirm-modal.webp`
+
 
 **Bulk edit.** `Bulk edit` navigates away to a full-screen spreadsheet grid with its own
 top bar (`‹ Back`, `Editing 3 products`, an `Unsaved changes` badge, `Columns`, `Save`),
 frozen-looking column headers, and in-cell editors (tag chips with `✕`, status selects that
 render the value in its badge colour, sub-rows for variants). `[observed]`
-`03-products/products-bulk-editor-grid.webp`, `03-products/products-bulk-editor-status-dropdown.webp`
 
 **Rules**
 
@@ -1691,40 +1601,35 @@ badge sits: **list-row and page-title badges take a status dot** whose fill indi
 progress — solid `●` for a settled state, half-filled `◐` for in-progress — while
 **fulfilment card-header badges take a 16 px glyph** instead (a package on `Unfulfilled`, a
 delivery truck on the green `Fulfilled (1)`). `[observed]`
-`02-orders/order-detail-paid-fulfilled-gift-card.webp`,
-`02-orders/orders-list-with-metrics-row.webp`,
-`02-orders/order-fulfill-item-page.webp`
+
 
 #### Tone mapping
 
-| Meaning | Tone | Example labels observed | Evidence |
-|---|---|---|---|
-| Live / complete / money settled | **success** — light green fill, dark green text | `Active`, `Paid`, `Fulfilled` | `03-products/products-list-default.webp`, `10-settings/settings-billing-history.webp`, `09-discounts/discounts-list-with-code.webp`, `02-orders/order-detail-paid-fulfilled-gift-card.webp` (green `Fulfilled (1)`) |
-| Needs attention / in progress / blocking money or fulfilment | **warning** — light amber fill, dark amber text, `◐` dot. Shopify ships **two** fills here — `Payment pending` peach `#F4D6B1`, `Unfulfilled` yellow `#F6EA98`, visible side by side in one row — and Eyvar collapses them to the single warning tone required by R7 | `Unfulfilled`, `Payment pending`, `Sending`, `Action needed` | `02-orders/orders-list-with-metrics-row.webp`, `06-marketing/email-app-overview-campaigns-table.webp`, `11-apps-and-channels/apps-and-sales-channels-installed-list.webp` |
-| Not-yet-live, ended, or otherwise inert | **neutral / subdued** — light grey fill, dark grey text | `Archived`, `Closed` | `03-products/products-list-default.webp`, `03-products/purchase-orders-list.webp` |
-| Not yet published / withheld from the storefront | **info** — pale blue fill `#DCE8F1`, blue text | `Draft`, `Hidden` | `03-products/products-list-default.webp` (the `Draft` badge samples `#DCE8F1` against `Archived` at `#F0F0F0`), `04-customers/customer-segment-templates-panel.webp` (`New segment  Draft`), `05-online-store/blog-posts-list.webp` (`Hidden`) |
-| Terminal factual outcome (no action left) | **neutral + solid dot** | `Refunded`, `Voided` | `02-orders/order-detail-refunded-with-toast.webp`, `02-orders/orders-list-search-mode-add-filter.webp` |
-| New / promotional marker on a section | **neutral** | `New` | `06-marketing/marketing-automations-overview.webp` |
-| Critical / failure | **critical** — red | **Not observed as a badge** in any screenshot read; red appears only on destructive primary buttons | `04-customers/customer-segment-delete-confirm-modal.webp` |
-| Informational | **info** — blue | Not observed | — `[Polaris]` |
+| Meaning | Tone | Example labels observed |
+| --- | --- | --- |
+| Live / complete / money settled | **success** — light green fill, dark green text | `Active`, `Paid`, `Fulfilled` |
+| Needs attention / in progress / blocking money or fulfilment | **warning** — light amber fill, dark amber text, `◐` dot. The baseline ships **two** fills here, a peach `#F4D6B1` and a yellow `#F6EA98` side by side in one row; Eyvar collapses them to the single warning tone required by R7 | `Unfulfilled`, `Payment pending`, `Sending`, `Action needed` |
+| Not-yet-live, ended, or otherwise inert | **neutral / subdued** — light grey fill, dark grey text | `Archived`, `Closed` |
+| Not yet published / withheld from the storefront | **info** — pale blue fill `#DCE8F1`, blue text | `Draft`, `Hidden` |
+| Terminal factual outcome (no action left) | **neutral + solid dot** | `Refunded`, `Voided` |
+| New / promotional marker on a section | **neutral** | `New` |
+| Critical / failure | **critical** — red | **Not observed as a badge** in any screenshot read; red appears only on destructive primary buttons |
+| Informational | **info** — blue | Not observed |
 
 `Fulfilled (1)` on the order-detail fulfilment card shows badges can carry a count in
-parentheses. `[observed]` `02-orders/order-detail-unfulfilled-payment-pending.webp`
+parentheses. `[observed]`
 (`Unfulfilled (1)`).
 
-**Where Shopify ships two tones for one label — and what Eyvar does.** `Paid` renders green
-in `10-settings/settings-billing-history.webp` and grey in
-`02-orders/order-detail-paid-fulfilled-gift-card.webp` and
-`14-global-search/search-modal-order-results-list.webp`. `Fulfilled` renders green with a
-truck glyph on the fulfilment card header and grey with a dot in the page title row of the
-*same* screen. Both splits are real; neither is deleted here. **R14 rules that Eyvar's
-`Paid` is the success (green) tone**, and `Fulfilled` follows it for the same reason. The
-"one label, one tone" rule below therefore binds Eyvar, not Shopify — Shopify breaks it and
-this document no longer pretends otherwise.
+**Where the baseline ships two tones for one label — and what Eyvar does.** `Paid` renders
+green on one surface and grey on another. `Fulfilled` renders green with a glyph on a card
+header and grey with a dot in the page title row of the *same* screen. Both splits are real;
+neither is hidden here. **R14 rules that Eyvar's `Paid` is the success (green) tone**, and
+`Fulfilled` follows it for the same reason. The "one label, one tone" rule below binds Eyvar
+whether or not the baseline keeps it.
 
 #### Badge vs. plain text
 
-This is the sharpest rule in the whole section, and Shopify holds it consistently.
+This is the sharpest rule in the whole section, and the baseline holds it consistently.
 
 **Badge** when the value is a *lifecycle state of the record* that the user can change or
 must act on: `Active / Draft / Archived`, `Paid / Payment pending / Refunded / Voided`,
@@ -1735,29 +1640,25 @@ orders, email campaigns, apps.
 (customers → Email subscription), `Inventory not tracked` and `No SKU` (products,
 inventory), `3 of 3` received (purchase orders), `Created on Jan 8, 2024` (segments),
 `Discount is not active yet` (discount summary → Performance). `[observed]`
-`04-customers/customers-list-single-customer.webp`,
-`03-products/inventory-quantities-by-variant.webp`,
-`03-products/purchase-orders-list.webp`,
-`09-discounts/discount-create-shipping-with-code.webp`
+
 
 **Link** when the value is a number the user will want to drill into. Note the products
 index is **not** an example of this: `0 in stock` / `5 in stock for 24 variants` sample
 **red-brown** (`#825F62` / `#76584D`) — a low-stock critical tone, not a blue link — with the
 qualifier ("for 24 variants") in subdued grey. `[observed]`
-`03-products/products-list-default.webp`. Genuine link-styled table values are the customer
+. Genuine link-styled table values are the customer
 email address on a customer row and the blue product title in a picked-resource row.
-`[observed]` `04-customers/customers-list-single-customer.webp`,
-`02-orders/order-fulfill-item-page.webp`
+`[observed]`
+
 
 **Not a badge:** graded risk. Fraud analysis renders `Low / Medium / High` as a
 three-segment coloured bar with the active label emphasised — a scale, not a state.
-`[observed]` `02-orders/order-detail-timeline-full-history.webp`
+`[observed]`
 
 **Placement.** On a detail page, badges sit **inline to the right of the page title**,
 before the subtitle line (`#1003  ● Paid  ● Fulfilled  Archived`). Multiple badges are
 allowed and read left to right in importance order. `[observed]`
-`02-orders/order-detail-paid-fulfilled-gift-card.webp`,
-`03-products/product-detail-created-success-banner.webp` (`Custom Notebook  Active`)
+ (`Custom Notebook  Active`)
 
 **Rules**
 
@@ -1765,10 +1666,10 @@ allowed and read left to right in importance order. `[observed]`
   **→ Superseded by R7: the closed set is success, warning, info, neutral, new — five tones, no critical. Row-level critical in a work queue is §8.4's documented exception.**
 - A value MUST be a badge only if it is a lifecycle state the user can act on or change.
 - Derived, computed, or descriptive values MUST be plain text — never a badge.
-- Numeric values that lead somewhere (order count, spend) SHOULD be inline links, not badges. Numeric values that carry a *risk* reading — a low stock count — SHOULD take the critical text tone instead, as Shopify's products index does.
-- Every status MUST map to exactly one tone product-wide; the same label MUST NOT change tone between screens. **This binds Eyvar, not Shopify** — Shopify ships `Paid` and `Fulfilled` in two tones each. R14 settles both on **success**.
-- Warning tone MUST be reserved for states that block money or fulfilment, or that require the user to act, and MUST be a **single** tone (R7) — do not reproduce Shopify's peach/yellow split.
-- `Archived` MUST be neutral, not warning — it is inert, not urgent. **`Draft` MUST be the info tone, not neutral**: it samples pale blue `#DCE8F1` with blue text in `products-list-default.webp`, against `Archived` at `#F0F0F0` grey. §1.1.5 had this right; this section did not.
+- Numeric values that lead somewhere (order count, spend) SHOULD be inline links, not badges. Numeric values that carry a *risk* reading — a low stock count — SHOULD take the critical text tone instead.
+- Every status MUST map to exactly one tone product-wide; the same label MUST NOT change tone between screens. **This binds Eyvar whatever the baseline does** — the baseline ships `Paid` and `Fulfilled` in two tones each. R14 settles both on **success**.
+- Warning tone MUST be reserved for states that block money or fulfilment, or that require the user to act, and MUST be a **single** tone (R7) — do not reproduce the baseline's peach/yellow split.
+- `Archived` MUST be neutral, not warning — it is inert, not urgent. **`Draft` MUST be the info tone, not neutral**: it samples pale blue `#DCE8F1` with blue text in, against `Archived` at `#F0F0F0` grey. §1.1.5 had this right; this section did not.
 - Badges MUST NOT rely on colour alone; the label MUST be sufficient, and the status dot MUST be decorative only.
 - Detail pages MUST place status badges inline after the page title.
 - Badges MUST NOT be interactive. If a status is editable, use a select (as the bulk editor does) or a card action.
@@ -1778,7 +1679,7 @@ allowed and read left to right in importance order. `[observed]`
 ### 3.5 Cards, sections, and summary panels
 
 **The card is the unit of content.** White surface, **~12 px radius** (C3 — edge-scanning the
-card corner in `09-discounts/discounts-empty-state.webp` gives a curve running ~6 img px
+card corner in  gives a curve running ~6 img px
 ⇒ ~12 CSS px; §1.4 was right and the ~8 px printed here was wrong), hairline border plus a
 very light shadow, ~16 px internal padding, sitting on the grey page canvas. Nothing on a
 content page floats free of a card except page-level headings (`Timeline`, `Variants`,
@@ -1788,33 +1689,30 @@ content page floats free of a card except page-level headings (`Timeline`, `Vari
 baseline at the right edge and are one of: a text link (`Edit` on Search engine listing),
 an icon button (pencil on `Notes`, `Tags`, `Shipping address`; a `⋮` kebab on `Publishing`;
 a `⋯` on Customer), or a small dropdown (`Sales channels ⌄` on Earnings). `[observed]`
-`03-products/product-edit-seo-listing-and-empty-variants.webp`,
-`02-orders/order-detail-paid-fulfilled-gift-card.webp`,
-`08-finances/finances-overview-earnings-donut-and-payouts.webp`
+
 
 **Sectioned cards.** One card can hold several stacked sections separated by **full-bleed
 1 px dividers** that run edge to edge, not inset. The order summary card is the canonical
 case: line items → divider → subtotal/discount/shipping/total → divider → paid-by-customer
-+ actions. `[observed]` `02-orders/order-detail-unfulfilled-payment-pending.webp`
++ actions. `[observed]`
 
 **Key-value rows.** Three-column pattern inside a section: label left, an optional grey
 qualifier in the middle (`1 item`, `New customer`, `Free shipping (0.0 lb)`), and the value
 **right-aligned**. The `Total` row bolds both label and value. `[observed]` same file.
 Refunded orders extend the same pattern with `Refunded  Reason: —  -$10.00` and a bold
-`Net payment`. `[observed]` `02-orders/order-detail-refunded-with-toast.webp`
+`Net payment`. `[observed]`
 
 **Definition-list summary panels (right rail).** The rail stacks small cards, each a
 title plus label/value pairs with no dividers between pairs — `Contact information`,
 `Shipping address`, `Billing address`, `Conversion summary`, `Fraud analysis`, `Tags`,
 `Notes`. Empty pairs still render, with a grey placeholder sentence
 (`No email provided`, `No phone number`, `No notes from customer`). `[observed]`
-`02-orders/order-detail-paid-fulfilled-gift-card.webp`,
-`04-customers/customer-detail-no-orders-yet.webp`
+
 
 **The bulleted Summary variant.** Create/edit flows put a sticky `Summary` card in the
 rail: the record's name, then sub-headings (`Type and method`, `Details`, `Performance`)
 each followed by a short bulleted list of the configuration so far. `[observed]`
-`09-discounts/discount-create-shipping-with-code.webp`
+
 
 **The insights / metrics row at the top of list pages.** Two shapes observed:
 
@@ -1824,20 +1722,20 @@ each followed by a short bulleted list of the configuration so far. `[observed]`
    time, Delivered orders over time, and a sixth (Time to…) cut off. There is no seventh.
    Each full column carries a label, a big value and an em-dash delta; **only some carry a
    sparkline** — the clipped column shows none, so "each … and a tiny sparkline" was
-   over-general. `[observed]` `02-orders/orders-list-with-metrics-row.webp`
+   over-general. `[observed]`
 2. **One card, 3 equal columns.** Products shows `Products by sell-through rate` (with a
    `0% —` value) and two analysis columns that carry only the message
    `There was no data found for this date range`. `[observed]`
-   `03-products/products-list-default.webp`
+
 
 Either way it is a **single card above the index card**, never a row of separate cards.
 The marketing Automations page and the Email app use the same idea as a plain 4-up metric
-strip. `[observed]` `06-marketing/marketing-automations-overview.webp`,
-`06-marketing/email-app-overview-campaigns-table.webp`
+strip. `[observed]`
+
 
 **Cards containing tables.** When a card holds a table, the table runs full-bleed to the
 card edges; card padding applies to the title only. `[observed]`
-`06-marketing/email-app-overview-campaigns-table.webp`
+
 
 **Rules**
 
@@ -1859,7 +1757,7 @@ card edges; card padding applies to the title only. `[observed]`
 **Whole-page empty state.** The index card is retained but its entire body is a centred
 block:
 
-1. Illustration, **~170×190 px** (≈85×95 img px on `discounts-empty-state`; the width was
+1. Illustration, **~170×190 px** (≈85×95 image px as measured; the width was
    right, the ~155 px height was ~23% low — read it as "~170 px wide" if only one number is
    wanted), muted brand palette, sitting on a pale circular/blob ground.
 2. Heading, semibold ~15 px, sentence case, no period — and it is a **value proposition,
@@ -1870,27 +1768,25 @@ block:
    (`Import customers` · `Add customer`).
 5. Outside the card, the usual centred `Learn more about {resource}` link.
 
-`[observed]` `04-customers/customers-empty-state.webp`,
-`09-discounts/discounts-empty-state.webp`
+`[observed]`
+
 
 Note that page-level actions in the header are **disabled but still visible** in the empty
 state — `Export` is greyed on the empty discounts page. `[observed]`
-`09-discounts/discounts-empty-state.webp`
+
 
 **Empty card / section.** No illustration, no heading — just one grey sentence in the card
 body: `There are no charges on your upcoming bill`, `There are no credits on your account
 right now`, `Insights will display when the product has had recent sales`,
 `This customer doesn't have notes`, `No exemptions`, `No notes from customer`. `[observed]`
-`10-settings/settings-billing-overview-bills-and-credits.webp`,
-`03-products/product-detail-created-success-banner.webp`,
-`04-customers/customer-detail-no-orders-yet.webp`
+
 
 **The middle case.** A card whose emptiness is itself the story gets a heading, a sentence,
 a single secondary button, and a small decorative illustration right-aligned *inside* the
 card: `Last order placed` / `This customer hasn't placed any orders yet` / `Create order`.
-`[observed]` `04-customers/customer-detail-no-orders-yet.webp`
+`[observed]`
 
-**Filtered-to-zero.** Not directly captured in the screenshots read. `[Polaris]` A search
+**Filtered-to-zero.** Not directly captured in the screenshots read. `[recalled]` A search
 or filter that returns nothing shows a no-illustration message with a "clear filters"
 affordance — it MUST NOT show the first-run illustrated empty state, because the resource
 is not actually empty.
@@ -1917,7 +1813,7 @@ is not actually empty.
 **Grid.** A 3-column grid of equal-height metric cards with a **~19–20 px gutter**, filling
 the content width. Card edges measure 142→338, 350→546 and 557→753 img px, so the gaps are
 11 and 10 img px ⇒ ~19–21 CSS px. Both the ~12 px printed here and §1.3's ~16 px were low
-(C10). `[observed]` `07-analytics/analytics-dashboard-today-no-data.webp`
+(C10). `[observed]`
 
 **Metric tile anatomy** (top to bottom): card title small and semibold at top left; a small
 **report icon** at top right that jumps to the full report; the value in large bold
@@ -1926,12 +1822,12 @@ the content width. Card edges measure 142→338, 350→546 and 557→753 img px,
 
 **Delta.** Rendered as an em-dash `—` when there is no meaningful comparison, and as a
 coloured caret + percentage when there is (`▲100%` in green on Average order value).
-`[observed]` `07-analytics/analytics-dashboard-today-no-data.webp`
+`[observed]`
 
 **Legend.** Bottom-right of the card, two chips: a **solid** line swatch + the current
 period (`Jan 2–Jan 8, 2024`) and a **dotted** line swatch + the comparison period
 (`Dec 26, 2023–Jan 1, 2024`). `[observed]`
-`07-analytics/analytics-dashboard-saved-toast-last-7-days.webp`
+
 
 **Chart style.** Single-hue blue line, thin, with a very pale area fill beneath it; the
 comparison series is the same hue dotted; y-axis labels left with `$` formatting carried
@@ -1940,23 +1836,21 @@ into the axis; x-axis date labels along the bottom; no gridlines beyond the axis
 
 **Non-line tiles.** The single-large-centred-value-with-the-category-name-above shape is
 real, but the file previously cited for it does not show it: in
-`07-analytics/analytics-dashboard-today-no-data.webp`, `Sales by channel` shows **only**
+, `Sales by channel` shows **only**
 "There was no data found for this date range." — no value, no category name. The shape
-appears instead on **`07-analytics/analytics-dashboard-saved-toast-last-7-days.webp`**
+appears instead on ****
 ("Draft Orders" over "$34.00"), which is the correct citation. Breakdown tiles
 (`Online store conversion rate`) render a headline
 value plus stacked funnel rows — label + grey sub-label (`Added to cart` / `0 sessions`) on
 the left, percentage right-aligned, delta far right. Live View uses horizontal bar rows
 (`Singapore • Singapore ▬▬▬ 4`). `[observed]`
-`07-analytics/analytics-dashboard-saved-toast-last-7-days.webp`,
-`07-analytics/analytics-dashboard-today-no-data.webp`, `07-analytics/analytics-live-view-globe-map.webp`
 
 **No-data messaging.** A single centred grey sentence occupying the chart area:
 **`There was no data found for this date range.`** The card title, report icon, and card
-frame all remain. `[observed]` `07-analytics/analytics-dashboard-today-no-data.webp`,
-`07-analytics/analytics-customize-metrics-library-sidebar.webp`. Minor inconsistency worth
+frame all remain. `[observed]`
+. Minor inconsistency worth
 avoiding: the products index strip uses the same sentence **without** the trailing period.
-`[observed]` `03-products/products-list-default.webp`
+`[observed]`
 
 **Date range + compare control.** Two chip buttons at the top left of the dashboard: a
 calendar-icon chip with the range (`Today`, `Last 7 days`) and a second chip
@@ -1966,17 +1860,17 @@ Last 365 days, Last month, Last 12 months, Last year`) with a ✓ on the active 
 pane with two date inputs joined by an `→` arrow above two side-by-side month calendars
 (previous + current), each with `‹ ›` navigation and out-of-range days greyed; and
 `Cancel` + `Apply`, with `Apply` disabled until the selection changes. `[observed]`
-`07-analytics/analytics-date-range-picker-calendar.webp`
+
 
 **Dashboard chrome.** `Fullscreen` sits at the top right of the page header. An
 `Auto-refresh` checkbox and a `Customize` button sit at the right of the filter row —
 `Customize` carries a small dot indicator. `[observed]`
-`07-analytics/analytics-dashboard-today-no-data.webp`
+
 
 **Customize mode.** Entering it swaps the global bar for a contextual save bar
 (`⚠ Unsaved changes` · `Cancel` · `Save`), opens a left **Metrics library** sidebar, and
 puts every card into edit affordance. `[observed]`
-`07-analytics/analytics-customize-metrics-library-sidebar.webp`
+
 
 - The sidebar is grouped by category — `Sales`, `Acquisition`, `Orders`, `Finances`,
   `Behavior` — with a category label above each list and one leading icon per metric that
@@ -1986,17 +1880,16 @@ puts every card into edit affordance. `[observed]`
   button at top right. `[observed]`
 - While dragging, the lifted card gets a shadow and slight scale, every other card fades to
   a low-opacity grey, and the target slot shows a plain grey placeholder. `[observed]`
-  `07-analytics/analytics-customize-dragging-metric-card.webp`
+
 - Saving confirms with a toast: `Dashboard saved`. `[observed]`
-  `07-analytics/analytics-dashboard-saved-toast-last-7-days.webp`
+
 
 **Other metric shapes seen elsewhere.** Finances uses 3 wide tiles with a sparkline in the
 lower-right corner of each, plus a donut chart card whose legend is a right-side list of
 `label … value ›` rows. Home embeds a chart card whose header is a row of selectable
 metric tabs (`Online store sessions`, `Total sales`, `Total orders`, `Conversion rate`),
 the active one boxed. `[observed]`
-`08-finances/finances-overview-earnings-donut-and-payouts.webp`,
-`01-home/home-sales-chart-and-things-to-do-next.webp`
+
 
 **Rules**
 
@@ -2017,8 +1910,7 @@ the active one boxed. `[observed]`
 ### 3.8 Timelines and activity feeds
 
 Order and customer detail pages share one timeline component. `[observed]`
-`02-orders/order-detail-timeline-full-history.webp`,
-`04-customers/customer-detail-no-orders-yet.webp`
+
 
 **Heading.** `Timeline` is an h2 on the bare canvas above the composer card — not a card
 title. `[observed]`
@@ -2030,7 +1922,7 @@ dark text §1.5 originally described. Then a
 borderless growing textarea (`Leave a comment...`), and below it a toolbar row of icon-only
 buttons — emoji, `@` mention, `#`, and a link/attach glyph — with a `Post` button
 right-aligned and **disabled until there is content**. `[observed]`
-`02-orders/order-detail-timeline-comment-composer.webp`
+
 
 Immediately **below and outside** the composer card, right-aligned grey helper text:
 `Only you and other staff can see comments`. `[observed]` same file.
@@ -2038,7 +1930,7 @@ Immediately **below and outside** the composer card, right-aligned grey helper t
 **Attachment upload.** The pending attachment renders as a chip *inside* the composer,
 above the toolbar: a leading tile (a spinner while uploading, a file icon once done), the
 filename, the size (`2.04 kB`), and an `✕` to cancel. `[observed]`
-`02-orders/order-detail-timeline-uploading-attachment.webp`
+
 
 **Feed.** Below the composer, a left-aligned date group heading (`Today`), then entries
 strung on a vertical rail with a small dot marker per entry. `[observed]`
@@ -2046,7 +1938,7 @@ strung on a vertical rail with a small dot marker per entry. `[observed]`
 **Event entry.** One sentence in normal body text at the left, a right-aligned relative
 timestamp. Entries with more detail end in a `›` chevron
 (`You added payment terms to this order. ›`). Some carry a secondary button on the line
-below (`View email`). `[observed]` `02-orders/order-detail-timeline-full-history.webp`
+below (`View email`). `[observed]`
 
 **Comment entry.** Rendered as a card, not a bare line:
 
@@ -2058,18 +1950,18 @@ below (`View email`). `[observed]` `02-orders/order-detail-timeline-full-history
   badges (`● Paid  ● Fulfilled`, or `◐ Payment pending  ◐ Unfulfilled`).
 - A **file attachment chip** beneath: file icon, filename, a small `CSV` format tag, size.
 
-`[observed]` `02-orders/order-detail-timeline-comment-with-attachment.webp`,
-`02-orders/order-detail-timeline-full-history.webp`
+`[observed]`
+
 
 **Timestamps.** The same feed mixes relative (`Just now`, `1 minute ago`, `2 minutes ago`)
 and absolute (`9:48 PM`, `9:51 PM`) forms — recent entries relative, older entries within
 the day absolute. `[observed]` (compare the two files above, which show the same events at
 `1 minute ago` and `2 minutes ago`). The crossover threshold is not determinable from the
-screenshots. `[Polaris]`
+screenshots. `[recalled]`
 
 **Empty timeline.** A newly created record shows the composer plus one system entry
 (`You created this customer.` · `Just now`). There is no illustrated empty state for a
-timeline. `[observed]` `04-customers/customer-detail-no-orders-yet.webp`
+timeline. `[observed]`
 
 **Rules**
 
@@ -2088,9 +1980,8 @@ timeline. `[observed]` `04-customers/customer-detail-no-orders-yet.webp`
 
 ### 3.9 Reference wireframe — index page
 
-Toolbar plus table, as assembled from `03-products/products-list-default.webp`,
-`03-products/products-list-search-and-filters.webp`, and
-`03-products/products-list-bulk-selection-action-bar.webp`.
+Toolbar plus table, as assembled from,
+, and
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────────┐
@@ -2147,32 +2038,22 @@ Toolbar plus table, as assembled from `03-products/products-list-default.webp`,
 
 > ### ⚠ D7 — this section is PROVENANCE, not authority
 >
-> `DECISIONS.md` **D7** replaced the **visual** reference. Navattic governs colour, spacing,
-> radii, borders, the type scale, page organisation, nav treatment, card treatment and table
-> style. **Everything visual below describes Shopify and no longer describes what Eyvar
-> ships.**
->
-> The screenshot citations are **kept on purpose**: they are what makes the derivation
-> auditable — open the cited frame and you can check what the analyst saw. **They may not be
-> cited to settle what Eyvar ships.** For that, read
-> `docs/05-restructure/design/03-navattic-language.md`, whose §1 holds the complete token set
-> with every value's measurement or derivation.
+> **Nothing visual below describes what Eyvar ships.** Colour, spacing, radii, borders, the
+> type scale, nav treatment, card treatment and table style are settled by the token layer,
+> `src/styles/globals.css`, summarised in `docs/ref/tokens.md`.
 >
 > What still binds from this section is **structure** — what a page is made of, what goes in
 > a header, what a state is for — and only where §6 adopts it. Every pixel figure was already
 > non-binding under **R13**; under D7 it is non-binding twice over.
 
 
-Source: 44 screenshots read from `docs/06-design-reference/shopify-admin-web/`. Every claim is tagged
-`[observed]` (visible in a screenshot cited on the line) or `[Polaris]` (design-system recollection,
-**not** verifiable from these screenshots — treat as a default to confirm, not a fact).
+Every claim is tagged `[observed]` (evidenced on the line that carries it) or `[recalled]`
+(design-system recollection, **not** verifiable here — treat it as a default to confirm, not a
+fact).
 
-All pixel figures are **approximate**. **R13, the single calibration:** the screenshots are
-768 × 523 px captures (bottom ~50 px is the Mobbin watermark strip; UI area 768 × ~473 px) and the
-measured scale is **≈1.90×** — a 56 px top bar sits at y≈29–30, the nav boundary at x≈129. This
-section's earlier "~0.53×" phrasing, §1's 1.875×, §2's 2×/1536 px and §3's 1.93× are all superseded by
-this one figure. Treat every number as ±2 px and as a *ratio guide*, not a spec. **Px figures in
-§1–§5 are indicative, not binding.**
+All pixel figures are **approximate**. **R13, the single calibration:** every number is scaled
+by **≈1.90×** from measured image pixels. Treat each as ±2 px and as a *ratio guide*, not a
+spec. **Px figures in §1–§5 are indicative, not binding.**
 
 ---
 
@@ -2183,64 +2064,63 @@ this one figure. Treat every number as ±2 px and as a *ratio guide*, not a spec
 **A. Resource editor — main column + sidebar (2/3 + 1/3).**
 The editable body sits in a wide left column of stacked cards; a narrower right column holds
 metadata, status and live summaries. `[observed]`
-`docs/06-design-reference/shopify-admin-web/03-products/product-add-new-blank-form.webp` — left column
+ — left column
 (Title, Description, Media, Pricing) ~620 px wide, right column (Status, Publishing, Product
 organization) ~300 px, gutter ~20 px, total content ~950 px centred with the sidebar nav to the left.
 Same layout in
-`docs/06-design-reference/shopify-admin-web/09-discounts/discount-create-shipping-empty.webp` (form
+ (form
 cards left; "Summary" + "Sales channels" right) and
-`docs/06-design-reference/shopify-admin-web/02-orders/draft-order-create-order-page.webp` (Products +
+ (Products +
 Payment left; Notes, Customer, Shipping address, Market, Tags right).
 
 **B. Settings form — description column + field column.**
 A left column of ~1/3 width carries only a bold section title and one line of grey explanatory prose;
 the right ~2/3 column is a single card containing that section's fields. `[observed]`
-`docs/06-design-reference/shopify-admin-web/04-customers/customer-new-form-empty.webp` — "Customer
+ — "Customer
 overview" (title only), "Address" + "The primary address of this customer", each paired with a card
-of fields; `docs/06-design-reference/shopify-admin-web/04-customers/customer-new-form-address-tax-notes.webp`
+of fields;
 adds "Tax exemptions" and "Notes / Notes are private and won't be shared with the customer.";
-`docs/06-design-reference/shopify-admin-web/15-account/account-general-unsaved-changes.webp` — "Details",
-"Login service / Connect an external login service to quickly and securely access your Shopify account."
+ — "Details",
+"Login service / Connect an external login service to access this account quickly and securely."
 The description column is left-aligned to the card's top edge and does **not** scroll independently.
 
 **Card-per-concern.** Each card = one concern, with a bold ~14 px title at the top-left and ~16 px
 internal padding, **~12 px corner radius** (C3 — edge-scanned at ~6 img px of curve; the "~8–12 px"
 range printed here was loose and §3.5's flat ~8 px was wrong), 1 px hairline border, white on a light grey page
-background. `[observed]` `.../03-products/product-edit-pricing-inventory-shipping.webp` shows three
+background. `[observed]`  shows three
 consecutive cards titled Pricing, Inventory, Shipping; gap between cards ~16–24 px. Some cards carry
 a secondary right-aligned item on the title row: a muted label
-(`.../09-discounts/discount-create-shipping-empty.webp` → "Shipping discount"), a link
-(`.../02-orders/draft-order-create-order-page.webp` → "Add custom item"), an "Edit" link
-(`.../03-products/product-edit-seo-listing-and-empty-variants.webp` → "Search engine listing … Edit"),
-or a count (`.../09-discounts/discount-create-shipping-empty.webp` → "Sales channels … 0 of 1 selected").
+(→ "Shipping discount"), a link
+(→ "Add custom item"), an "Edit" link
+(→ "Search engine listing … Edit"),
+or a count (→ "Sales channels … 0 of 1 selected").
 
 **Field grouping inside a card.** Related short fields sit side by side on one row at 50/50; long
 fields go full width. `[observed]` First name / Last name, City / State, Price / Compare-at price,
 Start date / Start time; full width for Email, Address, Company, Description. Three-up is used for
 computed money rows: Cost per item / Profit / Margin `[observed]`
-`.../03-products/product-edit-pricing-inventory-shipping.webp`. Vertical gap between field rows
+. Vertical gap between field rows
 inside a card ~14–18 px; horizontal gap in a pair ~14 px.
 
 **Helper text** sits *below* the control it explains, ~12–13 px, grey, left-aligned to the field.
 `[observed]` "Customers must enter this code at checkout."
-(`.../09-discounts/discount-create-shipping-with-code.webp`), "Determines US tax rates"
-(`.../03-products/product-add-new-blank-form.webp`), "9 digits" and "Appears on your website."
-(`.../10-settings/settings-payments-submit-business-information.webp`,
-`.../10-settings/settings-store-details-edit-profile-modal.webp`), "Use your first and last name as
+, "Determines US tax rates"
+, "9 digits" and "Appears on your website."
+(
+), "Use your first and last name as
 they appear on your government-issued ID."
-(`.../15-account/account-general-unsaved-changes.webp`). Checkbox helper text is indented to align
+. Checkbox helper text is indented to align
 with the checkbox *label*, not the checkbox box `[observed]`
-`.../03-products/product-edit-pricing-inventory-shipping.webp` ("This won't affect Shopify POS. Staff
-will see a warning…" under "Continue selling when out of stock").
+ ("This will not affect the driver app. Staff
+will see a warning…" under a "continue selling when out of stock" checkbox).
 
 **Saving.** An unsaved form swaps the whole top bar for a **contextual save bar**: warning triangle +
 "Unsaved product" / "Unsaved discount" / "Unsaved changes" on the left, `Discard` (secondary) then
 `Save` (primary) on the right. `[observed]`
-`.../03-products/product-add-new-blank-form.webp`, `.../09-discounts/discount-create-shipping-empty.webp`,
-`.../04-customers/customer-new-form-empty.webp`. Long forms *additionally* repeat the action pair at
+. Long forms *additionally* repeat the action pair at
 the bottom-right of the form, right-aligned under the last card `[observed]`
-`.../09-discounts/discount-create-eligibility-and-active-dates.webp` ("Discard" + "Save discount"),
-`.../03-products/product-edit-seo-listing-and-empty-variants.webp` (a lone "Save").
+ ("Discard" + "Save discount"),
+ (a lone "Save").
 
 **Rules**
 - MUST use layout A (main + sidebar) for resource editors and layout B (description + field column)
@@ -2261,83 +2141,70 @@ the bottom-right of the form, right-aligned under the last card `[observed]`
 **Label.** Above the field, left-aligned, ~13 px, regular weight (not bold), dark grey/near-black,
 ~4–6 px gap to the field. `[observed]` "Title", "Price", "Discount code", "First name", "Store name",
 "Tracking number" across
-`.../03-products/product-add-new-blank-form.webp`,
-`.../09-discounts/discount-create-shipping-with-code.webp`,
-`.../04-customers/customer-new-form-empty.webp`,
-`.../02-orders/order-fulfill-item-page.webp`. Labels are sentence case. `[observed]`
+. Labels are sentence case. `[observed]`
 
 **Box.** Height ~32–36 px, 1 px light grey border, ~8 px corner radius, white fill, horizontal padding
 ~10–12 px, value text ~13 px. `[observed]` throughout, e.g.
-`.../04-customers/customer-new-form-filled.webp`. Fields stretch to the full width of their column or
+. Fields stretch to the full width of their column or
 half-row — they are never sized to their content. `[observed]`
 
 **Focus.** A darker, thicker (~2 px) border replaces the hairline, with no colour change to the fill.
-`[observed]` `.../03-products/product-edit-variant-option-name-dropdown.webp` — the focused "Option
+`[observed]`  — the focused "Option
 name" combobox has a **desaturated blue** ~2 px border (sampled `#687B9F`/`#8493B7`) while its sibling
 fields keep the hairline. This is the **only** genuine focus state in the capture set; §1.1.3's
-"dark/near-black" reading and its citation of `product-edit-pricing-inventory-shipping.webp` were both
-wrong — that file contains no focused field at all. `[Polaris]` Polaris additionally renders a 2 px focus ring offset outside the control for
-keyboard focus; not separable from the border at this capture resolution.
+"dark/near-black" reading and its citation of  were both
+wrong — that file contains no focused field at all. `[recalled]` A 2 px focus ring offset outside the control is the usual treatment for
+keyboard focus; it is not separable from the border at this resolution.
 
 **Placeholder.** Grey, same size as the value, and used only for *format examples or affordance
 hints*, never as a substitute for the label. `[observed]` "$ 0.00"
-(`.../03-products/product-add-new-blank-form.webp`), "Search" / "Add custom category"
+, "Search" / "Add custom category"
 (product organization card, same file), "e.g. About us" and "Search or paste a link"
-(`.../05-online-store/navigation-add-menu-with-add-item-panel.webp`), "0.0" for weight, "Leave a
-comment…" (`.../02-orders/order-detail-more-actions-menu.webp`). Most fields ship **empty with no
+, "0.0" for weight, "Leave a
+comment…". Most fields ship **empty with no
 placeholder at all** — Email, Phone number, Company, ZIP code, Vendor, Collections, Tags. `[observed]`
-`.../04-customers/customer-new-form-empty.webp`.
 
 **Inset/floating label (auth surface only).** The 2FA field puts a small ~10 px grey label *inside*
 the box above the value. `[observed]`
-`.../00-auth/login-two-factor-authenticator-code.webp` ("Authentication code" over "000000"). This
+ ("Authentication code" over "000000"). This
 does not appear anywhere in the admin proper.
 
 **Prefix / suffix.**
 - Currency prefix: a `$` glyph inside the field on the left, grey, with the caret starting after it.
-  `[observed]` `.../03-products/product-edit-pricing-inventory-shipping.webp` (`$ 15.00`),
-  `.../03-products/product-edit-bulk-edit-prices-modal.webp` (every row), and
-  `.../03-products/product-edit-variant-detail-modal.webp`.
+  `[observed]`  (`$ 15.00`),
+   (every row), and
 - Currency suffix: unit code sits inside the field on the right. `[observed]`
-  `.../02-orders/draft-order-add-discount-modal-empty.webp` (`$ 0.00 … USD`).
+   (`$ 0.00 … USD`).
 - Unit as an adjacent select: weight uses a narrow `lb ⌄` select *beside* the number field, not inside
-  it. `[observed]` `.../03-products/product-edit-pricing-inventory-shipping.webp`.
+  it. `[observed]`.
 - Country-code prefix on phone: a flag + chevron select docked at the right edge of the phone field.
-  `[observed]` `.../04-customers/customer-new-form-empty.webp`.
+  `[observed]`.
 - Leading icon inside the field marks searching/autocomplete behaviour: magnifier on "Search
   products", "Search customers", "Address", "Harmonized System (HS) code". `[observed]`
-  `.../02-orders/draft-order-create-order-page.webp`,
-  `.../04-customers/customer-merge-find-customer.webp`,
-  `.../04-customers/customer-new-form-address-tax-notes.webp`,
-  `.../03-products/product-edit-variant-option-values.webp`.
 - Trailing help icon: a small circled `?` at the field's right edge or beside the label opens a
   tooltip. `[observed]` Compare-at price, Cost per item, Country/Region of origin, Estimated tax,
   "Product organization ⓘ".
 - Password reveal: an eye icon at the right edge inside the field. `[observed]`
-  `.../00-auth/login-password-step-empty.webp`, `.../00-auth/reset-password-strength-meter.webp`.
+,.
 
 **Character counter.** Right-aligned *inside* the field, grey, format `0/40`. `[observed]`
-`.../03-products/products-list-create-view-modal.webp`. Only seen on short constrained-name fields.
+. Only seen on short constrained-name fields.
 
 **Multiline textarea.** Same border/radius as a text input, taller box (~90–110 px), left-aligned
 top, with a resize grip at the bottom-right corner. `[observed]`
-`.../10-settings/settings-payments-cash-on-delivery-modal.webp` ("Additional details", "Payment
+ ("Additional details", "Payment
 instructions" — both ~55 px tall with visible resize corner),
-`.../04-customers/customer-new-form-address-tax-notes.webp` ("Note").
+ ("Note").
 
 **Search inputs.** A full-width field with a leading magnifier. Three flavours observed:
 1. In-card resource search with a `Browse` secondary button flush to its right `[observed]`
-   `.../02-orders/draft-order-create-order-page.webp`.
 2. List-page search that expands the toolbar into "search mode" with `Cancel` / `Save as` on the
    right and a filter row beneath `[observed]`
-   `.../02-orders/orders-list-search-mode-add-filter.webp`,
-   `.../03-products/products-list-search-and-filters.webp`.
 3. Global search in the top bar with a trailing `⌘ K` keyboard hint `[observed]`
-   `.../02-orders/order-detail-more-actions-menu.webp`.
 
 **Computed / read-only fields.** Rendered as normal boxes but showing a derived value or `--`.
-`[observed]` Profit and Margin in `.../03-products/product-edit-pricing-inventory-shipping.webp`
-(`$5.00`, `33.3%`) and their empty state `--` in `.../03-products/product-add-new-blank-form.webp`.
+`[observed]` Profit and Margin in
+(`$5.00`, `33.3%`) and their empty state `--` in.
 
 **Rules**
 - MUST place the label above the field, sentence case, ~13 px regular weight; MUST NOT use
@@ -2358,45 +2225,43 @@ instructions" — both ~55 px tall with visible resize corner),
 
 **Select.** Identical box to a text input plus a stacked up/down chevron pair (`⌃⌄`) at the right
 edge. `[observed]` "Status: Active", "Theme template: Default product"
-(`.../03-products/product-add-new-blank-form.webp`), "Language: English [Default]", "Country/region:
-United States", "State: New York" (`.../04-customers/customer-new-form-empty.webp`,
-`.../04-customers/customer-new-form-address-tax-notes.webp`), "Payment terms: Due on receipt"
-(`.../02-orders/draft-order-create-order-page.webp`), "Business type: Individual/sole proprietor"
-(`.../10-settings/settings-payments-submit-business-information.webp`). The chevron pair (rather than
+, "Language: English [Default]", "Country/region:
+United States", "State: New York" (
+), "Payment terms: Due on receipt"
+, "Business type: Individual/sole proprietor"
+. The chevron pair (rather than
 a single caret) is the reliable visual signal for *select* vs *dropdown button*. `[observed]`
 
 **Combobox / dropdown list.** An open combobox shows the focused field with a 2 px dark border and a
 white popover below, flush to the field width, ~1 px border, ~8 px radius, options ~13 px with ~10 px
 vertical padding and a light grey hover row. `[observed]`
-`.../03-products/product-edit-variant-option-name-dropdown.webp` (Size / Color / Material / Style).
+ (Size / Color / Material / Style).
 
 **Checkbox.** ~14–16 px square, ~4 px radius, 1 px grey border when unchecked; checked = near-black
 fill with a white check. Label ~13 px to the right, ~8 px gap, vertically centred. `[observed]`
 "Charge tax on this product", "Track quantity", "This is a physical product"
-(`.../03-products/product-edit-pricing-inventory-shipping.webp`), "Collect tax"
-(`.../04-customers/customer-new-form-address-tax-notes.webp`), "Create this variant"
-(`.../03-products/product-edit-variant-detail-modal.webp`).
+, "Collect tax"
+, "Create this variant"
 
 **Disabled checkbox.** Box renders as flat light grey with no border contrast and the label greys
 out. `[observed]` "Customer agreed to receive SMS marketing text messages." is disabled in both
-`.../04-customers/customer-new-form-empty.webp` (both marketing checkboxes disabled while no
-email/phone exists) and `.../04-customers/customer-new-form-filled.webp` (email checkbox becomes
+ (both marketing checkboxes disabled while no
+email/phone exists) and  (email checkbox becomes
 enabled once an email is entered; SMS stays disabled with no phone) — a **dependency-driven** disabled
 state, explained by shared helper text below the group ("You should ask your customers for permission
 before you subscribe them…").
 
 **Checkbox list.** Stacked checkboxes inside a card, card title acting as the group label, ~10–12 px
 vertical rhythm, optional helper text under the individual option it qualifies. `[observed]`
-`.../09-discounts/discount-create-combinations-and-usage-limits.webp` — "Maximum discount uses"
+ — "Maximum discount uses"
 ("Limit number of times…", "Limit to one use per customer") and "Combinations" ("Product discounts",
 "Order discounts"), where checking "Order discounts" reveals inline helper prose *under that option*.
 
 **Radio.** ~14–16 px circle; selected = near-black filled ring with a white centre dot. `[observed]`
-`.../09-discounts/discount-create-shipping-empty.webp`.
 
 **Radio-group-in-a-card (the canonical mutually-exclusive-rule pattern).** One card per rule, card
 title = the question, radios stacked as the entire card body, first option = the permissive default.
-`[observed]` `.../09-discounts/discount-create-shipping-empty.webp` — "Countries" (All countries /
+`[observed]`  — "Countries" (All countries /
 Selected countries), "Minimum purchase requirements" (No minimum requirements / Minimum purchase
 amount ($) / Minimum quantity of items), "Customer eligibility" (All customers / Specific customer
 segments / Specific customers). Note the money/quantity hint carried in the *option label itself*
@@ -2404,25 +2269,24 @@ segments / Specific customers). Note the money/quantity hint carried in the *opt
 
 **Radio-group-in-a-card, payment-option flavour.** Each radio is a full-width row with a right-aligned
 logo strip; the selected row expands to reveal its own nested field set. `[observed]`
-`.../10-settings/settings-plan-review-and-subscribe.webp` — "Credit or debit card" (selected, Visa /
+ — "Credit or debit card" (selected, Visa /
 Mastercard / Amex / Discover marks right-aligned) expands into First name / Last name / Card number /
 Expires / CVV / Country/region / ZIP code; the unselected "PayPal" row is collapsed to a single line
-with the PayPal mark. Also `.../06-marketing/marketing-email-campaign-schedule-send-modal.webp` —
+with the PayPal mark. Also  —
 "Tomorrow at 9:00 pm EST ✨Suggested" / "Now" / "Custom date and time" as a modal-body radio group.
 
 **Segmented control.** A light grey track containing 2+ segments; the selected segment is a white
 pill with a border and a soft shadow, ~28 px tall, ~13 px label. `[observed]`
-`.../09-discounts/discount-create-shipping-empty.webp` — "Discount code | Automatic discount" under a
+ — "Discount code | Automatic discount" under a
 "Method" label. Used for a *mode* switch that reconfigures the rest of the card, not for a value.
 
 **Toggle.** A pill switch ~40×20 px, grey track with a white knob when off. `[observed]`
-`.../10-settings/settings-plan-review-and-subscribe.webp` — "Save with yearly billing" with a
+ — "Save with yearly billing" with a
 `$1,200 off ($299/mo)` badge, toggle in the **off** state at the top-right of the card. This is the
 only toggle in the read set; every in-form boolean elsewhere is a **checkbox**, including ones that
 gate whole sections ("Track quantity", "This is a physical product", "Payment due later", "Set end
-date"). `[Polaris]` Polaris positions the toggle (`Setting toggle`) as a setting that takes effect
-immediately, and the checkbox as a value submitted with the form — which matches what is observed
-here.
+date"). `[recalled]` The usual division is that a toggle takes effect immediately and a checkbox is a
+value submitted with the form — which matches what is observed here.
 
 **Rules**
 - MUST distinguish select (stacked ⌃⌄ chevrons) from dropdown button (single ⌄ caret) visually.
@@ -2442,7 +2306,7 @@ here.
 **Inline field error.** Three simultaneous signals: (1) the field border turns red, (2) the field
 fill turns a light pink/red tint, (3) a red message with a filled red circle-exclamation icon appears
 directly below the field at ~12 px. `[observed]`
-`.../00-auth/login-email-validation-error.webp` — the Email field is red-bordered and pink-filled with
+ — the Email field is red-bordered and pink-filled with
 "⊗ Enter a valid email address" beneath it. Note the label above stays its normal colour, and the
 error text *replaces* nothing — it is inserted below the field. `[inferred]` that this **pushes the
 button down**: that is a claim about layout dynamics across two states and only one frame exists.
@@ -2451,64 +2315,61 @@ button down**: that is a claim about layout dynamics across two states and only 
 region, white bold text, warning icon at the left, phrased as a count of blocking problems:
 "To save this draft order, 1 change needs to be made:" — with the specific items listed immediately
 below on the page background ("Activate a direct credit card gateway for this store."). `[observed]`
-`.../02-orders/draft-order-validation-error-banner.webp`. Simultaneously the page's primary actions
+. Simultaneously the page's primary actions
 grey out (`Duplicate`, `Share`, `Send invoice` all disabled in that shot). `[observed]`
 
 **Non-critical banner variants** for contrast: informational banners are a pale blue/grey card with an
 ⓘ icon inside the form flow `[observed]`
-`.../00-auth/reset-password-strength-meter.webp`, `.../10-settings/settings-payments-submit-business-information.webp`,
-`.../02-orders/order-fulfill-item-page.webp` ("Add tracking to improve customer satisfaction", with a
+ ("Add tracking to improve customer satisfaction", with a
 dismiss ✕ at the right — its fill samples `#EDF4FF`, a real blue tint). Warning banners are pale
 yellow `[observed]`
-`.../10-settings/settings-payments-manual-methods-cod-activated.webp` ("Complete your Paypal account
+ ("Complete your Paypal account
 setup…"). Only the *blocking* case gets the saturated red full-width treatment. `[observed]`
 
 **Both banner families genuinely ship, and this section is the half that was right.** §1.1.5 also
-records a white-surface info banner (`point-of-sale-subscription-plans.webp`) and a saturated amber
-warning strip (`customer-detail-erasure-request-banner.webp`) — those exist too. The MUST that used to
+records a white-surface info banner  and a saturated amber
+warning strip  — those exist too. The MUST that used to
 sit in §1.1.5 ("info banners have no coloured strip at all… not as a blue fill") is **deleted under
-R16**, falsified by the `order-fulfill-item-page` evidence above. **Under R1 and R16, Eyvar ships the
+R16**, falsified by the evidence above. **Under R1 and R16, Eyvar ships the
 pale tinted card for all four tones**, which is what this section describes.
 
 **Disabled-until-valid Save.** The primary action is rendered but disabled (light grey fill, mid-grey
 label, no border) until the minimum required input exists.
 `[observed]` clean before/after pairs:
-- `.../09-discounts/discount-create-shipping-empty.webp` (Discount code empty → `Save` disabled) vs
-  `.../09-discounts/discount-create-shipping-with-code.webp` (code `FREESHIPPING10` → `Save` enabled).
-- `.../10-settings/settings-store-details-edit-profile-modal.webp` (`Save` disabled) vs
-  `.../10-settings/settings-store-details-edit-profile-modal-edited.webp` (store name changed to
+-  (Discount code empty → `Save` disabled) vs
+   (code `FREESHIPPING10` → `Save` enabled).
+-  (`Save` disabled) vs
+   (store name changed to
   "JS Mob" → `Save` enabled) — here the gate is *dirty state*, not validity.
-- `.../02-orders/draft-order-add-discount-modal-empty.webp` (`Apply` disabled) vs
-  `.../02-orders/draft-order-add-discount-modal-filled.webp` (reason entered → `Apply` enabled).
-- `.../03-products/products-list-create-view-modal.webp` (`Create view` disabled with `0/40`),
-  `.../04-customers/customer-merge-find-customer.webp` (`Merge` disabled until a customer is chosen),
-  `.../03-products/product-edit-bulk-edit-prices-modal.webp` (`Apply to all` disabled with an empty
+-  (`Apply` disabled) vs
+   (reason entered → `Apply` enabled).
+-  (`Create view` disabled with `0/40`),
+   (`Merge` disabled until a customer is chosen),
+   (`Apply to all` disabled with an empty
   amount; `Done` also disabled),
-  `.../05-online-store/navigation-add-menu-with-add-item-panel.webp` (`Add` disabled in the side panel
+   (`Add` disabled in the side panel
   footer *and* `Save` disabled in the top bar),
-  `.../00-auth/signup-create-account-email-password.webp` (`Create Shopify account` disabled until the
+   (`Create account` disabled until the
   captcha is solved),
-  `.../04-customers/customer-segment-new-query-editor.webp` (`Apply` and `Use segment` disabled with an
+   (`Apply` and `Use segment` disabled with an
   empty query).
 
 **Required vs optional labelling.** No asterisks anywhere. Fields are required by default and
 **optional fields are suffixed "(optional)" in the label**. `[observed]` "Employer Identification
-Number (EIN) (optional)" (`.../10-settings/settings-payments-submit-business-information.webp`),
-"Phone Number (optional)" (`.../15-account/account-general-unsaved-changes.webp`).
+Number (EIN) (optional)",
+"Phone Number (optional)".
 
 **Positive/strength feedback.** Password strength renders as a full-width green bar directly under the
 field plus a bold caption "Password strength: strong." `[observed]`
-`.../00-auth/reset-password-strength-meter.webp`, `.../00-auth/signup-create-account-email-password.webp`.
+,.
 Verified state uses a green check + "Verified" inline on the read-only row `[observed]`
-`.../15-account/account-general-unsaved-changes.webp`.
 
 **Success confirmation** is a dark rounded-rectangle toast (~8 px radius, not a stadium — R15),
 **bottom-centre of the viewport**, white text,
 with a dismiss ✕. Measured toast centres land at x≈384 = viewport centre in every sample; the content
 region's centre is x≈448, so "centred at the bottom of the content area" was wrong here and §5.1's
 "viewport" reading is right (C9). `[observed]` "Customer created ✕"
-(`.../02-orders/draft-order-create-order-page.webp`), "Cash on Delivery (COD) activated ✕"
-(`.../10-settings/settings-payments-manual-methods-cod-activated.webp`).
+, "Cash on Delivery (COD) activated ✕"
 
 **Rules**
 - MUST show inline field errors with all three signals (red border, tinted fill, iconed red message
@@ -2532,82 +2393,74 @@ region's centre is x≈448, so "centred at the bottom of the content area" was w
 left→right: a formatting/undo control with caret, a block-style select `Paragraph ⌄`, `B` `I` `U`,
 a text-colour `A` with caret, a list control with caret, then link / image / help icons, an overflow
 `…`, and — pushed to the far right — a `</>` HTML source toggle. `[observed]`
-`.../03-products/product-add-new-blank-form.webp`. The toolbar has no fill of its own and is
+. The toolbar has no fill of its own and is
 separated from the body by a hairline. `[observed]`
 
 **Media upload grid.**
 - Empty: a full-width drop zone card containing a centred `Upload new` secondary button, an
   `Add from URL` plain link beside it, and grey helper text "Accepts images, videos, or 3D models".
-  `[observed]` `.../03-products/product-add-new-blank-form.webp`.
+  `[observed]`.
 - Filled: an asymmetric grid — the first asset renders large (roughly 2×2), the rest as small squares,
   video tiles carrying a small play badge in the corner, and the last cell is an "Add / Add from URL"
   tile echoing the empty-state affordances. `[observed]`
-  `.../03-products/product-edit-media-and-pricing.webp`,
-  `.../03-products/product-edit-media-gallery-with-video.webp`.
 - Attachment upload inside a comment composer shows a progress state. `[observed]` (file
-  `.../02-orders/order-detail-timeline-uploading-attachment.webp`; behaviour inferred from the
+; behaviour inferred from the
   timeline composer's paperclip/link icon row in
-  `.../02-orders/order-detail-timeline-comment-composer.webp` `[observed]`).
+   `[observed]`).
 
 **Combobox / resource picker.** A search field with a leading magnifier plus, where browsing is
 supported, a `Browse` secondary button flush right. `[observed]` "Search products … Browse"
-(`.../02-orders/draft-order-create-order-page.webp`), "Search or create a customer"
-(`.../02-orders/draft-order-validation-error-banner.webp` — the create affordance is folded into the
-placeholder), "Search customers" (`.../04-customers/customer-merge-find-customer.webp`), "Search or
-paste a link" (`.../05-online-store/navigation-add-menu-with-add-item-panel.webp`), "Search" for
-product category (`.../03-products/product-add-new-blank-form.webp`). Selected resources render as a
+, "Search or create a customer"
+( — the create affordance is folded into the
+placeholder), "Search customers", "Search or
+paste a link", "Search" for
+product category. Selected resources render as a
 row beneath the picker with a thumbnail, a blue title link, grey variant subtitle, price, an editable
 quantity field and a trailing trash icon. `[observed]`
-`.../02-orders/draft-order-create-order-page.webp`.
 
 **Date + time.** Side-by-side half-width fields: date with a leading calendar icon and ISO-ish value
 `2024-01-09`; time with a leading clock icon, value `3:01 AM`, and the timezone in the **label**
 ("Start time (EST)"). An end date is hidden behind a `Set end date` checkbox. `[observed]`
-`.../09-discounts/discount-create-eligibility-and-active-dates.webp`,
-`.../09-discounts/discount-create-combinations-and-usage-limits.webp`.
 
 **Date range picker.** A wide popover with three parts: a left column of preset ranges (Today /
 Yesterday / Last 7 days / … / Last year) with a check on the active preset; a right area holding two
 editable date fields with a `→` between them above two side-by-side month calendars with `←` `→`
 month steppers; and a footer with `Cancel` + `Apply`, `Apply` disabled until the range changes.
-`[observed]` `.../07-analytics/analytics-date-range-picker-calendar.webp`.
+`[observed]`.
 
 **Tag input.** A bordered empty field under a "Tags" label with no chips yet; in sidebar summary cards
 it is paired with a pencil icon on the card title row. `[observed]`
-`.../03-products/product-add-new-blank-form.webp` (form context),
-`.../02-orders/draft-order-create-order-page.webp` and
-`.../02-orders/order-detail-collect-payment-dropdown.webp` (sidebar "Tags ✏"). Committed option values
+ (form context)
+ (sidebar "Tags ✏"). Committed option values
 render as small grey chips in the variants summary rows: `Brown` `Black` `Blue` `Red` `Yellow`
-`[observed]` `.../03-products/product-edit-variants-matrix-table.webp`.
+`[observed]`.
 
 **Address block.** Fixed field order: **Country/region select first** (because it drives the rest),
 then First name / Last name, Company, Address (magnifier = autocomplete), "Apartment, suite, etc.",
 City / State (State is a **select** when the country has states), ZIP code, Phone (with flag select).
-`[observed]` `.../04-customers/customer-new-form-address-tax-notes.webp`. The billing variant in the
+`[observed]`. The billing variant in the
 subscribe flow drops to Country/region + ZIP code only. `[observed]`
-`.../10-settings/settings-plan-review-and-subscribe.webp`.
 
 **Code / query editor (customer segments).** A full-width monospace editor on a white card: a header
 strip showing live result stats ("2 customers · 100% of your customer base") on the left and an icon
 toolbar on the right (undo, redo, save, filter, collapse caret); a monospace body where actionable
 tokens are rendered as underlined links inside prose ("To create a segment, choose a **template** or
 apply a **filter**."); and a right-aligned `Apply` button in the editor's own footer, disabled while
-empty. `[observed]` `.../04-customers/customer-segment-new-query-editor.webp`. Its companion
+empty. `[observed]`. Its companion
 **Templates side panel** slides in from the right with a category list on the left, and cards on the
 right each showing a title, description, a monospace read-only query snippet, and a
 `Use this template` secondary button; the panel footer holds a single `Close`. `[observed]`
-`.../04-customers/customer-segment-templates-panel.webp`.
 
 **Bulk / grid editing.** A dedicated full-screen editor replacing the page chrome: `‹ Back` at top
 left, "Editing 3 products", a `Columns` control and `Save` at top right; the body is a spreadsheet
 where each cell is an inline control (status select, category combobox with clear ⊗ and confirm ⊙,
 plain numeric price cells, `—` for not-applicable). `[observed]`
-`.../03-products/products-bulk-editor-price-columns.webp`. A lighter variant edits one attribute
+. A lighter variant edits one attribute
 across rows in a modal with an "Apply a price to all variants" field + `Apply to all` button at the
 top and per-row fields below, each with a grey computed caption ("$10.00 cost per item · Projected
-margin: 33.3%"). `[observed]` `.../03-products/product-edit-bulk-edit-prices-modal.webp`. Inline
+margin: 33.3%"). `[observed]`. Inline
 numeric cells also appear in the inventory table (Available / On hand columns as bare numeric fields
-with an adjustment icon). `[observed]` `.../03-products/inventory-quantities-by-variant.webp`.
+with an adjustment icon). `[observed]`.
 
 **Rules**
 - MUST give the rich text editor a hairline-separated toolbar with block style, bold/italic/underline,
@@ -2632,56 +2485,53 @@ with an adjustment icon). `[observed]` `.../03-products/inventory-quantities-by-
 **Sizes (approximate).** Two heights are in use: **compact ~28 px** for top-bar/page-header, table,
 card-footer and modal-footer buttons; **regular ~36 px** for in-form and full-width primary buttons.
 Horizontal padding ~12–14 px compact, ~16 px regular; corner radius ~8 px; label ~13 px medium weight.
-`[observed]` compare the top bar `Save` in `.../03-products/product-add-new-blank-form.webp` with the
-`Continue with email` button in `.../00-auth/login-email-filled.webp` and the full-width
-`Fulfill item` in `.../02-orders/order-fulfill-item-page.webp`.
+`[observed]` compare the top bar `Save` in  with the
+`Continue with email` button in  and the full-width
+`Fulfill item` in.
 
 **Ordering and placement convention.** `[observed]` and consistent across every screenshot read:
 - Page top bar / contextual save bar: destructive-neutral secondary on the **left**, primary on the
-  **right** — `Discard` `Save` (`.../09-discounts/discount-create-shipping-with-code.webp`).
+  **right** — `Discard` `Save`.
 - Page header action row: lowest-priority secondaries left → dropdown → primary rightmost —
   `Export` `Import` `More actions ⌄` `Add product`
-  (`.../03-products/products-list-bulk-selection-action-bar.webp`).
 - Modal footer: right-aligned pair, `Cancel` left of the primary
-  (`.../03-products/products-list-archive-confirm-modal.webp`,
-  `.../04-customers/customer-erase-personal-data-modal.webp`,
-  `.../10-settings/settings-payments-cash-on-delivery-modal.webp`).
+  (
+).
 - Card footer: right-aligned pair inside the card
-  (`.../02-orders/order-detail-collect-payment-dropdown.webp` → `Resend invoice` `Collect payment ⌄`).
+  (→ `Resend invoice` `Collect payment ⌄`).
 - Sidebar card: a single full-width primary
-  (`.../02-orders/order-fulfill-item-page.webp` → `Fulfill item`).
+  (→ `Fulfill item`).
 - Bulk action bar: a floating pill bar centred at the bottom of the table with all-secondary buttons
-  plus an `…` overflow (`.../03-products/products-list-bulk-selection-action-bar.webp`).
+  plus an `…` overflow.
 
 **Variant table**
 
-| Variant | Appearance | Use for | Never use for | Evidence |
-|---|---|---|---|---|
-| **Primary** | Near-black fill — sampled `#3E3E3E` on the large flat auth primary, not the `#303030` this table used to print (that value is body text) — white ~13 px label, ~8 px radius, no border | The single most important action on a page, modal, card footer or sidebar card — Save, Add product, Create order, Install app, Post, Done, Apply, Schedule, Fulfill item | More than one per surface; a destructive action; navigation | `.../09-discounts/discount-create-shipping-with-code.webp`, `.../03-products/products-list-bulk-selection-action-bar.webp`, `.../11-apps-and-channels/app-install-permissions-consent.webp`, `.../02-orders/order-fulfill-item-page.webp` |
-| **Primary (green)** | Green fill, white label | Legacy/account surface only — `Save` on the account settings page | Anywhere in the admin proper; do not introduce a second primary colour | `.../15-account/account-general-unsaved-changes.webp` |
-| **Secondary** | White fill, 1 px light grey border, soft shadow, dark label | Every supporting action next to a primary — Discard, Cancel, Export, Import, Browse, Edit, Manage, Restock, Return, Upload new, Bulk edit, Use this template, Print packing slip | The main affirmative action; long-form navigation | `.../03-products/products-list-search-and-filters.webp`, `.../10-settings/settings-payments-manual-methods-cod-activated.webp`, `.../04-customers/customer-segment-templates-panel.webp` |
-| **Plain / link** | Blue ~13 px text, no chrome, often with a leading `+` or a trailing `→` | Tertiary, additive and inline actions — Add another option, Add custom item, Generate random code, Edit discount, Learn more, Change email, Forgot password?, Get started → | Confirming a form; anything that needs a hit target in a crowded toolbar | `.../09-discounts/discount-create-shipping-empty.webp`, `.../03-products/product-edit-variant-option-values.webp`, `.../02-orders/draft-order-create-order-page.webp`, `.../00-auth/login-password-step-empty.webp` |
-| **Destructive** | Red fill, white label, same geometry as primary | Irreversible data loss confirmed inside a modal — Erase personal data | The page header; the first thing a user sees; anything undoable | `.../04-customers/customer-erase-personal-data-modal.webp` |
-| **Split / dropdown** | Secondary or primary body + a `⌄` caret at the right; opens a menu below aligned to the button's right edge | A default action with alternatives, or a pure action menu — `Collect payment ⌄`, `More actions ⌄`, `Draft ⌄` | Hiding the primary action of the page inside the menu | `.../02-orders/order-detail-collect-payment-dropdown.webp`, `.../02-orders/order-detail-more-actions-menu.webp`, `.../03-products/products-list-create-view-modal.webp` |
-| **Icon-only** | ~28 px square, no fill/border until hover, ~16 px glyph | Repeated row/card affordances — pencil edit, trash, drag handle, copy, `⋯`/`⋮` overflow, password eye, dismiss ✕ | Any action whose meaning is not obvious from the glyph alone | `.../02-orders/draft-order-create-order-page.webp` (sidebar pencils), `.../03-products/product-edit-variant-option-values.webp` (trash + drag handle), `.../00-auth/login-password-step-empty.webp` (eye) |
-| **Disabled (any variant)** | Flat light grey fill, mid-grey label, no border, no shadow | Communicating "not yet available" while keeping the action discoverable | Actions that are permanently unavailable — omit those instead | `.../09-discounts/discount-create-shipping-empty.webp`, `.../02-orders/draft-order-add-discount-modal-empty.webp`, `.../00-auth/signup-create-account-email-password.webp` |
-| **Disabled menu item** | Grey label inside an open menu, still listed | An option blocked by state, kept for discoverability — "Enter credit card" greyed above "Mark as paid" | Options the account will never have | `.../02-orders/order-detail-collect-payment-dropdown.webp` |
-| **Social / provider — filled tile** | Light grey fill, brand mark, no text; three equal tiles in one row | Third-party auth on the auth surface | Product actions | `.../00-auth/login-email-filled.webp` |
-| **Social / provider — link row** | **No fill, no border**: a brand mark plus a plain blue text link per row ("Connect to Apple / Connect to Facebook / Connect to Google") | Connecting a login service from an account settings page | Anywhere the tile variant is used; do not mix the two on one surface | `.../15-account/account-general-unsaved-changes.webp` |
+| Variant | Appearance | Use for | Never use for |
+| --- | --- | --- | --- |
+| **Primary** | Near-black fill — sampled `#3E3E3E` on the large flat auth primary, not the `#303030` this table used to print (that value is body text) — white ~13 px label, ~8 px radius, no border | The single most important action on a page, modal, card footer or sidebar card — Save, Add product, Create order, Install app, Post, Done, Apply, Schedule, Fulfill item | More than one per surface; a destructive action; navigation |
+| **Primary (green)** | Green fill, white label | Legacy/account surface only — `Save` on the account settings page | Anywhere in the admin proper; do not introduce a second primary colour |
+| **Secondary** | White fill, 1 px light grey border, soft shadow, dark label | Every supporting action next to a primary — Discard, Cancel, Export, Import, Browse, Edit, Manage, Restock, Return, Upload new, Bulk edit, Use this template, Print packing slip | The main affirmative action; long-form navigation |
+| **Plain / link** | Blue ~13 px text, no chrome, often with a leading `+` or a trailing `→` | Tertiary, additive and inline actions — Add another option, Add custom item, Generate random code, Edit discount, Learn more, Change email, Forgot password?, Get started → | Confirming a form; anything that needs a hit target in a crowded toolbar |
+| **Destructive** | Red fill, white label, same geometry as primary | Irreversible data loss confirmed inside a modal — Erase personal data | The page header; the first thing a user sees; anything undoable |
+| **Split / dropdown** | Secondary or primary body + a `⌄` caret at the right; opens a menu below aligned to the button's right edge | A default action with alternatives, or a pure action menu — `Collect payment ⌄`, `More actions ⌄`, `Draft ⌄` | Hiding the primary action of the page inside the menu |
+| **Icon-only** | ~28 px square, no fill/border until hover, ~16 px glyph | Repeated row/card affordances — pencil edit, trash, drag handle, copy, `⋯`/`⋮` overflow, password eye, dismiss ✕ | Any action whose meaning is not obvious from the glyph alone |
+| **Disabled (any variant)** | Flat light grey fill, mid-grey label, no border, no shadow | Communicating "not yet available" while keeping the action discoverable | Actions that are permanently unavailable — omit those instead |
+| **Disabled menu item** | Grey label inside an open menu, still listed | An option blocked by state, kept for discoverability — "Enter credit card" greyed above "Mark as paid" | Options the account will never have |
+| **Social / provider — filled tile** | Light grey fill, brand mark, no text; three equal tiles in one row | Third-party auth on the auth surface | Product actions |
+| **Social / provider — link row** | **No fill, no border**: a brand mark plus a plain blue text link per row ("Connect to Apple / Connect to Facebook / Connect to Google") | Connecting a login service from an account settings page | Anywhere the tile variant is used; do not mix the two on one surface |
 
 **Destructive nuance.** Red fill is rare. Bulk *archive* — a reversible hide — uses the normal dark
 primary `Archive products` in its confirm modal `[observed]`
-`.../03-products/products-list-archive-confirm-modal.webp`, while genuinely irreversible erasure uses
-red `[observed]` `.../04-customers/customer-erase-personal-data-modal.webp`. Destructive items inside
+, while genuinely irreversible erasure uses
+red `[observed]`. Destructive items inside
 menus stay as plain menu rows with an icon, not red text `[observed]` "Cancel order" in
-`.../02-orders/order-detail-more-actions-menu.webp`.
 
 **Menus.** Opened from a caret button: white popover, ~8 px radius, 1 px border, soft shadow, items
 ~13 px with a leading ~16 px icon, ~10 px row padding, right-aligned to the trigger. `[observed]`
-`.../02-orders/order-detail-more-actions-menu.webp` (Duplicate / Cancel order / Archive / Print order
+ (Duplicate / Cancel order / Archive / Print order
 page / Print packing slips / View order status page). Navigation-style menus add a trailing `›` and
 may show keyboard shortcuts right-aligned `[observed]`
-`.../13-navigation-shortcuts/quick-create-menu-with-keyboard-shortcuts.webp` (`#` `O`, `#` `D`, …).
+ (`#` `O`, `#` `D`, …).
 
 **Rules**
 - MUST allow exactly one primary button per surface (page, modal, card, panel).
@@ -2707,68 +2557,59 @@ may show keyboard shortcuts right-aligned `[observed]`
 at the far right; expanding one reveals rich body content (icon + title + prose + inline action
 buttons + illustration) and collapses the siblings. A progress indicator sits in the header
 ("1 / 11 completed" with a bar). `[observed]`
-`.../01-home/home-get-ready-to-sell-setup-guide-accordion.webp`.
 
 **"Add another" / additive links.** A left-aligned plain blue link with a leading `+`, placed at the
 bottom of the card it extends. `[observed]` `+ Add another option`
-(`.../03-products/product-edit-variant-option-values.webp`), `+ Add another tracking number`
-(`.../02-orders/order-fulfill-item-page.webp`), `+ Add customs information`
-(`.../03-products/product-edit-pricing-inventory-shipping.webp`), `+ Add options like size or color`
-(`.../03-products/product-edit-seo-listing-and-empty-variants.webp`), `+ Add payment method` /
-`+ Manual payment method` (`.../10-settings/settings-payments-manual-methods-cod-activated.webp`),
-`+ Add menu item` (`.../05-online-store/navigation-add-menu-with-add-item-panel.webp`), `Add filter +`
-(`.../02-orders/orders-list-search-mode-add-filter.webp`).
+, `+ Add another tracking number`
+, `+ Add customs information`
+, `+ Add options like size or color`
+, `+ Add payment method` /
+`+ Manual payment method`,
+`+ Add menu item`, `Add filter +`
 
 **Read-only summary card + pencil.** Sidebar cards render values as plain text with a pencil icon on
 the title row; the pencil opens either a modal or an inline editor. `[observed]` Notes, Customer,
 Contact information, Shipping address, Billing address, Market, Tags in
-`.../02-orders/draft-order-create-order-page.webp` and
-`.../02-orders/order-detail-collect-payment-dropdown.webp`; Profile in
-`.../10-settings/settings-store-details-edit-profile-modal.webp` (pencil → "Edit profile" modal).
+; Profile in
+ (pencil → "Edit profile" modal).
 A textual `Edit` link is the alternative on wide cards `[observed]` "Search engine listing … Edit"
-(`.../03-products/product-edit-seo-listing-and-empty-variants.webp`) and "Payment due when invoice is
-sent … Edit" (`.../02-orders/draft-order-create-order-page.webp`).
+ and "Payment due when invoice is
+sent … Edit".
 
 **Inline edit → Done.** The variants option editor expands a summary row into an editing block: drag
 handle, `Option name` field, `Option values` field, trash icon, and a `Done` secondary button at the
 bottom-left that collapses it back to a chip summary. `[observed]`
-`.../03-products/product-edit-variant-option-values.webp` (editing) vs
-`.../03-products/product-edit-variants-matrix-table.webp` (collapsed: `Color` with chips
+ (editing) vs
+ (collapsed: `Color` with chips
 Brown/Black/Blue/Red/Yellow and an `Edit` button right-aligned).
 
 **Row-level edit modal.** Per-row `Edit` buttons in the variants table open a focused modal scoped to
 that row, titled with the row identity ("Edit Brown / A5 / Grid"), containing sub-sectioned fields
 (Price group / Inventory / Customs information), a footer note explaining a limitation ("Save the
 product to edit more variant details.") and `Cancel` + `Done`. `[observed]`
-`.../03-products/product-edit-variant-detail-modal.webp`.
 
 **Checkbox-gated sections.** A checkbox reveals its dependent fields in place: `Track quantity` →
 Quantity table + "Continue selling when out of stock" + "This product has a SKU or barcode";
 `This is a physical product` → Weight + `+ Add customs information`; `Set end date` → end date fields;
 `Payment due later` → Payment terms select + explanatory prose. `[observed]`
-`.../03-products/product-edit-pricing-inventory-shipping.webp`,
-`.../09-discounts/discount-create-combinations-and-usage-limits.webp`,
-`.../02-orders/draft-order-create-order-page.webp`.
 
 **Side panel (sheet) as a sub-form.** A right-docked panel with its own title, close ✕, fields, and a
 footer holding `Cancel` + a disabled-until-valid primary; the page behind keeps its own contextual
 save bar. **The ~330 px printed here was wrong for both cited files (C12).** Measured: the Add-menu
 form sheet is 203 img px ⇒ **~406 px**; the two-column segment-templates panel is 324 img px ⇒
 **~648 px** (~42% of the viewport). §2.6 and §5.5 already had both right. `[observed]`
-`.../05-online-store/navigation-add-menu-with-add-item-panel.webp` (~406 px),
-`.../04-customers/customer-segment-templates-panel.webp` (~648 px).
+ (~406 px),
+ (~648 px).
 
 **Live summary as feedback.** The discount editor mirrors every choice into a right-column "Summary"
 card that grows as the form is completed — from "No discount code yet / Type and method / Details:
 Can't combine with other discounts" to a nine-item bullet list. `[observed]` compare
-`.../09-discounts/discount-create-shipping-empty.webp` with
-`.../09-discounts/discount-create-shipping-with-code.webp`.
+ with
 
 **Choice-first modals.** Creating a complex resource starts with a modal of choices rather than a
 blank form: each row is a title + description with a right-aligned type badge and a `›` chevron, and
 the only button is `Cancel`. `[observed]`
-`.../09-discounts/discount-select-type-modal.webp`,
-`.../06-marketing/marketing-build-campaign-activity-modal.webp` (with a filter tab row: All / Ads /
+ (with a filter tab row: All / Ads /
 Email / Social Post / SMS / Other).
 
 **Rules**
@@ -2792,12 +2633,10 @@ Email / Social Post / SMS / Other).
 ### 4.8 Open questions / not verifiable here
 
 - Exact focus-ring geometry and colour (border vs offset ring) — the capture resolution cannot
-  separate them. `[Polaris]`
+  separate them. `[recalled]`
 - Hover states for any variant — no hover is captured in this set.
 - Toggle **on** state appearance — only the off state was observed
-  (`.../10-settings/settings-plan-review-and-subscribe.webp`).
 - Error state on selects, comboboxes, checkboxes and radios — only text-field errors were observed
-  (`.../00-auth/login-email-validation-error.webp`).
 - Multi-error page banners (the one observed lists a single blocking change).
 - Responsive collapse of the two-column layouts at narrow widths — all captures are desktop.
 
@@ -2807,51 +2646,41 @@ Email / Social Post / SMS / Other).
 
 > ### ⚠ D7 — this section is PROVENANCE, not authority
 >
-> `DECISIONS.md` **D7** replaced the **visual** reference. Navattic governs colour, spacing,
-> radii, borders, the type scale, page organisation, nav treatment, card treatment and table
-> style. **Everything visual below describes Shopify and no longer describes what Eyvar
-> ships.**
->
-> The screenshot citations are **kept on purpose**: they are what makes the derivation
-> auditable — open the cited frame and you can check what the analyst saw. **They may not be
-> cited to settle what Eyvar ships.** For that, read
-> `docs/05-restructure/design/03-navattic-language.md`, whose §1 holds the complete token set
-> with every value's measurement or derivation.
+> **Nothing visual below describes what Eyvar ships.** Colour, spacing, radii, borders, the
+> type scale, nav treatment, card treatment and table style are settled by the token layer,
+> `src/styles/globals.css`, summarised in `docs/ref/tokens.md`.
 >
 > What still binds from this section is **structure** — what a page is made of, what goes in
 > a header, what a state is for — and only where §6 adopts it. Every pixel figure was already
 > non-binding under **R13**; under D7 it is non-binding twice over.
 
 
-How the admin talks back: what it says, where it says it, and how long it stays. Derived
-from 68 screenshots read across all 16 folders. Every claim is tagged `[observed]`
-(visible in the cited screenshot) or `[Polaris]` (design-system knowledge these
-screenshots do not prove).
-
-All screenshot paths below are relative to `docs/06-design-reference/shopify-admin-web/`.
+How the admin talks back: what it says, where it says it, and how long it stays. Every claim
+is tagged `[observed]` (evidenced on the line that carries it) or `[recalled]`
+(design-system knowledge the evidence does not prove).
 
 ### 5.0 Choosing the surface
 
 There are exactly six feedback/overlay surfaces in this system. Adding a seventh is a
 design bug. Pick from the table; do not invent.
 
-| Situation | Use | Do NOT use | Evidence |
-|---|---|---|---|
-| An action the user just took succeeded, and there is nothing more to do | **Toast** (dark rounded rectangle, bottom-centre of the viewport, auto-dismiss) | Banner — it would persist after it stops being true | `03-products/products-list-products-imported-toast.webp`, `10-settings/settings-store-details-saved-toast.webp`, `07-analytics/analytics-dashboard-saved-toast-last-7-days.webp` [observed] |
-| A record was created and there is an obvious *next* step | **Success banner at top of page**, with the next step as a button/links, **plus** a toast for the raw confirmation | Toast alone — the next-step offer would vanish | `09-discounts/discount-detail-shareable-link-modal.webp` (banner "FREESHIPPING10 was created successfully. What's next?" + "Get shareable link"), `03-products/product-detail-created-success-banner.webp` (green banner + "Product created" toast simultaneously) [observed] |
-| A condition is true about this record until someone changes it (pending erasure, app needs attention, unverified email) | **Banner, undismissable, top of page** | Toast — the state outlives the session | `04-customers/customer-detail-erasure-request-banner.webp`, `11-apps-and-channels/app-detail-shop-channel-needs-attention.webp` [observed] |
-| Save was blocked by validation | **Critical banner at top of page** naming the count and the fix; primary actions disabled | Toast; a modal; a bare red field with no page-level summary | `02-orders/draft-order-validation-error-banner.webp` ("To save this draft order, 1 change needs to be made:") [observed] |
-| One field is wrong | **Inline field error** under the field, field tinted red | Page banner for a single field | `00-auth/login-email-validation-error.webp` ("Enter a valid email address") [observed] |
-| Destructive or irreversible action needs confirmation | **Modal**, small, primary button restated as the verb | Toast with undo; a popover; navigating to a page | `03-products/products-list-archive-confirm-modal.webp`, `04-customers/customer-segment-delete-confirm-modal.webp`, `04-customers/customer-erase-personal-data-modal.webp` [observed] |
-| A short focused form (≤ ~6 fields) that does not need page context | **Modal** | Drawer; new page | `10-settings/settings-store-details-edit-profile-modal.webp`, `03-products/products-list-create-view-modal.webp`, `10-settings/settings-payments-cash-on-delivery-modal.webp` [observed] |
-| Choosing which *kind* of thing to create, before a long flow | **Picker modal** — rows, no primary button, Cancel only | Dropdown menu; a page of cards | `09-discounts/discount-select-type-modal.webp`, `06-marketing/marketing-build-campaign-activity-modal.webp` [observed] |
-| A working surface the user consults *against* the page behind it | **Right side panel / drawer**, no scrim, page stays readable | Modal — it hides the thing being worked on | `01-home/home-guide-side-panel-in-progress.webp`, `04-customers/customer-segment-templates-panel.webp`, `05-online-store/navigation-add-menu-with-add-item-panel.webp`, `05-online-store/themes-connect-github-repository-panel.webp` [observed] |
-| A list of commands on an object | **Popover menu** anchored to the trigger | Modal; expanding the row | `02-orders/order-detail-more-actions-menu.webp`, `04-customers/customer-segments-row-actions-menu.webp` [observed] |
-| A view setting that can be changed repeatedly (sort, colour, date range) | **Popover** that stays open while the user adjusts | Modal | `03-products/products-list-sort-popover.webp`, `05-online-store/theme-editor-color-scheme-picker.webp` [observed] |
-| Naming an icon-only control | **Tooltip** | Popover; permanent label | `03-products/products-list-draft-tab-create-view-tooltip.webp` ("Create view") [observed] |
-| Granting permissions / legal consent / entering a long multi-section flow | **Full page** with Cancel + primary in the page header | Modal — consent must be readable and linkable | `11-apps-and-channels/app-install-permissions-consent.webp`, `04-customers/customer-merge-review-merged-record.webp` [observed] |
-| Progressive setup of a whole area of the product | **Guide card with checklist** on the destination page, mirrored in a drawer while the user works | Modal wizard; a tour with coach-marks | `01-home/home-get-ready-to-sell-setup-guide-accordion.webp`, `03-products/product-detail-setup-guide-sharing-details.webp`, `08-finances/finances-get-started-tasks-checklist.webp` [observed] |
-| Page has unsaved edits | **Contextual save bar** replacing the top bar | Toast; a modal on navigate-away as the *only* guard | `15-account/account-general-unsaved-changes.webp`, `03-products/product-edit-seo-listing-and-empty-variants.webp` [observed] |
+| Situation | Use | Do NOT use |
+| --- | --- | --- |
+| An action the user just took succeeded, and there is nothing more to do | **Toast** (dark rounded rectangle, bottom-centre of the viewport, auto-dismiss) | Banner — it would persist after it stops being true |
+| A record was created and there is an obvious *next* step | **Success banner at top of page**, with the next step as a button/links, **plus** a toast for the raw confirmation | Toast alone — the next-step offer would vanish |
+| A condition is true about this record until someone changes it (pending erasure, app needs attention, unverified email) | **Banner, undismissable, top of page** | Toast — the state outlives the session |
+| Save was blocked by validation | **Critical banner at top of page** naming the count and the fix; primary actions disabled | Toast; a modal; a bare red field with no page-level summary |
+| One field is wrong | **Inline field error** under the field, field tinted red | Page banner for a single field |
+| Destructive or irreversible action needs confirmation | **Modal**, small, primary button restated as the verb | Toast with undo; a popover; navigating to a page |
+| A short focused form (≤ ~6 fields) that does not need page context | **Modal** | Drawer; new page |
+| Choosing which *kind* of thing to create, before a long flow | **Picker modal** — rows, no primary button, Cancel only | Dropdown menu; a page of cards |
+| A working surface the user consults *against* the page behind it | **Right side panel / drawer**, no scrim, page stays readable | Modal — it hides the thing being worked on |
+| A list of commands on an object | **Popover menu** anchored to the trigger | Modal; expanding the row |
+| A view setting that can be changed repeatedly (sort, colour, date range) | **Popover** that stays open while the user adjusts | Modal |
+| Naming an icon-only control | **Tooltip** | Popover; permanent label |
+| Granting permissions / legal consent / entering a long multi-section flow | **Full page** with Cancel + primary in the page header | Modal — consent must be readable and linkable |
+| Progressive setup of a whole area of the product | **Guide card with checklist** on the destination page, mirrored in a drawer while the user works | Modal wizard; a tour with coach-marks |
+| Page has unsaved edits | **Contextual save bar** replacing the top bar | Toast; a modal on navigate-away as the *only* guard |
 
 **Rules**
 - MUST pick a surface from this table before designing any feedback; a new surface type requires a written exception.
@@ -2859,7 +2688,7 @@ design bug. Pick from the table; do not invent.
 - MUST NOT use a modal for anything the user has to consult the page to answer.
 - **-> Constrained by R10: one event, one surface, decided by lifetime. Pair the two only when the
   action completed *and* left a standing condition.**
-- SHOULD pair a toast with a banner when the action both *succeeded* and *opened a next step* — Shopify ships both at once. `03-products/product-detail-created-success-banner.webp` [observed]
+- SHOULD pair a toast with a banner when the action both *succeeded* and *opened a next step*; the baseline ships both at once. [observed]
 - MUST make the surface match the lifetime of the message: session-lifetime → toast, record-lifetime → banner.
 
 ### 5.1 Toasts
@@ -2867,35 +2696,35 @@ design bug. Pick from the table; do not invent.
 **Anatomy** [observed across 9 screens]
 - A dark, near-black **rounded rectangle at ~8 px radius — not a stadium pill** (R15). Measured: ~4–5 img px of corner radius on a 23 img px tall toast, where fully rounded ends would need 11.5. §1.4 was right and the "fully rounded ends" this section used to claim was wrong. White text, no icon, no title — a single short sentence fragment.
 - One trailing affordance only: a small **×** on the right inside the toast. No "Undo" button appears in any screenshot read.
-- Horizontally centred **on the viewport**, pinned near the bottom of it. Measured centre lands at x≈384 of 768 — exactly 50% of viewport width — in every case: `03-products/products-list-products-imported-toast.webp`, `03-products/products-list-view-deleted-toast.webp`, `04-customers/customer-segments-deleted-toast.webp`, `07-analytics/analytics-dashboard-saved-toast-last-7-days.webp`, `02-orders/order-detail-refunded-with-toast.webp`. The content region runs x 128→768 and centres at 448, so the toast sits ~64 img px left of the content centre — §2.6's and §4.4's "content region" readings are wrong and defer to this one (C9). [observed]
-- The toast floats above everything, including the full-screen Settings overlay (`10-settings/settings-store-details-saved-toast.webp`) and above an open modal (`09-discounts/discount-detail-shareable-link-modal.webp` shows "Copied to clipboard" while the modal is open) [observed].
+- Horizontally centred **on the viewport**, pinned near the bottom of it. Measured centre lands at x≈384 of 768 — exactly 50% of viewport width — in every case:,. The content region runs x 128→768 and centres at 448, so the toast sits ~64 img px left of the content centre — §2.6's and §4.4's "content region" readings are wrong and defer to this one (C9). [observed]
+- The toast floats above everything, including the full-screen Settings overlay  and above an open modal (shows "Copied to clipboard" while the modal is open) [observed].
 - Width appears to hug the content, with no wrapping to a second line in any sample [observed for the absence of wrapping]. That there is **no fixed width** is `[inferred]` — it generalises from ~5 short strings, every one of which would also fit inside a fixed width.
-- `[Polaris]` Toasts auto-dismiss after ~5s (10s for the long variant) and stack vertically when several fire; not provable here — every screenshot shows exactly one toast.
+- `[recalled]` Toasts auto-dismiss after ~5s (10s for the long variant) and stack vertically when several fire; not provable here — every screenshot shows exactly one toast.
 
 **Observed strings** — all sentence case, all past-tense state-changes, none ends in a period, none has an exclamation mark:
 
 | String | Screen |
 |---|---|
-| "Settings saved" | `10-settings/settings-store-details-saved-toast.webp` |
-| "Products imported" | `03-products/products-list-products-imported-toast.webp` |
-| "View deleted" | `03-products/products-list-view-deleted-toast.webp` |
-| "Dashboard saved" | `07-analytics/analytics-dashboard-saved-toast-last-7-days.webp` |
-| "Segment deleted" | `04-customers/customer-segments-deleted-toast.webp` |
-| "Product created" | `03-products/product-detail-created-success-banner.webp` |
-| "Items fulfilled" | `02-orders/order-detail-items-fulfilled-toast.webp` |
-| "Refunded $10.00" | `02-orders/order-detail-refunded-with-toast.webp` |
-| "Erasure request submitted" | `04-customers/customer-detail-erasure-request-banner.webp` |
-| "Cash on Delivery (COD) activated" | `10-settings/settings-payments-manual-methods-cod-activated.webp` |
-| "Copied to clipboard" | `09-discounts/discount-detail-shareable-link-modal.webp` |
-| "Email sent" | `06-marketing/email-app-overview-with-sent-toast.webp` |
+| "Settings saved" | |
+| "Products imported" | |
+| "View deleted" | |
+| "Dashboard saved" | |
+| "Segment deleted" | |
+| "Product created" | |
+| "Items fulfilled" | |
+| "Refunded $10.00" | |
+| "Erasure request submitted" | |
+| "Cash on Delivery (COD) activated" | |
+| "Copied to clipboard" | |
+| "Email sent" | |
 
 The wording formula is **`<object> <past-participle>`**, optionally with a value
 ("Refunded $10.00"). The object is the thing the user touched, named the way the UI names
 it — "Cash on Delivery (COD) activated" keeps the full method name including the
 parenthetical, matching the button that triggered it ("Activate Cash on Delivery (COD)")
-[observed, `10-settings/settings-payments-cash-on-delivery-modal.webp`].
+[observed, ].
 
-**Variant, bottom-right** [observed] — `01-home/home-setup-guide-with-trial-started-toast.webp`
+**Variant, bottom-right** [observed] —
 shows a dark pill reading "Your trial just started" anchored **bottom-right** with a
 chevron-up instead of an ×, i.e. an expandable persistent notice, not a toast. Treat this
 as a separate component (a persistent account notice); do not mix it with toasts.
@@ -2922,31 +2751,31 @@ A rounded rectangle with a **saturated tone-coloured header strip** carrying the
 icon + the title, and a **lighter body area** below carrying the sentence(s) and any
 action buttons/links. Placed as the first element of the **content block, spanning main +
 rail** — directly under the page header and above the first card. It is *not* confined to
-the main column: in `02-orders/draft-order-validation-error-banner.webp` and
-`09-discounts/discount-detail-shareable-link-modal.webp` the banner runs x 196→700 img px,
+the main column: in  and
+ the banner runs x 196→700 img px,
 while the main column alone ends at 526. [observed]
 
-- Success: solid green strip, white text, ✓ icon. "✓ Added Custom Notebook" over body "Add another product, view products with an active status, or add a package for shipping." — the body is three underlined inline links in one sentence — with an **×** at the far right of the green strip. `03-products/product-detail-created-success-banner.webp` [observed]
-- Success with next step: "✓ FREESHIPPING10 was created successfully. What's next?" over body "Use a shareable link to promote your discount code via email or social media. This discount will be applied at checkout when customers use this link." plus a secondary button **"Get shareable link"**. `09-discounts/discount-detail-shareable-link-modal.webp` and `09-discounts/discount-detail-promote-menu.webp` [observed]
-- Success with next step, short form: "✓ Sample product added" / "Delete at any time or edit to make it your own." / button "Preview product page" / × dismiss. `03-products/product-detail-setup-guide-sharing-details.webp` [observed]
-- Warning/attention: amber strip, dark text, ⚠ icon. "⚠ Erasure request submitted" over "This customer's personal information will be erased from your store on **Jan 18, 2024**. Learn more about the process of erasure requests." plus secondary button **"Cancel request"**. **No × — this banner is state, not news.** `04-customers/customer-detail-erasure-request-banner.webp` [observed]
-- Warning, app-level: "⚠ This app needs your attention" / "Shop has noticed your store doesn't meet shopping requirements." / button "Open app". No ×. `11-apps-and-channels/app-detail-shop-channel-needs-attention.webp` [observed]
-- Critical: solid red strip, white text, ⓘ-in-circle icon. "To save this draft order, 1 change needs to be made:" over "Activate a direct credit card gateway for this store." No ×. The page's Duplicate/Share actions render disabled while it is up. `02-orders/draft-order-validation-error-banner.webp` [observed]
+- Success: solid green strip, white text, ✓ icon. "✓ Added Custom Notebook" over body "Add another product, view products with an active status, or add a package for shipping." — the body is three underlined inline links in one sentence — with an **×** at the far right of the green strip.  [observed]
+- Success with next step: "✓ FREESHIPPING10 was created successfully. What's next?" over body "Use a shareable link to promote your discount code via email or social media. This discount will be applied at checkout when customers use this link." plus a secondary button **"Get shareable link"**.  and  [observed]
+- Success with next step, short form: "✓ Sample product added" / "Delete at any time or edit to make it your own." / button "Preview product page" / × dismiss.  [observed]
+- Warning/attention: amber strip, dark text, ⚠ icon. "⚠ Erasure request submitted" over "This customer's personal information will be erased from your store on **Jan 18, 2024**. Learn more about the process of erasure requests." plus secondary button **"Cancel request"**. **No × — this banner is state, not news.**  [observed]
+- Warning, app-level: "⚠ This app needs your attention" / "Shop has noticed your store doesn't meet shopping requirements." / button "Open app". No ×.  [observed]
+- Critical: solid red strip, white text, ⓘ-in-circle icon. "To save this draft order, 1 change needs to be made:" over "Activate a direct credit card gateway for this store." No ×. The page's Duplicate/Share actions render disabled while it is up.  [observed]
 
 **Family B — soft banner (the account/auth surfaces)** [observed]
 A single tinted rounded card, no strip: pale background of the tone, a filled circular
 icon at left, bold title, optional body line under it, **×** at top-right.
-- Success: "✓ Account information updated" (title only, no body). `15-account/account-general-updated-banner.webp` [observed]
-- Warning: "! Verification email sent" / "Please verify your email address by following the link sent to jsmith.mobbin@gmail.com." `15-account/account-general-verification-email-sent.webp` [observed]
-- Success, in-card on auth: "✓ Your email has been verified" and "✓ A link to reset your password has been emailed to you." — same soft style, rendered *inside* the login card between the heading and the first field. `00-auth/login-email-verified-banner.webp`, `00-auth/login-reset-link-sent-banner.webp` [observed]
+- Success: "✓ Account information updated" (title only, no body).  [observed]
+- Warning: "! Verification email sent" / "Please verify your email address by following the link sent to the address on file."  [observed]
+- Success, in-card on auth: "✓ Your email has been verified" and "✓ A link to reset your password has been emailed to you." — same soft style, rendered *inside* the login card between the heading and the first field.,  [observed]
 
 **Banner inside a card** [observed] — banners also appear scoped to a card when the
-condition is about that card only: `10-settings/settings-payments-setup-shopify-payments-modal.webp`
+condition is about that card only:
 shows a pale-blue info banner inside the PayPal card, "ⓘ Complete your Paypal account
 setup to start receiving payouts from PayPal." Scope the banner to the smallest container
 the problem belongs to.
 
-**Banner inside a modal** [observed] — `11-apps-and-channels/app-uninstall-confirm-modal.webp`
+**Banner inside a modal** [observed] —
 places a warning banner as the first element of the modal body, above the acknowledgement
 checkbox.
 
@@ -2954,14 +2783,14 @@ checkbox.
 carry an ×; banners describing a *standing condition* (erasure pending, app needs attention,
 validation blocking save) do not. The split is not clean in the source: a counterexample sits
 inside this section's own evidence — "✓ FREESHIPPING10 was created successfully. What's
-next?" in `09-discounts/discount-detail-shareable-link-modal.webp` announces a completed
+next?" in  announces a completed
 action and has **no ×** on its green strip.
 
 **Rules**
 - MUST place page-level banners as the first element of the **content block, spanning main + rail**, below the page header and above all cards. *(Was: "of the main column" — the measured banners span the whole block.)*
 - MUST scope a banner to a card when the condition belongs to that card only.
 - MUST give a banner an icon, a title, and — for anything beyond a bare confirmation — one body sentence.
-- MUST omit the × on banners that describe a standing condition; SHOULD include it on banners announcing a completed action. *(Downgraded from MUST: Shopify itself ships a completed-action banner with no × — see the dismiss rule above.)*
+- MUST omit the × on banners that describe a standing condition; SHOULD include it on banners announcing a completed action. *(Downgraded from MUST: the baseline itself ships a completed-action banner with no × — see the dismiss rule above.)*
 - MUST disable the page's primary/save actions while a critical validation banner is showing, and MUST state the count and the fix ("…1 change needs to be made:").
 - SHOULD give success banners a next-step affordance — either a secondary button ("Get shareable link", "Preview product page") or inline links inside the body sentence.
 - MUST NOT stack more than one page-level banner; merge conditions into one banner with a count.
@@ -2973,56 +2802,55 @@ action and has **no ×** on its green strip.
 
 **Layout, identical in all 14 modals read** [observed]
 1. **Header**: title in sentence case at the left, **×** at the far right. No icon in the header. No subtitle in the header — subtitles live in the body's first line.
-2. **Body**: left-aligned, padded, scrollable when tall (`03-products/product-edit-bulk-edit-prices-modal.webp` scrolls a long variant list under a fixed header/footer).
+2. **Body**: left-aligned, padded, scrollable when tall (scrolls a long variant list under a fixed header/footer).
 3. **Footer**: a divider, then actions **right-aligned**, secondary first, primary last. Cancel is always a plain/low-emphasis button; the primary is filled.
-4. A scrim dims the page behind (the canvas goes `#EBEBEB` → ~`#777777`, i.e. ~50% black). The modal is **vertically centred** in every sample [observed]. Measuring the white-region bounding box of eight scrimmed modals — `products-list-archive-confirm`, `customer-segment-delete-confirm`, `products-list-create-view`, `order-detail-mark-as-paid`, `customer-erase-personal-data`, `settings-payments-cash-on-delivery`, `marketing-automation-template-detail`, `app-uninstall-confirm` — every one centres at y≈239–243 of the 473 px UI area, whose true centre is 236.5. The earlier "near the upper third, not centred" claim was wrong.
+4. A scrim dims the page behind (the canvas goes `#EBEBEB` → ~`#777777`, i.e. ~50% black). The modal is **vertically centred** in every sample [observed]. Measuring the white-region bounding box of eight scrimmed modals, every one centres at y≈239–243 of the 473 px UI area, whose true centre is 236.5. A modal is centred, not set in the upper third.
 
 **Sizes** [observed, as a fraction of the 768px-wide render]
-- Small ≈ 43% width — confirmations and one-field forms: `03-products/products-list-archive-confirm-modal.webp`, `04-customers/customer-segment-delete-confirm-modal.webp`, `03-products/products-list-create-view-modal.webp`, `02-orders/order-detail-mark-as-paid-modal.webp`.
-- Medium ≈ 43–45% but tall, with sections — `04-customers/customer-erase-personal-data-modal.webp`, `10-settings/settings-store-details-edit-profile-modal.webp`, `10-settings/settings-payments-cash-on-delivery-modal.webp`, `11-apps-and-channels/app-uninstall-confirm-modal.webp`.
-- Large ≈ 68% — content-rich informational modals: `06-marketing/marketing-automation-template-detail-modal.webp`.
-- `[Polaris]` The underlying scale is small 380px / default 620px / large 980px; not measurable here.
+- Small ≈ 43% width — confirmations and one-field forms:,.
+- Medium ≈ 43–45% but tall, with sections —,.
+- Large ≈ 68% — content-rich informational modals:.
+- `[recalled]` The underlying scale is small 380px / default 620px / large 980px; not measurable here.
 
 **Destructive confirmation** [observed] — three consistent rules:
 - Title is a **question naming the object and the count**: "Archive 3 products?", "Delete Email subscribers?", "Uninstall Shop?". Sentence case, question mark.
-- Body states the **consequence**, not the mechanics, and says what will *not* happen where that reduces fear: "No customer profiles will be deleted, only the segment will be removed." (`04-customers/customer-segment-delete-confirm-modal.webp`); "Archiving products will hide them from your sales channels and Shopify admin. You'll find them using the status filter in your product list." (`03-products/products-list-archive-confirm-modal.webp`).
+- Body states the **consequence**, not the mechanics, and says what will *not* happen where that reduces fear: "No captain profiles will be deleted, only the group will be removed."; "Suspending a captain removes them from dispatch. Open trips are unaffected, and you can reinstate them from the status filter.".
 - Primary button **repeats the verb + object**: "Archive products", "Delete segment", "Erase personal data", "Uninstall". Never "OK", "Yes", or "Confirm" — not once in any screenshot.
 - **Colour encodes reversibility** [observed]: irreversible → red filled primary ("Delete segment", "Erase personal data", "Uninstall"); reversible → normal dark primary ("Archive products", "Mark as paid", "Request customer data").
-- **High-consequence actions add a required acknowledgement**: `11-apps-and-channels/app-uninstall-confirm-modal.webp` contains a warning banner, a checkbox "I understand the risks of uninstalling this sales channel.", a privacy sentence linking "data privacy", an optional reason `<select>`, and an optional 250-char feedback textarea — all before Cancel / Uninstall.
+- **High-consequence actions add a required acknowledgement**:  contains a warning banner, a checkbox "I understand the risks of uninstalling this sales channel.", a privacy sentence linking "data privacy", an optional reason `<select>`, and an optional 250-char feedback textarea — all before Cancel / Uninstall.
 
-**Informational modal with icon-led rows** [observed] — `04-customers/customer-erase-personal-data-modal.webp`
-and `04-customers/customer-request-data-modal.webp` share one shape: 2–3 rows, each an
+**Informational modal with icon-led rows** [observed] —
+and  share one shape: 2–3 rows, each an
 outline icon at left + bold row title + a paragraph, one of which ends in "Learn more".
 Used when a single action has several distinct consequences that each need a name
 ("Erase identifiable information", "Email confirmation"; "Share customer data", "Request
 timeline"). Footer: Cancel + the verb.
 
-**Picker / list modal** [observed] — `09-discounts/discount-select-type-modal.webp`:
+**Picker / list modal** [observed] —:
 title "Select discount type"; four full-width rows, each bold label + one-line
 description, with a category badge and a **chevron** at the right; the row *is* the
-action. Footer has **Cancel only** — no primary. `06-marketing/marketing-build-campaign-activity-modal.webp`
+action. Footer has **Cancel only** — no primary.
 is the same shape plus a tab bar (All / Ads / Email / Social Post / SMS / Other) and a
 metadata line using ` • ` separators. Selecting a row closes the modal and navigates to a
 full page.
 
 **Form modal** [observed] — fields stacked or in a 2-up grid, helper text directly under
 each field, primary **disabled until valid/dirty**: "Create view" is greyed until a name
-is typed (`products-list-create-view-modal.webp`, with a `0/40` character counter),
-"Save" is greyed on an untouched Edit profile (`10-settings/settings-store-details-edit-profile-modal.webp`),
-"Done" is greyed on an untouched Edit prices (`03-products/product-edit-bulk-edit-prices-modal.webp`).
+is typed (with a `0/40` character counter),
+"Save" is greyed on an untouched Edit profile,
+"Done" is greyed on an untouched Edit prices.
 Constraints stated as helper text, not as errors after the fact: "Displays to customers
-when they're choosing a payment method." (`10-settings/settings-payments-cash-on-delivery-modal.webp`);
+when they're choosing a payment method.";
 "Save the product to edit more variant details." sits just above the footer in
-`03-products/product-edit-variant-detail-modal.webp`.
 
-**Read-only / utility modal** [observed] — `09-discounts/discount-detail-shareable-link-modal.webp`:
+**Read-only / utility modal** [observed] —:
 title "Get a shareable link", one explanatory paragraph, a read-only URL field with an
 inline "Copy link" button, and a footer with a single **"Close"** — no Cancel, no primary,
 because nothing is being committed.
 
 **Modal vs full page vs drawer** [observed]
 - **Modal** when the task is short, self-contained, and needs no context from the page behind it.
-- **Full page** when the task is long, multi-section, legally consequential, or the result needs a URL: app install consent (`11-apps-and-channels/app-install-permissions-consent.webp`, header carries "Cancel" + "Install app"), merge customers (`04-customers/customer-merge-review-merged-record.webp`), creating a discount after the picker modal (`09-discounts/discount-detail-promote-menu.webp`).
+- **Full page** when the task is long, multi-section, legally consequential, or the result needs a URL: app install consent (header carries "Cancel" + "Install app"), merge customers, creating a discount after the picker modal.
 - **Drawer** when the user must keep reading or editing the page while the surface is open — see §5.5.
 
 **Rules**
@@ -3040,19 +2868,19 @@ because nothing is being committed.
 
 ### 5.4 Popovers, menus and tooltips
 
-**Action menu** [observed] — `02-orders/order-detail-more-actions-menu.webp`: triggered by
+**Action menu** [observed] —: triggered by
 a "More actions ⌄" button in the page header; the popover is a white rounded card with a
 soft shadow, right-edge-aligned to the trigger, opening downward. Rows are 16px-ish
 outline icon + label, left-aligned, one line each: Duplicate / Cancel order / Archive /
 Print order page / Print packing slips / View order status page. Labels are **verb-first
 imperatives**, sentence case, no trailing punctuation.
 
-**Row overflow menu** [observed] — `04-customers/customer-segments-row-actions-menu.webp`:
+**Row overflow menu** [observed] —:
 triggered by a "⋯" at the row's right edge; **text-only, no icons**; Use segment /
 Duplicate / Export / Rename, then a gap and **"Delete" in red** as the last item. The
 destructive item is always last and always separated.
 
-**Bulk action menu** [observed] — `03-products/products-list-bulk-more-actions-menu.webp`:
+**Bulk action menu** [observed] —:
 opened from the "⋯" on the floating bulk-selection bar; items are **grouped by divider**
 — (Archive products, Delete products) / (Include in sales channels, Exclude from sales
 channels) / (Include in markets, Exclude from markets) / (Add tags, Remove tags) / (Add
@@ -3065,32 +2893,29 @@ hairline** border, soft shadow, ~8 px radius (C13 — the "dark-outlined pill" p
 wrong; §3.3 and §1.4 are right). It sits at the bottom-centre **of the list card** — bar centre
 x≈445 against card centre x≈448, *not* viewport centre 384 — and holds the 2–3 most common bulk
 actions inline ("Bulk edit", "Set as active", "Set as draft") plus "⋯" for the rest.
-`03-products/products-list-bulk-selection-action-bar.webp`,
-`03-products/products-list-bulk-more-actions-menu.webp`,
-`03-products/products-list-archive-confirm-modal.webp`.
 
-**Sort popover** [observed] — `03-products/products-list-sort-popover.webp`: small muted
+**Sort popover** [observed] —: small muted
 section heading "Sort by", a radio group of fields (Product title / Created / Updated /
 Inventory / Product type / Vendor), a divider, then a direction pair "↑ A-Z" / "↓ Z-A"
 with the active one highlighted. **The popover stays open** while the user changes both
 axes — no Apply button, no Cancel.
 
-**Colour picker popover** [observed] — `05-online-store/theme-editor-color-scheme-picker.webp`:
+**Colour picker popover** [observed] —:
 saturation/value square + vertical hue strip, a hex field with a live swatch, then
 "Recently selected" and "Currently used" swatch rows. Also stays open; changes apply live
 to the preview.
 
-**Shortcut menu** [observed] — `13-navigation-shortcuts/quick-create-menu-with-keyboard-shortcuts.webp`:
+**Shortcut menu** [observed] —:
 icon + label + **keyboard shortcut chips** (`#` then a letter) + chevron per row. Shortcuts
 are shown as separate small keycap chips, right-aligned before the chevron.
 
-**Tooltip** [observed] — `03-products/products-list-draft-tab-create-view-tooltip.webp`:
+**Tooltip** [observed] —:
 small light rounded rect with dark text, "Create view", positioned **above** the icon-only
-trigger. Two words, sentence case, no period. `03-products/product-detail-setup-guide-mark-as-done.webp`
+trigger. Two words, sentence case, no period.
 shows "Mark as done" on the task's circle toggle in the guide drawer — the tooltip is what
 tells you the circle is clickable.
 
-**Notification popover** [observed] — `12-notifications/alerts-popover-with-channel-issue.webp`:
+**Notification popover** [observed] —:
 anchored under the bell (which carries an unread dot), a wide card with header "Alerts" +
 two icon controls (filter, settings) at the right. Each alert is: muted source + relative
 time ("Apps • 2 minutes ago"), bold one-line title ("There's an issue with Shop"), then a
@@ -3112,15 +2937,15 @@ promote products. Go to the channel for more details."). A centred muted footer 
 ### 5.5 Side panels / drawers
 
 **Anatomy** [observed across 4 drawers]
-- Right-anchored, full content height, white surface, a single vertical divider from the page. Header: title at left, **×** at right. Optional one-line subtitle under the title ("Create new segments using customizable templates." — `04-customers/customer-segment-templates-panel.webp`).
-- **No scrim in three of four samples** — the page behind stays **fully legible** [observed]. That it also stays **fully interactive** is `[inferred]`: `01-home/home-guide-side-panel-in-progress.webp` shows the same checklist live in the page body *and* the drawer simultaneously, which is suggestive but is not proof that the page accepts input. Legibility alone is the drawer's reason to exist.
+- Right-anchored, full content height, white surface, a single vertical divider from the page. Header: title at left, **×** at right. Optional one-line subtitle under the title ("Create new segments using customizable templates.").
+- **No scrim in three of four samples** — the page behind stays **fully legible** [observed]. That it also stays **fully interactive** is `[inferred]`:  shows the same checklist live in the page body *and* the drawer simultaneously, which is suggestive but is not proof that the page accepts input. Legibility alone is the drawer's reason to exist.
 - Widths vary by job: **~406 px** (~26% of viewport) for the Add-menu-item form sheet and a similar figure for the guide panel; **~648 px** (~42%) for the segment templates panel, which needs two internal columns. These are the C12-ruled figures — §4.7's "~330 px" for both was wrong.
-- A drawer that **commits** something pins its actions to the bottom of the drawer, right-aligned: "Cancel" + "Add" (disabled) in `05-online-store/navigation-add-menu-with-add-item-panel.webp`. A drawer that only **offers** things has a single "Close" (`customer-segment-templates-panel.webp`) or no footer at all (`home-guide-side-panel-in-progress.webp`).
-- Content is ordinary page content, not a compressed form: `04-customers/customer-segment-templates-panel.webp` runs a category list (with chevrons) beside template cards that each carry an icon, title, description, a syntax-highlighted query preview, and a "Use this template" button. `05-online-store/themes-connect-github-repository-panel.webp` runs Account / Repository selects, a "Filter branches" field, then result rows each with their own "Connect" button, and a persistent account footer.
+- A drawer that **commits** something pins its actions to the bottom of the drawer, right-aligned: "Cancel" + "Add" (disabled) in. A drawer that only **offers** things has a single "Close"  or no footer at all.
+- Content is ordinary page content, not a compressed form:  runs a category list (with chevrons) beside template cards that each carry an icon, title, description, a syntax-highlighted query preview, and a "Use this template" button.  runs Account / Repository selects, a "Filter branches" field, then result rows each with their own "Connect" button, and a persistent account footer.
 
 **When a drawer beats a modal** [observed]
 - The user must **compare** the panel against the page (segment templates against the query editor being built).
-- The user must **keep working** on the page while the panel is open (setup guide against the product being edited — `03-products/product-detail-setup-guide-sharing-details.webp`, `03-products/product-detail-setup-guide-mark-as-done.webp`).
+- The user must **keep working** on the page while the panel is open (setup guide against the product being edited).
 - The panel is a **browse-and-pick catalogue** with more items than a menu can hold.
 - The panel's flow may take several attempts (branch filtering, template hunting) and should not feel like an interruption.
 
@@ -3135,14 +2960,14 @@ promote products. Go to the channel for more details."). A centred muted footer 
 
 ### 5.6 Onboarding and guidance surfaces
 
-**The setup-guide card** [observed] — `01-home/home-get-ready-to-sell-setup-guide-accordion.webp`
+**The setup-guide card** [observed] —
 - Sits inside a page-level section headed by an h1 + subtitle ("Get ready to sell" / "Based on what you've told us, here's a guide to get started. As your business grows, you'll get fresh tips and insights here.").
-- Card header: title "Setup guide", subtitle "Use this personalized guide to get your store up and running.", a **collapse chevron** and a **"⋯" overflow** at the right (`01-home/home-send-feedback-and-magic-cards.webp`).
-- Progress line: **`1 / 11 completed`** in muted text, followed by a thin two-tone progress bar. The same pattern at other scales: `8 / 11 completed` (`01-home/home-guide-side-panel-in-progress.webp`), `1 / 6 completed`, `0 / 6 completed`, and `1/5 tasks complete` in Finances (`08-finances/finances-get-started-tasks-checklist.webp`).
+- Card header: title "Setup guide", subtitle "Use this personalized guide to get your store up and running.", a **collapse chevron** and a **"⋯" overflow** at the right.
+- Progress line: **`1 / 11 completed`** in muted text, followed by a thin two-tone progress bar. The same pattern at other scales: `8 / 11 completed`, `1 / 6 completed`, `0 / 6 completed`, and `1/5 tasks complete` in Finances.
 - Body: **group accordions** — "Add products", "Set up your online store", "Store settings", "Launch your online store" — each a full-width row with a chevron. Only one group is open at a time [observed].
-- Inside a group: task rows with a circular state icon at left (dashed/animated ring = not started, filled dark ✓ = done), bold task title, and — **only for the expanded task** — a description paragraph ending in a "Learn more" link, one primary button, an optional secondary button, and a small illustration at the right. `01-home/home-get-ready-to-sell-setup-guide-accordion.webp` shows "Add your first product" expanded with "Write a description, add photos, and set pricing for the products you plan to sell. Learn more" + [Add product] [Import products]; `product-detail-setup-guide-sharing-details.webp` shows "Add sharing details" with [Add sharing details] [Learn more].
-- A completed guide collapses to a **"✓ Done"** line and reveals a **"Dismiss guide"** secondary button at the card's bottom-right. `01-home/home-send-feedback-and-magic-cards.webp`, `01-home/home-setup-guide-side-panel-completed.webp` [observed]
-- Between the guide and the educational cards sits a centred muted **"⊘ All caught up"** divider. `01-home/home-get-ready-to-sell-setup-guide-accordion.webp` [observed]
+- Inside a group: task rows with a circular state icon at left (dashed/animated ring = not started, filled dark ✓ = done), bold task title, and — **only for the expanded task** — a description paragraph ending in a "Learn more" link, one primary button, an optional secondary button, and a small illustration at the right.  shows "Add your first product" expanded with "Write a description, add photos, and set pricing for the products you plan to sell. Learn more" + [Add product] [Import products];  shows "Add sharing details" with [Add sharing details] [Learn more].
+- A completed guide collapses to a **"✓ Done"** line and reveals a **"Dismiss guide"** secondary button at the card's bottom-right.,  [observed]
+- Between the guide and the educational cards sits a centred muted **"⊘ All caught up"** divider.  [observed]
 
 **The guide drawer** [observed] — the same checklist mirrored into a right drawer while
 the user does the work: header "Get your first 10 sales" + ×, "1 / 6 completed" +
@@ -3152,26 +2977,25 @@ naming it ("Setup guide"). A tooltip reading **"Mark as done"** sits on a task's
 [observed for the tooltip's existence and position] — so tasks are manually completable, not
 only auto-detected. That **hover** is the trigger is `[inferred]`; a static frame shows the
 tooltip, not the gesture.
-`01-home/home-guide-side-panel-in-progress.webp`, `01-home/home-setup-guide-side-panel-completed.webp`,
-`03-products/product-detail-setup-guide-mark-as-done.webp`
 
-**Task-list variant** [observed] — `08-finances/finances-get-started-tasks-checklist.webp`
-uses a hero card ("Get started with finances on Shopify" / "Start getting the most from
+
+**Task-list variant** [observed] —
+uses a hero card ("Get started with finances" / "Start getting the most from
 your store's finances by completing these tasks." + a line-chart illustration), "1/5
 tasks complete", then each task as its own tinted sub-card with a coloured round icon,
 bold title, one-sentence rationale, and a **→ arrow** at the right instead of buttons
 (the whole row navigates). A **"Show completed tasks ⌄"** control hides finished work.
 
-**Numbered variant** [observed] — `11-apps-and-channels/point-of-sale-quick-start-guide.webp`
+**Numbered variant** [observed] —
 uses numbered section headings ("1. Set up point of sale", "2. Store settings", "3. Get
 ready to sell in person") with accordion tasks under each, plus a right-hand educational
 carousel card (image, title, body, dot indicators, ‹ › arrows).
 
 **Educational / dismissible cards** [observed]
-- Standard shape: bold title, 1–2 sentence body, exactly one button, illustration at the right, and a dismiss affordance — either a "⋯" menu in the card corner (`01-home/home-send-feedback-and-magic-cards.webp`: "Write product descriptions in seconds" / "Automatically generate unique and compelling descriptions with Shopify Magic. Add a new product description or edit an existing one to get started." / [Try Shopify Magic]) or a bare × (`06-marketing/email-app-overview-with-sent-toast.webp`: "Create brand consistency across your emails" / [Customize template branding] with an × top-right).
-- Titles are **outcome statements**, not feature names: "Write product descriptions in seconds", "Get inspired to launch your business", "Check out faster with easy-to-use POS", "Discover more of Shopify".
+- Standard shape: bold title, 1–2 sentence body, exactly one button, illustration at the right, and a dismiss affordance — either a "⋯" menu in the card corner or a bare × top-right.
+- Titles are **outcome statements**, not feature names: "Write product descriptions in seconds", "Get inspired to launch your business", "Check out faster".
 
-**Feedback card** [observed] — `01-home/home-send-feedback-and-magic-cards.webp`: "Send
+**Feedback card** [observed] —: "Send
 feedback", radio pair "This is useful" / "This isn't useful", an "Additional comments"
 textarea, then [Send feedback] (disabled until a radio is chosen) + a plain "Cancel".
 
@@ -3193,24 +3017,24 @@ customers"), card titles ("Payment capture method", "Minimum purchase requiremen
 modal titles ("Set up Cash on Delivery (COD)", "Request customer data"), buttons ("Add
 product", "Create discount", "Get shareable link"), menu items, tabs, empty-state
 headings, toasts, tooltips. The only capitalised-mid-sentence words are proper nouns and
-product names (Shopify Payments, Shopify Magic, PayPal, POS Pro, Cash on Delivery (COD)).
+product and integration names (PayPal, Cash on Delivery (COD)).
 No Title Case appears anywhere in the 68 screens read.
 
 **Buttons are verbs (or verb + object)** [observed] — Add product, Create discount, Create
 segment, Import products, Export, Archive products, Delete segment, Erase personal data,
 Uninstall, Mark as paid, Request customer data, Activate Cash on Delivery (COD), Complete
 setup, Get shareable link, Copy link, Send invoice, Collect payment, Send feedback, Try
-Shopify Magic, Turn on automation, Dismiss guide, Use this template, Preview product page.
+Turn on automation, Dismiss guide, Use this template, Preview product page.
 The only non-verb button labels observed are the dialogue-closing ones: Cancel, Close,
 Done, Save, Discard.
 
 **No exclamation marks in system copy** [observed] — none of the 12 toasts, none of the
 banners, none of the modal bodies, and none of the empty states contains one. **Every
 exclamation mark in the set is inside *user-authored* content**: the order note "First
-customer and order!" (`02-orders/order-detail-items-fulfilled-toast.webp`), a timeline
+customer and order!", a timeline
 comment ("This order is the first order from our brand new store!" —
-`02-orders/order-detail-timeline-comment-composer.webp`), and the blog post titled "New
-arrivals!" (`05-online-store/blog-posts-list.webp`). There are at least three, not one — the
+), and the blog post titled "New
+arrivals!". There are at least three, not one — the
 rule survives, but the "single exclamation mark found in any screenshot" phrasing did not.
 The system never exclaims; the merchant may.
 
@@ -3219,35 +3043,32 @@ absence of data:
 
 | Screen | Heading | Body | Actions |
 |---|---|---|---|
-| `04-customers/customers-empty-state.webp` | "Everything customers-related in one place" | "Manage customer details, see customer order history, and group customers into segments." | [Import customers] [Add customer] |
-| `09-discounts/discounts-empty-state.webp` | "Manage discounts and promotions" | "Create discount codes and automatic discounts that apply at checkout. You can also use discounts with compare at prices." | [Create discount] |
+| | "Everything customers-related in one place" | "Manage customer details, see customer order history, and group customers into segments." | [Import customers] [Add customer] |
+| | "Manage discounts and promotions" | "Create discount codes and automatic discounts that apply at checkout. You can also use discounts with compare at prices." | [Create discount] |
 
 Both sit inside a page-width card with a centred illustration above the heading, and both
 are followed — *outside* the card — by a centred **"Learn more about `<noun>`"** line.
 Contrast with a *zero-data* state, which is not an empty state: metric cards keep their
 chrome and read "There was no data found for this date range."
-(`07-analytics/analytics-dashboard-today-no-data.webp`) with no illustration and no CTA.
+ with no illustration and no CTA.
 A scoped search with no query shows only "Search for orders"
-(`14-global-search/search-modal-scoped-to-orders-empty.webp`).
 
 **"Learn more about `<noun>`" convention** [observed] — the standing help link is a
 centred, muted line below the page's last card, with **only the noun hyperlinked**:
 "Learn more about **customers**", "Learn more about **discounts**", "Learn more about
-**segments**" (`04-customers/customer-segments-row-actions-menu.webp`), "Learn more about
-**payments**" (`10-settings/settings-payments-manual-methods-cod-activated.webp`), "Learn
-more about **merge customers**" (`04-customers/customer-merge-review-merged-record.webp`).
+**segments**", "Learn more about
+**payments**", "Learn
+more about **merge customers**".
 Inside banners, cards and modal rows the same link degrades to a bare **"Learn more"**
 appended to the end of the sentence.
 
 **Errors** [observed] — imperative, tells the user what to do, never blames, no "please",
-no period: "Enter a valid email address" (`00-auth/login-email-validation-error.webp`).
+no period: "Enter a valid email address".
 Page-level: state the count and the required change — "To save this draft order, 1 change
 needs to be made:" / "Activate a direct credit card gateway for this store."
-(`02-orders/draft-order-validation-error-banner.webp`).
 The one "Please" found is in an account-level warning, not a validation error: "Please
-verify your email address by following the link sent to jsmith.mobbin@gmail.com."
-(`15-account/account-general-verification-email-sent.webp`) — treat that as the exception,
-not the pattern.
+verify your email address by following the link sent to the address on file." Treat that as
+the exception, not the pattern — Eyvar's own copy rule (§5.7) bans it outright.
 
 **Second person, active voice** [observed] — "You'll find them using the status filter in
 your product list.", "You can share this discount link with your customers via email or
@@ -3263,20 +3084,20 @@ social media.", "Displays to customers when they're choosing a payment method.",
 
 | Do (real string, screen) | Don't | Why |
 |---|---|---|
-| "Settings saved" — `10-settings/settings-store-details-saved-toast.webp` | "Your settings have been saved successfully!" | One line naming the object exactly, ≤60 characters (R9 — the old ≤5-word cap is void); no exclamation, no "successfully" |
-| "Archive 3 products?" — `03-products/products-list-archive-confirm-modal.webp` | "Are you sure?" | The title must name the object and the count |
+| "Settings saved" — | "Your settings have been saved successfully!" | One line naming the object exactly, ≤60 characters (R9 — the old ≤5-word cap is void); no exclamation, no "successfully" |
+| "Archive 3 products?" — | "Are you sure?" | The title must name the object and the count |
 | "Archive products" (primary) — same screen | "OK" / "Yes" / "Confirm" | The button restates the action so it reads correctly out of context |
-| "No customer profiles will be deleted, only the segment will be removed." — `04-customers/customer-segment-delete-confirm-modal.webp` | "This action cannot be undone." alone | Say what survives, not just that it's scary |
-| "Enter a valid email address" — `00-auth/login-email-validation-error.webp` | "Invalid email!" / "Please enter a valid email." | Imperative fix, no blame, no "please", no exclamation |
-| "To save this draft order, 1 change needs to be made:" — `02-orders/draft-order-validation-error-banner.webp` | "There were errors on this page." | Count the problems and name the fix |
-| "Everything customers-related in one place" — `04-customers/customers-empty-state.webp` | "No customers found" | Empty states sell the section; they don't report a null |
+| "No customer profiles will be deleted, only the segment will be removed." — | "This action cannot be undone." alone | Say what survives, not just that it's scary |
+| "Enter a valid email address" — | "Invalid email!" / "Please enter a valid email." | Imperative fix, no blame, no "please", no exclamation |
+| "To save this draft order, 1 change needs to be made:" — | "There were errors on this page." | Count the problems and name the fix |
+| "Everything customers-related in one place" — | "No customers found" | Empty states sell the section; they don't report a null |
 | "Learn more about **customers**" — same screen | "Click here for more information" | Only the noun is the link; never "click here" |
-| "Write a description, add photos, and set pricing for the products you plan to sell." — `01-home/home-get-ready-to-sell-setup-guide-accordion.webp` | "Products are the items you sell." | Tell the user what to do, not what a noun means |
-| "Activate Cash on Delivery (COD)" → toast "Cash on Delivery (COD) activated" — `10-settings/settings-payments-cash-on-delivery-modal.webp`, `settings-payments-manual-methods-cod-activated.webp` | Button "Activate" → toast "Payment method enabled" | The confirmation must echo the button's exact object |
-| "This app needs your attention" — `11-apps-and-channels/app-detail-shop-channel-needs-attention.webp` | "Warning: configuration problem detected" | Plain second-person language, no system jargon |
-| "No more alerts" — `12-notifications/alerts-popover-with-channel-issue.webp` | (blank popover) | State the end of a list explicitly |
-| "Displays to customers when they're choosing a payment method." — `10-settings/settings-payments-cash-on-delivery-modal.webp` | (tooltip on an ⓘ icon) | Constraints and consequences go under the field |
-| "Use this personalized guide to get your store up and running." — `01-home/home-get-ready-to-sell-setup-guide-accordion.webp` | "Welcome! Let's get you set up!! 🎉" | No exclamations, no emoji in system copy |
+| "Write a description, add photos, and set pricing for the products you plan to sell." — | "Products are the items you sell." | Tell the user what to do, not what a noun means |
+| "Activate Cash on Delivery (COD)" → toast "Cash on Delivery (COD) activated" — | Button "Activate" → toast "Payment method enabled" | The confirmation must echo the button's exact object |
+| "This app needs your attention" — | "Warning: configuration problem detected" | Plain second-person language, no system jargon |
+| "No more alerts" — | (blank popover) | State the end of a list explicitly |
+| "Displays to customers when they're choosing a payment method." — | (tooltip on an ⓘ icon) | Constraints and consequences go under the field |
+| "Use this personalized guide to get your store up and running." — | "Welcome! Let's get you set up!! 🎉" | No exclamations, no emoji in system copy |
 
 **Rules**
 - MUST write every label, title, button, and message in sentence case; only proper nouns and product names are capitalised mid-string.
@@ -3302,18 +3123,16 @@ Eyvar Admin today is a single-file app (`eyvar_ops_panel_v40_fixed.html`, 21,857
 block at L11–L21. This section is the bridge: what Eyvar already has, where it diverges
 from §1–§5, and which divergences are **sanctioned deviations** versus **defects**.
 
-Read the Precedence ladder in the header before this section. §1–§5 describe Shopify;
-this section is what binds.
+Read the Precedence ladder in the header before this section. §1–§5 describe the inherited
+baseline; this section is what binds.
 
 ### 6.1 Current Eyvar token inventory (`eyvar_ops_panel_v40_fixed.html` L11–L21)
 
-> **D7 note — this section is HISTORICAL.** It records what the legacy single-file app had,
-> which is what the rebuild had to translate. **It is not the token set.** Every value below
-> has been replaced. The live set — every `--ev-*` name with its measurement or its
-> derivation, every contrast ratio recomputed — is
-> **`docs/05-restructure/design/03-navattic-language.md` §1**, and it is realised in
-> `src/styles/globals.css` and nowhere else. Read this table to understand where a name came
-> from, never to find out what a value is.
+> **This table is PROVENANCE.** It records what the original prototype declares, which is
+> where each `--ev-*` name comes from. **It is not the token set, and no value below is
+> live.** The live set — every name with its measurement or its derivation and every contrast
+> ratio — is `src/styles/globals.css` and nowhere else, summarised in `docs/ref/tokens.md`.
+> Read this table to learn where a name came from, never to find out what a value is.
 
 All 24 colour variables, verified line by line:
 
@@ -3339,7 +3158,7 @@ until the set is extended; see D15–D17.
 
 Structural facts, verified:
 
-| Property | Eyvar today | Line | Shopify equivalent |
+| Property | Eyvar today | Line | Baseline equivalent |
 |---|---|---|---|
 | Base font size | `13px` | L22 | ~13–14px body |
 | Page title | `17px / 500` | L73 | ~20px / 600 |
@@ -3362,14 +3181,14 @@ sanctioned — it is a defect.
 
 | # | Deviation | Suspends | Why |
 |---|---|---|---|
-| ~~D-1~~ | ~~**Brand blue is the primary action colour**, not near-black~~ | — | **VOID — `DECISIONS.md` D7.** Navattic's primary button measures `#0C1116`, a cool near-black, so §1.1.4 and §4.6 are **met**, not deviated from, and there is nothing left to suspend. `--ev-blue` `#2b6ef0` keeps three roles — focus ring, chart series, selection — and stays off links, because at 4.259:1 on `--ev-bg2` it is not a compliant text colour. See R3 (rewritten) and `design/03-navattic-language.md` §1.3. |
-| ~~D-2~~ | ~~**Higher density** — 13px base text, ~30px rows~~ | — | **RETIRED — `DECISIONS.md` D7, measured not asserted.** Re-measured against Navattic: body text **13px in both** (identical), page title 22–24 vs Eyvar's 17 (**Eyvar was tighter and rises**), nav row 32 vs 28 (**rises**), compact control 28–30 vs 28 (identical), table header row 32 vs 32 (identical), cell padding-inline 12 vs 12 (identical), spacing on a 4px grid in both. Eyvar's rows move **up** — 32 → 40 text, 44 → 56 media — against a reference measuring 41 and 62. **Eyvar is not denser than Navattic; it matches it, and in five places it was tighter and is being loosened.** Its type-ramp (§1.2) and spacing-scale (§1.3) suspensions are void and may not be cited again. Full table: `design/03-navattic-language.md` §5. |
-| D-2′ | **The page inline gutter is 32px**, against a reference measuring 68 | Nothing in §1–§5 — D7 replaced their visual content. This is a departure from the **reference**, recorded so it is not mistaken for drift. | At D2's 1280px floor the content region is **976px** (D5, measured: `<main>` x = 304, width = 976). Navattic spends 136px of its own 1173px region on gutters — 11.6% — leaving 1037 for a **six**-column table. Eyvar's index tables run six to nine columns and `01-people.md` records all four People views fitting at 1280 only with `min-w`/`max-w` pinning on the identity column. 68px would leave 840, **78px less than today's effective 918**, and would clip. 32px leaves 912 — 6px less than today, inside the noise of that pinning, and **frontend must re-verify `scrollWidth === clientWidth` at 1280 rather than assume it**. |
-| D-11 | **One white ground. A card is separated by a 1px border and an 8px radius, not by a fill step** | §1.1's canvas/surface tonal step; the derived rule that the canvas is grey | Measured in all 15 Navattic frames: the content region is `#FFFFFF` edge to edge (`82923d3f` y=440, x=144–767, n=624, one colour), and cards and stat tiles are white-on-white with 1px borders (`02b895df`, four tiles). §6.3 **D1** stays a defect for the case it was actually written about — white on white **with no border**, which is what the legacy app shipped and which genuinely collapses the distinction. Grey survives in exactly two roles: the two nav columns (`--ev-bg-nav` `#f8fafb`) and the one subdued fill (`--ev-bg2` `#f5f7f9`). |
+| ~~D-1~~ | ~~**Brand blue is the primary action colour**, not near-black~~ | — | **VOID — `DECISIONS.md` D7.** The reference primary measures `#0C1116`, a cool near-black, so §1.1.4 and §4.6 are **met**, not deviated from, and there is nothing left to suspend. `--ev-blue` `#2b6ef0` stays off links, because at 4.259:1 on `--ev-bg2` it is not a compliant text colour. See R3 (rewritten) and `src/styles/globals.css`. |
+| ~~D-2~~ | ~~**Higher density** — 13px base text, ~30px rows~~ | — | **RETIRED — `DECISIONS.md` D7, measured not asserted.** Re-measured: body text **13px** either way, page title 22–24 against 17 (**Eyvar was tighter and rises**), nav row 32 against 28 (**rises**), compact control 28–30 against 28, table header row 32 either way, cell padding-inline 12 either way, spacing on a 4px grid throughout. Eyvar's rows move **up** — 32 → 40 text, 44 → 56 media. **Eyvar is not denser than the reference; it matches it, and in five places it was tighter and is being loosened.** Its type-ramp (§1.2) and spacing-scale (§1.3) suspensions are void and may not be cited again. |
+| D-2′ | **The page inline gutter is 32px**, against a reference measuring 68 | Nothing in §1–§5 — D7 replaced their visual content. This is a departure from the **reference**, recorded so it is not mistaken for drift. | At D2's 1280px floor the content region is **976px** (D5, measured: `<main>` x = 304, width = 976). The reference spends 136px of its own 1173px region on gutters — 11.6% — leaving 1037 for a **six**-column table. Eyvar's index tables run six to nine columns and `01-people.md` records all four People views fitting at 1280 only with `min-w`/`max-w` pinning on the identity column. 68px would leave 840, **78px less than today's effective 918**, and would clip. 32px leaves 912 — 6px less than today, inside the noise of that pinning, and **frontend must re-verify `scrollWidth === clientWidth` at 1280 rather than assume it**. |
+| D-11 | **One white ground. A card is separated by a 1px border and an 8px radius, not by a fill step** | §1.1's canvas/surface tonal step; the derived rule that the canvas is grey | Measured throughout: the content region is `#FFFFFF` edge to edge, and cards and stat tiles are white-on-white with 1px borders. §6.3 **D1** stays a defect for the case it was actually written about — white on white **with no border**, which genuinely collapses the distinction. Grey survives in exactly two roles: the nav grounds (`--ev-bg-nav`, `--ev-bg-rail`) and the one subdued fill (`--ev-bg2`). |
 | D-3 | **Light top bar**, 50px, with a `Title › Subtitle` breadcrumb | §2.1 (dark frame), §2.6 (no breadcrumbs), §2.3 (logo in the save-bar left slot) | The wordmark lives in the rail, so the top bar is free for wayfinding. The §2.3 logo rule is unimplementable on this frame and does not apply. |
 | D-4 | **Two-level navigation** — an 80px icon+label workspace rail (5 targets, `Admin` pinned to the bottom, labels `Exec · Ops · Finance · Support · Admin`) plus a 224px sub-tab column listing the selected workspace's 5–9 sub-tabs. **Both columns are always rendered and route-derived; there is no collapse.** The top bar spans the content region only and carries no route trail | §2.1 (fixed ~240px nav, always expanded — R11) · §2.1 (only one nav section MAY be expanded at a time, and it MUST be the one containing the current page) · §2.1 (every primary nav item MUST have a leading icon; secondary items MUST NOT) · §2.1 (a nested active row MUST additionally carry an elbow connector from its parent) · §2.1 (a dark top bar spanning the full viewport width) | Five workspaces organised by the job someone is paid to do (`DECISIONS.md` **D1**) replace a flat 30-item rail over 62 destinations. The second column holds the labels the hover expansion existed to reveal, so hover expansion has no remaining purpose. Level 1 is icon **plus** label because four of the five glyphs are abstract and an unlabelled rail is a recall test performed all day. There is no elbow connector because parent and child sit in different columns. The top bar narrows to the content region because **D-3** already moved the wordmark into the rail, which is what made the full-width bar's left slot meaningful; and it carries no `Title › Subtitle` trail because with the column permanently visible the trail restated the workspace name and the sub-tab name that sit immediately to its own inline-start (`DECISIONS.md` **D5**, design spec `02-visual-refinement.md` V4). |
 | D-5 | **Settings is a route, not an overlay** — `Admin` is one of the five workspaces and its level-2 column is its settings nav; four former panes moved to `Financials` | §2.4 (Settings MUST open as an overlay over the current page) · §2.4 (the overlay MUST preserve the page underneath; settings MUST NOT be a route that destroys the previous page) · §2.4 (the settings shell MUST be nav ~289px + gutter ~27px + pane ~707px, centred as one ~1026px block inside the overlay) · §2.4 (settings MUST be dismissible with a single `✕` in its own header) | Under **D1** Admin is a workspace, not a drawer over one, and its 21 legacy pane keys become linkable routes — which §2.4's overlay model cannot do at all. A settings surface that *is* a workspace cannot also be an overlay over a workspace. Its nav is the same level-2 column every other workspace uses, so there is no second nav pattern to maintain. This entry **supersedes §6.3 defect D3**, which described the same behaviour as a defect; it is now a decision. |
-| D-6 | **Table header cells are interactive** — each header cell for a column that declares a control is a single button opening a menu that carries that column's sort, filter and pin. A resting `⌄` chevron renders on every such header, without hover. The sort indicator is an **arrow** (`↑` / `↓`), never a chevron | §3.1 (*"Exactly one header MUST show the active sort indicator; the rest MUST show no resting affordance"* — the second half only) · §3.1's `[observed]` description of the sort indicator as a **chevron** · the derived rule *"headers are not interactive anywhere in the product"* (foundation **AC-45**, second clause) | An operations console works one list all day and needs sort, filter and pin **per column**, in the component, so no screen hand-builds them (business-owner request, `01-table-controls.md`). **AC-45's indicator clause is upheld verbatim and strengthened: exactly one column carries a sort arrow, ever.** Only its inertness clause is suspended, and the guarantee it existed to make reviewable — *a ledger cannot be sorted* — moves to a stronger carrier: `LedgerTable` has no `sort`, `setSortField`, `setSortDirection` or `clearSort` **at all**, so a sort item in a ledger header does not compile (**AC-48**, unchanged). The affordance may not be hover-only: §7.2 and the AC-68 precedent make hidden-until-hovered capability nonexistent for a keyboard operator, and §7 beats §3. The glyph split is forced: §1.5 and §9.1 translation row 9 reserve the trailing caret *"exclusively for controls that open a menu or select"*, so `⌄` cannot also mean sort — and §3.2's direction pair already uses arrows `[observed]` `03-products/products-list-sort-popover.webp`. Two interactive elements in one 32px header cell are refused: §7.7 requires ≥24×24 each and **D-2 may not be cited against §7.7**. |
+| D-6 | **Table header cells are interactive** — each header cell for a column that declares a control is a single button opening a menu that carries that column's sort, filter and pin. A resting `⌄` chevron renders on every such header, without hover. The sort indicator is an **arrow** (`↑` / `↓`), never a chevron | §3.1 (*"Exactly one header MUST show the active sort indicator; the rest MUST show no resting affordance"* — the second half only) · §3.1's `[observed]` description of the sort indicator as a **chevron** · the derived rule *"headers are not interactive anywhere in the product"* (foundation **AC-45**, second clause) | An operations console works one list all day and needs sort, filter and pin **per column**, in the component, so no screen hand-builds them (business-owner request, `01-table-controls.md`). **AC-45's indicator clause is upheld verbatim and strengthened: exactly one column carries a sort arrow, ever.** Only its inertness clause is suspended, and the guarantee it existed to make reviewable — *a ledger cannot be sorted* — moves to a stronger carrier: `LedgerTable` has no `sort`, `setSortField`, `setSortDirection` or `clearSort` **at all**, so a sort item in a ledger header does not compile (**AC-48**, unchanged). The affordance may not be hover-only: §7.2 and the AC-68 precedent make hidden-until-hovered capability nonexistent for a keyboard operator, and §7 beats §3. The glyph split is forced: §1.5 and §9.1 translation row 9 reserve the trailing caret *"exclusively for controls that open a menu or select"*, so `⌄` cannot also mean sort — and §3.2's direction pair already uses arrows `[observed]`. Two interactive elements in one 32px header cell are refused: §7.7 requires ≥24×24 each and **D-2 may not be cited against §7.7**. |
 
 **The two §2.1 nav clauses, restated after D7. Both were rewritten under D6 and one of them
 reverses again — read this before touching either nav column.**
@@ -3377,23 +3196,21 @@ reverses again — read this before touching either nav column.**
 - **The tonal step is MET; the "no border" half is now DEVIATED FROM, on measured evidence.**
   §2.1 reads *"a near-canvas grey one step darker than the canvas … MUST NOT draw a border,
   divider or shadow between nav and content."* Under D7 the content region is **white** and
-  the nav is `--ev-bg-nav` `#f8fafb`, so the nav is still one step darker and the first half
-  holds. But that step is **1.047 : 1** — five units of luminance is not a boundary — and
-  Navattic draws a 1px hairline on **both** seams (rail→column and column→content), present
-  at destination x = 28 and x = 142 in every sidebar frame. **The hairlines come back**, which
+  the nav is `--ev-bg-nav`, so the nav is still one step darker and the first half holds. But
+  that step is **1.047: 1** — five units of luminance is not a boundary — so a 1px hairline
+  is drawn on **both** seams, rail→column and column→content. **The hairlines come back**, which
   reverses `DECISIONS.md` **D6**'s second consequence bullet. D6's other bullets survive with
   new values. **D-4 therefore suspends §2.1's no-border clause**, and this sentence is the
   naming that makes it sanctioned rather than a defect.
 - **`--bg-nav`'s V3 derivation is VOID.** It was pinned as *"the darkest grey in `--bg`'s hue
   family at which the resting nav label still clears 4.5:1"* — 4.523 against 4.482 one shade
-  darker. That constraint assumed a nav materially darker than the canvas. The measured
-  Navattic nav is `#f8fafb`, a hair off white, so nothing binds the value and it is simply
-  **measured** (`cfa43315` n=12 600, `6a08206b` n=15 300). `#eaecf1` is retired.
+  darker. That constraint assumed a nav materially darker than the canvas. The nav is now a
+  hair off white, so nothing binds the value and it is simply **measured**. `#eaecf1` is
+  retired.
 - **The active pill INVERTS and costs nothing.** §2.1's *"a white rounded pill"* is now a
-  **grey pill `#e6e8ec` on a near-white nav** (`cfa43315`, n=150 flat). The 3px `--marker`
-  edge and the 1px border stay **removed**; the pill alone is the treatment, at both levels.
-  Pill-to-ground contrast: Shopify measured **1.192**, Eyvar under D6 **1.182**, Navattic
-  measured **1.172** — parity, upside down. Only the clause's *elbow-connector* half is
+  **grey pill on a near-white nav**. The 3px `--marker` edge and the 1px border stay
+  **removed**; the pill alone is the treatment, at both levels. Pill-to-ground contrast is
+  **~1.17 : 1** — the same relationship as before, inverted. Only the clause's *elbow-connector* half is
   suspended for its original reason, and it is listed above.
 
 **D-9 — one page width.** `SingleColumnPage`'s `full | capped` width prop is deleted; every
@@ -3401,9 +3218,9 @@ single-column page and every detail page runs the full width of the content regi
 16px inline gutter. **Suspends:** the derived rule that an Overview or a settings pane is
 measure-capped. **Why:** two sibling sub-tabs in the same workspace were putting their `<h1>`
 244px apart at 1920 — `capped` centres the whole block and moves the header with it — and
-nothing else about them differed, so an operator read the movement as breakage. Shopify keeps
-alignment fixed by running index pages full-bleed with a uniform page padding (measured:
-content starts at x = 264 on both a dense table and an empty state). Measure is not abandoned,
+nothing else about them differed, so an operator read the movement as breakage. Alignment is
+kept fixed by running index pages full-bleed with a uniform page padding, so content starts at
+the same x on a dense table and on an empty state. Measure is not abandoned,
 it moves down one level, to the metric-tile grid, the 640px form column and the 384px prose
 block. `--page-max` survives with one consumer, the full-bleed plan editor.
 
@@ -3411,11 +3228,11 @@ block. `--page-max` survives with one consumer, the full-bleed plan editor.
 §2.3's observed nav-row figure (R13 makes observed pixel figures non-binding) and §12.1's
 single neutral badge fill. **Why:** at 32 the nav row equalled the data row, breaking the
 §2.3 ↔ §3.1 relationship that a nav row is *shorter* than a data row, which is why the column
-read as a stack of cards rather than a list of links; 28 is one 4px step below and equals the
-measured Shopify figure. And the neutral chip on `--bg2` is 1.073:1 **lighter** than the nav
+read as a stack of cards rather than a list of links; 28 is one 4px step below and matches the
+measured baseline figure. And the neutral chip on `--bg2` is 1.073:1 **lighter** than the nav
 ground — a plate nobody can see — which is precisely why every nav badge had been promoted to
-the warning tone. `--nav-chip` (`#dadee6`) is 1.141:1 **darker**, matching Shopify's measured
-`#DDDDDD` on `#EBEBEB` (1.139:1); its digits are `--ink`, because `--muted` fails AA at 11px
+the warning tone. `--nav-chip` is 1.141:1 **darker**, which is the relationship a plate needs
+to read at all; its digits are `--ink`, because `--muted` fails AA at 11px
 on any plate dark enough to read. Tone on a **workspace tile** is suppressed entirely: a
 tile's number is a sum of heterogeneous queues and a sum of different kinds of thing has no
 single status to report.
@@ -3450,47 +3267,47 @@ Verified against the source. Each is a divergence nobody decided on.
 
 **Structure and surfaces**
 
-| # | Defect | Rule | Evidence |
-|---|---|---|---|
-| D1 | **NARROWED BY D7.** `.page` sets `background:var(--white)` while cards are also white **and neither carries a border** — that is what collapses the distinction, and it is still a defect. Under **§6.2 D-11** white-on-white is the *intended* ground; a card is separated by a 1px `--ev-hairline` border and an 8px radius, measured that way in `02b895df`. So the defect is now precisely "no border", not "same colour". | §1.1, §6.2 **D-11** | `eyvar_ops_panel_v40_fixed.html:70` |
-| D2 | No contextual save bar, and no wired dirty indicator. `.form-footer` exists but is used **once in the entire file** (the plan editor); the other 40 pages and all 21 settings panes have no save chrome. `.settings-dirty-dot` is defined but dead — zero other occurrences. | §2.3 | `:279`, used at `:1127`; `:248` |
-| D3 | **RECLASSIFIED — no longer a defect.** Settings is a route, not an overlay. Under `DECISIONS.md` **D1**, `Admin` is one of five workspaces and its level-2 column is its settings nav, so this is now a deliberate choice: see **sanctioned deviation D-5** in §6.2, which names the §2.4 rules it suspends. The number is retained rather than reused, because D1–D24 are cross-referenced from `docs/ref/defects.md` and elsewhere. | §2.4 → **§6.2 D-5** | `:1416`, `:70–71` |
-| D4 | Global search is a 230px field in the right-hand cluster, not a centred command surface. | §2.1 | `:569` |
+| # | Defect | Rule |
+| --- | --- | --- |
+| D1 | **NARROWED BY D7.** `.page` sets `background:var(--white)` while cards are also white **and neither carries a border** — that is what collapses the distinction, and it is still a defect. Under **§6.2 D-11** white-on-white is the *intended* ground; a card is separated by a 1px `--ev-hairline` border and an 8px radius, measured that way in `02b895df`. So the defect is now precisely "no border", not "same colour". | §1.1, §6.2 **D-11** |
+| D2 | No contextual save bar, and no wired dirty indicator. `.form-footer` exists but is used **once in the entire file** (the plan editor); the other 40 pages and all 21 settings panes have no save chrome. `.settings-dirty-dot` is defined but dead — zero other occurrences. | §2.3 |
+| D3 | **RECLASSIFIED — no longer a defect.** Settings is a route, not an overlay. Under `DECISIONS.md` **D1**, `Admin` is one of five workspaces and its level-2 column is its settings nav, so this is now a deliberate choice: see **sanctioned deviation D-5** in §6.2, which names the §2.4 rules it suspends. The number is retained rather than reused, because D1–D24 are cross-referenced from `docs/ref/defects.md` and elsewhere. | §2.4 → **§6.2 D-5** |
+| D4 | Global search is a 230px field in the right-hand cluster, not a centred command surface. | §2.1 |
 
 **Status and feedback**
 
-| # | Defect | Rule | Evidence |
-|---|---|---|---|
-| D5 | 11 badge tones (`b-green, b-red, b-amber, b-blue, b-teal, b-purple, b-grey, b-eco, b-com, b-gold, b-silver`) with no documented meaning map. Target is five (R7). | §3.4, R7 | `:118–129` |
-| D6 | Three parallel status systems with byte-identical colours: `.b-green` = `.h-green` = `.days-ok`, each repeating `10px/600`, `2px 7px`, `999px`. | §3.4 | `:118–129`, `:131–138`, `:140–142` |
-| D7 | **The toast system does not conform.** A complete system exists — `toast()` at `:5269`, 352 call sites, 4 tones, auto-dismiss with hover-pause, RTL-aware stack. Six conformance failures: it is a light tinted card not a dark pill; anchored bottom-right not bottom-centre; carries emoji glyphs (§5.7 forbids); routinely exceeds the length cap (R9); injects a clickable `· view →` link into the body (§5.1 forbids); and all 12 tone hexes are off-token. | §5.1, §5.7, R9 | `:5236–5320`, `:5272–5275`, `:5290` |
-| D8 | Banners exist only as ~6 divergent inline-styled implementations — `statusBanner`, `scenarioBannerHTML()`, `commitBanner`, `approvalBanner`, `postponeBanner`, `outcomeBanner`, `reconcileBannerHTML` — with no shared component, tone map, placement rule, or dismiss rule. | §5.2, R1 | `:7124`, `:8329`, `:4313–4329`, `:5139`, `:4106` |
-| D9 | Empty states are pervasive (~25) and often well written, but every one is an inline `<td colspan>` or `<div>`: no shared component, padding drifts across 14/16/20/30px, none carries the illustration/heading/action a first-run state requires. | §3.6, R8 | `:2240`, `:3438`, `:4029`, `:6495`, +~20 |
-| D10 | A native `alert()` serves as a confirmation: `alert('✅ Subscription confirmed and activated!')` — violates the modal rules, the no-emoji rule and the no-exclamation rule at once. | §5.3, §5.7 | `:5233` |
-| D11 | 49 `b b-red` badges in use (84 `b-red` occurrences) with no justification recorded anywhere. | R5 | file-wide |
+| # | Defect | Rule |
+| --- | --- | --- |
+| D5 | 11 badge tones (`b-green, b-red, b-amber, b-blue, b-teal, b-purple, b-grey, b-eco, b-com, b-gold, b-silver`) with no documented meaning map. Target is five (R7). | §3.4, R7 |
+| D6 | Three parallel status systems with byte-identical colours: `.b-green` = `.h-green` = `.days-ok`, each repeating `10px/600`, `2px 7px`, `999px`. | §3.4 |
+| D7 | **The toast system does not conform.** A complete system exists — `toast` at `:5269`, 352 call sites, 4 tones, auto-dismiss with hover-pause, RTL-aware stack. Six conformance failures: it is a light tinted card not a dark pill; anchored bottom-right not bottom-centre; carries emoji glyphs (§5.7 forbids); routinely exceeds the length cap (R9); injects a clickable `· view →` link into the body (§5.1 forbids); and all 12 tone hexes are off-token. | §5.1, §5.7, R9 |
+| D8 | Banners exist only as ~6 divergent inline-styled implementations — `statusBanner`, `scenarioBannerHTML`, `commitBanner`, `approvalBanner`, `postponeBanner`, `outcomeBanner`, `reconcileBannerHTML` — with no shared component, tone map, placement rule, or dismiss rule. | §5.2, R1 |
+| D9 | Empty states are pervasive (~25) and often well written, but every one is an inline `<td colspan>` or `<div>`: no shared component, padding drifts across 14/16/20/30px, none carries the illustration/heading/action a first-run state requires. | §3.6, R8 |
+| D10 | A native `alert` serves as a confirmation: `alert('✅ Subscription confirmed and activated!')` — violates the modal rules, the no-emoji rule and the no-exclamation rule at once. | §5.3, §5.7 |
+| D11 | 49 `b b-red` badges in use (84 `b-red` occurrences) with no justification recorded anywhere. | R5 |
 
 **Tokens and drift**
 
-| # | Defect | Rule | Evidence |
-|---|---|---|---|
-| D12 | **36 off-token hex colours** in the CSS block alone (44 distinct hexes outside `:root`; only 8 match a token). Includes a second brand blue `#105291`, a third green `#3B6D11`, a fourth `#1E9E5A`, a fifth `#1E7B34`, and Google's blue `#1A73E8`. | §6.4 | `:22–468`; `:80`, `:116`, `:188`, `:328`, `:341` |
-| D13 | **15 distinct font sizes** (9, 9.5, 10, 10.5, 11, 11.5, 12, 12.5, 13, 14, 15, 16, 17, 19, 23px) against a six-role ramp. | §1.2 | `:22–468` |
-| D14 | **13 distinct border radii** (2, 3, 5, 6, 7, 8, 9, 10, 11, 12, 14, 99, 999px); nine are outside the permitted set. | §1.4 | `:22–468` |
-| D15 | Off-grid spacing throughout — `.page{padding:18px;gap:14px}`, `.ch{padding:11px 14px}`, `td{padding:9px 11px}`, `.kpi{padding:13px 15px}`. **An off-grid literal is a defect on its own terms**, independent of any deviation. (This row used to lean on D-2's "smaller, never off-grid" clause; D-2 is retired under D7 and the rule stands without it — Navattic is on the same 4px grid.) | §1.3 | `:70`, `:89`, `:150`, `:104` |
-| D16 | No radius, spacing, shadow, font-size or duration tokens exist, so three of the four categories §6.4 governs cannot be checked. | §6.4 | `:11–21` |
-| D17 | `.5px` hairlines render inconsistently across DPRs — and **262 of the 316 occurrences are inline styles inside JS template literals**, so a CSS-only fix reaches under 18% of them. | §1.4 | 54 in CSS, 316 file-wide |
-| D18 | Uppercase + letter-spacing is banned for labels but used in **8 selectors**, not one: `table.dt th`, `.sb-sec-lbl`, `.kpi-lbl`, `.sec-badge`, `.settings-tab-group-lbl`, `.ptable th`, `.live-sec-hdr`, `.ms-lbl`. | §1.2 | `:149`, `:39`, `:110`, `:227`, `:233`, `:263`, `:363`, `:367` |
+| # | Defect | Rule |
+| --- | --- | --- |
+| D12 | **36 off-token hex colours** in the CSS block alone (44 distinct hexes outside `:root`; only 8 match a token). Includes a second brand blue `#105291`, a third green `#3B6D11`, a fourth `#1E9E5A`, a fifth `#1E7B34`, and Google's blue `#1A73E8`. | §6.4 |
+| D13 | **15 distinct font sizes** (9, 9.5, 10, 10.5, 11, 11.5, 12, 12.5, 13, 14, 15, 16, 17, 19, 23px) against a six-role ramp. | §1.2 |
+| D14 | **13 distinct border radii** (2, 3, 5, 6, 7, 8, 9, 10, 11, 12, 14, 99, 999px); nine are outside the permitted set. | §1.4 |
+| D15 | Off-grid spacing throughout — `.page{padding:18px;gap:14px}`, `.ch{padding:11px 14px}`, `td{padding:9px 11px}`, `.kpi{padding:13px 15px}`. **An off-grid literal is a defect on its own terms**, independent of any deviation. (This row leaned on D-2's "smaller, never off-grid" clause; D-2 is retired under D7 and the rule stands without it — the reference is on the same 4px grid.) | §1.3 |
+| D16 | No radius, spacing, shadow, font-size or duration tokens exist, so three of the four categories §6.4 governs cannot be checked. | §6.4 |
+| D17 | `.5px` hairlines render inconsistently across DPRs — and **262 of the 316 occurrences are inline styles inside JS template literals**, so a CSS-only fix reaches under 18% of them. | §1.4 |
+| D18 | Uppercase + letter-spacing is banned for labels but used in **8 selectors**, not one: `table.dt th`, `.sb-sec-lbl`, `.kpi-lbl`, `.sec-badge`, `.settings-tab-group-lbl`, `.ptable th`, `.live-sec-hdr`, `.ms-lbl`. | §1.2 |
 
 **Accessibility** — see §7 for the governing rules.
 
-| # | Defect | Rule | Evidence |
-|---|---|---|---|
-| D19 | Row actions are `opacity:0` until `:hover`, with no `:focus-within` fallback — unreachable by keyboard and invisible on touch. | §7.3 | `:153–154` |
-| D20 | Focus is `outline:none` with only a border-colour change, in **11 places** — 5 in the stylesheet (`.field input:focus`, `.feat-row input:focus`, `.ptable td input:focus`, `select:focus`, `.csel-search`) and **6 more inline on search inputs inside JS template literals**, which no stylesheet fix can reach. | §7.2 | `:253`, `:259`, `:268`, `:290`, `:310`; see §7.2 for the inline six |
-| D21 | Text contrast fails in two places, one of them everywhere: `.hint{color:#aaa}` computes to **2.32:1** (2 uses), and **`--ghost` `#9B9B97` computes to 2.79:1 across 431 uses** — it is the default colour for every secondary label in the product. `--muted` (5.35:1) passes and already exists, so the fix needs no new token. `.b-grey` (2.62:1, 100 uses) and `--amber` as a graphic (1.88–2.16:1) also fail. | §7.1 | `:254`, `:18`; §7.1 for the full table |
-| D22 | `.field label` is `11px var(--muted)` — labels read as hints. (Contrast is fine at ≈5.07:1; the defect is size and hierarchy, not colour.) | §4.2 | `:250` |
-| D23 | `.modal-close` and `.feat-rm` turn red on hover, signalling destruction for a neutral dismiss. | §5.3 | `:198`, `:261` |
-| D24 | Three ambient animations loop indefinitely — `ping-pulse`, `live-dot`, `reqPulse` — plus a runtime-injected `spin`, none guarded by `prefers-reduced-motion`. Under R18 all three are illegal as written: a loop may only signal "this feed is live", and may never encode severity. (`kpiFlash` runs once and is not in scope.) | §7.6, §8.1.6, R18 | `:329–331`, `:341–342`, `:145` |
+| # | Defect | Rule |
+| --- | --- | --- |
+| D19 | Row actions are `opacity:0` until `:hover`, with no `:focus-within` fallback — unreachable by keyboard and invisible on touch. | §7.3 |
+| D20 | Focus is `outline:none` with only a border-colour change, in **11 places** — 5 in the stylesheet (`.field input:focus`, `.feat-row input:focus`, `.ptable td input:focus`, `select:focus`, `.csel-search`) and **6 more inline on search inputs inside JS template literals**, which no stylesheet fix can reach. | §7.2 |
+| D21 | Text contrast fails in two places, one of them everywhere: `.hint{color:#aaa}` computes to **2.32:1** (2 uses), and **`--ghost` `#9B9B97` computes to 2.79:1 across 431 uses** — it is the default colour for every secondary label in the product. `--muted` (5.35:1) passes and already exists, so the fix needs no new token. `.b-grey` (2.62:1, 100 uses) and `--amber` as a graphic (1.88–2.16:1) also fail. | §7.1 |
+| D22 | `.field label` is `11px var(--muted)` — labels read as hints. (Contrast is fine at ≈5.07:1; the defect is size and hierarchy, not colour.) | §4.2 |
+| D23 | `.modal-close` and `.feat-rm` turn red on hover, signalling destruction for a neutral dismiss. | §5.3 |
+| D24 | Three ambient animations loop indefinitely — `ping-pulse`, `live-dot`, `reqPulse` — plus a runtime-injected `spin`, none guarded by `prefers-reduced-motion`. Under R18 all three are illegal as written: a loop may only signal "this feed is live", and may never encode severity. (`kpiFlash` runs once and is not in scope.) | §7.6, §8.1.6, R18 |
 
 **Fix order.** D1, D16 and D20 first — they are cheap and everything else compounds on
 them. Then D5/D6 (collapse three status systems into one), then D7/D8 (make the shipped
@@ -3519,7 +3336,7 @@ All 41 pages. A page with no row here may not be designed until it gets one.
 > **`fraud` moved from Work queue to Metric tiles + chart cards.** Under `DECISIONS.md`
 > **D1** it folds into **Management › Risk & Signals**, which `PROPOSED-STRUCTURE.md` §4.2
 > describes as *"compute a flag, then send the operator somewhere else"* — every action
-> button is a `go()` to another page (`:14320`, `:14336`, `:14351`, `:14363`) — and
+> button is a `go` to another page (`:14320`, `:14336`, `:14351`, `:14363`) — and
 > `PAGE-TRACEABILITY-MATRIX.md` row 4 states it *"has no work queue."* It has no claim, no
 > SLA clock and no disposition, so §8.4's apparatus is inapplicable to it. Consequence for
 > the component inventory: the work-queue pattern now governs **7** legacy pages and the
@@ -3613,23 +3430,22 @@ was wrong (L70, not L75). The defect list has grown from 14 to 24: the omissions
 largest divergences in the file — off-token colours, font sizes, radii, and settings being
 a route.
 
-**Known limits of the NAVATTIC evidence (D7).** 15 frames at the same 768 × 523 downscale,
-S = 1.875 — checked against the 32px avatar and the 30px control rather than assumed. Flat
-fills survive exactly (a 200 × 140 sample of the icon rail returns one colour for 100.0% of
-its pixels), so every ground, tint and pill fill in the token set is a **measurement**. Three
-things are below the floor and are reported as bands rather than invented: **1px stroke
-colours** (a stroke covers 53.3% of one destination pixel, so borders are recovered by
-integrating the luminance deficit, ±5 in Y), **small-text colour** (antialiasing makes the
-darkest pixel of a 13px glyph lighter than the truth), and **radii below 8px**. Absent from
-the set entirely, and therefore derived by rule and marked as such: a modal, a toast, a
-tooltip, a scrim, hover, focus, disabled, error, any form, the success/info/critical tones,
-a nav count, and dark mode. Full method and every ±: `design/03-navattic-language.md` §2.
+**Known limits of the visual evidence (D7).** Flat fills survive a downscale exactly, so
+every ground, tint and pill fill in the token set is a **measurement**. Three things sit
+below the floor and are reported as bands rather than invented: **1px stroke colours** (a
+stroke covers about half of one destination pixel, so a border is recovered by integrating
+the luminance deficit, ±5 in Y), **small-text colour** (antialiasing makes the darkest pixel
+of a 13px glyph lighter than the truth), and **radii below 8px**. Absent from the evidence
+entirely, and therefore derived by rule and marked as such: a modal, a toast, a tooltip, a
+scrim, hover, focus, disabled, error, any form, the success/info/critical tones, a nav count,
+and dark mode. Every one of those is settled in `src/styles/globals.css` with its arithmetic
+beside it.
 
-**Known limits of the SHOPIFY evidence.** The screenshots are 768px renders of a ~1440px viewport,
-so every pixel figure in §1–§5 is a scaled approximation, not a measurement. No hover,
-focus, loading, or dark-mode state appears in the sample. No responsive breakpoint can be
-derived from it. Exact hex values were eyeballed from compressed WebP and should be treated
-as close, not exact. §1.6 (motion) is inferred end to end and is demoted to SHOULD by R12.
+**Known limits of the §1–§5 evidence.** It is a downscaled render of a ~1440px viewport, so
+every pixel figure in §1–§5 is a scaled approximation, not a measurement. No hover, focus,
+loading or dark-mode state appears in it, and no responsive breakpoint can be derived from
+it. Hex values there were eyeballed from a compressed image and are close, not exact. §1.6
+(motion) is inferred end to end and is demoted to SHOULD by R12.
 
 ---
 
@@ -3646,20 +3462,19 @@ as close, not exact. §1.6 (motion) is inferred end to end and is demoted to SHO
 > deviation which does not name its rule is not sanctioned. **Nothing in §6.2 suspends
 > anything in §7.**
 >
-> **Claim marking.** §1–§5 use `[observed]` / `[Polaris]`. §7 needs three more, because
+> **Claim marking.** §1–§5 use `[observed]` / `[recalled]`. §7 needs three more, because
 > its subject is not visible in a screenshot:
 >
 > - `[observed]` — visible in a screenshot cited on the same line.
-> - `[Polaris]` — recalled from the Polaris design system, not verifiable here.
+> - `[recalled]` — general design-system knowledge, not verifiable here.
 > - `[source]` — read out of `eyvar_ops_panel_v40_fixed.html` at the cited line. Trust it;
 >   every one was grepped, none was recalled.
 > - `[computed]` — arithmetic on `[source]` values. Contrast ratios use the sRGB relative
 >   luminance formula from WCAG 2.x, rounded to two decimals.
 > - `[WCAG]` — the text of a WCAG 2.2 success criterion.
 >
-> **What the screenshots cannot do.** The 159 captures in
-> `docs/06-design-reference/shopify-admin-web/` can evidence *contrast* and *resting
-> focus styling*, and they are cited for exactly that in §7.1 and §7.2. They cannot
+> **What a still image cannot do.** The visual evidence behind §1–§5 can show *contrast* and
+> *resting focus styling*, and it is cited for exactly that in §7.1 and §7.2. It cannot
 > evidence tab order, ARIA, accessible names, live-region politeness, or screen-reader
 > output — a still image has no DOM. **Nothing in §7.3, §7.4 or §7.5 carries an
 > `[observed]` tag, and no reviewer may cite a screenshot to close a finding in those
@@ -3715,7 +3530,7 @@ others: `table.dt th` (`:149`), `.ptable th` (`:263`), `.kpi-lbl` (`:110`), `.td
 `.dc-km` (`:177`), `.ms-lbl` (`:219`, `:367`), `.settings-tab-group-lbl` (`:233`),
 `.settings-meta` (`:247`), `.live-card-route` (`:354`), `.live-sec-hdr` (`:363`),
 `.ex-cell` (`:269`), `.feat-rm` (`:260`), `.csel-val.placeholder` (`:305`),
-`.csel-opt-hint` (`:321`), `.aud-diff` (`:324`), `.preview-strip .lbl` (`:276`),
+`.csel-opt-hint` (`:321`), `.aud-diff` (`:324`), `.preview-strip.lbl` (`:276`),
 `.ch-tgl` (`:90`), `.neu` (`:113`), `.settings-soon` (`:242`) `[source]`. Every one of
 those is failing text.
 
@@ -3767,9 +3582,9 @@ systems.
 
 **Rule for text on tinted fills.** A tonal badge is not exempt because its fill is pale.
 The text is measured against **the badge's own fill**, never against the card behind it,
-and never against the darkest fill in the family. Shopify's tonal badges are built the
+and never against the darkest fill in the family. The baseline's tonal badges are built the
 same way — pale fill, deep same-hue text `[observed]`
-`03-products/products-list-default.webp`, `02-orders/orders-list-with-metrics-row.webp`.
+,.
 
 #### 7.1.4 Non-text UI, measured
 
@@ -3801,10 +3616,8 @@ Two findings deserve naming.
 on white and sits at 1.88–1.89:1 on `--bg` and `--amber-lt` `[computed]`. Wherever it is a
 *fill*, *dot*, or *stroke* that a user must perceive to read the state, it fails. It is
 fine as the light half of a tonal pair — `--amber-lt` behind `--amber-dk` text is 8.72:1.
-This matches Shopify, which uses **dark** text and icons on amber and reserves
+This matches the baseline, which uses **dark** text and icons on amber and reserves
 white-on-solid for green and red `[observed]`
-`04-customers/customer-detail-erasure-request-banner.webp`,
-`11-apps-and-channels/app-detail-shop-channel-needs-attention.webp`.
 
 **Input boundaries are the only thing identifying an Eyvar field, and they are invisible
 at 1.39:1.** SC 1.4.11 exempts a component boundary when the component's own fill already
@@ -3812,8 +3625,8 @@ differs by 3:1 from its surroundings — but Eyvar inputs are `background:var(--
 (`:252`) inside white cards, so the border does all the work alone. This is the one place
 in §7 that requires extending `:root`, and §6.4's rule permits that ("extend `:root`
 instead"): a `--border-input` token computed at ≥3:1 against `#FFFFFF`. §1.1.3 records the
-same split in Shopify — `border-input` is "deliberately stronger than card borders so
-fields read as targets" `[observed]` `04-customers/customer-new-form-empty.webp`.
+same split — `border-input` is "deliberately stronger than card borders so fields read as
+targets" `[observed]`.
 
 **Rules**
 
@@ -3884,10 +3697,10 @@ invisible on `.btn.p` (`:79`) and marginal on `#trend-tooltip` (`:316`) `[source
 3:1 — which is what SC 1.4.11 requires of a focus indicator `[WCAG]`.
 
 **This overrides §1.1.3, which records `border-focus` as a "dark/near-black 2px ring"
-`[observed]` `03-products/product-edit-pricing-inventory-shipping.webp`.** That is a
-description of Shopify, whose primary is near-black; Eyvar's primary is brand blue by
-R3 and §6.2 D-1, and a near-black ring on Eyvar's blue primary would be the same
-collision in a different colour. **Eyvar's focus ring is `--blue`.** The width — 2 px — is
+`[observed]`.** That is a
+description of a baseline whose primary is near-black. A ring that repeats the primary's own
+colour is the same collision in a different colour, whatever that colour is. **Eyvar's focus
+ring is its own token, distinct from the primary fill.** The width — 2 px — is
 taken from §1.4, which already carves out the focus ring as the single permitted stroke
 wider than 1 px, so §7.2 does not conflict with §1.4.
 
@@ -3916,7 +3729,7 @@ five selectors §6.3 D20 names.
 
 | # | Selector | Line | What replaces the outline |
 |---|---|---|---|
-| A1 | `.field input:focus, .field select:focus` | `:253` | `border-color:var(--blue)` on a `.5px` border |
+| A1 | `.field input:focus,.field select:focus` | `:253` | `border-color:var(--blue)` on a `.5px` border |
 | A2 | `.feat-row input:focus` | `:259` | `border-color:var(--blue)` on a `.5px` border |
 | A3 | `.ptable td input[type=number]:focus` | `:268` | `border-color:var(--blue)` on a `.5px` border |
 | A4 | `select:focus` | `:290` | `border-color:var(--blue)!important` on a `.5px` border |
@@ -3976,7 +3789,7 @@ compliance.
   attached to `:focus-visible`.
 - MUST make the focus target the element that is visually rendered. A zero-size focusable
   input behind a styled sibling (`:185`) MUST be replaced by a natively focusable control,
-  or MUST forward the ring to the rendered element via `:has()` / `:focus-within`.
+  or MUST forward the ring to the rendered element via `:has` / `:focus-within`.
 - MUST NOT let an ancestor clip the ring: any container in §7.2.3 Group D that holds
   focusable children MUST either drop `overflow:hidden` or reserve ≥4 px of inner padding
   on the clipped edge.
@@ -4014,7 +3827,7 @@ unless `.on` (`:70–71`), and `.card.clpsd>*:not(.ch)` is `display:none!importa
 #### 7.3.2 Escape and Enter
 
 **The file handles the Escape key nowhere.** Zero occurrences of `Escape` `[source]`.
-`closeModal()` (`:5216`) is reachable only by clicking `.modal-close` or clicking the
+`closeModal` (`:5216`) is reachable only by clicking `.modal-close` or clicking the
 scrim (`:475`) `[source]`. `#modal-overlay` (`:191`) has no `role="dialog"`, no
 `aria-modal`, no key handler, and no focus trap, so a keyboard user who opens a modal can
 tab straight out of it into the page behind the scrim and interact with content they
@@ -4039,7 +3852,7 @@ The trap rule is not uniform, and §5.5 is why:
 |---|---|---|
 | `#modal-overlay` (`:191`), `.sb.mob-open` (`:432`) — has a scrim | **Trap.** Tab and Shift+Tab cycle inside; the page behind is inert. | Both render a backdrop (`:191`, `:434`) and block the page |
 | Non-scrimmed drawer / side panel | **Do not trap.** Tab leaves the panel and continues into the page. | §5.5: "MUST omit the scrim and keep the page behind interactive" — a trap would contradict it |
-| `.csel-menu` (`:308`), `.notif-panel` (`:576`) — popovers | **Do not trap.** Arrow keys move within; Tab closes and moves on. | Popover convention `[Polaris]` |
+| `.csel-menu` (`:308`), `.notif-panel` (`:576`) — popovers | **Do not trap.** Arrow keys move within; Tab closes and moves on. | Popover convention `[recalled]` |
 
 This is not a conflict with §5.5; it is §5.5 applied. **The scrim decides the trap.** If a
 surface dims the page, it owns the keyboard. If it does not, it does not.
@@ -4054,8 +3867,8 @@ content. That is exactly the condition SC 2.4.1 exists for `[WCAG]`.
 #### 7.3.5 The hover-gated row actions
 
 ```css
-.ra{display:flex;gap:5px;opacity:0;transition:opacity .1s}   /* :153 */
-table.dt tr:hover .ra{opacity:1}                              /* :154 */
+.ra{display:flex;gap:5px;opacity:0;transition:opacity.1s}   /*:153 */
+table.dt tr:hover.ra{opacity:1}                              /*:154 */
 ```
 
 `.ra` appears **26 times** `[source]`, each wrapping one to three `<button>` elements —
@@ -4069,8 +3882,8 @@ are unreachable by anyone.
 This is §6.3 D19. **The fix is two lines:**
 
 ```css
-table.dt tr:hover .ra,
-table.dt tr:focus-within .ra { opacity: 1 }
+table.dt tr:hover.ra,
+table.dt tr:focus-within.ra { opacity: 1 }
 ```
 
 `:focus-within` matches an ancestor while any descendant holds focus, so focusing the
@@ -4265,8 +4078,8 @@ Two related cases:
 
 #### 7.5.1 The toast announces nothing
 
-`toast()` at `:5269` builds a `<div>`, styles it inline, and appends it to `#toast-stack`
-via `ensureToastStack()` `[source]`. Neither the toast nor the stack carries `role`,
+`toast` at `:5269` builds a `<div>`, styles it inline, and appends it to `#toast-stack`
+via `ensureToastStack` `[source]`. Neither the toast nor the stack carries `role`,
 `aria-live`, or `aria-atomic` — the file has **zero `aria-` attributes of any kind**
 `[source]`. The toast has **352 call sites** (§6.3 D7). **Every one of them is silent to a
 screen reader.**
@@ -4387,9 +4200,9 @@ The file contains **zero** occurrences of `prefers-reduced-motion` `[source]`.
 
 | Keyframes | Declared at | Duration | What it animates |
 |---|---|---|---|
-| `ping-pulse` (`:331`) | `:329` (`.ping-warn`), `:330` (`.ping-dead`), `:9156` (inline, calling state) | 1.4s / 0.7s / 0.7s | `opacity` 1 → .3 → 1 |
-| `live-dot` (`:342`) | `:341` (`.map-tab.active .tab-dot`) | 2s | `box-shadow` spread 3px → 6px |
-| `reqPulse` (`:145`) | `:2084` (inline), `:4811` (inline) | 1.4s | `opacity` 1 → .25 → 1 |
+| `ping-pulse` (`:331`) | `:329` (`.ping-warn`), `:330` (`.ping-dead`), `:9156` (inline, calling state) | 1.4s / 0.7s / 0.7s | `opacity` 1 →.3 → 1 |
+| `live-dot` (`:342`) | `:341` (`.map-tab.active.tab-dot`) | 2s | `box-shadow` spread 3px → 6px |
+| `reqPulse` (`:145`) | `:2084` (inline), `:4811` (inline) | 1.4s | `opacity` 1 →.25 → 1 |
 | `spin` (injected at `:8727`, `:11384`) | `:8724`, `:11380` (inline) | 0.8s | `transform:rotate` |
 
 **Two corrections to §6.3 D24.** D24 names four looping animations as `ping-pulse`,
@@ -4437,12 +4250,12 @@ The guard, complete:
 ```css
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
-    animation-duration: .01ms !important;
+    animation-duration:.01ms !important;
     animation-iteration-count: 1 !important;
-    transition-duration: .01ms !important;
+    transition-duration:.01ms !important;
     scroll-behavior: auto !important;
   }
-  .ping-warn, .ping-dead, .map-tab.active .tab-dot { animation: none !important }
+.ping-warn,.ping-dead,.map-tab.active.tab-dot { animation: none !important }
 }
 ```
 
@@ -4542,7 +4355,7 @@ subsection.
 | `.avatar` | `:68` | 30 × 30 | PASS | — |
 | `.modal-close` | `:197` | 28 × 28 | PASS | — |
 | `.csel-btn` | `:301` | h 33 | PASS | — |
-| `.csel.sm .csel-btn` | `:323` | h 29 | PASS | — |
+| `.csel.sm.csel-btn` | `:323` | h 29 | PASS | — |
 | `.field input`, `.field select` | `:252` | h 33 | PASS | — |
 | `.sb-item` | `:41` | h ≈ 33 | PASS | — |
 | `.settings-tab` | `:235` | h ≈ 40 | PASS | — |
@@ -4621,7 +4434,7 @@ unenforceable one.
 | **The map tile canvas** (`#map-leaflet`, `:349`) | Treated as a decorative graphic | — but a **text equivalent of everything the map conveys MUST exist beside it**, which is in scope and is §8.1's |
 | **Native mobile applications** | The scope line is desktop web | a native client ships |
 | **Print stylesheets** | None exists | one is authored |
-| **Browsers without `:focus-visible` or `:has()`** | Both are baseline in every current evergreen engine | an enterprise customer pins an older engine |
+| **Browsers without `:focus-visible` or `:has`** | Both are baseline in every current evergreen engine | an enterprise customer pins an older engine |
 
 Everything Eyvar authors *over* the map — `.map-ctrl` (`:215`), `.map-tab` (`:337`),
 `.map-fchip` (`:345`), `.map-stat` (`:365`), `.live-card` (`:351`) — is fully in scope.
@@ -4646,7 +4459,7 @@ Shift+Tab from the first control does not reach the page behind the scrim.
 ```js
 // non-native click targets — MUST be 0 (file-wide today: 253)
 $$('[onclick]').filter(e => !['BUTTON','A','INPUT','SELECT','TEXTAREA','LABEL']
-  .includes(e.tagName) && !e.hasAttribute('tabindex')).length
+.includes(e.tagName) && !e.hasAttribute('tabindex')).length
 
 // unassociated labels + unscoped headers — MUST be 0 (file-wide today: 235 + 470)
 $$('label:not([for])').filter(l => !l.querySelector('input,select,textarea')).length
@@ -4684,9 +4497,8 @@ once against each row of §6.4's surface map and re-run when that pattern change
 - MUST run the six-step review in §7.8.3 before a screen ships, and MUST record the result
   in the ticket.
 - MUST NOT close an accessibility finding on the strength of an automated scan alone.
-- MUST NOT cite a screenshot from `docs/06-design-reference/shopify-admin-web/` to close a
-  finding in §7.3, §7.4 or §7.5. A still image cannot evidence tab order, ARIA, or
-  screen-reader output.
+- MUST NOT cite a still image to close a finding in §7.3, §7.4 or §7.5. A still image cannot
+  evidence tab order, ARIA, or screen-reader output.
 - MUST run one full screen-reader pass per **pattern** in §6.4, not per screen, and MUST
   re-run it when that pattern changes.
 - SHOULD add the two console one-liners of §7.8.3 step 3 to CI, asserting `0`, once §7.4's
@@ -4694,14 +4506,13 @@ once against each row of §6.4's surface map and re-run when that pattern change
 
 ---
 
-## 8. Patterns Shopify Does Not Cover
+## 8. Patterns the baseline does not cover
 
-> **Why this section exists.** §1–§5 derive their rules from 159 screenshots of the Shopify
-> admin, which is a merchant CRUD tool: records are created, edited, listed and archived by
-> one person at a time, on their own schedule, against data that does not move while they
-> look at it. Eyvar Admin is an operations console. Six of its surface types have no
-> Shopify equivalent, or no *governed* Shopify equivalent, and together they are roughly
-> half the product:
+> **Why this section exists.** §1–§5 derive their rules from a merchant CRUD tool: records
+> are created, edited, listed and archived by one person at a time, on their own schedule,
+> against data that does not move while they look at it. Eyvar Admin is an operations
+> console. Six of its surface types have no equivalent in that baseline, or no *governed*
+> equivalent, and together they are roughly half the product:
 >
 > | Surface type | Eyvar pages | Why §1–§5 does not reach it |
 > |---|---|---|
@@ -4709,11 +4520,11 @@ once against each row of §6.4's surface map and re-run when that pattern change
 > | Derived / computed values | `p-plan-edit`, `p-plans` | §4.2 has one line on read-only fields. Eyvar has a computation lattice with a published formula. |
 > | Money and ledgers | `p-wallets`, `p-rwallets`, `p-finance` | §4.2 says how to render a currency *input*. Nothing says how to render money as *output*. |
 > | Work queues and SLA | `p-fraud`, `p-all-pending`, `p-requests`, `p-interventions`, `p-readiness`, `p-renewal` | §3.1 governs a list of records. A queue is a list of *work*: claimed, timed, decided, gone. |
-> | Dense wide tables | every index, queue and ledger page — 23 of the 41 | §3.1 concedes that wide tables scroll and that the checkbox and identity column *"stay pinned while they do"*, and marks both `[Polaris]`. It writes no rule for either, and none at all for an operator freezing a column of their own. |
+> | Dense wide tables | every index, queue and ledger page — 23 of the 41 | §3.1 concedes that wide tables scroll and that the checkbox and identity column *"stay pinned while they do"*, and marks both `[recalled]`. It writes no rule for either, and none at all for an operator freezing a column of their own. |
 > | **A composer that sends** | `contacts` (Support › Contact Centre), `ticket-detail` | §4 governs a form that **saves** — dirty state, a save bar, a discard, a primary you may press twice. A composer has none of those, its primary is irreversible on the first press, and its outcome arrives *after* the interaction is over. §3.8's composer is right in anatomy and posts an **internal comment**: nothing in §1–§5 leaves the building. |
 >
 > **Claim marking, extended.** §1–§5 use `[observed]` (visible in a cited screenshot) and
-> `[Polaris]` (recalled, unverified). This section adds a third tag:
+> `[recalled]` (recalled, unverified). This section adds a third tag:
 >
 > - `[code]` — verifiable in `eyvar_ops_panel_v40_fixed.html` at the line cited on the same
 >   line. Every codebase claim below carries one. Trust it, and check it before changing it.
@@ -4741,7 +4552,7 @@ once against each row of §6.4's surface map and re-run when that pattern change
 
 **What was tried and why it does not fit.** §6.4 maps the live map onto §2.5's *full-bleed
 editor* layout — the theme-editor pattern, where the page breaks the frame to give one
-canvas the whole viewport. It is the closest Shopify has, and it is wrong on two counts.
+canvas the whole viewport. It is the closest the baseline has, and it is wrong on two counts.
 First, the theme editor's canvas is a *preview of the thing being edited*; the live map's
 canvas is a *view of the world*, and the operator's actual work happens in a list beside
 it, not on it. Second, and fatally, the theme editor is static: it re-renders when you
@@ -4749,9 +4560,8 @@ change something. `p-live` re-renders because time passed. Every rule in §1–�
 surface that only changes when the user changes it — §1.6 caps motion at 300 ms because
 motion means "you did something", §3.1 sets a row height because rows sit still, §5.1
 gives success a toast because success is an event the user caused. None of that survives
-contact with a 1 Hz feed. Shopify's Analytics *Live View* is the only moving surface in the
-159 screenshots and it is a read-only globe with bar rows — no rows to act on, no
-intervention, no operator interaction to protect. So: a third page layout, and the first
+contact with a 1 Hz feed. The only moving surface in the baseline is a read-only analytics
+globe with bar rows — no rows to act on, no intervention, no operator interaction to protect. So: a third page layout, and the first
 motion rule in the document that governs a loop rather than a transition.
 
 #### 8.1.1 The monitor shell — a third page layout
@@ -4766,7 +4576,7 @@ the side list sticky. `p-live` already ships it at `grid-template-columns:1fr 34
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────────────────┐
-│  Live map & route history                                                            │  ← .ph, §2.2 header
+│  Live map & route history                                                            │  ←.ph, §2.2 header
 │  Track active trips, monitor requests, and step in when needed                       │
 ├───────────────────────────────────────────────────────┬──────────────────────────────┤
 │ ┌───────────────────────────────────────────────────┐ │ ┌──────────────────────────┐ │
@@ -4774,10 +4584,10 @@ the side list sticky. `p-live` already ships it at `grid-template-columns:1fr 34
 │ ├───────────────────────────────────────────────────┤ │ ├──────────────────────────┤ │    sticky, top:60px
 │ │  [ ⬤ Live ]   [ ⟳ History ]                       │ │ │ ⬤ TRP-4182  Nora → KFD   │ │
 │ ├───────────────────────────────────────────────────┤ │ │   0:42 elapsed · ETA 6m  │ │
-│ │ Filter: (All)(In trip)(Done)(Late)(Cancelled)     │ │ │   [Track][Call][Step in] │ │ ← .btn-track /
-│ ├────────┬────────┬─────────┬────────┬──────────────┤ │ ├──────────────────────────┤ │   .btn-call /
-│ │ ACTIVE │ LATE   │ IDLE    │ AVG ETA│ FEED         │ │ │ ◐ TRP-4190  Sara → Olaya │ │   .btn-intervene
-│ │   3    │   1    │   7     │ 6.2 m  │ 2s ago       │ │ │   1:18 elapsed · Late 4m │ │   :357/:359/:361
+│ │ Filter: (All)(In trip)(Done)(Late)(Cancelled)     │ │ │   [Track][Call][Step in] │ │ ←.btn-track /
+│ ├────────┬────────┬─────────┬────────┬──────────────┤ │ ├──────────────────────────┤ │.btn-call /
+│ │ ACTIVE │ LATE   │ IDLE    │ AVG ETA│ FEED         │ │ │ ◐ TRP-4190  Sara → Olaya │ │.btn-intervene
+│ │   3    │   1    │   7     │ 6.2 m  │ 2s ago       │ │ │   1:18 elapsed · Late 4m │ │:357/:359/:361
 │ ├────────┴────────┴─────────┴────────┴──────────────┤ │ │   [Track][Call][Step in] │ │
 │ │ ┌───────────────────────────────────────────────┐ │ │ └──────────────────────────┘ │
 │ │ │ ● start ● end ▬ actual ┄ planned │  ← legend   │ │ ┌──────────────────────────┐ │
@@ -4797,7 +4607,7 @@ the side list sticky. `p-live` already ships it at `grid-template-columns:1fr 34
        the side list to that card. One selection, two panes.
 ```
 
-The two panes are **one selection model**. `selectTrip()` sets `activeTrip` and both the
+The two panes are **one selection model**. `selectTrip` sets `activeTrip` and both the
 table row and the canvas redraw from it `[code]` `eyvar_ops_panel_v40_fixed.html:12687`; the
 selected row tints `background:var(--blue-lt)` `[code]` `eyvar_ops_panel_v40_fixed.html:11522`.
 That is the pattern, and it is the reason this is a layout and not just a card grid: a
@@ -4842,7 +4652,7 @@ frozen data is the single worst failure mode this section is written to prevent.
 
 #### 8.1.4 The live dot
 
-`.map-tab.active .tab-dot` pulses `[code]` `eyvar_ops_panel_v40_fixed.html:341-342`; a
+`.map-tab.active.tab-dot` pulses `[code]` `eyvar_ops_panel_v40_fixed.html:341-342`; a
 static `.tab-dot` is grey `[code]` `:340`. The dot's meaning must be exactly one thing —
 **data arrived recently** — and never "this tab is selected", which is what the current
 selector actually says.
@@ -4896,7 +4706,7 @@ that the feed is alive — a static dot cannot distinguish "connected" from "fro
 - A monitoring surface MUST NOT print a hard-coded cadence or entity count; every number in the header bar MUST be computed from the data being shown (`:775` prints `· 3 active trips · updates every second` as a literal).
 - When the last update exceeds 3× the expected interval, the surface MUST enter a stale state: the live dot stops looping and goes neutral, the timestamp switches to `Last update Nm ago`, and one page-level banner (§5.2) states that the feed has stopped. It MUST NOT keep the word "Live" on screen.
 - Per-entity feed freshness MUST use exactly three states with the thresholds already in the code — fresh < 120 s, stale 120–299 s, dead ≥ 300 s (`:12587-12593`) — and MUST label each in text, not colour alone (`.ping-label`, `:332`).
-- A pulsing live dot MUST mean "data for this entity arrived within the freshness window" and nothing else. Its absence MUST mean "not receiving". It MUST NOT indicate selection, activation, or tab state — the current selector `.map-tab.active .tab-dot` (`:341`) does exactly that and MUST be rebound to feed state.
+- A pulsing live dot MUST mean "data for this entity arrived within the freshness window" and nothing else. Its absence MUST mean "not receiving". It MUST NOT indicate selection, activation, or tab state — the current selector `.map-tab.active.tab-dot` (`:341`) does exactly that and MUST be rebound to feed state.
 - Marker tones MUST come from `:root` tokens mapped to the §3.4 badge palette; MUST NOT hard-code hexes (`:806-810`).
 - The map MUST render its legend whenever more than one marker tone or line style is drawn, using `.ndv-legend` (`:211`), and every tone and style drawn MUST appear in it.
 - The map MUST expose zoom controls and MUST NOT rely on scroll-wheel zoom alone.
@@ -4972,7 +4782,7 @@ Example uses 10 km / 20 min. Actual computed from real trip data at booking.
 ```
 
 The defect is not the shape, it is the wiring: that block is hand-written HTML with no link
-to `cr()`, the function that actually computes it `[code]` `:12986`. The two can drift
+to `cr`, the function that actually computes it `[code]` `:12986`. The two can drift
 silently, and a published formula that lies is worse than no formula.
 
 #### 8.2.3 Live recompute
@@ -4980,15 +4790,15 @@ silently, and a published formula that lies is worse than no formula.
 `.preview-strip` is the announcement surface: a pale `--blue-lt` band with a `--border`
 top rule, sitting directly under the form top bar, holding label/value pairs
 `[code]` `eyvar_ops_panel_v40_fixed.html:275-277`, mounted at `:1086`. Recompute is driven
-by `upd()` `[code]` `:12987-12999`, bound to seven `input` listeners `[code]` `:13000` and
+by `upd` `[code]` `:12987-12999`, bound to seven `input` listeners `[code]` `:13000` and
 called once at parse `[code]` `:13001`.
 
 Two real defects define the rules. First, **four inputs that affect the result are not
 bound** — `fp3-duration`, `fp3-cap`, `fp3-sort` and the status select are absent from the
 listener list `[code]` `:13000`, so the strip can show a stale number with no indication.
 Second, **the preview and the saved value disagree on an empty field**: the preview coerces
-blank to `0` via `gv()` `[code]` `:12984` while save keeps the previous stored value via
-`numval()` `[code]` `:6150-6155`. The operator clears a field, watches the preview drop, and
+blank to `0` via `gv` `[code]` `:12984` while save keeps the previous stored value via
+`numval` `[code]` `:6150-6155`. The operator clears a field, watches the preview drop, and
 saves something else entirely.
 
 #### 8.2.4 Worked examples as a form element
@@ -5017,7 +4827,7 @@ on the computed box.
 
 Dirty state is likewise an input property. A recompute is not an edit. Conversely, an
 editable control that never reaches the save payload is a lie: the status custom-select at
-`[code]` `:1105` is read by nothing in `savePlan()`, so the operator can change it, see it
+`[code]` `:1105` is read by nothing in `savePlan`, so the operator can change it, see it
 change, save, and lose it silently.
 
 **Rules**
@@ -5029,13 +4839,13 @@ change, save, and lose it silently.
 - A derived value with no computable result MUST render an em-dash `—`, never `0`, never blank, never a spinner. (Same rule as §3.7's delta.)
 - The governing formula MUST be disclosed on the page in a `.formula-box` (`:271`) placed inside the same card section as the inputs it consumes, immediately below the last of them. It MUST NOT be disclosed in a tooltip (§5.7), a modal, or helper text under a single field.
 - Every line of the chain MUST appear, in `<code>`, in the order it evaluates (`:1125`), and every assumption MUST appear in the `.formula-note` (`:274`).
-- The formula box MUST be generated from the same source as the computation. A hand-written formula block that duplicates a compute function (`:1125` vs `cr()` at `:12986`) MUST NOT ship.
+- The formula box MUST be generated from the same source as the computation. A hand-written formula block that duplicates a compute function (`:1125` vs `cr` at `:12986`) MUST NOT ship.
 - A surface carrying two or more derived values MUST render one `.preview-strip` (`:275`) directly beneath the form top bar (`:1086`), and it MUST carry `aria-live="polite"`.
 - Every input named in the formula MUST be bound to the recompute handler. The count of bound listeners MUST equal the count of inputs the formula reads (`:13000` binds 7; the formula plus save read 11).
 - Recompute MUST fire on the `input` event, not on `change` or `blur`.
 - Recompute MUST NOT animate: no flash, no colour transition, no count-up. The value is replaced in place. (§8.1 and R18 apply.)
 - If a recompute cannot complete within 150 ms, every affected derived value MUST be replaced by `—` for the duration. A stale number MUST NOT remain on screen while a newer one is being computed.
-- Exactly one numeric coercion function MUST serve both preview and save. Two functions with different blank-field semantics (`gv()` at `:12984` returns 0; `numval()` at `:6150` returns the previous value) MUST NOT ship.
+- Exactly one numeric coercion function MUST serve both preview and save. Two functions with different blank-field semantics (`gv` at `:12984` returns 0; `numval` at `:6150` returns the previous value) MUST NOT ship.
 - A computed column in a table MUST be marked in its header (`th.ci`, `:264`) and MUST NOT contain an input.
 - A worked example MUST live in the same table as the inputs it derives from, row-aligned (`:1117-1124`), and MUST state its literal inputs in the column header (`:1119`).
 - A worked example MUST be computed by the same code path as the production value it illustrates. Two paths (`:12345` vs `:12401-12405`) MUST NOT ship.
@@ -5049,7 +4859,7 @@ change, save, and lose it silently.
 
 ### 8.3 Money and ledgers
 
-**What was tried and why it does not fit.** Two Shopify patterns were tried and neither
+**What was tried and why it does not fit.** Two baseline patterns were tried and neither
 covers the case. §4.2 governs money as an *input* — "currency symbols as an in-field left
 prefix, unit codes as an in-field right suffix" — which says nothing about money as output.
 §3.5's key-value row (label left, optional grey qualifier, value right-aligned, bold total)
@@ -5057,12 +4867,12 @@ governs money as *output* and is genuinely right for an order summary: one settl
 attached to one record, that will never change. Eyvar's money moves. A driver wallet is a
 balance with a history; a cash-debt ledger accumulates negatively `[code]` `eyvar_ops_panel_v40_fixed.html:12088-12092`;
 a subscription payment sits in an authorization hold before it is captured
-`[code]` `:9593-9619`; escrow is held against future delivery `[code]` `:2801-2806`. Shopify
-has no negative amount anywhere in 159 screenshots, no running balance, no pending state
-that resolves, and no ledger. The document consequently has no rule for the most
+`[code]` `:9593-9619`; escrow is held against future delivery `[code]` `:2801-2806`. The
+baseline has no negative amount anywhere, no running balance, no pending state that
+resolves, and no ledger. The document consequently has no rule for the most
 consequential thing an ops console displays, and the codebase shows the result: 87
-independent money strings, at least three formatters (`fmtSAR()` `[code]` `:4394`, an
-identical `fmt()` `[code]` `:12985`, and raw `.toFixed(2)+' SAR'` inline
+independent money strings, at least three formatters (`fmtSAR` `[code]` `:4394`, an
+identical `fmt` `[code]` `:12985`, and raw `.toFixed(2)+' SAR'` inline
 `[code]` `:6693`), one negative rendered as `'−'+fee.toFixed(2)+' SAR'` in `--red`
 `[code]` `:5537`, and a payouts table whose amounts carry no unit at all `[code]` `:985`.
 
@@ -5128,7 +4938,7 @@ and it does not get index-table furniture.
 ├────────────┼───────────┼─────────────────────────────────┼─────────┼─────────┼─────────┤     the balance
 │ Closing balance                                          │    6.40 │   26.40 │   20.00 │  ← closing row
 └──────────────────────────────────────────────────────────┴─────────┴─────────┴─────────┘
-  No checkbox column.  No hover kebab (.ra, :153).  No bulk action bar.  Not user-sortable.
+  No checkbox column.  No hover kebab (.ra,:153).  No bulk action bar.  Not user-sortable.
   Showing 6 of 6 postings.
 ```
 
@@ -5161,7 +4971,7 @@ card `[code]` `:3951-3953` — is the permitted exception, and it omits the bala
 
 #### 8.3.4 Pending and reconciling as lifecycle states
 
-Money has more states than Shopify's `Paid` / `Refunded` / `Voided`, and every one of them
+Money has more states than `Paid` / `Refunded` / `Voided`, and every one of them
 needs an assigned tone from the closed §3.4 palette:
 
 | State | Where it lives | Tone | Rationale |
@@ -5178,7 +4988,7 @@ the wireframe, and the running balance column includes settled postings only.
 
 **Rules**
 
-- Exactly one money formatter MUST exist and every money string in the product MUST come from it. Inline `.toFixed(2)+' SAR'` (`:6693`) and duplicate formatters (`fmtSAR()` `:4394`, `fmt()` `:12985`) MUST NOT ship.
+- Exactly one money formatter MUST exist and every money string in the product MUST come from it. Inline `.toFixed(2)+' SAR'` (`:6693`) and duplicate formatters (`fmtSAR` `:4394`, `fmt` `:12985`) MUST NOT ship.
 - Money MUST render as `<amount> SAR`: ISO code, trailing, one space. MUST NOT use the ﷼ glyph and MUST NOT use a leading symbol. **§4.2's currency-prefix rule governs inputs only and MUST NOT be applied to output.**
 - Money MUST render exactly 2 decimal places, always, including whole amounts.
 - Money MUST use a `,` thousands separator (`Intl.NumberFormat('en', {minimumFractionDigits: 2, maximumFractionDigits: 2})`). Hand-typed separators (`:932`) MUST NOT ship.
@@ -5208,8 +5018,8 @@ plus §3.2's view tabs plus §3.3's bulk actions — the orders-index pattern. T
 survives about one screen. An index row is a *resource*: it exists before you open the page
 and after you close it, it can be edited and re-edited, and its status is a property you can
 change back. A queue row is a *unit of work*: it is claimed by one person, it has a deadline
-running against it, it is decided once, and then it leaves. Shopify's nearest approach is
-the `Unfulfilled` tab on the orders index, but a fulfilled order is still an order — it does
+running against it, it is decided once, and then it leaves. The baseline's nearest approach
+is a status tab on an index, but a record that leaves that tab is still a record — it does
 not exit the list, nobody claims it, and no clock runs on it. Everything a queue needs is
 therefore missing: no ownership model, no countdown component, no escalation, no disposition
 semantics, no rule for what a row looks like after it is decided. And the sharpest gap is at
@@ -5232,7 +5042,7 @@ The owner chip is three states `[code]` `:18928-18941`: unclaimed → `✋ Claim
 success tone, `✋ yours · 4m`, plus a release control; someone else's → warning tone,
 `✋ Layla`, plus `take over`.
 
-Two behaviours need naming as defects. `inboxOpen()` claims silently on open
+Two behaviours need naming as defects. `inboxOpen` claims silently on open
 `[code]` `:19301-19310` — deliberate, so two people do not start the same case, but it means
 there is no way to *look* at a queue item. And the stale sweep runs as a side effect of
 *reading* ownership `[code]` `:18865-18875`, so rendering the inbox mutates state and writes
@@ -5270,8 +5080,8 @@ the crossing, not on every subsequent tick. Multiple crossings inside one tick a
 into a single notification with a count, with the reasoning written into the source
 `[code]` `:9674-9678`. Both behaviours are the rule.
 
-Two are not. `playAlertBeep()` fires unconditionally with no mute
-`[code]` `:9731-9749`, and `reopenSubReq()` rewrites `requestedAt` to now
+Two are not. `playAlertBeep` fires unconditionally with no mute
+`[code]` `:9731-9749`, and `reopenSubReq` rewrites `requestedAt` to now
 `[code]` `:10302-10310`, restarting the clock and destroying the original ask time.
 
 #### 8.4.4 Disposition
@@ -5288,7 +5098,7 @@ and is told no.
 
 The row converts in place. It does not vanish — a row that disappears on click gives the
 operator no confirmation of what they just did and no route to undo it. Actions are replaced
-by `decisionBadge()`, which names outcome, actor and reason
+by `decisionBadge`, which names outcome, actor and reason
 `[code]` `eyvar_ops_panel_v40_fixed.html:10905-10909`, with the timestamp beneath
 `[code]` `:10925`. The same badge drives the detail page's inline status banner
 `[code]` `:7124`.
@@ -5375,7 +5185,7 @@ icon tile, never both, or red stops meaning "this one".
 
 - A breach MUST fire its escalation exactly once, at the crossing: one audit entry, one ops notification (`:12544-12553`). It MUST NOT re-fire on subsequent ticks.
 - Multiple breaches inside one tick MUST be batched into one notification carrying a count (`:9674-9678`). N toasts MUST NOT ship.
-- An audible alert MUST be opt-in and MUST have a visible mute control (`playAlertBeep()` at `:9731-9749` is unconditional).
+- An audible alert MUST be opt-in and MUST have a visible mute control (`playAlertBeep` at `:9731-9749` is unconditional).
 - Escalation MUST NOT reassign, re-queue, or release ownership automatically.
 - Re-opening a decided or expired item MUST preserve its original request timestamp and MUST record the re-open as a separate event. Rewriting `requestedAt` to now (`:10302-10310`) MUST NOT ship.
 
@@ -5384,7 +5194,7 @@ icon tile, never both, or red stops meaning "this one".
 - Every queue MUST declare a closed, documented set of dispositions. Each MUST be labelled with a verb (§5.7) and rendered in the row's action cell (`:10925-10928`).
 - At most one disposition per row MAY be a filled primary (§4.6). A destructive disposition MUST confirm (§5.3).
 - A disposition control MUST check permission at click, not only at commit.
-- On decision the row MUST convert in place: action controls replaced by `decisionBadge()` naming outcome, actor and reason (`:10905-10909`), with the decision timestamp beneath (`:10925`).
+- On decision the row MUST convert in place: action controls replaced by `decisionBadge` naming outcome, actor and reason (`:10905-10909`), with the decision timestamp beneath (`:10925`).
 - A decided row MUST NOT be removed by a background refresh. It MUST remain visible until the operator navigates away or explicitly clears it.
 - The queue's count badge and its sidebar badge MUST decrement immediately on decision, while the decided row is still on screen.
 - A decided row MUST NOT use `opacity` to de-emphasise (`:10929` uses `.7`, which is §4.6's disabled treatment). It MUST switch its primary text to `--muted` and drop its hover and click affordances.
@@ -5407,8 +5217,8 @@ icon tile, never both, or red stops meaning "this one".
 
 **What was tried and why it does not fit.** §3.1 and §3.2 govern a list of records that fits.
 Every control they define lives in the **toolbar**: one sort popover, one filter chip row, one
-optional columns icon. That works at Shopify's ~40 px rows and six-to-eight columns on a page
-someone visits. Eyvar runs 23 of its 41 pages as tables at **32 px rows** (§6.2 D-2), some
+optional columns icon. That works at the baseline's ~40 px rows and six-to-eight columns on a
+page someone visits. Eyvar runs 23 of its 41 pages as tables at **32 px rows** (§6.2 D-2), some
 carrying twelve columns `[code]` `eyvar_ops_panel_v40_fixed.html:740-751`, in front of an
 operator who works one of them all day. Two things break.
 
@@ -5418,9 +5228,9 @@ list." §3.1's filter chips have the same indirection. The column is right there
 pointer, and the control is 400 px away in a popover.
 
 **Second, §3.1 concedes horizontal scroll and then stops.** *"Wide tables clip at the card's
-right edge"* `[observed]` `02-orders/orders-list-with-metrics-row.webp` — the `Tags` column is
+right edge"* `[observed]`  — the `Tags` column is
 cut off with no scrollbar in frame. The document adds: *"That they scroll horizontally, and that
-the checkbox + primary cell stay pinned while they do, are both `[Polaris]` — a static frame
+the checkbox + primary cell stay pinned while they do, are both `[recalled]` — a static frame
 cannot show a scroll."* So §3.1 has **already committed to implicit column pinning** on recall,
 with no rule attached, no statement of which columns, no visual treatment, and no RTL clause —
 in a document whose §9 exists because directional geometry is where this product breaks.
@@ -5436,13 +5246,12 @@ ships one, badly (§8.5.1).
 
 #### 8.5.1 What already exists, and the defect in it
 
-**Shopify does freeze a column** — in the full-screen bulk-edit grid, not the index table.
-`03-products/products-bulk-editor-grid.webp` and `03-products/products-bulk-editor-price-columns.webp`
+**The baseline does freeze a column** — in its full-screen bulk-edit grid, not the index table.
 are the same grid at two horizontal scroll offsets. Diffing them with PIL `[observed]`:
 
 ```
 region                              mean channel diff   max
-Product title column   (x < 210)                0.13     14   <- WebP compression noise
+Product title column   (x < 210)                0.13     14   <- compression noise
 first scrolling column (x 230+)                 8.25    220
 ```
 
@@ -5450,13 +5259,13 @@ The first column does not move; `Tags` scrolls away and `Status` slides up again
 frozen boundary, sampled at a body row in both frames:
 
 ```
-x           204 ... 211   212    213    214   215
+x           204... 211   212    213    214   215
 grid        247,247       241    248    255   254
 scrolled    247,247       241    248    255   254
 ```
 
 `[observed]` **One 1 px hairline, identical scrolled and unscrolled.** No gradient falloff, so
-no shadow — a `0 ... 6px` blur would render as a ramp across four to eight pixels and there is
+no shadow — a `0... 6px` blur would render as a ramp across four to eight pixels and there is
 none.
 
 **Eyvar already pins a column, physically.** `[code]` `eyvar_ops_panel_v40_fixed.html:751` and
@@ -5489,15 +5298,15 @@ full argument and the three clauses it suspends.
 
 ```
 +- 200px -----------------------+   start-aligned header      end-aligned header
-| (*)  ^  Sort A to Z           |   +------------------+      +------------------+
-| ( )  v  Sort Z to A           |   | Captain  ^  v    |      |    v  v  Trips   |
-|      Clear sort               |   +------------------+      +------------------+
-| ----------------------------- |     label flush to the        label flush to the
-|      Filter...                |     inline-START              inline-END, so header
-|      Clear filter             |                               and value share one
-| ----------------------------- |                               edge — R4 upheld
-|      Pin column               |
-|      Hide column              |
+| (*) ^ Sort A to Z | +------------------+ +------------------+
+|  v Sort Z to A | | Captain ^ v | | v v Trips |
+| Clear sort | +------------------+ +------------------+
+| ----------------------------- | label flush to the label flush to the
+| Filter... | inline-START inline-END, so header
+| Clear filter | and value share one
+| ----------------------------- | edge — R4 upheld
+| Pin column |
+| Hide column |
 +-------------------------------+
 ```
 
@@ -5538,13 +5347,13 @@ posting's persisted `balanceAfter` intact; reordering destroys the column's mean
 
 ```
 +-- PINNED, inline-start --------+|~~~ scrolls ~~~~~~~~~~~~~~~~~~~+|+- PINNED, inline-end -+
-| # | Captain      ^ v | City v ||| Plan v | Trips v | Earned v ||          ...          |
+| # | Captain ^ v | City v ||| Plan v | Trips v | Earned v ||... |
 |---+------------------+--------|||--------+---------+----------|+-----------------------+
-| # | Nora Al-Harbi    | Riyadh ||| Weekly |     412 |  4,218.00||          ...          |
-| | | DRV-0106         | Dammam ||| Weekly |       0 |      0.00||          ...          |
+| # | Nora Al-Harbi | Riyadh ||| Weekly | 412 | 4,218.00||... |
+| | | DRV-0106 | Dammam ||| Weekly | 0 | 0.00||... |
 +-^-+------------------+--------+|+--------+---------+----------++-----------------------+
-  |  R5a marker rides the pinned  hairline boundary
-  |  region and NEVER scrolls away
+ | R5a marker rides the pinned hairline boundary
+ | region and NEVER scrolls away
 ```
 
 | Region | Contents | Decided by |
@@ -5563,7 +5372,7 @@ separate per-view state (§3.1 *Column visibility*).
 the kebab at the row's inline-end and `[code]` `:751` shows that the action control is what
 operators freeze there. Allowing arbitrary data columns to be inserted between the scrolling
 region and the row's action control puts a moving boundary around the one control that must
-stay put. Shopify freezes one region, at the start `[observed]`.
+stay put. The baseline freezes one region, at the start `[observed]`.
 
 **The identity column is never hideable and never unpinnable.** §3.1: the first data cell MUST
 be the identity and MUST be a link to the record. You cannot hide or scroll away the only thing
@@ -5609,7 +5418,7 @@ analogue — but it does **not** inherit the token, for three reasons in order o
    `offset-x: 0` so elevation is direction-invariant and needs no RTL branch. Applied to an
    inline edge, a block-axis shadow renders *below* the column; giving it an x-offset creates a
    token that **must** mirror — reintroducing precisely the defect `[code]` `:751` already has.
-2. **The measurement says hairline.** Shopify's frozen boundary is one 1 px step, unchanged by
+2. **The measurement says hairline.** The baseline's frozen boundary is one 1 px step, unchanged by
    scroll `[observed]` (§8.5.1).
 3. **The primary signal is motion, not the line.** Content moves; the pinned block does not. The
    boundary is a supporting delimiter, which §7.1 classes as a decorative rule with no contrast
@@ -5703,10 +5512,10 @@ competing source of truth for something §3.1 already governs.
 **What was tried and why it does not fit.** §6.4 had no row for this surface at all, and the
 two candidates both fail. **§4** governs a form that **saves**: it has a dirty state, a
 contextual save bar, a discard, and a primary the operator may press twice with the same
-result. **§3.8** governs the timeline composer, and its anatomy is right — Shopify ships one
-and it is fully `[observed]` — but every Shopify composer posts an **internal comment**
+result. **§3.8** governs the timeline composer, and its anatomy is right — the baseline ships
+one and it is fully `[observed]` — but every baseline composer posts an **internal comment**
 (*"Only you and other staff can see comments"*,
-`02-orders/order-detail-timeline-comment-composer.webp`) and therefore never leaves the
+) and therefore never leaves the
 building. Neither section has a rule for the thing that makes this surface dangerous: **the
 primary sends a message to a customer, and it cannot be unsent.** Raised as finding
 **F-R5-1** by `DECISIONS.md` **D19** and answered here.
@@ -5748,21 +5557,21 @@ rail carries the customer, the ticket link and the claim history (§3.8).
 
 ```
 +-- main ----------------------------------------------++-- rail --------+
-|           [ Load earlier messages ]                  || Customer       |
-|  +---------------------------+                       || Ticket         |
-|  | inbound - inline-start    |                       || History        |
-|  +---------------------------+                       ||                |
-|                    +-------------------------------+ ||                |
-|                    | outbound - inline-end         | ||                |
-|                    +-------------------------------+ ||                |
-|                                          Delivered   ||                |
+| [ Load earlier messages ] || Customer |
+| +---------------------------+ || Ticket |
+| | inbound - inline-start | || History |
+| +---------------------------+ || |
+| +-------------------------------+ || |
+| | outbound - inline-end | || |
+| +-------------------------------+ || |
+| Delivered || |
 +------------------------------------------------------+|                |
-| [ Reply | Internal note ]                            ||                |
-| +--------------------------------------------------+ ||                |
-| | Write a reply...                                 | ||                |
-| +--------------------------------------------------+ ||                |
-| (attach) (canned)   [Reply by email]      [ Send ]   ||                |
-| Enter sends - Shift + Enter adds a line              ||                |
+| [ Reply | Internal note ] || |
+| +--------------------------------------------------+ || |
+| | Write a reply... | || |
+| +--------------------------------------------------+ || |
+| (attach) (canned) [Reply by email] [ Send ] || |
+| Enter sends - Shift + Enter adds a line || |
 +------------------------------------------------------++----------------+
 ```
 
@@ -5798,15 +5607,14 @@ and hue habituates:
 | 4 | The send label | `Send` | **`Add note`** |
 | 5 | The line under the composer | `Enter sends · Shift + Enter adds a line` | `Only your team can see this. Enter adds the note · Shift + Enter adds a line.` |
 
-Carrier 5 is `[observed]` in structure: Shopify puts exactly this notice immediately below
-and outside its composer (`Only you and other staff can see comments`,
-`02-orders/order-detail-timeline-comment-composer.webp`). The wording is Eyvar's, because
-Eyvar's composer can also send and Shopify's cannot — *"can see"* alone does not say *"and
-nothing was sent"*.
+Carrier 5 is `[observed]` in structure: the baseline puts exactly this notice immediately
+below and outside its composer (`Only you and other staff can see comments`). The wording is
+Eyvar's, because Eyvar's composer can also send and the baseline's cannot — *"can see"* alone
+does not say *"and nothing was sent"*.
 
 **§3.8's `[observed]` label `Post` does not bind.** §3.8's rule is about the *behaviour* —
-the control is disabled until there is content — and `Post` is an observation of Shopify's
-label. `Send` and `Add note` are verb + object and they say which register fired.
+the control is disabled until there is content — and `Post` is an observation of the
+baseline's label. `Send` and `Add note` are verb + object and they say which register fired.
 
 **A posted note is a different shape in the thread, not a different colour.** `[ruling]`
 
@@ -5821,7 +5629,7 @@ Four shapes, four grounds already in the token set, no new colour, and every one
 survives greyscale and mirrors correctly. **The note is the only message that is not a
 bubble**, which is the difference an operator reads at a glance from across a desk.
 
-`deliveryIsWellFormed()` already asserts that a note carries `delivery: null` `[code]`. **The
+`deliveryIsWellFormed` already asserts that a note carries `delivery: null` `[code]`. **The
 UI MUST NOT draw a tick, a word, or a placeholder in the note's DELIVERY position** — not an
 em dash, not `Not sent`, nothing. An absence is the correct rendering of a fact that does not
 exist.
@@ -5962,7 +5770,7 @@ from it by seconds. No tick glyph: §5.7 forbids emoji, and a single-versus-doub
 idiom borrowed from a consumer app that this console has never taught. **Words are the only
 carrier that translates.**
 
-`read` is seeded in the fixtures (`CNV-105`, `CNV-111`) but `scriptDelivery()` never advances
+`read` is seeded in the fixtures (`CNV-105`, `CNV-111`) but `scriptDelivery` never advances
 a newly sent message into it — the mock goes `queued → sent → delivered` `[code]`. So `read`
 renders from stored data and is never reached live in mock mode. It renders by the same rule
 as the rest. Recorded, not hidden.
@@ -5971,7 +5779,7 @@ as the rest. Recorded, not hidden.
 
 ```
                     +-------------------------------------------+
-                    | Hi Nora, your refund is on its way.       |   <- outline, no fill
+ | Hi Nora, your refund is on its way. | <- outline, no fill
                     +-------------------------------------------+
                     Not delivered - no email address on file
                                      [ Send again ]  [ Add an email address ]
@@ -6066,7 +5874,7 @@ question for product-owner rather than assumed.
 ## 9. Bidirectionality & Localisation
 
 Eyvar Admin ships one non-English locale: Arabic (`ar`), selected at
-`eyvar_ops_panel_v40_fixed.html:1495–1500`, applied by `applyLanguage()` at `:7939–7953`, with an
+`eyvar_ops_panel_v40_fixed.html:1495–1500`, applied by `applyLanguage` at `:7939–7953`, with an
 88-key dictionary at `:7903–7938`, 86 `data-i18n` keys in markup, and a hand-written RTL
 stylesheet at `:370–402` `[observed]`. Operational context is Saudi: seeded
 `timezone:'Asia/Riyadh'`, `currency:'SAR'`, `language:'en'` (`:2570`) `[observed]`.
@@ -6123,7 +5931,7 @@ Line numbers are this document's; the section reference is authoritative.
 | 31 | "**Right-rail** summary cards MUST be read-only displays…" | §3.5 (1442) | **inline-end-rail** |
 | 32 | "Each entry MUST carry a timestamp, **right-aligned**…" | §3.8 (1657) | **inline-end-aligned**; string does not reorder — §9.2 |
 | 33 | "Events with expandable detail MUST use a **trailing** chevron" | §3.8 (1658) | unchanged; the chevron **glyph mirrors** — §9.5 |
-| 34 | "`☐ ▸ 16px from card edge  text/dates ▸ **left**  numbers/money ▸ **right**`" | §3.9 (1709) | `card inline-start edge  text/dates ▸ start  numbers/money ▸ end` |
+| 34 | "`☐ ▸ 16px from card edge text/dates ▸ **left** numbers/money ▸ **right**`" | §3.9 (1709) | `card inline-start edge text/dates ▸ start numbers/money ▸ end` |
 | 35 | "…currency symbols as an in-field **left prefix** and unit codes as an in-field **right suffix**" | §4.2 (1901) | **inline-start prefix** / **inline-end suffix**. **Overridden for Arabic** — affix position is locale data — §9.2. |
 | 36 | "MUST use a **leading** magnifier icon on… fields that search or autocomplete." | §4.2 (1903) | unchanged; magnifier glyph is **non-mirroring** — §9.5 |
 | 37 | "…character counter… **right-aligned** inside the field." | §4.2 (1904) | **inline-end-aligned**; `0/40` stays LTR — §9.2 |
@@ -6186,7 +5994,7 @@ LTR `[standard]`. The shell uses `row-reverse` (`eyvar_ops_panel_v40_fixed.html:
 precisely because it must be a physical flip, not a directional one (§9.3) — correct there, not
 the pattern for new content.
 
-**Direction-aware transforms.** `translateX()` is direction-blind: positive X is physically
+**Direction-aware transforms.** `translateX` is direction-blind: positive X is physically
 rightward regardless of `dir` `[standard]`. **Currently broken:** the toast stack anchors to
 `left:18px` in Arabic and `right:18px` in English (`eyvar_ops_panel_v40_fixed.html:5254`)
 `[observed]`, but its entry/exit transform is a hard-coded `translateX(28px)` (`:5288`, `:5301`)
@@ -6222,7 +6030,7 @@ Three live defects the migration fixes, all `[observed]`:
 - MUST write `margin-inline-start` / `margin-inline-end`, `padding-inline-start` / `padding-inline-end`, `border-inline-start` / `border-inline-end`, `inset-inline-start` / `inset-inline-end`, `text-align: start` / `text-align: end`, and `float: inline-start` / `float: inline-end` in all new or edited CSS.
 - MUST NOT introduce a new `margin-left`, `margin-right`, `padding-left`, `padding-right`, `border-left`, `border-right`, `text-align:left`, `text-align:right`, `float:left`, or `float:right` declaration in any region that declares Arabic support under §9.3.
 - MUST NOT introduce a new positioned element using bare `left:` or `right:` in any region that declares Arabic support under §9.3.
-- MUST pair every `translateX()` on an inline-edge-anchored element with a sign flip under `[dir="rtl"]` (or a `--flip` custom property), and MUST fix `eyvar_ops_panel_v40_fixed.html:5288` and `:5301` before the next release.
+- MUST pair every `translateX` on an inline-edge-anchored element with a sign flip under `[dir="rtl"]` (or a `--flip` custom property), and MUST fix `eyvar_ops_panel_v40_fixed.html:5288` and `:5301` before the next release.
 - MUST replace `eyvar_ops_panel_v40_fixed.html:39` (`padding:0 0 0 16px`) with `padding-inline-start:16px`, `:48` (`margin-left:auto;margin-right:12px`) with the `margin-inline-*` pair, and `:43`'s `inset 3px 0 0` shadow with an `inset-inline-start`-positioned pseudo-element.
 - MUST delete each `[dir="rtl"]` override at `eyvar_ops_panel_v40_fixed.html:383–385` and `:394–:402` as the corresponding base declaration becomes logical. A logical base rule plus a surviving physical override is a defect.
 - MUST NOT use `flex-direction: row-reverse` or `order:` as a substitute for `dir` on any region containing translated running text.
@@ -6245,7 +6053,7 @@ whose geometry carries meaning, and retain LTR order inside an RTL page `[standa
 | **Keyboard shortcut chips** | Position only | `⌘ K` is a chord, pressed modifier-first in every locale `[standard]`. §2.1 (568), §5.4 (2586) place the cluster inline-end; glyph order inside does not change. |
 | **Map canvas, markers, headings, routes, compass** | No | Geography: north is up, east is right in every locale `[standard]`. §2.5, §6.4. A vehicle heading glyph points at its real bearing. Map **chrome** (stats bar `eyvar_ops_panel_v40_fixed.html:365–368`, live rail, filter chips, legend) does mirror. |
 | **Code, query, monospace editors** | No | Syntax is LTR by specification `[standard]`. §4.5 (2130–2136). Body carries `dir="ltr"`; line numbers and caret stay physical-left. Toolbar and footer are chrome and mirror. |
-| **Chart plot areas and axes** | No | §3.7 (1509–1531). A time-series x-axis MUST NOT reverse: its labels are LTR digits and dates, so reversing the axis makes axis and numbers run in opposite directions. The SVG generators at `eyvar_ops_panel_v40_fixed.html:6806, 6818, 6822` use `text-anchor="end"` and absolute `translate()` `[observed]` — correct as-is, provided they never inherit `direction: rtl`. |
+| **Chart plot areas and axes** | No | §3.7 (1509–1531). A time-series x-axis MUST NOT reverse: its labels are LTR digits and dates, so reversing the axis makes axis and numbers run in opposite directions. The SVG generators at `eyvar_ops_panel_v40_fixed.html:6806, 6818, 6822` use `text-anchor="end"` and absolute `translate` `[observed]` — correct as-is, provided they never inherit `direction: rtl`. |
 | **Delta arrows `↑` `↓`** | No | A magnitude on the vertical axis, not a direction of reading. |
 | **Media, brand, imagery** | No | `▶` means *forward in time*, not rightward `[standard]`. Logo `eyvar_ops_panel_v40_fixed.html:32–35`, partner and payment marks, photographs, avatars, QR codes. §2.3 (741) moves the *slot*, not the *artwork*. Full glyph inventory in §9.5. |
 | **Toast / notification corner** | **Yes** | §5.1 (2419) mandates bottom-*centre*, which is direction-neutral; Eyvar deviates to a corner for a reason documented at `eyvar_ops_panel_v40_fixed.html:5245–5252` `[observed]`. Given the deviation, the corner is layout and mirrors — the JS already flips it (`:5238`, `:5254`), as does the notification panel (`:2218–2220`) `[observed]`. Both are correct in outcome and wrong in form: `dir`-blind JS reimplementations of `inset-inline-end`, duplicated, and one has already drifted from its own animation (§9.1). The deviation is absent from §6.2's closed list and must be added there. |
@@ -6317,7 +6125,7 @@ JS-concatenated strings, structurally impossible today (`data-i18n` in generated
 `[observed]`; (2) every translatable attribute resolves — none are supported `[observed]`;
 (3) every empty state, error, validation message, and toast it can produce is translated;
 (4) every dictionary key its markup references exists — five do not
-(`eyvar_ops_panel_v40_fixed.html:1431–1435`), and since `applyLanguage()` falls back to cached
+(`eyvar_ops_panel_v40_fixed.html:1431–1435`), and since `applyLanguage` falls back to cached
 English on a miss (`:7951`), a missing translation is **visually indistinguishable** from a
 deliberate one `[observed]`; (5) numbers, dates, money per §9.2; (6) CSS logical per §9.1;
 (7) typography per §9.4. Fail one and the surface does not get `dir="rtl"`.
@@ -6361,9 +6169,8 @@ reason-code option unconditionally and `:15078` renders an always-visible Arabic
 
 ### 9.4 Typography in Arabic
 
-**Confidence statement.** §1.2's ramp is derived from Shopify Admin screenshots, and **every one
-of those captures is English**. No Arabic rendering of the reference set or of Eyvar Admin was
-available. **No value in this subsection is `[observed]`** — the metrics are `[standard]` Arabic
+**Confidence statement.** §1.2's ramp is derived from English evidence only. No Arabic
+rendering of the reference set or of Eyvar Admin has been measured. **No value in this subsection is `[observed]`** — the metrics are `[standard]` Arabic
 typesetting practice; code facts about the current implementation are `[observed]` and marked.
 
 **Why 13 px does not transfer.** §1.2's 13 px body / 20 px line-height was measured on a Latin
@@ -6422,7 +6229,7 @@ Arabic, Cairo, and Tajawal meet all five `[standard]`.
 
 **Rules**
 
-- MUST NOT claim any Arabic type value in this section as `[observed]`; no Arabic rendering of Eyvar Admin or of the Shopify reference set has been reviewed.
+- MUST NOT claim any Arabic type value in this section as `[observed]`; no Arabic rendering of Eyvar Admin or of the reference set has been reviewed.
 - MUST set Arabic body text to at least 14 px with a line-height of at least 1.7, overriding §1.2's 13 px / 20 px mandate within `dir="rtl"` regions only.
 - MUST meet the per-role size and line-height floors above for every role rendered in Arabic.
 - MUST NOT apply `text-transform` to any element that can render Arabic text.
@@ -6483,7 +6290,7 @@ system and names none of this.
 
 Mirroring is per-glyph, so a blanket `[dir="rtl"] svg { transform: scaleX(-1) }` is forbidden — it
 would flip every entry in the second table. Use an opt-in class:
-`[dir="rtl"] .icon-mirror { transform: scaleX(-1); }`. Text glyphs used as icons (`←` `→` `›` `↗`
+`[dir="rtl"].icon-mirror { transform: scaleX(-1); }`. Text glyphs used as icons (`←` `→` `›` `↗`
 `⇤` `↻` `⬆`, all present in the file's string builders `[observed]`) cannot be mirrored by class
 and must be swapped at construction time — which requires the builder to know the active
 direction, a capability the panel lacks since `applyLanguage` reaches only static `[data-i18n]`
@@ -6526,9 +6333,9 @@ is MSA with colloquial constructions in the long explanatory strings (`gen.discl
 | `?` question mark | **`؟`** | U+061F |
 | `.` full stop | **`.`** — Arabic uses the Latin full stop; there is no separate Arabic period | U+002E |
 | `:` colon, `%` percent | unchanged (`٪` U+066A exists but is rare in Saudi digital contexts) | — |
-| `-` hyphen, `( )` parentheses | unchanged, but bidi-neutral — see §9.3 | — |
+| `-` hyphen, `` parentheses | unchanged, but bidi-neutral — see §9.3 | — |
 
-The dictionary already uses `،` correctly at `eyvar_ops_panel_v40_fixed.html:7922, :7927, :7929,
+The dictionary already uses `،` correctly at `eyvar_ops_panel_v40_fixed.html:7922,:7927,:7929,
 :7936` `[observed]`; `؛` does not yet occur in it.
 
 **The terminal-period rule transfers unchanged**, since Arabic uses the same `.` (U+002E). One
@@ -6576,7 +6383,7 @@ the larger size (§9.4) and wider inter-word spacing.
 |---|---|---|
 | `:24` | `.sb{width:52px}` | Collapsed rail, both languages |
 | `:30` | `.sb:hover,.sb.pin{width:236px}` | Expanded rail, English |
-| `:31` | `body.lang-ar .sb:hover,body.lang-ar .sb.pin{width:268px}` | Expanded rail, **Arabic** |
+| `:31` | `body.lang-ar.sb:hover,body.lang-ar.sb.pin{width:268px}` | Expanded rail, **Arabic** |
 | `:429` | `.sb{…width:236px!important}` (≤768 px) | Mobile drawer, English |
 | `:435` | `.sb[dir="rtl"]{…width:268px!important}` (≤768 px) | Mobile drawer, **Arabic** |
 

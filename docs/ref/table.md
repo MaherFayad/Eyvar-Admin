@@ -1,37 +1,37 @@
 # DataTable
 
-`src/components/DataTable.tsx` — **1,620 lines, and the highest-leverage file in the
-product.** Most index screens are a thin wrapper around it, so a change here lands on
-forty screens at once and a defect here is forty defects. Line numbers move; re-grep before
-citing one.
+`src/components/DataTable.tsx` is the highest-leverage file in the product. Most index
+screens are a thin wrapper around it, so a change here lands on forty screens at once and a
+defect here is forty defects. Line numbers move; re-grep before citing one.
 
 Source: `design/01-table-controls.md`, `design/04-index-screen-redesign.md` §7,
 `design/15-hierarchy-and-scannability.md`, `design/17-reconciled-findings.md` §1.
 
-## Status, 2026-09-02 — three of the four are closed
+## Four things that are settled, and stay settled
 
-**T1 row-click regex — FIXED.** The label regex and the `?? declaredActions[0]` fallback
-are gone; `DataTable` takes an explicit `onRowClick` / primary action. A screen with no safe
-primary gets no row click.
+**The row-click target is declared, never inferred.** `DataTable` takes an explicit
+`onRowClick` / primary action, and a screen with no safe primary gets no row click. Never key
+a click target off a label string — an Arabic label matches a different regex than an English
+one, and the row that resends a customer email is one no-match away.
 
-**T2 identity column — FIXED.** `pinning.ts` now states the `table-layout: fixed` truth
-correctly and puts the total width on the `<table>`. Measured: **200px at 1280** and
-222–238px at 1512, against the audit's 38px and 0px.
+**The identity column's width lives on the `<table>`.** `pinning.ts` puts the total width
+there, because under `table-layout: fixed` a `min-width` on a cell does nothing. Measured:
+**200px at 1280**, 222–238px at 1512.
 
-**T4 critical row — FIXED.** `bg-row-critical` / `bg-row-critical-emphasis` /
-`text-row-critical-foreground`, all on token, all AA. What pinned the ground was **R19**,
-not the text: an unchecked checkbox boundary must clear 3:1, which `#fef0ee` does at 3.099
-and one step darker fails at 2.995.
+**Media pitch is opt-in.** `rowMedia` defaults to false; only the four People views declare
+it. Media pitch is for rows carrying an avatar or a thumbnail. `--ev-row-h` (40px) is a
+floor, not a pitch — a row's height is set by its content, so a single line measures 41px and
+no declaration makes it 40.
 
-**T3 density — PARTLY FIXED, and the target was wrong.** Media pitch is now opt-in
-(`rowMedia`, default false); only the four People views declare it. But **"60 → 40" was
-never achievable**: `--ev-row-h` is 40px and a row's height is set by its content, so
-`h-row` is only a floor. Measured single-line pitch is **49px**. Docs 13 and 15 both assumed
-40 and are wrong.
+**The critical row is on token, and R19 pins its ground.** `bg-row-critical` /
+`bg-row-critical-emphasis` / `text-row-critical-foreground`. What fixes `#fef0ee` is the
+unchecked-checkbox boundary at 3.099 — one step darker fails at 2.995. Changing a critical
+row means changing **both** the ground and the ink token; swapping the ground alone converts
+a token defect into a contrast defect and calls it done.
 
 ### Row pitch, as measured
 
-Chromium at 1280 x 900, comfortable density; re-taken 2026-09-05 after R2-3.
+Chromium at 1280 x 900, comfortable density.
 
 | Shape | Pitch |
 |---|---|
@@ -41,16 +41,14 @@ Chromium at 1280 x 900, comfortable density; re-taken 2026-09-05 after R2-3.
 | a REFUSED row (Payouts, Escrow, Deductions, Disputes) | **69px** |
 | support queue | **93px** — see below |
 
-**R2-3 closed the 77px block.** `reserveRefusal` used to hold two empty lines open on
-*every* row of a page where *any* row carried a refused action, so six tables shipped a flat
-77. The reason now renders in the refused row's own cell and only that row is tall: Payouts
-at 1280 x 900 fits **8 rows against 5**, the email log likewise at 69px. The email log is the
-proof that the carrier declaration earns its keep: undeclared it measured **81**, because the
-reason stacked under the recipient's address *and* its second line; declared on its state
-column it measures **69**. One row there is 105px — a bounced delivery whose state cell
-already carries a failure sentence and the provider's raw string, and whose resend is refused
-for a fourth reason. That is content, not reservation, and it is a copy decision for whoever
-owns the screen.
+**A refusal reserves nothing on rows that are not refused (R2-3).** The reason renders in the
+refused row's own cell, so only that row is tall: Payouts at 1280 x 900 fits **8 rows**. The
+email log is the proof the carrier declaration earns its keep — undeclared it measures
+**81px**, because the reason stacks under the recipient's address *and* its second line;
+declared on its state column it measures **69px**. One row there is 105px, a bounced delivery
+whose state cell already carries a failure sentence and the provider's raw string and whose
+resend is refused for a fourth reason. That is content, not reservation, and it is a copy
+decision for whoever owns the screen.
 
 ### Where a refused action's reason renders — `carriesRefusalReason`
 
@@ -69,44 +67,34 @@ where an operator already looks for one.
   the button as before.
 
 **The open one.** §9.1 says a secondary line *"never truncates; the row grows to fit"*. That
-was written for a short second line — an id, a route. Under sentence-length content the
-support queue runs at **93px a row**, nearly double a single-line table, and its height is
-set by the *subject* column wrapping. Widening the reason column 150 → 230 measured **93px
-at both widths** and was reverted. This is a hierarchy decision, not a width tweak.
+holds for a short second line — an id, a route. Under sentence-length content the support
+queue runs at **93px a row**, nearly double a single-line table, and its height is set by the
+*subject* column wrapping. Widening the reason column 150 to 230 measures **93px at both
+widths**, so this is a hierarchy decision, not a width tweak.
 
-## The original four defects, as recorded
+## Sorting is a declaration, and the declaration is checked
 
-**T1 — the row-click target is chosen by regex on the translated label.** `:962` and `:996`:
+**A column is sortable if and only if it declares `sortField`.** There is no second signal
+and no inference from `dataType`. `sortRows` throws rather than falling back, so a
+`sortField` that resolves to nothing crashes the first operator who opens that column's sort
+menu — and no type-checker sees it, because the field is a string.
 
-```ts
-/view|open|detail|inspect|claim|show|عرض|تفاصيل|فتح/i.test(a.label) ?? declaredActions[0]
-```
+**`node scripts/sortfield-check.mjs` is the gate.** It walks every non-test `.ts`/`.tsx`
+under `src/`, collects each `sortField` and proves it resolves to an accessor on one of the
+row types that file names. It belongs in CI beside the typecheck: a column with a typo'd
+field must fail the build, not the operator.
 
-No match falls through to `declaredActions[0]` — **whatever it happens to be.** Clicking an
-email-log row resends a customer email. This is a P0 and it gets worse, not better, when
-Arabic labels arrive. The fix is a declared intent on the action, never a better regex.
+**A multi-value field is left undeclared rather than sorted by an invented rule.** A
+permission set, a checklist, a list of zones: a set has no order, so any `sortField` on one
+encodes a rule somebody made up — count, first alphabetically, most recently added — and the
+operator has no way to learn which. Ship the column unsortable. If sorting it is genuinely
+wanted, the answer is a derived scalar column (`Permissions granted`, a count) whose header
+says what it orders by.
 
-**T2 — the identity column collapses.** `src/components/table/pinning.ts` emits `minWidth`,
-and a comment there asserts that is what keeps the residual off zero. **Under
-`table-layout: fixed` — `src/components/ui/table.tsx:117`, `table-fixed` — `min-width` on a
-cell is ignored by the spec.** Measured: 38px at 1280, 0px at 1152. Fix the width model,
-not the number.
-
-**T3 — every non-ledger table is 60px rows.** `:713`:
-
-```ts
-const rowHeightClass = isLedger ? 'h-row' : 'h-row-media'
-```
-
-`--ev-row-h: 40px` vs `--ev-row-h-media: 60px`. Media pitch is for rows that carry an avatar
-or a thumbnail; it is currently the default for everything, which is why ~10.7 rows fit a
-viewport. This was invisible to every static pass and only turned up when someone ran the app.
-
-**T4 — the critical row is off-token and fails AA.** `:848`, `:1215`, `:1257` use raw
-`bg-rose-50/95` … `dark:bg-rose-950/70`. Muted ink `#6b7280` measures **4.83 on white ✓,
-4.40 on rose-50 ✗**. The obvious fix is worse: on `--ev-red-lt` `#fef0ee` it is **4.35 ✗**.
-**A correct fix changes both the ground and the ink token** — swapping the ground alone
-converts a token defect into a contrast defect and calls it done.
+**A dead column comes out.** Measure the visible rows: a column holding **one distinct value
+across all of them**, or empty on most of them, spends width and a header on nothing. Remove
+it, or move the fact to the detail view where it is read once. Action columns are exempt — an
+identical action on every row is the column working correctly, not a dead column.
 
 ## Emphasis
 
@@ -131,32 +119,28 @@ a double-render, not a fix. `emptyKind: 'first-run' | 'cleared' | 'no-match'` is
 discriminated union and each arm carries its own required copy. See [states.md](states.md).
 
 **R2-8 — the 216px floor on the scroll container (`min-h-54`) holds a SKELETON open, not a
-rendered table.** It is inert above 216px, so the only thing it did to content was leave
-empty card under a short ledger. Measured on `/financials/rider-wallets?rider=RDR-1090` at
-1280 x 900: card 218 -> 176, scroller 216 -> 174, table 174 either way.
+rendered table.** It is inert above 216px; below it, all it does is leave empty card under a
+short ledger. Measured on `/financials/rider-wallets?rider=RDR-1090` at 1280 x 900: card
+218 to 176, scroller 216 to 174, table 174 either way.
 
-**`no-match` is the third arm, and it exists because the branch used to infer it.** The empty
-state read `table.isFiltered || isLedger`, so **no ledger-mode table could ever render
-`first-run`** — a rider whose wallet had never moved was told *"No movements match this
-search."* having searched for nothing, and the declared first-run copy was unreachable code.
+**The screen declares the empty arm; the component never infers it.** Inferring `no-match`
+from `table.isFiltered || isLedger` makes `first-run` unreachable for every ledger — a rider
+whose wallet has never moved is told *"No movements match this search."* having searched for
+nothing. §9.2's *"a ledger is NEVER first-run empty"* is narrowed by
+`design/10-financials-money-flows.md` **LR-1**: *a platform-subject ledger is never first-run
+empty; a party-subject ledger can be*, with **AC-427** requiring it and **LR-2** putting the
+decision on the subject's lifetime — a captain with years of history and one quiet month is
+`cleared`, not `first-run`.
 
-The comment on that line cited §9.2's *"a ledger is NEVER first-run empty"*, which had since
-been **narrowed**: `design/10-financials-money-flows.md` **LR-1** rules that *a
-platform-subject ledger is never first-run empty; a party-subject ledger can be*, with
-**AC-427** requiring it and **LR-2** putting the decision on the subject's lifetime — a
-captain with years of history and one quiet month is `cleared`, not `first-run`. The code went
-on encoding the un-narrowed sentence.
-
-So the screen now declares the arm rather than the component inferring it. Note the trap that
-made the naive fix wrong: removing `|| isLedger` alone flips the Financials ledgers'
-quiet-period empty to `first-run` (**D-F29** returning), which is why `LedgerCard` and
+The trap in the naive fix: dropping `|| isLedger` alone flips the Financials ledgers'
+quiet-period empty to `first-run` (**D-F29**), which is why `LedgerCard` and
 `AlertHistoryDialog` declare `no-match` explicitly. Guarded by
 `table/ledgerEmptyState.test.tsx`.
 
 ## Two slots a section-level table wants
 
-Both are optional and both are additive — a table passing neither renders byte-identically to
-before, proven by capture-and-diff rather than asserted.
+Both are optional and both are additive: a table passing neither renders identically to one
+that never had them, proven by capture-and-diff rather than asserted.
 
 **`heading` / `subheading`** put the section's title inside the toolbar row, so the title and
 the control cluster (search, filter, columns, export) share one line and the count reads as a
@@ -193,14 +177,14 @@ cards — it loses only the announcement, which no markup can give it without a 
 renders in `content` only: a skeleton has no headers to define, `error` drops the header row,
 and a sign convention over an empty is noise. Guarded by `table/tableCaption.test.tsx`.
 
-## Bidi — A2, CLOSED 2026-09-02, and the symptom did not reproduce
+## Bidi — where isolation happens
 
-`DataTable` now isolates at **the cell renderer, once**: `isolatesValue(column)` decides, the
+`DataTable` isolates at **the cell renderer, once**: `isolatesValue(column)` decides, the
 cell wraps the value in a content-sized `<bdi>`, and a column declares `isolate: true` for
 what its `dataType` cannot see (a plate, a phone). `date`, `money` and `number` isolate;
 `text`, `enum`, `boolean` and **`id`** do not — see `table/columns.ts`.
 
-**Two things measured in Chromium at 1280 that the finding got wrong.**
+**Two things measured in Chromium at 1280, both easy to get backwards.**
 
 1. `09:39 يونيو 25` is the CORRECT rendering of `25 يونيو 09:39` on an Arabic line.
    Read right to left it is the logical string. Reading an RTL line left to right is what
@@ -231,3 +215,4 @@ the Trips avatar from x=816 to x=709 under `dir="rtl"` — off the inline-start 
    declared meaning.
 3. A colour literal here is forty screens of off-token. Check [tokens.md](tokens.md) first.
 4. Measure row count at 1280 **and** 1152 after any pitch or width change.
+5. Run `node scripts/sortfield-check.mjs` after adding, renaming or removing a column.

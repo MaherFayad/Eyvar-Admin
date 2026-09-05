@@ -1,4 +1,4 @@
-# Known state of the legacy app
+# Known defects in the original prototype
 
 Source: `DESIGN.md` §6.2 and §6.3. Line numbers are `eyvar_ops_panel_v40_fixed.html`.
 
@@ -54,7 +54,7 @@ status systems into one). Then D7/D8 (make the shipped toast conform, extract on
 component). D12–D15 and D17 are a mechanical sweep, best done once, **after** the token set
 exists.
 
-## Porting from the legacy app
+## Porting from the prototype
 
-Port **behaviour**, cite the line, rebuild the markup and CSS. The legacy file carries all
-24 of these — copying its markup inherits them.
+Port **behaviour**, cite the line, rebuild the markup and CSS. The prototype carries all 24
+of these — copying its markup inherits them.

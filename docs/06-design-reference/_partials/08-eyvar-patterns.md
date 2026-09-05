@@ -1,11 +1,10 @@
-## 8. Patterns Shopify Does Not Cover
+## 8. Patterns the baseline does not cover
 
-> **Why this section exists.** §1–§5 derive their rules from 159 screenshots of the Shopify
-> admin, which is a merchant CRUD tool: records are created, edited, listed and archived by
-> one person at a time, on their own schedule, against data that does not move while they
-> look at it. Eyvar Admin is an operations console. Six of its surface types have no
-> Shopify equivalent, or no *governed* Shopify equivalent, and together they are roughly
-> half the product:
+> **Why this section exists.** §1–§5 derive their rules from a merchant CRUD tool: records
+> are created, edited, listed and archived by one person at a time, on their own schedule,
+> against data that does not move while they look at it. Eyvar Admin is an operations
+> console. Six of its surface types have no equivalent in that baseline, or no *governed*
+> equivalent, and together they are roughly half the product:
 >
 > | Surface type | Eyvar pages | Why §1–§5 does not reach it |
 > |---|---|---|
@@ -13,11 +12,11 @@
 > | Derived / computed values | `p-plan-edit`, `p-plans` | §4.2 has one line on read-only fields. Eyvar has a computation lattice with a published formula. |
 > | Money and ledgers | `p-wallets`, `p-rwallets`, `p-finance` | §4.2 says how to render a currency *input*. Nothing says how to render money as *output*. |
 > | Work queues and SLA | `p-fraud`, `p-all-pending`, `p-requests`, `p-interventions`, `p-readiness`, `p-renewal` | §3.1 governs a list of records. A queue is a list of *work*: claimed, timed, decided, gone. |
-> | Dense wide tables | every index, queue and ledger page — 23 of the 41 | §3.1 concedes that wide tables scroll and that the checkbox and identity column *"stay pinned while they do"*, and marks both `[Polaris]`. It writes no rule for either, and none at all for an operator freezing a column of their own. |
+> | Dense wide tables | every index, queue and ledger page — 23 of the 41 | §3.1 concedes that wide tables scroll and that the checkbox and identity column *"stay pinned while they do"*, and marks both `[recalled]`. It writes no rule for either, and none at all for an operator freezing a column of their own. |
 > | **A composer that sends** | `contacts` (Support › Contact Centre), `ticket-detail` | §4 governs a form that **saves** — dirty state, a save bar, a discard, a primary you may press twice. A composer has none of those, its primary is irreversible on the first press, and its outcome arrives *after* the interaction is over. §3.8's composer is right in anatomy and posts an **internal comment**: nothing in §1–§5 leaves the building. |
 >
 > **Claim marking, extended.** §1–§5 use `[observed]` (visible in a cited screenshot) and
-> `[Polaris]` (recalled, unverified). This section adds a third tag:
+> `[recalled]` (recalled, unverified). This section adds a third tag:
 >
 > - `[code]` — verifiable in `eyvar_ops_panel_v40_fixed.html` at the line cited on the same
 >   line. Every codebase claim below carries one. Trust it, and check it before changing it.
@@ -45,7 +44,7 @@
 
 **What was tried and why it does not fit.** §6.4 maps the live map onto §2.5's *full-bleed
 editor* layout — the theme-editor pattern, where the page breaks the frame to give one
-canvas the whole viewport. It is the closest Shopify has, and it is wrong on two counts.
+canvas the whole viewport. It is the closest the baseline has, and it is wrong on two counts.
 First, the theme editor's canvas is a *preview of the thing being edited*; the live map's
 canvas is a *view of the world*, and the operator's actual work happens in a list beside
 it, not on it. Second, and fatally, the theme editor is static: it re-renders when you
@@ -53,9 +52,8 @@ change something. `p-live` re-renders because time passed. Every rule in §1–�
 surface that only changes when the user changes it — §1.6 caps motion at 300 ms because
 motion means "you did something", §3.1 sets a row height because rows sit still, §5.1
 gives success a toast because success is an event the user caused. None of that survives
-contact with a 1 Hz feed. Shopify's Analytics *Live View* is the only moving surface in the
-159 screenshots and it is a read-only globe with bar rows — no rows to act on, no
-intervention, no operator interaction to protect. So: a third page layout, and the first
+contact with a 1 Hz feed. The only moving surface in the baseline is a read-only analytics
+globe with bar rows — no rows to act on, no intervention, no operator interaction to protect. So: a third page layout, and the first
 motion rule in the document that governs a loop rather than a transition.
 
 #### 8.1.1 The monitor shell — a third page layout
@@ -70,7 +68,7 @@ the side list sticky. `p-live` already ships it at `grid-template-columns:1fr 34
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────────────────┐
-│  Live map & route history                                                            │  ← .ph, §2.2 header
+│  Live map & route history                                                            │  ←.ph, §2.2 header
 │  Track active trips, monitor requests, and step in when needed                       │
 ├───────────────────────────────────────────────────────┬──────────────────────────────┤
 │ ┌───────────────────────────────────────────────────┐ │ ┌──────────────────────────┐ │
@@ -78,10 +76,10 @@ the side list sticky. `p-live` already ships it at `grid-template-columns:1fr 34
 │ ├───────────────────────────────────────────────────┤ │ ├──────────────────────────┤ │    sticky, top:60px
 │ │  [ ⬤ Live ]   [ ⟳ History ]                       │ │ │ ⬤ TRP-4182  Nora → KFD   │ │
 │ ├───────────────────────────────────────────────────┤ │ │   0:42 elapsed · ETA 6m  │ │
-│ │ Filter: (All)(In trip)(Done)(Late)(Cancelled)     │ │ │   [Track][Call][Step in] │ │ ← .btn-track /
-│ ├────────┬────────┬─────────┬────────┬──────────────┤ │ ├──────────────────────────┤ │   .btn-call /
-│ │ ACTIVE │ LATE   │ IDLE    │ AVG ETA│ FEED         │ │ │ ◐ TRP-4190  Sara → Olaya │ │   .btn-intervene
-│ │   3    │   1    │   7     │ 6.2 m  │ 2s ago       │ │ │   1:18 elapsed · Late 4m │ │   :357/:359/:361
+│ │ Filter: (All)(In trip)(Done)(Late)(Cancelled)     │ │ │   [Track][Call][Step in] │ │ ←.btn-track /
+│ ├────────┬────────┬─────────┬────────┬──────────────┤ │ ├──────────────────────────┤ │.btn-call /
+│ │ ACTIVE │ LATE   │ IDLE    │ AVG ETA│ FEED         │ │ │ ◐ TRP-4190  Sara → Olaya │ │.btn-intervene
+│ │   3    │   1    │   7     │ 6.2 m  │ 2s ago       │ │ │   1:18 elapsed · Late 4m │ │:357/:359/:361
 │ ├────────┴────────┴─────────┴────────┴──────────────┤ │ │   [Track][Call][Step in] │ │
 │ │ ┌───────────────────────────────────────────────┐ │ │ └──────────────────────────┘ │
 │ │ │ ● start ● end ▬ actual ┄ planned │  ← legend   │ │ ┌──────────────────────────┐ │
@@ -101,7 +99,7 @@ the side list sticky. `p-live` already ships it at `grid-template-columns:1fr 34
        the side list to that card. One selection, two panes.
 ```
 
-The two panes are **one selection model**. `selectTrip()` sets `activeTrip` and both the
+The two panes are **one selection model**. `selectTrip` sets `activeTrip` and both the
 table row and the canvas redraw from it `[code]` `eyvar_ops_panel_v40_fixed.html:12687`; the
 selected row tints `background:var(--blue-lt)` `[code]` `eyvar_ops_panel_v40_fixed.html:11522`.
 That is the pattern, and it is the reason this is a layout and not just a card grid: a
@@ -146,7 +144,7 @@ frozen data is the single worst failure mode this section is written to prevent.
 
 #### 8.1.4 The live dot
 
-`.map-tab.active .tab-dot` pulses `[code]` `eyvar_ops_panel_v40_fixed.html:341-342`; a
+`.map-tab.active.tab-dot` pulses `[code]` `eyvar_ops_panel_v40_fixed.html:341-342`; a
 static `.tab-dot` is grey `[code]` `:340`. The dot's meaning must be exactly one thing —
 **data arrived recently** — and never "this tab is selected", which is what the current
 selector actually says.
@@ -200,7 +198,7 @@ that the feed is alive — a static dot cannot distinguish "connected" from "fro
 - A monitoring surface MUST NOT print a hard-coded cadence or entity count; every number in the header bar MUST be computed from the data being shown (`:775` prints `· 3 active trips · updates every second` as a literal).
 - When the last update exceeds 3× the expected interval, the surface MUST enter a stale state: the live dot stops looping and goes neutral, the timestamp switches to `Last update Nm ago`, and one page-level banner (§5.2) states that the feed has stopped. It MUST NOT keep the word "Live" on screen.
 - Per-entity feed freshness MUST use exactly three states with the thresholds already in the code — fresh < 120 s, stale 120–299 s, dead ≥ 300 s (`:12587-12593`) — and MUST label each in text, not colour alone (`.ping-label`, `:332`).
-- A pulsing live dot MUST mean "data for this entity arrived within the freshness window" and nothing else. Its absence MUST mean "not receiving". It MUST NOT indicate selection, activation, or tab state — the current selector `.map-tab.active .tab-dot` (`:341`) does exactly that and MUST be rebound to feed state.
+- A pulsing live dot MUST mean "data for this entity arrived within the freshness window" and nothing else. Its absence MUST mean "not receiving". It MUST NOT indicate selection, activation, or tab state — the current selector `.map-tab.active.tab-dot` (`:341`) does exactly that and MUST be rebound to feed state.
 - Marker tones MUST come from `:root` tokens mapped to the §3.4 badge palette; MUST NOT hard-code hexes (`:806-810`).
 - The map MUST render its legend whenever more than one marker tone or line style is drawn, using `.ndv-legend` (`:211`), and every tone and style drawn MUST appear in it.
 - The map MUST expose zoom controls and MUST NOT rely on scroll-wheel zoom alone.
@@ -276,7 +274,7 @@ Example uses 10 km / 20 min. Actual computed from real trip data at booking.
 ```
 
 The defect is not the shape, it is the wiring: that block is hand-written HTML with no link
-to `cr()`, the function that actually computes it `[code]` `:12986`. The two can drift
+to `cr`, the function that actually computes it `[code]` `:12986`. The two can drift
 silently, and a published formula that lies is worse than no formula.
 
 #### 8.2.3 Live recompute
@@ -284,15 +282,15 @@ silently, and a published formula that lies is worse than no formula.
 `.preview-strip` is the announcement surface: a pale `--blue-lt` band with a `--border`
 top rule, sitting directly under the form top bar, holding label/value pairs
 `[code]` `eyvar_ops_panel_v40_fixed.html:275-277`, mounted at `:1086`. Recompute is driven
-by `upd()` `[code]` `:12987-12999`, bound to seven `input` listeners `[code]` `:13000` and
+by `upd` `[code]` `:12987-12999`, bound to seven `input` listeners `[code]` `:13000` and
 called once at parse `[code]` `:13001`.
 
 Two real defects define the rules. First, **four inputs that affect the result are not
 bound** — `fp3-duration`, `fp3-cap`, `fp3-sort` and the status select are absent from the
 listener list `[code]` `:13000`, so the strip can show a stale number with no indication.
 Second, **the preview and the saved value disagree on an empty field**: the preview coerces
-blank to `0` via `gv()` `[code]` `:12984` while save keeps the previous stored value via
-`numval()` `[code]` `:6150-6155`. The operator clears a field, watches the preview drop, and
+blank to `0` via `gv` `[code]` `:12984` while save keeps the previous stored value via
+`numval` `[code]` `:6150-6155`. The operator clears a field, watches the preview drop, and
 saves something else entirely.
 
 #### 8.2.4 Worked examples as a form element
@@ -321,7 +319,7 @@ on the computed box.
 
 Dirty state is likewise an input property. A recompute is not an edit. Conversely, an
 editable control that never reaches the save payload is a lie: the status custom-select at
-`[code]` `:1105` is read by nothing in `savePlan()`, so the operator can change it, see it
+`[code]` `:1105` is read by nothing in `savePlan`, so the operator can change it, see it
 change, save, and lose it silently.
 
 **Rules**
@@ -333,13 +331,13 @@ change, save, and lose it silently.
 - A derived value with no computable result MUST render an em-dash `—`, never `0`, never blank, never a spinner. (Same rule as §3.7's delta.)
 - The governing formula MUST be disclosed on the page in a `.formula-box` (`:271`) placed inside the same card section as the inputs it consumes, immediately below the last of them. It MUST NOT be disclosed in a tooltip (§5.7), a modal, or helper text under a single field.
 - Every line of the chain MUST appear, in `<code>`, in the order it evaluates (`:1125`), and every assumption MUST appear in the `.formula-note` (`:274`).
-- The formula box MUST be generated from the same source as the computation. A hand-written formula block that duplicates a compute function (`:1125` vs `cr()` at `:12986`) MUST NOT ship.
+- The formula box MUST be generated from the same source as the computation. A hand-written formula block that duplicates a compute function (`:1125` vs `cr` at `:12986`) MUST NOT ship.
 - A surface carrying two or more derived values MUST render one `.preview-strip` (`:275`) directly beneath the form top bar (`:1086`), and it MUST carry `aria-live="polite"`.
 - Every input named in the formula MUST be bound to the recompute handler. The count of bound listeners MUST equal the count of inputs the formula reads (`:13000` binds 7; the formula plus save read 11).
 - Recompute MUST fire on the `input` event, not on `change` or `blur`.
 - Recompute MUST NOT animate: no flash, no colour transition, no count-up. The value is replaced in place. (§8.1 and R18 apply.)
 - If a recompute cannot complete within 150 ms, every affected derived value MUST be replaced by `—` for the duration. A stale number MUST NOT remain on screen while a newer one is being computed.
-- Exactly one numeric coercion function MUST serve both preview and save. Two functions with different blank-field semantics (`gv()` at `:12984` returns 0; `numval()` at `:6150` returns the previous value) MUST NOT ship.
+- Exactly one numeric coercion function MUST serve both preview and save. Two functions with different blank-field semantics (`gv` at `:12984` returns 0; `numval` at `:6150` returns the previous value) MUST NOT ship.
 - A computed column in a table MUST be marked in its header (`th.ci`, `:264`) and MUST NOT contain an input.
 - A worked example MUST live in the same table as the inputs it derives from, row-aligned (`:1117-1124`), and MUST state its literal inputs in the column header (`:1119`).
 - A worked example MUST be computed by the same code path as the production value it illustrates. Two paths (`:12345` vs `:12401-12405`) MUST NOT ship.
@@ -353,7 +351,7 @@ change, save, and lose it silently.
 
 ### 8.3 Money and ledgers
 
-**What was tried and why it does not fit.** Two Shopify patterns were tried and neither
+**What was tried and why it does not fit.** Two baseline patterns were tried and neither
 covers the case. §4.2 governs money as an *input* — "currency symbols as an in-field left
 prefix, unit codes as an in-field right suffix" — which says nothing about money as output.
 §3.5's key-value row (label left, optional grey qualifier, value right-aligned, bold total)
@@ -361,12 +359,12 @@ governs money as *output* and is genuinely right for an order summary: one settl
 attached to one record, that will never change. Eyvar's money moves. A driver wallet is a
 balance with a history; a cash-debt ledger accumulates negatively `[code]` `eyvar_ops_panel_v40_fixed.html:12088-12092`;
 a subscription payment sits in an authorization hold before it is captured
-`[code]` `:9593-9619`; escrow is held against future delivery `[code]` `:2801-2806`. Shopify
-has no negative amount anywhere in 159 screenshots, no running balance, no pending state
-that resolves, and no ledger. The document consequently has no rule for the most
+`[code]` `:9593-9619`; escrow is held against future delivery `[code]` `:2801-2806`. The
+baseline has no negative amount anywhere, no running balance, no pending state that
+resolves, and no ledger. The document consequently has no rule for the most
 consequential thing an ops console displays, and the codebase shows the result: 87
-independent money strings, at least three formatters (`fmtSAR()` `[code]` `:4394`, an
-identical `fmt()` `[code]` `:12985`, and raw `.toFixed(2)+' SAR'` inline
+independent money strings, at least three formatters (`fmtSAR` `[code]` `:4394`, an
+identical `fmt` `[code]` `:12985`, and raw `.toFixed(2)+' SAR'` inline
 `[code]` `:6693`), one negative rendered as `'−'+fee.toFixed(2)+' SAR'` in `--red`
 `[code]` `:5537`, and a payouts table whose amounts carry no unit at all `[code]` `:985`.
 
@@ -432,7 +430,7 @@ and it does not get index-table furniture.
 ├────────────┼───────────┼─────────────────────────────────┼─────────┼─────────┼─────────┤     the balance
 │ Closing balance                                          │    6.40 │   26.40 │   20.00 │  ← closing row
 └──────────────────────────────────────────────────────────┴─────────┴─────────┴─────────┘
-  No checkbox column.  No hover kebab (.ra, :153).  No bulk action bar.  Not user-sortable.
+  No checkbox column.  No hover kebab (.ra,:153).  No bulk action bar.  Not user-sortable.
   Showing 6 of 6 postings.
 ```
 
@@ -465,7 +463,7 @@ card `[code]` `:3951-3953` — is the permitted exception, and it omits the bala
 
 #### 8.3.4 Pending and reconciling as lifecycle states
 
-Money has more states than Shopify's `Paid` / `Refunded` / `Voided`, and every one of them
+Money has more states than `Paid` / `Refunded` / `Voided`, and every one of them
 needs an assigned tone from the closed §3.4 palette:
 
 | State | Where it lives | Tone | Rationale |
@@ -482,7 +480,7 @@ the wireframe, and the running balance column includes settled postings only.
 
 **Rules**
 
-- Exactly one money formatter MUST exist and every money string in the product MUST come from it. Inline `.toFixed(2)+' SAR'` (`:6693`) and duplicate formatters (`fmtSAR()` `:4394`, `fmt()` `:12985`) MUST NOT ship.
+- Exactly one money formatter MUST exist and every money string in the product MUST come from it. Inline `.toFixed(2)+' SAR'` (`:6693`) and duplicate formatters (`fmtSAR` `:4394`, `fmt` `:12985`) MUST NOT ship.
 - Money MUST render as `<amount> SAR`: ISO code, trailing, one space. MUST NOT use the ﷼ glyph and MUST NOT use a leading symbol. **§4.2's currency-prefix rule governs inputs only and MUST NOT be applied to output.**
 - Money MUST render exactly 2 decimal places, always, including whole amounts.
 - Money MUST use a `,` thousands separator (`Intl.NumberFormat('en', {minimumFractionDigits: 2, maximumFractionDigits: 2})`). Hand-typed separators (`:932`) MUST NOT ship.
@@ -512,8 +510,8 @@ plus §3.2's view tabs plus §3.3's bulk actions — the orders-index pattern. T
 survives about one screen. An index row is a *resource*: it exists before you open the page
 and after you close it, it can be edited and re-edited, and its status is a property you can
 change back. A queue row is a *unit of work*: it is claimed by one person, it has a deadline
-running against it, it is decided once, and then it leaves. Shopify's nearest approach is
-the `Unfulfilled` tab on the orders index, but a fulfilled order is still an order — it does
+running against it, it is decided once, and then it leaves. The baseline's nearest approach
+is a status tab on an index, but a record that leaves that tab is still a record — it does
 not exit the list, nobody claims it, and no clock runs on it. Everything a queue needs is
 therefore missing: no ownership model, no countdown component, no escalation, no disposition
 semantics, no rule for what a row looks like after it is decided. And the sharpest gap is at
@@ -536,7 +534,7 @@ The owner chip is three states `[code]` `:18928-18941`: unclaimed → `✋ Claim
 success tone, `✋ yours · 4m`, plus a release control; someone else's → warning tone,
 `✋ Layla`, plus `take over`.
 
-Two behaviours need naming as defects. `inboxOpen()` claims silently on open
+Two behaviours need naming as defects. `inboxOpen` claims silently on open
 `[code]` `:19301-19310` — deliberate, so two people do not start the same case, but it means
 there is no way to *look* at a queue item. And the stale sweep runs as a side effect of
 *reading* ownership `[code]` `:18865-18875`, so rendering the inbox mutates state and writes
@@ -574,8 +572,8 @@ the crossing, not on every subsequent tick. Multiple crossings inside one tick a
 into a single notification with a count, with the reasoning written into the source
 `[code]` `:9674-9678`. Both behaviours are the rule.
 
-Two are not. `playAlertBeep()` fires unconditionally with no mute
-`[code]` `:9731-9749`, and `reopenSubReq()` rewrites `requestedAt` to now
+Two are not. `playAlertBeep` fires unconditionally with no mute
+`[code]` `:9731-9749`, and `reopenSubReq` rewrites `requestedAt` to now
 `[code]` `:10302-10310`, restarting the clock and destroying the original ask time.
 
 #### 8.4.4 Disposition
@@ -592,7 +590,7 @@ and is told no.
 
 The row converts in place. It does not vanish — a row that disappears on click gives the
 operator no confirmation of what they just did and no route to undo it. Actions are replaced
-by `decisionBadge()`, which names outcome, actor and reason
+by `decisionBadge`, which names outcome, actor and reason
 `[code]` `eyvar_ops_panel_v40_fixed.html:10905-10909`, with the timestamp beneath
 `[code]` `:10925`. The same badge drives the detail page's inline status banner
 `[code]` `:7124`.
@@ -679,7 +677,7 @@ icon tile, never both, or red stops meaning "this one".
 
 - A breach MUST fire its escalation exactly once, at the crossing: one audit entry, one ops notification (`:12544-12553`). It MUST NOT re-fire on subsequent ticks.
 - Multiple breaches inside one tick MUST be batched into one notification carrying a count (`:9674-9678`). N toasts MUST NOT ship.
-- An audible alert MUST be opt-in and MUST have a visible mute control (`playAlertBeep()` at `:9731-9749` is unconditional).
+- An audible alert MUST be opt-in and MUST have a visible mute control (`playAlertBeep` at `:9731-9749` is unconditional).
 - Escalation MUST NOT reassign, re-queue, or release ownership automatically.
 - Re-opening a decided or expired item MUST preserve its original request timestamp and MUST record the re-open as a separate event. Rewriting `requestedAt` to now (`:10302-10310`) MUST NOT ship.
 
@@ -688,7 +686,7 @@ icon tile, never both, or red stops meaning "this one".
 - Every queue MUST declare a closed, documented set of dispositions. Each MUST be labelled with a verb (§5.7) and rendered in the row's action cell (`:10925-10928`).
 - At most one disposition per row MAY be a filled primary (§4.6). A destructive disposition MUST confirm (§5.3).
 - A disposition control MUST check permission at click, not only at commit.
-- On decision the row MUST convert in place: action controls replaced by `decisionBadge()` naming outcome, actor and reason (`:10905-10909`), with the decision timestamp beneath (`:10925`).
+- On decision the row MUST convert in place: action controls replaced by `decisionBadge` naming outcome, actor and reason (`:10905-10909`), with the decision timestamp beneath (`:10925`).
 - A decided row MUST NOT be removed by a background refresh. It MUST remain visible until the operator navigates away or explicitly clears it.
 - The queue's count badge and its sidebar badge MUST decrement immediately on decision, while the decided row is still on screen.
 - A decided row MUST NOT use `opacity` to de-emphasise (`:10929` uses `.7`, which is §4.6's disabled treatment). It MUST switch its primary text to `--muted` and drop its hover and click affordances.
@@ -711,8 +709,8 @@ icon tile, never both, or red stops meaning "this one".
 
 **What was tried and why it does not fit.** §3.1 and §3.2 govern a list of records that fits.
 Every control they define lives in the **toolbar**: one sort popover, one filter chip row, one
-optional columns icon. That works at Shopify's ~40 px rows and six-to-eight columns on a page
-someone visits. Eyvar runs 23 of its 41 pages as tables at **32 px rows** (§6.2 D-2), some
+optional columns icon. That works at the baseline's ~40 px rows and six-to-eight columns on a
+page someone visits. Eyvar runs 23 of its 41 pages as tables at **32 px rows** (§6.2 D-2), some
 carrying twelve columns `[code]` `eyvar_ops_panel_v40_fixed.html:740-751`, in front of an
 operator who works one of them all day. Two things break.
 
@@ -722,9 +720,9 @@ list." §3.1's filter chips have the same indirection. The column is right there
 pointer, and the control is 400 px away in a popover.
 
 **Second, §3.1 concedes horizontal scroll and then stops.** *"Wide tables clip at the card's
-right edge"* `[observed]` `02-orders/orders-list-with-metrics-row.webp` — the `Tags` column is
+right edge"* `[observed]`  — the `Tags` column is
 cut off with no scrollbar in frame. The document adds: *"That they scroll horizontally, and that
-the checkbox + primary cell stay pinned while they do, are both `[Polaris]` — a static frame
+the checkbox + primary cell stay pinned while they do, are both `[recalled]` — a static frame
 cannot show a scroll."* So §3.1 has **already committed to implicit column pinning** on recall,
 with no rule attached, no statement of which columns, no visual treatment, and no RTL clause —
 in a document whose §9 exists because directional geometry is where this product breaks.
@@ -740,13 +738,12 @@ ships one, badly (§8.5.1).
 
 #### 8.5.1 What already exists, and the defect in it
 
-**Shopify does freeze a column** — in the full-screen bulk-edit grid, not the index table.
-`03-products/products-bulk-editor-grid.webp` and `03-products/products-bulk-editor-price-columns.webp`
+**The baseline does freeze a column** — in its full-screen bulk-edit grid, not the index table.
 are the same grid at two horizontal scroll offsets. Diffing them with PIL `[observed]`:
 
 ```
 region                              mean channel diff   max
-Product title column   (x < 210)                0.13     14   <- WebP compression noise
+Product title column   (x < 210)                0.13     14   <- compression noise
 first scrolling column (x 230+)                 8.25    220
 ```
 
@@ -754,13 +751,13 @@ The first column does not move; `Tags` scrolls away and `Status` slides up again
 frozen boundary, sampled at a body row in both frames:
 
 ```
-x           204 ... 211   212    213    214   215
+x           204... 211   212    213    214   215
 grid        247,247       241    248    255   254
 scrolled    247,247       241    248    255   254
 ```
 
 `[observed]` **One 1 px hairline, identical scrolled and unscrolled.** No gradient falloff, so
-no shadow — a `0 ... 6px` blur would render as a ramp across four to eight pixels and there is
+no shadow — a `0... 6px` blur would render as a ramp across four to eight pixels and there is
 none.
 
 **Eyvar already pins a column, physically.** `[code]` `eyvar_ops_panel_v40_fixed.html:751` and
@@ -793,15 +790,15 @@ full argument and the three clauses it suspends.
 
 ```
 +- 200px -----------------------+   start-aligned header      end-aligned header
-| (*)  ^  Sort A to Z           |   +------------------+      +------------------+
-| ( )  v  Sort Z to A           |   | Captain  ^  v    |      |    v  v  Trips   |
-|      Clear sort               |   +------------------+      +------------------+
-| ----------------------------- |     label flush to the        label flush to the
-|      Filter...                |     inline-START              inline-END, so header
-|      Clear filter             |                               and value share one
-| ----------------------------- |                               edge — R4 upheld
-|      Pin column               |
-|      Hide column              |
+| (*) ^ Sort A to Z | +------------------+ +------------------+
+|  v Sort Z to A | | Captain ^ v | | v v Trips |
+| Clear sort | +------------------+ +------------------+
+| ----------------------------- | label flush to the label flush to the
+| Filter... | inline-START inline-END, so header
+| Clear filter | and value share one
+| ----------------------------- | edge — R4 upheld
+| Pin column |
+| Hide column |
 +-------------------------------+
 ```
 
@@ -842,13 +839,13 @@ posting's persisted `balanceAfter` intact; reordering destroys the column's mean
 
 ```
 +-- PINNED, inline-start --------+|~~~ scrolls ~~~~~~~~~~~~~~~~~~~+|+- PINNED, inline-end -+
-| # | Captain      ^ v | City v ||| Plan v | Trips v | Earned v ||          ...          |
+| # | Captain ^ v | City v ||| Plan v | Trips v | Earned v ||... |
 |---+------------------+--------|||--------+---------+----------|+-----------------------+
-| # | Nora Al-Harbi    | Riyadh ||| Weekly |     412 |  4,218.00||          ...          |
-| | | DRV-0106         | Dammam ||| Weekly |       0 |      0.00||          ...          |
+| # | Nora Al-Harbi | Riyadh ||| Weekly | 412 | 4,218.00||... |
+| | | DRV-0106 | Dammam ||| Weekly | 0 | 0.00||... |
 +-^-+------------------+--------+|+--------+---------+----------++-----------------------+
-  |  R5a marker rides the pinned  hairline boundary
-  |  region and NEVER scrolls away
+ | R5a marker rides the pinned hairline boundary
+ | region and NEVER scrolls away
 ```
 
 | Region | Contents | Decided by |
@@ -867,7 +864,7 @@ separate per-view state (§3.1 *Column visibility*).
 the kebab at the row's inline-end and `[code]` `:751` shows that the action control is what
 operators freeze there. Allowing arbitrary data columns to be inserted between the scrolling
 region and the row's action control puts a moving boundary around the one control that must
-stay put. Shopify freezes one region, at the start `[observed]`.
+stay put. The baseline freezes one region, at the start `[observed]`.
 
 **The identity column is never hideable and never unpinnable.** §3.1: the first data cell MUST
 be the identity and MUST be a link to the record. You cannot hide or scroll away the only thing
@@ -913,7 +910,7 @@ analogue — but it does **not** inherit the token, for three reasons in order o
    `offset-x: 0` so elevation is direction-invariant and needs no RTL branch. Applied to an
    inline edge, a block-axis shadow renders *below* the column; giving it an x-offset creates a
    token that **must** mirror — reintroducing precisely the defect `[code]` `:751` already has.
-2. **The measurement says hairline.** Shopify's frozen boundary is one 1 px step, unchanged by
+2. **The measurement says hairline.** The baseline's frozen boundary is one 1 px step, unchanged by
    scroll `[observed]` (§8.5.1).
 3. **The primary signal is motion, not the line.** Content moves; the pinned block does not. The
    boundary is a supporting delimiter, which §7.1 classes as a decorative rule with no contrast
@@ -1007,10 +1004,10 @@ competing source of truth for something §3.1 already governs.
 **What was tried and why it does not fit.** §6.4 had no row for this surface at all, and the
 two candidates both fail. **§4** governs a form that **saves**: it has a dirty state, a
 contextual save bar, a discard, and a primary the operator may press twice with the same
-result. **§3.8** governs the timeline composer, and its anatomy is right — Shopify ships one
-and it is fully `[observed]` — but every Shopify composer posts an **internal comment**
+result. **§3.8** governs the timeline composer, and its anatomy is right — the baseline ships
+one and it is fully `[observed]` — but every baseline composer posts an **internal comment**
 (*"Only you and other staff can see comments"*,
-`02-orders/order-detail-timeline-comment-composer.webp`) and therefore never leaves the
+) and therefore never leaves the
 building. Neither section has a rule for the thing that makes this surface dangerous: **the
 primary sends a message to a customer, and it cannot be unsent.** Raised as finding
 **F-R5-1** by `DECISIONS.md` **D19** and answered here.
@@ -1052,21 +1049,21 @@ rail carries the customer, the ticket link and the claim history (§3.8).
 
 ```
 +-- main ----------------------------------------------++-- rail --------+
-|           [ Load earlier messages ]                  || Customer       |
-|  +---------------------------+                       || Ticket         |
-|  | inbound - inline-start    |                       || History        |
-|  +---------------------------+                       ||                |
-|                    +-------------------------------+ ||                |
-|                    | outbound - inline-end         | ||                |
-|                    +-------------------------------+ ||                |
-|                                          Delivered   ||                |
+| [ Load earlier messages ] || Customer |
+| +---------------------------+ || Ticket |
+| | inbound - inline-start | || History |
+| +---------------------------+ || |
+| +-------------------------------+ || |
+| | outbound - inline-end | || |
+| +-------------------------------+ || |
+| Delivered || |
 +------------------------------------------------------+|                |
-| [ Reply | Internal note ]                            ||                |
-| +--------------------------------------------------+ ||                |
-| | Write a reply...                                 | ||                |
-| +--------------------------------------------------+ ||                |
-| (attach) (canned)   [Reply by email]      [ Send ]   ||                |
-| Enter sends - Shift + Enter adds a line              ||                |
+| [ Reply | Internal note ] || |
+| +--------------------------------------------------+ || |
+| | Write a reply... | || |
+| +--------------------------------------------------+ || |
+| (attach) (canned) [Reply by email] [ Send ] || |
+| Enter sends - Shift + Enter adds a line || |
 +------------------------------------------------------++----------------+
 ```
 
@@ -1102,15 +1099,14 @@ and hue habituates:
 | 4 | The send label | `Send` | **`Add note`** |
 | 5 | The line under the composer | `Enter sends · Shift + Enter adds a line` | `Only your team can see this. Enter adds the note · Shift + Enter adds a line.` |
 
-Carrier 5 is `[observed]` in structure: Shopify puts exactly this notice immediately below
-and outside its composer (`Only you and other staff can see comments`,
-`02-orders/order-detail-timeline-comment-composer.webp`). The wording is Eyvar's, because
-Eyvar's composer can also send and Shopify's cannot — *"can see"* alone does not say *"and
-nothing was sent"*.
+Carrier 5 is `[observed]` in structure: the baseline puts exactly this notice immediately
+below and outside its composer (`Only you and other staff can see comments`). The wording is
+Eyvar's, because Eyvar's composer can also send and the baseline's cannot — *"can see"* alone
+does not say *"and nothing was sent"*.
 
 **§3.8's `[observed]` label `Post` does not bind.** §3.8's rule is about the *behaviour* —
-the control is disabled until there is content — and `Post` is an observation of Shopify's
-label. `Send` and `Add note` are verb + object and they say which register fired.
+the control is disabled until there is content — and `Post` is an observation of the
+baseline's label. `Send` and `Add note` are verb + object and they say which register fired.
 
 **A posted note is a different shape in the thread, not a different colour.** `[ruling]`
 
@@ -1125,7 +1121,7 @@ Four shapes, four grounds already in the token set, no new colour, and every one
 survives greyscale and mirrors correctly. **The note is the only message that is not a
 bubble**, which is the difference an operator reads at a glance from across a desk.
 
-`deliveryIsWellFormed()` already asserts that a note carries `delivery: null` `[code]`. **The
+`deliveryIsWellFormed` already asserts that a note carries `delivery: null` `[code]`. **The
 UI MUST NOT draw a tick, a word, or a placeholder in the note's DELIVERY position** — not an
 em dash, not `Not sent`, nothing. An absence is the correct rendering of a fact that does not
 exist.
@@ -1266,7 +1262,7 @@ from it by seconds. No tick glyph: §5.7 forbids emoji, and a single-versus-doub
 idiom borrowed from a consumer app that this console has never taught. **Words are the only
 carrier that translates.**
 
-`read` is seeded in the fixtures (`CNV-105`, `CNV-111`) but `scriptDelivery()` never advances
+`read` is seeded in the fixtures (`CNV-105`, `CNV-111`) but `scriptDelivery` never advances
 a newly sent message into it — the mock goes `queued → sent → delivered` `[code]`. So `read`
 renders from stored data and is never reached live in mock mode. It renders by the same rule
 as the rest. Recorded, not hidden.
@@ -1275,7 +1271,7 @@ as the rest. Recorded, not hidden.
 
 ```
                     +-------------------------------------------+
-                    | Hi Nora, your refund is on its way.       |   <- outline, no fill
+ | Hi Nora, your refund is on its way. | <- outline, no fill
                     +-------------------------------------------+
                     Not delivered - no email address on file
                                      [ Send again ]  [ Add an email address ]

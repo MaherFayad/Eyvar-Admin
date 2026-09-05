@@ -221,8 +221,8 @@ never `DB.trips`, so the live board and the trips table diverge permanently.
 > `docs/01-modules/14a-pricing-plans.md` §19 had the taxonomy right throughout;
 > `16g` merged two models and the error propagated from there into this file,
 > `04-relations/ENTITY-RELATIONSHIPS.md` (X10),
-> `04-relations/MODULE-DEPENDENCY-MAP.md` and the restructure documents. Those
-> are corrected separately — see `docs/02-verification/pass-2c-pricing-and-settings-audit.md` §5.
+> `04-relations/MODULE-DEPENDENCY-MAP.md` and the restructure documents. Each of
+> those is corrected in place.
 
 **(e) Gating and audit asymmetry.** `commitUserSwitch()` (`L3098`) has **no
 permission check at all** — any operator becomes Owner, with no impersonation
@@ -259,10 +259,10 @@ section. Counting keyword occurrences across those documents —
 gives **313 hits**. That is an upper bound on distinct defects, not a count of
 them: the same root cause is often reported by several documents.
 
-The deduplicated register in
-[`02-verification/FINDINGS-REGISTER.md`](../02-verification/FINDINGS-REGISTER.md)
-is the authoritative count. Order of magnitude: **~200 distinct findings**, of
-which a single-digit number are critical — money, data loss, or access control.
+The deduplicated register is
+[`03-data/findings-register.json`](../03-data/findings-register.json). Order of
+magnitude: **~200 distinct findings**, of which a single-digit number are
+critical — money, data loss, or access control.
 
 The documents also carry **252 `UNVERIFIED` markers**: places where an analyst
 declined to assert something they could not confirm. That number is a quality
@@ -276,7 +276,9 @@ signal, not a deficiency.
 [`03-data/DATA-MODEL.md`](../03-data/DATA-MODEL.md) and
 [`04-relations/COUPLING-ANALYSIS.md`](../04-relations/COUPLING-ANALYSIS.md). Read
 the module doc for your area before touching it — each ends with a line-number
-index. Check the findings register for known defects in that area first.
+index. Check [`03-data/findings-register.json`](../03-data/findings-register.json)
+for known defects in that area first, and [`../ref/defects.md`](../ref/defects.md)
+to tell a known divergence from a new one.
 
 **Operator learning the tool.** Read §4 and §5 above, then the module docs for
 your role's screens. Their Actions tables state what each button actually does —
@@ -298,12 +300,9 @@ The critical findings are the ones to fix before anything is built on top.
 | `00-index/METHODOLOGY.md` | How the documentation was produced and verified |
 | `00-index/GROUND-TRUTH-INVENTORY.md` | The machine census, plus 7 recorded corrections to itself |
 | `01-modules/*.md` (60) | One document per module: every value, action, input, formula, state |
-| `02-verification/pass-1-coverage-review.md` | Is anything missing? — 99.0% of 2,470 symbols |
-| `02-verification/pass-2-accuracy-review.md` | Is anything wrong? — 5,728 claims checked |
-| `02-verification/pass-2b-supplementary-audit.md` | The 8 documents pass 2 could not reach |
-| `02-verification/orchestrator-spot-checks.md` | ~30 claims independently re-verified by the orchestrator |
-| `02-verification/corrections-applied.md` | What was fixed, and which review findings were rejected |
-| `02-verification/FINDINGS-REGISTER.md` | Every defect, deduplicated and prioritised by severity |
+| `ref/verify.md` | How to prove a claimed defect is real, and how to name the test |
+| `ref/defects.md` | Known divergences in the prototype, so a new one is recognisable |
+| `03-data/findings-register.json` | Every defect, deduplicated and prioritised by severity |
 | `03-data/DATA-MODEL.md` | All 101 collections: fields, enumerations, foreign keys |
 | `03-data/GLOBAL-STATE.md` | The 149 non-`DB` globals |
 | `03-data/*.json` | Machine-readable inventory, findings, entities, action catalog |

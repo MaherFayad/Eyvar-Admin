@@ -1,7 +1,7 @@
 # Methodology
 
-How this documentation set was produced, in the order it happened. Every step is
-reproducible from the commands recorded here.
+How this documentation set is produced. Every step is reproducible from the commands
+recorded here.
 
 ## Source of truth
 
@@ -98,10 +98,12 @@ opposite directions — so the passes are split and given different jobs:
 | Question | *Is anything missing?* | *Is anything wrong?* |
 | Method | Diff the docs against the machine census | Re-derive each claim from source, blind to the doc's reasoning |
 | Failure it catches | Omission | Fabrication, stale line numbers, wrong formulas |
-| Output | `docs/02-verification/pass-1-coverage-review.md` | `docs/02-verification/pass-2-accuracy-review.md` |
 
 Findings from both passes are applied back into `docs/01-modules/` before the
-JSON extraction runs, so downstream artefacts inherit reviewed content only.
+JSON extraction runs, so downstream artefacts inherit reviewed content only. A
+finding is corrected in place: a document carrying a wrong claim plus a
+correction filed elsewhere is read wrong by the next person. The standard for
+reporting one is [`../ref/verify.md`](../ref/verify.md).
 
 ## Evidence conventions used throughout
 

@@ -96,13 +96,12 @@ no return annotation, 39 clients that never called `registerOperations()` — ar
 
 Two of those cost nothing to re-introduce, so know where they came from:
 
-- **A one-line operations block used to be invisible to the checker** — it matched
-  `key: 'value',` at line ends, so `export const X_OPERATIONS = { list: 'x.list' } as const`
-  declared ids and still reported clean. Two clients were unregistered that way.
-  **Closed 2026-09-02:** the checker now matches the *declaration name*
-  (`\b[A-Z][A-Z0-9_]*_OPERATIONS\s*[:=]`), which cannot be written on more or fewer lines.
-  The lesson stands even though the hole does not — a checker that matches formatting
-  rather than meaning reports clean on the defect it exists to find.
+- **The checker matches the declaration name, not the formatting.**
+  `\b[A-Z][A-Z0-9_]*_OPERATIONS\s*[:=]` cannot be written on more or fewer lines. Matching
+  `key: 'value',` at line ends instead let a one-line block —
+  `export const X_OPERATIONS = { list: 'x.list' } as const` — declare ids and still report
+  clean. A checker that matches formatting rather than meaning reports clean on the defect
+  it exists to find.
 - **Registration must be at module load, beside the constant block**, not on first call.
   `mock()` registers when it runs, so an operation nobody has invoked yet is missing from
   `knownOperations()` and from any validation of `?mockFail=`.

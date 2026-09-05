@@ -1,11 +1,8 @@
 # Verifying a claim
 
-Source: the three-way audit reconciled in `design/17-reconciled-findings.md` §3. That
-section exists because **nine claims across three independent audits were wrong**, and the
-wrong ones were not obviously wrong — each was produced by a competent pass and read as
-credible.
-
-This file is the standard for reporting a defect in this codebase.
+This file is the standard for reporting a defect in this codebase, and the standard for
+naming a test. `design/17-reconciled-findings.md` §3 holds the worked examples: claims that
+read as credible, were produced by a competent pass, and were wrong.
 
 ## The rule
 
@@ -47,14 +44,34 @@ column widths, and bundle size: measure the after, not just the before.
 
 ## What only running the app can find
 
-The static passes missed all three of these, and they were the highest-severity findings:
-
-- 60px row pitch on every non-ledger table
-- the identity column collapsing to 38px at 1280 and 0px at 1152
-- Arabic timestamps rendering reversed
+A static pass cannot see row pitch, a column collapsing to 38px at 1280 and 0px at 1152, or
+Arabic timestamps rendering reversed. Those are the findings that hurt operators most and
+the ones grep is blindest to.
 
 **If a claim is about density, layout, or how something reads, open it.** `npx vite --port
 5199`, then Playwright. Grep cannot see a screen.
+
+**A contrast audit that measures only resting pixels reports this product as clean when it
+is not.** Every interactive thing has a hover, a focus, a checked, a disabled and a selected
+appearance, and each of those puts a different ink on a different ground. Sweep the states —
+hover a row and re-measure the label on `--ev-nav-hover`, focus a control and measure the
+ring, select a row and measure everything sitting on the selected fill. A pass that reports
+one number per token has measured one fifth of the surface.
+
+## Naming a test after its criterion
+
+**Every test name quotes the acceptance criterion it proves**, so a CI failure reads as
+`AC-24 failed` and nobody has to open the file to learn what broke. `it('AC-24 — a refusal
+names the permission and who grants it', …)`.
+
+**A criterion that is currently false gets `it.fails`, with `DEFECT D-n` in the name.** The
+test asserts the criterion as written, the runner records that it does not hold, and the
+defect is visible in every run instead of living in a document.
+
+**The fix is to fix the production code and let the `it.fails` go red.** A red `it.fails` is
+the signal that the defect is gone; flip it to `it` in the same commit. Deleting the test,
+loosening the assertion to match the bug, or renaming the defect out of the title all
+convert a tracked defect into an untracked one, and none of them is a fix.
 
 ## Reporting
 
@@ -65,6 +82,22 @@ The static passes missed all three of these, and they were the highest-severity 
   defect — `tone.ts:11` records it as deliberate under R7" ends the question permanently.
 - Correct in place. A doc that carries a wrong finding plus a later correction elsewhere
   will be read wrong by the next person.
+
+**A finding of absence is re-verified against the tree at hand-off, not at capture.** "This
+screen has no empty state" is true of the commit you read and may be false by the time
+anyone acts on it — someone else's branch lands in between. Re-run the check immediately
+before handing the report over, and date the re-run, not the original pass.
+
+**The gate has three severities and they mean different things.**
+
+| Severity | Meaning |
+|---|---|
+| **blocking** | It may not merge. |
+| **should-fix** | It merges, and it is fixed before the next change to that screen. |
+| **note** | A suggestion. It is not a rule violation and nobody owes an answer to it. |
+
+Grade every finding. An ungraded list gets read as all-blocking or all-optional, and both
+readings are wrong.
 
 ## `src` is clean is not `dist` is clean
 
@@ -91,23 +124,21 @@ place this is visible.
 
 ## Measure on a quiescent tree, or do not measure
 
-Added after a run in which eleven agents worked this repo concurrently, partitioned by file
-so none could overwrite another. The partitioning worked. **It protected the files and it
-did nothing for the measurements**, which is the failure worth recording:
+Partitioning concurrent agents by file protects the files and does nothing for the
+measurements. Three ways that shows up:
 
-- `tsc -b --force` returned 40+ errors, then 0, then 0, within minutes — the first run had
+- `tsc -b --force` returns 40+ errors, then 0, then 0, within minutes, because the first run
   caught a file mid-write.
-- Two consecutive `npm test` runs failed **disjoint sets** of suites.
-- `globals.css` was briefly broken by a comment containing `*/` inside a `**/*` glob, which
-  ends the comment early. Dev served a **white page behind an HMR overlay** — and several
-  agents were running Playwright at that moment. A screenshot of a blank page is evidence
-  of nothing, and it looks exactly like evidence of something.
+- Two consecutive `npm test` runs fail **disjoint sets** of suites.
+- A comment containing `*/` inside a `**/*` glob ends the comment early and breaks
+  `globals.css`. Dev then serves a **white page behind an HMR overlay**, and a screenshot of
+  a blank page is evidence of nothing while looking exactly like evidence of something.
 
 So: before quoting a number, establish that nothing else is writing. If you cannot, say the
 number is provisional. A measurement taken during churn is not a weaker measurement, it is
 a different file's.
 
-Two more from the same run, both cheap to remember:
+Two more, both cheap to remember:
 
 - **`tsc` cannot see CSS.** A green typecheck says nothing about whether the app builds.
   Run the build.
@@ -117,9 +148,17 @@ Two more from the same run, both cheap to remember:
   them 7–13s "element never rendered" timeouts. **`npx vitest run --maxWorkers=4` is a
   clean 3061/3061.** Use it before you go looking for a logic bug.
 
+## Seeding a mock failure
+
+`seedMockFailuresFromLocation()` must run **before `createRoot`**. Every mock client reads
+the failure registry on its way out of the module, so a seed that lands after the first
+render applies to the *retry*, not to the load — the screen paints its content state, then
+fails on the next call, and the loading-into-error path you meant to prove is never
+exercised. Seed it in the entry file, above the render.
+
 ## Known-good baselines
 
-Established 2026-09-02 on a quiescent tree, every figure reproduced:
+On a quiescent tree, every figure reproduced:
 
 | Gate | Result |
 |---|---|
@@ -129,6 +168,6 @@ Established 2026-09-02 on a quiescent tree, every figure reproduced:
 | `npm run api:check` | exit 0 — 284 endpoints |
 | `npm run i18n:check` | exit 0 — 4,665 keys, **0 `defaultValue` at ceiling 0** |
 
-Anything short of that is a regression, and it now has a name to be measured against.
-**Capture the output with your claim** — an earlier baseline of "`tsc -b` exits 1" was true
-when written, shifted three times in forty minutes, and was stale by the time it was read.
+Anything short of that is a regression, and it has a name to be measured against.
+**Capture the output with your claim.** A baseline quoted from this table without a fresh
+run is a claim about the day it was written, not about your branch.

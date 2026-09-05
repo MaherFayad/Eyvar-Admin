@@ -2,45 +2,16 @@
 
 > ### ⚠ D7 — this section is PROVENANCE, not authority
 >
-> `DECISIONS.md` **D7** replaced the **visual** reference. Navattic governs colour, spacing,
-> radii, borders, the type scale, page organisation, nav treatment, card treatment and table
-> style. **Everything visual below describes Shopify and no longer describes what Eyvar
-> ships.**
->
-> The screenshot citations are **kept on purpose**: they are what makes the derivation
-> auditable — open the cited frame and you can check what the analyst saw. **They may not be
-> cited to settle what Eyvar ships.** For that, read
-> `docs/05-restructure/design/03-navattic-language.md`, whose §1 holds the complete token set
-> with every value's measurement or derivation.
+> **Nothing visual below describes what Eyvar ships.** Colour, spacing, radii, borders, the
+> type scale, nav treatment, card treatment and table style are settled by the token layer,
+> `src/styles/globals.css`, summarised in `docs/ref/tokens.md`.
 >
 > What still binds from this section is **structure** — what a page is made of, what goes in
 > a header, what a state is for — and only where §6 adopts it. Every pixel figure was already
 > non-binding under **R13**; under D7 it is non-binding twice over.
-
-
-> **Evidence base.** Every `[observed]` claim below comes from a screenshot in
-> `docs/06-design-reference/shopify-admin-web/` that was opened and inspected for this section
-> (38 images across 00-auth, 01-home, 02-orders, 03-products, 04-customers, 05-online-store,
-> 06-marketing, 07-analytics, 08-finances, 09-discounts, 10-settings, 11-apps-and-channels,
-> 12-notifications, 13-navigation-shortcuts, 14-global-search, 15-account).
-> Claims marked `[Polaris]` come from knowledge of the Polaris design system and were **not**
-> verifiable in these images — treat them as advisory, not evidence.
 >
-> **How the measurements were derived — R13, the single calibration.** All source images are
-> 768 × 523 px, of which the bottom ~50 px is a Mobbin watermark strip that is ignored. The UI area is
-> therefore 768 × ~473 px. Pixel edges were sampled programmatically (top bar bottom edge at y≈29–30,
-> nav/content boundary at x≈129, card edges at x≈195/526/536/700).
->
-> This section previously assumed a **2× downscale of a ~1536 CSS-px viewport**. That assumption is
-> **wrong and is the outlier** among the document's four calibrations — it is what produced the 256 px
-> nav that R11 had to overrule. The one calibration for the whole document is **≈1.90×**: a 56 px top
-> bar at y≈29–30 implies 1.87–1.93×, and the nav boundary at x≈129 implies ~245 px, not 256.
->
-> **Every figure in §2 has been rescaled by 1.90/2.00 = 0.95** and is **approximate, ±8 px**.
-> **Px figures in §1–§5 are indicative, not binding** — use them as ratios and targets, not as gospel.
-> Where a ruling in the header or the contradiction audit names a specific figure — the left nav at
-> **~240 px** (R11), the drawer widths at **~406 px / ~648 px** (C12) — that named figure governs over
-> the rescale.
+> `[observed]` claims are evidenced on the line that carries them. `[recalled]` claims are
+> general design-system knowledge and are advisory, not evidence.
 
 ---
 
@@ -50,16 +21,13 @@ The admin is a fixed three-part shell: a dark top bar spanning the full viewport
 navigation column beneath it, and a scrolling content region. Only the top bar is dark; the nav
 column is a **near-canvas grey one step darker than the content canvas** — sampled at **`#EBEBEB`** on
 the nav side of the x≈129 boundary and **`#F1F1F1`** on the content side. There is still **no border,
-shadow or panel edge** drawn between them: the separation is tonal only. (This corrects an earlier
-claim that both sides sampled `#F1F1F1`; the step is consistent across
-`products-list-default`, `discounts-list-with-code`, `orders-list-with-metrics-row`,
-`finances-overview-earnings-donut-and-payouts` and `customers-list-single-customer`.)
-`[observed]` `docs/06-design-reference/shopify-admin-web/03-products/products-list-default.webp`,
-`.../09-discounts/discounts-list-with-code.webp`
+shadow or panel edge** drawn between them: the separation is tonal only, and the step is
+consistent across every surface sampled. `[observed]`
+
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────────────┐
-│ ▨ shopify        [ 🔍  Search                        ⌘K ]         🔔  ( My Store 🟢 )│ ← top bar, ~56px, dark #1A1A1A
+│ ▨ logo           [ 🔍  Search                        ⌘K ]         🔔  ( My Store 🟢)│ ← top bar, ~56px, dark #1A1A1A
 ├────────────────────┬─────────────────────────────────────────────────────────────┤
 │  ⌂ Home            │                                                             │
 │  ▤ Orders      (1) │   Products                          [Export][Import][⋯][+ Add]│ ← page header
@@ -92,17 +60,16 @@ claim that both sides sampled `#F1F1F1`; the step is consistent across
 
 | Zone | Contents | Approx. geometry |
 |---|---|---|
-| Left | Shopify glyph + wordmark, sitting inside the nav column's width | starts ~16 px from the left edge |
+| Left | Product glyph + wordmark, sitting inside the nav column's width | starts ~16 px from the left edge |
 | Centre | Search field: magnifier icon, placeholder "Search", `⌘K` hint right-aligned inside the field | ~514 px wide, **centred on the viewport**, not on the content region |
 | Right | Notification bell (red dot when unread), then a store-switcher pill: store name + square avatar with initials | pill ends ~16 px from the right edge |
 
 The search field being centred on the *viewport* (its centre lands on x≈384 of 768) rather than on
 the content region is deliberate and consistent across every framed screenshot read. `[observed]`
-`.../01-home/home-sales-chart-and-things-to-do-next.webp`,
-`.../02-orders/orders-list-with-metrics-row.webp`
+
 
 The bell renders a small red dot badge when alerts are pending and takes a lit/active treatment
-while its popover is open. `[observed]` `.../12-notifications/alerts-popover-with-channel-issue.webp`
+while its popover is open. `[observed]`
 
 **Left navigation** — **~240 px** wide (R11), full height below the top bar, with the content region
 starting ~23 px to the right of its edge. The 256 px figure this section used to print was an artefact
@@ -110,8 +77,8 @@ of the wrong 2× calibration; the boundary at x≈129 img px measures ~245 px at
 ~240 px as the constant. §3's ~247 px is the same measurement rounded differently and is not a
 disagreement about the product. `[observed]`
 
-Anatomy, top to bottom `[observed]` across `.../03-products/products-list-default.webp`,
-`.../02-orders/order-detail-unfulfilled-payment-pending.webp`, `.../08-finances/finances-overview-earnings-donut-and-payouts.webp`:
+Anatomy, top to bottom `[observed]` across,
+,:
 
 1. **Primary items**, each a 16 px leading icon + label: Home, Orders, Products, Customers,
    Content, Finances, Analytics, Marketing, Discounts.
@@ -129,16 +96,16 @@ Anatomy, top to bottom `[observed]` across `.../03-products/products-list-defaul
    "uppercase-ish" description was wrong, and contradicted §1.2's own MUST.)
 5. **`Apps` group** — same pattern; shows `⊕ Add apps` when empty, and installed apps (e.g. Email,
    with a pin affordance and its own nested Templates / Settings) when populated.
-   `[observed]` `.../06-marketing/email-app-overview-campaigns-table.webp`
+   `[observed]`
 6. **`⚙ Settings`** pinned to the bottom of the column, separated from the scrolling list.
 
 **Active-item treatment** `[observed]`: a top-level active item gets a filled white pill inset
 ~6 px from both nav edges, with a slightly heavier label weight. **A nested active item gets the same
 full-width rounded white pill**, plus an elbow/connector marker running from the parent row into it
 and a heavier label. The earlier claim that nested items get "a marker instead of a pill" is
-contradicted by both files it cited: `.../03-products/inventory-quantities-by-variant.webp`
-(Inventory active) and `.../04-customers/customer-segments-row-actions-menu.webp` (Segments active)
-both render the pill. Also `.../05-online-store/blog-posts-list.webp` with Blog posts active.
+contradicted by both files it cited:
+(Inventory active) and  (Segments active)
+both render the pill. Also  with Blog posts active.
 
 **Only one section is expanded at a time** — the section that owns the current route. Every framed
 capture read shows sub-items under one parent only and none under the others, but this is a universal
@@ -172,7 +139,7 @@ measurement. `[inferred]`
 **Page header** sits at the top of the content region and aligns to the content block, not to the
 nav edge — its title's left edge lines up with the left edge of the first card, and its rightmost
 button's right edge lines up with the right edge of the right rail. `[observed]`
-`.../02-orders/order-detail-unfulfilled-payment-pending.webp`
+
 
 Header slots, left to right `[observed]`:
 
@@ -182,11 +149,10 @@ Header slots, left to right `[observed]`:
 - **Title** (h1, ~20–24 px, semibold).
 - **Status badge(s)** inline, immediately after the title, on the same baseline —
   `● Payment pending` + `⊙ Unfulfilled` on an order, `Draft` on a new segment.
-  `.../04-customers/customer-segment-new-query-editor.webp`
+
 - **Subtitle / metadata line** on a second row under the title, muted:
   "January 8, 2024 at 9:48 pm from Draft Orders";
   "New York NY, United States • Customer for less than 5 seconds"
-  (`.../04-customers/customer-detail-no-orders-yet.webp`).
 - **Right cluster**: secondary buttons, then a `More actions ▾` disclosure, then the primary button
   (dark fill). Disabled actions render greyed in place rather than being removed
   (`Duplicate`, `Use segment` on a draft segment). `[observed]`
@@ -196,14 +162,14 @@ Header slots, left to right `[observed]`:
 **Widths** (approximate and **indicative, not binding** — rescaled from the old 2× figures by ×0.95
 per R13; the *ratios* are what matter and they are unchanged):
 
-| Element | Approx. | Evidence |
-|---|---|---|
-| Centred page max-width | **~955 px** (was ~1000 at 2×) | card block spans x≈195→700 of 768 (×1.90) `[observed]` |
-| Main column (two-column) | **~625 px** (was ~660) | x≈196→525 `[observed]` |
-| Right rail | **~310 px** (was ~320) | x≈536→700 `[observed]` |
-| Column gutter | **~20 px** | x≈525→536 `[observed]` |
-| Content side gutter (nav edge → card) | **~23 px** | x≈128→141 on full-width pages `[observed]` |
-| Narrow single column (consent/confirmation) | **~705 px** (was ~740) | x≈263→633 `[observed]` |
+| Element | Approx. |
+| --- | --- |
+| Centred page max-width | **~955 px** (was ~1000 at 2×) |
+| Main column (two-column) | **~625 px** (was ~660) |
+| Right rail | **~310 px** (was ~320) |
+| Column gutter | **~20 px** |
+| Content side gutter (nav edge → card) | **~23 px** |
+| Narrow single column (consent/confirmation) | **~705 px** (was ~740) |
 
 The centred block is centred on the **content region** (nav excluded), not the viewport: the block
 centre lands at x≈448, which is exactly `(128 + 768) / 2`. `[observed]`
@@ -212,10 +178,10 @@ centre lands at x≈448, which is exactly `(128 + 768) / 2`. `[observed]`
 
 | Layout | Used for | Example |
 |---|---|---|
-| **Full-width, left-aligned** (no max-width, ~23 px gutters) | Index/list pages and data grids | `.../03-products/products-list-default.webp`, `.../02-orders/orders-list-with-metrics-row.webp`, `.../03-products/purchase-orders-list.webp`, `.../05-online-store/blog-posts-list.webp` |
-| **Centred single column (~955 px)** | Overview/dashboard pages built from cards | `.../08-finances/finances-overview-earnings-donut-and-payouts.webp`, `.../01-home/home-sales-chart-and-things-to-do-next.webp` |
-| **Centred two-column, ~625 + ~310** | Every record detail and every create/edit form | order detail, customer detail, `.../03-products/product-add-new-blank-form.webp`, `.../09-discounts/discount-create-shipping-with-code.webp`, `.../02-orders/order-fulfill-item-page.webp` |
-| **Centred narrow (~705 px)** | Consent / confirmation / single-decision pages | `.../11-apps-and-channels/app-install-permissions-consent.webp` |
+| **Full-width, left-aligned** (no max-width, ~23 px gutters) | Index/list pages and data grids | |
+| **Centred single column (~955 px)** | Overview/dashboard pages built from cards | |
+| **Centred two-column, ~625 + ~310** | Every record detail and every create/edit form | order detail, customer detail |
+| **Centred narrow (~705 px)** | Consent / confirmation / single-decision pages | |
 
 ```
         ← ~23px →│←───────────── centred block, ~955px ──────────────→│
@@ -253,7 +219,7 @@ header rather than inline fields.
 One important exception: on task-shaped pages the **primary action lives at the bottom of the rail
 summary card, not in the page header** — `Fulfill item` is a full-width dark button inside the
 `Summary` rail card while the header carries only `Print packing slip`. `[observed]`
-`.../02-orders/order-fulfill-item-page.webp`
+
 
 **Rules**
 - Page headers MUST align to the content block: title left edge = first card left edge; last button
@@ -268,7 +234,7 @@ summary card, not in the page header** — `Fulfill item` is a full-width dark b
   list, and MUST be the rightmost element.
 - Index pages and data grids MUST be full-width; detail pages, forms, and overviews MUST be capped
   at ~955 px and centred **on the content region**, not the viewport.
-- Two-column pages MUST use a **~2 : 1** main-to-rail ratio — ~625 px main + ~310 px rail with a
+- Two-column pages MUST use a **~2: 1** main-to-rail ratio — ~625 px main + ~310 px rail with a
   ~20 px gutter at this calibration. The ratio binds; the px figures are indicative.
 - The right rail MUST hold only status, publishing, summary, and metadata; primary form fields MUST
   stay in the main column.
@@ -284,15 +250,14 @@ summary card, not in the page header** — `Fulfill item` is a full-width dark b
 When a form becomes dirty, the top bar is **replaced in place** by a save bar of the same height and
 the same dark fill. The frame does not shift, nothing is pushed down, and the left nav stays
 mounted. `[observed]`
-`.../03-products/product-add-new-blank-form.webp`, `.../09-discounts/discount-create-shipping-with-code.webp`
 
 ```
   ── normal ────────────────────────────────────────────────────────────────────
- │ ▨ shopify      [ 🔍 Search              ⌘K ]        🔔   ( My Store 🟢 )      │
+ │ ▨ logo         [ 🔍 Search              ⌘K ]        🔔   ( My Store 🟢)      │
   ── dirty ─────────────────────────────────────────────────────────────────────
- │ ▨ shopify      ⚠ Unsaved product                    [ Discard ] [  Save  ]   │
+ │ ▨ logo         ⚠ Unsaved product                    [ Discard ] [  Save  ]   │
   ── dirty, nothing valid to save ──────────────────────────────────────────────
- │ ▨ shopify      ⚠ Unsaved changes                    [ Discard ] [  Save  ]   │
+ │ ▨ logo         ⚠ Unsaved changes                    [ Discard ] [  Save  ]   │
                                                                    └ greyed ┘
 ```
 
@@ -301,36 +266,34 @@ Observed details:
 - The logo/wordmark **stays** in the left slot; the search field and the right cluster are removed
   entirely. `[observed]`
 - The message sits left-of-centre. **On store-admin surfaces it is preceded by a small warning
-  glyph** (`.../03-products/product-edit-pricing-inventory-shipping.webp` shows ⚠ + "Unsaved
-  product"). **The account surface is the exception: no glyph** — `.../15-account/account-general-unsaved-changes.webp`
+  glyph** ( shows ⚠ + "Unsaved
+  product"). **The account surface is the exception: no glyph** —
   shows a bare "Unsaved changes". Labels are
-  **entity-specific**: `Unsaved product` (`.../03-products/product-edit-pricing-inventory-shipping.webp`),
-  `Unsaved discount` (`.../09-discounts/discount-create-shipping-with-code.webp`),
+  **entity-specific**: `Unsaved product`,
+  `Unsaved discount`,
   and the generic `Unsaved changes`
-  (`.../05-online-store/navigation-add-menu-with-add-item-panel.webp`,
-  `.../07-analytics/analytics-customize-metrics-library-sidebar.webp`,
-  `.../15-account/account-general-unsaved-changes.webp`).
+  (
+).
 - The right pair is `Discard` (low-contrast, dark-on-dark) + `Save` (light/white fill, dark label).
   `[observed]`
 - **Disabled Save** renders as greyed label on the dark bar with no fill change to the bar itself —
   seen while the Add-menu-item sheet has an empty required field, and in the bulk editor before any
   cell is touched. `[observed]`
-  `.../05-online-store/navigation-add-menu-with-add-item-panel.webp`,
-  `.../03-products/products-bulk-editor-grid.webp`
+
 - **Variants exist and should be treated as exceptions, not licence.** The account surface uses
-  `Cancel` + a *green* `Save` (`.../15-account/account-general-unsaved-changes.webp`); the analytics
+  `Cancel` + a *green* `Save`; the analytics
   customise mode uses `Cancel` + a dark `Save`
-  (`.../07-analytics/analytics-customize-metrics-library-sidebar.webp`). The store-admin surfaces
+. The store-admin surfaces
   consistently use `Discard` + light `Save`.
-- **The nav is not dimmed on any surface.** In `.../15-account/account-general-unsaved-changes.webp`
+- **The nav is not dimmed on any surface.** In
   the left nav column and the page canvas both sample `#F6F5F8` — identical, no dimming. (That page's
   nav is the *account* nav — General / Security — not the admin nav.) The element that *is* dimmed is
-  the Shopify **wordmark** inside the save bar itself. The earlier "left nav is visibly dimmed" claim
+  the **wordmark** inside the save bar itself. The earlier "left nav is visibly dimmed" claim
   is deleted. `[observed]`
 - **Bottom-of-form repeat**: at the end of a long form the main column ends with a single
   right-aligned `Save` button whose right edge aligns to the right edge of the *whole content
   block* (i.e. the rail's right edge, not the main column's). No `Discard` was observed paired with
-  it. `[observed]` `.../03-products/product-edit-seo-listing-and-empty-variants.webp`
+  it. `[observed]`
 
 **Rules**
 - Unsaved state MUST replace the top bar in place, at identical height, with no layout shift.
@@ -343,14 +306,14 @@ Observed details:
   `Save`, in that order.
 - `Save` MUST be disabled (greyed, non-interactive) while the form is invalid or nothing has
   actually changed. `Discard` MUST remain enabled.
-- **→ Superseded by R2: Save is the brand-blue primary, like every other primary. The light/white
-  Save recommended below is derived from Shopify's *dark* top bar; Eyvar's top bar is white (§6.2 D-3),
-  so a light Save would be invisible on it.**
+- **→ Superseded by R2: Save is the same primary as every other primary. The light/white Save
+  recommended below was derived for a *dark* top bar; Eyvar's top bar is white (§6.2 D-3), so a
+  light Save would be invisible on it.**
 - The app MUST pick one save-bar button style and use it everywhere. Eyvar Admin SHOULD standardise
-  on `Discard` + light `Save`; do NOT reproduce Shopify's green/`Cancel` account variant.
+  on `Discard` + `Save`; do NOT reproduce the baseline's green/`Cancel` account variant.
 - Long forms (taller than ~1.5 viewports) SHOULD repeat a single right-aligned `Save` at the end of
   the main column, aligned to the right edge of the full content block.
-- Navigating away with unsaved changes MUST be intercepted `[Polaris]` — not verifiable in these
+- Navigating away with unsaved changes MUST be intercepted `[recalled]` — not verifiable in these
   screenshots.
 
 ---
@@ -359,11 +322,10 @@ Observed details:
 
 Settings is **not a page in the frame**. It is a near-full-screen overlay card that sits on top of
 the admin, dimming everything behind it, with the dark top bar still visible above it. `[observed]`
-`.../10-settings/settings-billing-history.webp`, `.../10-settings/settings-store-details-saved-toast.webp`
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────────┐
-│ ▨ shopify        [ 🔍 Search           ⌘K ]        🔔   ( My Store 🟢 )        │ ← real top bar stays
+│ ▨ logo           [ 🔍 Search           ⌘K ]        🔔   ( My Store 🟢)        │ ← real top bar stays
 ├──┬───────────────────────────────────────────────────────────────────────┬───┤
 │▒▒│ ⚙ Settings                                                          ✕ │▒▒▒│ ← overlay header ~56px
 │▒▒├───────────────────────────────────────────────────────────────────────┤▒▒▒│
@@ -382,7 +344,7 @@ the admin, dimming everything behind it, with the dark top bar still visible abo
 └──┴───────────────────────────────────────────────────────────────────────┴───┘
 ```
 
-Shell geometry `[observed]`, sampled from `.../10-settings/settings-billing-history.webp`:
+Shell geometry `[observed]`, sampled from:
 
 - Overlay card inset ~8 px from the left and right viewport edges (x≈4→764 of 768), top edge at
   y≈34 → roughly 12 px below the 56 px top bar, rounded corners, running to the bottom of the
@@ -392,9 +354,9 @@ Shell geometry `[observed]`, sampled from `.../10-settings/settings-billing-hist
 - Inside, a **centred inner block ~1026 px** wide containing the nav card (~289 px) + ~27 px gutter
   + the content pane (~707 px). The block is centred on the overlay, leaving generous empty margins
   on both sides. (Rescaled ×0.95 per R13 — the audit verified these proportions to within a few px at
-  the old calibration; the ratio `nav : gutter : pane` is what binds.)
+  the old calibration; the ratio `nav: gutter: pane` is what binds.)
 
-Nav list `[observed]`, in order: a store identity header (square avatar + store name + `*.myshopify.com`
+Nav list `[observed]`, in order: an account identity header (square avatar + account name + its
 domain), then Store details, Plan, Billing, Users and permissions, Payments, Checkout, Customer
 accounts, Shipping and delivery, Taxes and duties, Locations, Gift cards, Markets,
 Apps and sales channels, Domains, Customer events, Brand, Notifications, Custom data, Languages,
@@ -405,22 +367,21 @@ Behaviour notes `[observed]`:
 
 - **The overlay body appears to scroll as one unit** — the settings nav scrolls off the top along
   with the content pane rather than being independently sticky
-  (`.../10-settings/settings-payments-manual-methods-cod-activated.webp` shows the nav scrolled to
+  ( shows the nav scrolled to
   its last items while the payments pane is scrolled). `[inferred]` — this is read off a single
   scrolled frame; a sticky nav could look identical at that scroll offset.
 - **Inner sub-page navigation** replaces the pane, keeping the nav: the pane header becomes
   `← <Sub-page title>` with its own right-aligned actions —
   `← Billing cycle: Jan 12, 2024   [Download] [Export CSV file]`
-  (`.../10-settings/settings-billing-cycle-detail.webp`).
 - **Deep flows drop the nav entirely** and take the full overlay width as a two-column
   checkout-style layout: `← Review and subscribe` with a form column on the left (~680 px) and a
   sticky order-summary card on the right (~447 px), no settings nav visible.
-  (`.../10-settings/settings-plan-review-and-subscribe.webp`)
+
 - **Modals stack on top of the overlay**: a centred ~625 px dialog with title + `✕`, body, and a
   footer of `Cancel` + primary, dimming the settings overlay behind it.
-  (`.../10-settings/settings-payments-setup-shopify-payments-modal.webp`)
+
 - Surfaces you might expect in the main frame live here instead — **Apps and sales channels** is a
-  settings page, not a frame page (`.../11-apps-and-channels/apps-and-sales-channels-installed-list.webp`).
+  settings page, not a frame page.
 - Settings pages use the same footer convention as frame pages:
   `Learn more about bills.` / `Learn more about apps.` / `Learn more about payments.`, centred under
   the content pane.
@@ -449,10 +410,7 @@ Behaviour notes `[observed]`:
 Four categories drop the admin frame entirely. Each substitutes its own top bar.
 
 **A. Theme editor** `[observed]`
-`.../05-online-store/theme-editor-live-preview-desktop.webp`,
-`.../05-online-store/theme-editor-home-page-section-tree.webp`,
-`.../05-online-store/theme-editor-color-scheme-picker.webp`,
-`.../05-online-store/theme-editor-product-template-mobile-preview.webp`
+
 
 ```
 ┌───────────────────────────────────────────────────────────────────────────────┐
@@ -486,7 +444,7 @@ Four categories drop the admin frame entirely. Each substitutes its own top bar.
   `[observed]`
 - Toasts appear over the preview (`Changes saved.`), bottom-centre of the preview area.
 
-**B. Bulk product editor** `[observed]` `.../03-products/products-bulk-editor-grid.webp`
+**B. Bulk product editor** `[observed]`
 
 Full-bleed spreadsheet. Own light bar (~56 px): `⇤ Back` + `Editing 3 products` on the left;
 `▥ Columns` + a disabled `Save` on the right. Below it, an edge-to-edge grid with a sticky header
@@ -494,21 +452,19 @@ row, a frozen first column (product title + thumbnail), indented variant sub-row
 cells (chips, selects, steppers), and horizontal overflow. No nav, no page header, no max-width.
 
 **C. Checkout-style / transactional pages** `[observed]`
-`.../10-settings/settings-plan-review-and-subscribe.webp`
+
 
 Form column + sticky priced summary card with a full-width primary (`Subscribe`) and a reassurance
 line beneath it (`Change or cancel your plan at any time.`). Runs inside the settings overlay with
 the settings nav removed.
 
 **D. Auth pages** `[observed]`
-`.../00-auth/login-email-filled.webp`, `.../00-auth/login-two-factor-authenticator-code.webp`,
-`.../00-auth/oauth-choose-an-account.webp`, `.../00-auth/signup-create-account-email-password.webp`
 
 No frame at all. A full-bleed dark gradient background (deep purple → teal) with a centred white
 card, ~475 px wide, ~16 px radius, ~34 px padding, vertically centred. Card contents, in fixed
 order: wordmark → h1 → one-line subtitle → field(s) → full-width dark primary button → `or` divider
 → a row of three equal social-provider buttons → a secondary link line
-(`New to Shopify? Get started →`) → small legal links (`Help  Privacy  Terms`) at the card's
+(`New here? Get started →`) → small legal links (`Help  Privacy  Terms`) at the card's
 bottom-left.
 
 Signup breaks the single card into a **~1206 px split card**: form panel left, marketing
@@ -517,7 +473,7 @@ selector (`I'm located in 🇺🇸 United States ⌄`) top-right of the form pan
 
 A fifth, degenerate case: the deactivated-store page keeps a **stub top bar** carrying only the
 account switcher, and centres a ~874 px single column with no nav.
-`[observed]` `.../15-account/store-deactivated-reopen-page.webp`
+`[observed]`
 
 **Rules**
 - Immersive editors (theme editor, bulk editor) MUST replace the whole frame — no admin nav, no
@@ -542,9 +498,7 @@ account switcher, and centres a ~874 px single column with no nav.
 ### 2.6 Navigation affordances
 
 **Global search** `[observed]`
-`.../14-global-search/search-modal-order-results-list.webp`,
-`.../14-global-search/search-modal-scoped-to-apps.webp`,
-`.../14-global-search/search-modal-scoped-to-orders-empty.webp`
+
 
 The top-bar field expands **in place** into a ~657 px panel anchored to the field's own x-position,
 overlapping the top bar and floating over dimmed page content. It is an anchored popover, not a
@@ -578,7 +532,7 @@ centred command palette.
   it does not collapse to zero height, and it does not show a "no results" error. `[observed]`
 
 **Resource shortcut menu** `[observed]`
-`.../13-navigation-shortcuts/quick-create-menu-with-keyboard-shortcuts.webp`
+
 
 A menu anchored **above** its trigger listing resource types, each row being
 `icon · label · keyboard shortcut · ›`: Orders `# O`, Draft orders `# D`, Customers `# C`,
@@ -603,17 +557,17 @@ Depth beyond one level is handled by overlays and modals rather than by deeper t
   `All · Paid · Open · Failed · Processing · Refunded · Canceled` on billing history,
   `All · Campaigns · Automations` on the email app, `Installed` on apps and sales channels.
 - The trailing `+` on a tab row creates a new saved view. `[observed]`
-  `.../03-products/products-list-create-view-modal.webp` (by name),
-  `.../03-products/products-list-default.webp`
+   (by name),
+
 - The tab row's right end carries the table's own controls: search, filter, view/columns, sort.
   `[observed]`
 - Entering search mode replaces the tab row with a full-width query field plus filter chips
   (`Product vendor ▾`, `Tagged with ▾`, `Status ▾`, `Add filter +`, `Clear all`) and a
-  `Cancel` / `Save as` pair. `[observed]` `.../03-products/products-list-search-and-filters.webp`
+  `Cancel` / `Save as` pair. `[observed]`
 
 **"Learn more about X" footer links** `[observed]`: a single muted sentence, **centred beneath the
 last card** of the content block, of the form `Learn more about <link>.` — orders
-(`.../02-orders/orders-list-with-metrics-row.webp`), purchase orders, blog posts, fulfilling orders,
+, purchase orders, blog posts, fulfilling orders,
 segments, bills, apps, payments. It is never in a page footer bar, never in the rail, and never more
 than one per page.
 
@@ -621,19 +575,19 @@ than one per page.
 
 | Surface | Geometry | Example |
 |---|---|---|
-| Alerts popover | **~400 px**, right-aligned to the bell, header `Alerts` + filter + help, footer `No more alerts` (spans x 556→757 img px; §1.4's "~200 px" read image pixels as CSS pixels) | `.../12-notifications/alerts-popover-with-channel-issue.webp` |
-| Right side panel (persistent) | ~352 px, pinned below the top bar, own `Title ✕` header; the content column narrows to make room | `.../01-home/home-guide-side-panel-in-progress.webp` |
-| Right sheet (transient, over content) | **~406 px** (C12 — 203 img px measured), full height, own header + sticky `Cancel` / primary footer, primary disabled until valid | `.../05-online-store/navigation-add-menu-with-add-item-panel.webp` |
-| Two-column templates panel | **~648 px** (C12 — 324 img px, ~42% of the viewport). A drawer that needs internal columns is sized to them | `.../04-customers/customer-segment-templates-panel.webp` |
-| Centre modal | ~625 px, title + `✕`, body, `Cancel` + primary footer. Modals are **vertically centred**, not upper-third (§5.3 corrected) | `.../10-settings/settings-payments-setup-shopify-payments-modal.webp` |
-| Bulk action bar | floating **white** rounded bar — white surface, light hairline border, soft shadow (C13; it is *not* dark-outlined) — anchored bottom-centre **of the table card**, appears with a `N selected` row under the tabs | `.../03-products/products-list-bulk-selection-action-bar.webp` |
-| Toast | small dark rounded rectangle (~8 px radius, not a stadium — R15), bottom-centre **of the viewport**, with a `✕`. Measured centre x≈384 = viewport centre in every sample; the content region's centre is x≈448, so the toast sits ~64 img px left of it. §5.1 was right; this section was wrong (C9) | `.../10-settings/settings-store-details-saved-toast.webp`, `.../03-products/products-list-products-imported-toast.webp` |
+| Alerts popover | **~400 px**, right-aligned to the bell, header `Alerts` + filter + help, footer `No more alerts` (spans x 556→757 img px; §1.4's "~200 px" read image pixels as CSS pixels) | |
+| Right side panel (persistent) | ~352 px, pinned below the top bar, own `Title ✕` header; the content column narrows to make room | |
+| Right sheet (transient, over content) | **~406 px** (C12 — 203 img px measured), full height, own header + sticky `Cancel` / primary footer, primary disabled until valid | |
+| Two-column templates panel | **~648 px** (C12 — 324 img px, ~42% of the viewport). A drawer that needs internal columns is sized to them | |
+| Centre modal | ~625 px, title + `✕`, body, `Cancel` + primary footer. Modals are **vertically centred**, not upper-third (§5.3 corrected) | |
+| Bulk action bar | floating **white** rounded bar — white surface, light hairline border, soft shadow (C13; it is *not* dark-outlined) — anchored bottom-centre **of the table card**, appears with a `N selected` row under the tabs | |
+| Toast | small dark rounded rectangle (~8 px radius, not a stadium — R15), bottom-centre **of the viewport**, with a `✕`. Measured centre x≈384 = viewport centre in every sample; the content region's centre is x≈448, so the toast sits ~64 img px left of it. §5.1 was right; this section was wrong (C9) | |
 
 **Channel / embedded-app context header** `[observed]`: pages belonging to a sales channel or an
 embedded app get a slim context row **above** the page header, spanning the content region:
 channel/app icon + name on the left, `↗` open-external and `⋯` overflow on the right — then the
-normal page header below it. `.../05-online-store/blog-posts-list.webp`,
-`.../06-marketing/email-app-overview-campaigns-table.webp`
+normal page header below it.,
+
 
 **Rules**
 - Global search MUST open as a popover anchored to the top-bar field, MUST be reachable via `⌘K` /

@@ -1,7 +1,7 @@
 ## 9. Bidirectionality & Localisation
 
 Eyvar Admin ships one non-English locale: Arabic (`ar`), selected at
-`eyvar_ops_panel_v40_fixed.html:1495–1500`, applied by `applyLanguage()` at `:7939–7953`, with an
+`eyvar_ops_panel_v40_fixed.html:1495–1500`, applied by `applyLanguage` at `:7939–7953`, with an
 88-key dictionary at `:7903–7938`, 86 `data-i18n` keys in markup, and a hand-written RTL
 stylesheet at `:370–402` `[observed]`. Operational context is Saudi: seeded
 `timezone:'Asia/Riyadh'`, `currency:'SAR'`, `language:'en'` (`:2570`) `[observed]`.
@@ -58,7 +58,7 @@ Line numbers are this document's; the section reference is authoritative.
 | 31 | "**Right-rail** summary cards MUST be read-only displays…" | §3.5 (1442) | **inline-end-rail** |
 | 32 | "Each entry MUST carry a timestamp, **right-aligned**…" | §3.8 (1657) | **inline-end-aligned**; string does not reorder — §9.2 |
 | 33 | "Events with expandable detail MUST use a **trailing** chevron" | §3.8 (1658) | unchanged; the chevron **glyph mirrors** — §9.5 |
-| 34 | "`☐ ▸ 16px from card edge  text/dates ▸ **left**  numbers/money ▸ **right**`" | §3.9 (1709) | `card inline-start edge  text/dates ▸ start  numbers/money ▸ end` |
+| 34 | "`☐ ▸ 16px from card edge text/dates ▸ **left** numbers/money ▸ **right**`" | §3.9 (1709) | `card inline-start edge text/dates ▸ start numbers/money ▸ end` |
 | 35 | "…currency symbols as an in-field **left prefix** and unit codes as an in-field **right suffix**" | §4.2 (1901) | **inline-start prefix** / **inline-end suffix**. **Overridden for Arabic** — affix position is locale data — §9.2. |
 | 36 | "MUST use a **leading** magnifier icon on… fields that search or autocomplete." | §4.2 (1903) | unchanged; magnifier glyph is **non-mirroring** — §9.5 |
 | 37 | "…character counter… **right-aligned** inside the field." | §4.2 (1904) | **inline-end-aligned**; `0/40` stays LTR — §9.2 |
@@ -121,7 +121,7 @@ LTR `[standard]`. The shell uses `row-reverse` (`eyvar_ops_panel_v40_fixed.html:
 precisely because it must be a physical flip, not a directional one (§9.3) — correct there, not
 the pattern for new content.
 
-**Direction-aware transforms.** `translateX()` is direction-blind: positive X is physically
+**Direction-aware transforms.** `translateX` is direction-blind: positive X is physically
 rightward regardless of `dir` `[standard]`. **Currently broken:** the toast stack anchors to
 `left:18px` in Arabic and `right:18px` in English (`eyvar_ops_panel_v40_fixed.html:5254`)
 `[observed]`, but its entry/exit transform is a hard-coded `translateX(28px)` (`:5288`, `:5301`)
@@ -157,7 +157,7 @@ Three live defects the migration fixes, all `[observed]`:
 - MUST write `margin-inline-start` / `margin-inline-end`, `padding-inline-start` / `padding-inline-end`, `border-inline-start` / `border-inline-end`, `inset-inline-start` / `inset-inline-end`, `text-align: start` / `text-align: end`, and `float: inline-start` / `float: inline-end` in all new or edited CSS.
 - MUST NOT introduce a new `margin-left`, `margin-right`, `padding-left`, `padding-right`, `border-left`, `border-right`, `text-align:left`, `text-align:right`, `float:left`, or `float:right` declaration in any region that declares Arabic support under §9.3.
 - MUST NOT introduce a new positioned element using bare `left:` or `right:` in any region that declares Arabic support under §9.3.
-- MUST pair every `translateX()` on an inline-edge-anchored element with a sign flip under `[dir="rtl"]` (or a `--flip` custom property), and MUST fix `eyvar_ops_panel_v40_fixed.html:5288` and `:5301` before the next release.
+- MUST pair every `translateX` on an inline-edge-anchored element with a sign flip under `[dir="rtl"]` (or a `--flip` custom property), and MUST fix `eyvar_ops_panel_v40_fixed.html:5288` and `:5301` before the next release.
 - MUST replace `eyvar_ops_panel_v40_fixed.html:39` (`padding:0 0 0 16px`) with `padding-inline-start:16px`, `:48` (`margin-left:auto;margin-right:12px`) with the `margin-inline-*` pair, and `:43`'s `inset 3px 0 0` shadow with an `inset-inline-start`-positioned pseudo-element.
 - MUST delete each `[dir="rtl"]` override at `eyvar_ops_panel_v40_fixed.html:383–385` and `:394–:402` as the corresponding base declaration becomes logical. A logical base rule plus a surviving physical override is a defect.
 - MUST NOT use `flex-direction: row-reverse` or `order:` as a substitute for `dir` on any region containing translated running text.
@@ -180,7 +180,7 @@ whose geometry carries meaning, and retain LTR order inside an RTL page `[standa
 | **Keyboard shortcut chips** | Position only | `⌘ K` is a chord, pressed modifier-first in every locale `[standard]`. §2.1 (568), §5.4 (2586) place the cluster inline-end; glyph order inside does not change. |
 | **Map canvas, markers, headings, routes, compass** | No | Geography: north is up, east is right in every locale `[standard]`. §2.5, §6.4. A vehicle heading glyph points at its real bearing. Map **chrome** (stats bar `eyvar_ops_panel_v40_fixed.html:365–368`, live rail, filter chips, legend) does mirror. |
 | **Code, query, monospace editors** | No | Syntax is LTR by specification `[standard]`. §4.5 (2130–2136). Body carries `dir="ltr"`; line numbers and caret stay physical-left. Toolbar and footer are chrome and mirror. |
-| **Chart plot areas and axes** | No | §3.7 (1509–1531). A time-series x-axis MUST NOT reverse: its labels are LTR digits and dates, so reversing the axis makes axis and numbers run in opposite directions. The SVG generators at `eyvar_ops_panel_v40_fixed.html:6806, 6818, 6822` use `text-anchor="end"` and absolute `translate()` `[observed]` — correct as-is, provided they never inherit `direction: rtl`. |
+| **Chart plot areas and axes** | No | §3.7 (1509–1531). A time-series x-axis MUST NOT reverse: its labels are LTR digits and dates, so reversing the axis makes axis and numbers run in opposite directions. The SVG generators at `eyvar_ops_panel_v40_fixed.html:6806, 6818, 6822` use `text-anchor="end"` and absolute `translate` `[observed]` — correct as-is, provided they never inherit `direction: rtl`. |
 | **Delta arrows `↑` `↓`** | No | A magnitude on the vertical axis, not a direction of reading. |
 | **Media, brand, imagery** | No | `▶` means *forward in time*, not rightward `[standard]`. Logo `eyvar_ops_panel_v40_fixed.html:32–35`, partner and payment marks, photographs, avatars, QR codes. §2.3 (741) moves the *slot*, not the *artwork*. Full glyph inventory in §9.5. |
 | **Toast / notification corner** | **Yes** | §5.1 (2419) mandates bottom-*centre*, which is direction-neutral; Eyvar deviates to a corner for a reason documented at `eyvar_ops_panel_v40_fixed.html:5245–5252` `[observed]`. Given the deviation, the corner is layout and mirrors — the JS already flips it (`:5238`, `:5254`), as does the notification panel (`:2218–2220`) `[observed]`. Both are correct in outcome and wrong in form: `dir`-blind JS reimplementations of `inset-inline-end`, duplicated, and one has already drifted from its own animation (§9.1). The deviation is absent from §6.2's closed list and must be added there. |
@@ -252,7 +252,7 @@ JS-concatenated strings, structurally impossible today (`data-i18n` in generated
 `[observed]`; (2) every translatable attribute resolves — none are supported `[observed]`;
 (3) every empty state, error, validation message, and toast it can produce is translated;
 (4) every dictionary key its markup references exists — five do not
-(`eyvar_ops_panel_v40_fixed.html:1431–1435`), and since `applyLanguage()` falls back to cached
+(`eyvar_ops_panel_v40_fixed.html:1431–1435`), and since `applyLanguage` falls back to cached
 English on a miss (`:7951`), a missing translation is **visually indistinguishable** from a
 deliberate one `[observed]`; (5) numbers, dates, money per §9.2; (6) CSS logical per §9.1;
 (7) typography per §9.4. Fail one and the surface does not get `dir="rtl"`.
@@ -296,9 +296,8 @@ reason-code option unconditionally and `:15078` renders an always-visible Arabic
 
 ### 9.4 Typography in Arabic
 
-**Confidence statement.** §1.2's ramp is derived from Shopify Admin screenshots, and **every one
-of those captures is English**. No Arabic rendering of the reference set or of Eyvar Admin was
-available. **No value in this subsection is `[observed]`** — the metrics are `[standard]` Arabic
+**Confidence statement.** §1.2's ramp is derived from English evidence only. No Arabic
+rendering of the reference set or of Eyvar Admin has been measured. **No value in this subsection is `[observed]`** — the metrics are `[standard]` Arabic
 typesetting practice; code facts about the current implementation are `[observed]` and marked.
 
 **Why 13 px does not transfer.** §1.2's 13 px body / 20 px line-height was measured on a Latin
@@ -357,7 +356,7 @@ Arabic, Cairo, and Tajawal meet all five `[standard]`.
 
 **Rules**
 
-- MUST NOT claim any Arabic type value in this section as `[observed]`; no Arabic rendering of Eyvar Admin or of the Shopify reference set has been reviewed.
+- MUST NOT claim any Arabic type value in this section as `[observed]`; no Arabic rendering of Eyvar Admin or of the reference set has been reviewed.
 - MUST set Arabic body text to at least 14 px with a line-height of at least 1.7, overriding §1.2's 13 px / 20 px mandate within `dir="rtl"` regions only.
 - MUST meet the per-role size and line-height floors above for every role rendered in Arabic.
 - MUST NOT apply `text-transform` to any element that can render Arabic text.
@@ -418,7 +417,7 @@ system and names none of this.
 
 Mirroring is per-glyph, so a blanket `[dir="rtl"] svg { transform: scaleX(-1) }` is forbidden — it
 would flip every entry in the second table. Use an opt-in class:
-`[dir="rtl"] .icon-mirror { transform: scaleX(-1); }`. Text glyphs used as icons (`←` `→` `›` `↗`
+`[dir="rtl"].icon-mirror { transform: scaleX(-1); }`. Text glyphs used as icons (`←` `→` `›` `↗`
 `⇤` `↻` `⬆`, all present in the file's string builders `[observed]`) cannot be mirrored by class
 and must be swapped at construction time — which requires the builder to know the active
 direction, a capability the panel lacks since `applyLanguage` reaches only static `[data-i18n]`
@@ -461,9 +460,9 @@ is MSA with colloquial constructions in the long explanatory strings (`gen.discl
 | `?` question mark | **`؟`** | U+061F |
 | `.` full stop | **`.`** — Arabic uses the Latin full stop; there is no separate Arabic period | U+002E |
 | `:` colon, `%` percent | unchanged (`٪` U+066A exists but is rare in Saudi digital contexts) | — |
-| `-` hyphen, `( )` parentheses | unchanged, but bidi-neutral — see §9.3 | — |
+| `-` hyphen, `` parentheses | unchanged, but bidi-neutral — see §9.3 | — |
 
-The dictionary already uses `،` correctly at `eyvar_ops_panel_v40_fixed.html:7922, :7927, :7929,
+The dictionary already uses `،` correctly at `eyvar_ops_panel_v40_fixed.html:7922,:7927,:7929,
 :7936` `[observed]`; `؛` does not yet occur in it.
 
 **The terminal-period rule transfers unchanged**, since Arabic uses the same `.` (U+002E). One
@@ -511,7 +510,7 @@ the larger size (§9.4) and wider inter-word spacing.
 |---|---|---|
 | `:24` | `.sb{width:52px}` | Collapsed rail, both languages |
 | `:30` | `.sb:hover,.sb.pin{width:236px}` | Expanded rail, English |
-| `:31` | `body.lang-ar .sb:hover,body.lang-ar .sb.pin{width:268px}` | Expanded rail, **Arabic** |
+| `:31` | `body.lang-ar.sb:hover,body.lang-ar.sb.pin{width:268px}` | Expanded rail, **Arabic** |
 | `:429` | `.sb{…width:236px!important}` (≤768 px) | Mobile drawer, English |
 | `:435` | `.sb[dir="rtl"]{…width:268px!important}` (≤768 px) | Mobile drawer, **Arabic** |
 

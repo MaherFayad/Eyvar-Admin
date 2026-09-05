@@ -17,9 +17,9 @@ contested points*.
 | R8 | Illustration **only** on a whole-page, zero-records-ever empty state. Empty cards get one grey sentence. |
 | R9 | A toast is **one line naming the object exactly**, ≤60 characters. Truncate the object, never the verb. |
 | R10 | **One event, one surface**, by lifetime: transient → toast, standing condition → banner. Never two page-level banners. |
-| R11 | Shopify's nav is ~240px. (Does not bind Eyvar — see deviation D-4.) |
+| R11 | The inherited ~240px nav width does **not** bind Eyvar — see deviation D-4. Kept so citations resolve. |
 | R12 | §1.6 (motion) is **SHOULD, not citable in review**. Binding motion rules are §7.6 and §8.1. |
-| R13 | **No pixel figure in §1–§5 is binding.** They came from 768px screenshots. What binds: relationships, the 4px grid, and §6.1 tokens. |
+| R13 | **No pixel figure in §1–§5 is binding.** What binds: relationships, the 4px grid, and the token layer. |
 | R14 | `Paid` is **success (green)**. One label, one tone, always. |
 | R15 | Badges, toasts and avatars are **rounded rectangles** — never stadium pills. **Badge radius 4px, toast radius 8px** (`design/07-rulings-r4.md` §12.2). Avatars: **32px circle** for a person, **8px rounded square** for a non-person identity. `rounded-full` elsewhere only where the shape is the mechanism — a switch track and thumb, a segmented control's track and pill, a progress or meter track. |
 | R16 | All four banner tones are pale tinted cards. The "info banners carry no fill" MUST is void. |

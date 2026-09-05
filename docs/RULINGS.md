@@ -11,7 +11,8 @@ does not bind anyone.
 3. **`DESIGN.md` Rulings table** R1–R19 (text in [`06-design-reference/_partials/00-header.md`](06-design-reference/_partials/00-header.md)).
 4. **`DESIGN.md` §6.2 sanctioned deviations** D-1 onward (text in [`_partials/06-eyvar-mapping.md`](06-design-reference/_partials/06-eyvar-mapping.md); D-11a onward are appended in DECISIONS.md).
 5. **`DESIGN.md` §7–§9** (accessibility, Eyvar patterns, RTL).
-6. **`DESIGN.md` §1–§5**, which describe Shopify. Never cite a pixel figure from them (R13).
+6. **`DESIGN.md` §1–§5**, the inherited baseline chapters. They do not describe Eyvar
+   directly. Never cite a pixel figure from them (R13).
 
 Round rulings (R-n, R4-n, R5-n) sit at level 2: they were delegated decisions and bind until a
 later decision supersedes them.
@@ -32,14 +33,16 @@ The same digits mean different things with different prefixes. Write the exact f
 | `AC-nnn` | Acceptance criterion | `05-restructure/specs/` |
 | `Q-n`, `V-n`, `B-n`, `F-n`, `W4-Fn` | Audit question or finding | the round document that raised it |
 
-`D7` is the Navattic decision. The §6.2 deviation with the same digit is `D-7`.
+`D7` is the visual-language decision. The §6.2 deviation with the same digit is `D-7`.
 
 ## Standing owner overrides
 
-### Amplitude outranks `DESIGN.md` inside the report builder and metric boards (2026-09-04)
+### The report-builder and metric-board specs outrank `DESIGN.md` on those screens (2026-09-04)
 
-The owner ruled that the report builder and the metric boards are to be a 1:1 copy of
-Amplitude, and that Amplitude fidelity outranks `DESIGN.md` there where the two conflict.
+The owner ruled that the report builder and the metric boards follow their own specs to the
+letter — [`05-restructure/specs/06-report-builder.md`](05-restructure/specs/06-report-builder.md)
+and [`05-restructure/specs/05-metrics-content.md`](05-restructure/specs/05-metrics-content.md) —
+and that spec fidelity outranks `DESIGN.md` there where the two conflict.
 Where a `DESIGN.md` rule is overridden this way, record the override in a comment at the
 rule's own site and add it to the list below. Overridden so far:
 
@@ -77,7 +80,7 @@ Text: `docs/05-restructure/ONBOARDING-UX-PLAN.md` §11–§12.
 The owner asked for ⌘K to open *"a command palette … centred in the page"* rather than the
 anchored dropdown it was. Two positions yield, and only for this one surface:
 
-- **§2.6** describes Shopify's global search as an anchored popover and says in so many
+- **§2.6** specifies global search as an anchored popover and says in so many
   words *"not a centred command palette"*: **overridden**. The palette is a `Dialog`,
   horizontally centred, 640px wide, its top edge fixed at 16vh so the list grows downward
   and the panel never jumps. Every other popover in the product is unchanged, and the
@@ -114,9 +117,9 @@ Text: `docs/05-restructure/COMMAND-PALETTE-DISCOVERY.md` §3, §4 and §6.
 | R8 | An illustration appears only on a whole-page, zero-records-ever empty state. |
 | R9 | A toast names the object exactly, one line, 60 characters; truncate the name, never the verb. |
 | R10 | One event, one surface: transient confirmation is a toast, a standing condition is a banner, never two banners. |
-| R11 | Spent under D7 (it reconciled Shopify nav widths); kept so citations resolve. |
+| R11 | Spent under D7 (it reconciled two inherited nav widths); kept so citations resolve. |
 | R12 | §1.6 motion is SHOULD only; the binding motion rules are §7.6 and §8.1. |
-| R13 | Every px figure in §1–§5 is indicative, never binding; figures re-measured against Navattic stand. |
+| R13 | Every px figure in §1–§5 is indicative, never binding; only figures re-measured against the token layer stand. |
 | R14 | `Paid` is the success tone; the same label always takes the same tone. |
 | R15 | Badges and toasts are rounded rectangles (4px badge, 8px card and control); avatars are 32px circles (D7). |
 | R16 | All four banner tones are pale tinted cards. |
@@ -126,7 +129,7 @@ Text: `docs/05-restructure/COMMAND-PALETTE-DISCOVERY.md` §3, §4 and §6.
 
 ## Decisions
 
-Headings in `05-restructure/DECISIONS.md`. Grep the heading.
+One line each. The text lives in `05-restructure/DECISIONS.md`; grep the ID.
 
 | Heading |
 |---|
@@ -137,17 +140,17 @@ Headings in `05-restructure/DECISIONS.md`. Grep the heading.
 | D4 — Role model — **OPEN, needed before 0.7** |
 | D5 — The sub-tab column never collapses |
 | D6 — The navigation has its own background, one step darker than the canvas |
-| D7 — Navattic replaces Shopify as the **visual** reference |
+| D7 — the **visual** language is the token layer: colour, spacing, radii, type, table style |
 | D8 — A row kebab is for *many* actions, never for one or two |
 | D9 — ⌘K is a command centre, not a search box |
 | D10 — Two rulings from the owner on chrome, applied immediately |
 | D11 — The index toolbar is TWO rows, and search is a field |
 | D12 — The view switcher is a STADIUM segmented control, and R15 gets one narrow exception |
-| D13 — The final phase is an ad-hoc **Report Builder**, and it is a semantic layer before it is a screen |
-| D14 — Shopify governs auth STRUCTURE; Navattic keeps the visual language |
+| D13 — the ad-hoc **Report Builder** is a semantic layer before it is a screen |
+| D14 — the auth spec governs auth STRUCTURE; D7's visual language governs its look |
 | D-11a — who owns focus when a menu hands off to a layer: **the layer wins** |
 | D-12 — peek is the drawer, not a sixth surface |
-| D-13 — motion has no duration tokens, and doc 13 Phase 4.2 is refused |
+| D-13 — motion has no duration tokens, and the request for a duration scale is refused |
 
 ## Round rulings
 

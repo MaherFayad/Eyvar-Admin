@@ -1,60 +1,49 @@
-# Eyvar Ops Panel — System Documentation
+# Eyvar Admin — system documentation
 
-Complete reverse-engineered specification of `eyvar_ops_panel_v40_fixed.html`,
-a 21,857-line single-file operations panel for a ride-subscription business.
+Eyvar Admin is the operations console for a ride-subscription business: riders, drivers
+(captains), trips, plans, wallets, dispatch, fraud review, support and pricing. This folder
+holds the rules the console is built to, the behaviour each screen owes, and the contracts
+between the UI and its data.
 
-Everything here was derived from the source file itself. No behaviour is
-assumed; every claim carries a line citation, and anything that could not be
-confirmed is marked `UNVERIFIED` rather than guessed.
+Alongside it at the repository root sits `eyvar_ops_panel_v40_fixed.html`, the original
+single-file prototype. It is the record of what each screen does and the citation source for
+every claim about behaviour: grep the page id, read the render function, cite the line.
 
 ## Start here
 
 | If you want to… | Read |
 |---|---|
-| Understand how this was produced | [00-index/METHODOLOGY.md](00-index/METHODOLOGY.md) |
-| See the raw structural census | [00-index/GROUND-TRUTH-INVENTORY.md](00-index/GROUND-TRUTH-INVENTORY.md) |
+| Know which rule wins | [RULINGS.md](RULINGS.md) |
+| Get a quick answer on tokens, states, copy, RTL, a11y or the table | [ref/](ref/) |
+| Read a design rule in full | [06-design-reference/_partials/](06-design-reference/_partials/) |
+| Know what a screen must do | [05-restructure/specs/](05-restructure/specs/) |
+| Know how a screen must look | [05-restructure/design/](05-restructure/design/) |
+| Look up one module of the prototype | [01-modules/](01-modules/) |
 | Understand the data | [03-data/DATA-MODEL.md](03-data/DATA-MODEL.md) |
-| Look up one screen | [01-modules/](01-modules/) |
-| See what's broken | [02-verification/](02-verification/) |
-| See the proposed rebuild | [05-restructure/](05-restructure/) |
-
-## What the system is
-
-| | |
-|---|---|
-| Form | One HTML file. No build step, no framework, no backend. |
-| State | A single global `DB` object literal at `L2566`, plus collections assigned later |
-| Rendering | String concatenation into `innerHTML`, ~136 `render*()` functions |
-| Navigation | `window.go(id, el, isBack)` at `L8774` — show/hide `.page` divs |
-| Scale | 41 pages · 21 settings sub-tabs · 1,042 functions · 355 click handlers |
-| Domain | Ride subscriptions: riders, drivers (captains), trips, plans, wallets, dispatch, support |
-
-Because all state and all logic live in one file, **the file is the complete
-specification** — there is no hidden API. That is what made exhaustive
-documentation possible, and it is also the system's central architectural
-problem.
+| See the structural census | [00-index/GROUND-TRUTH-INVENTORY.md](00-index/GROUND-TRUTH-INVENTORY.md) |
 
 ## Folder structure
 
 ```
 docs/
 ├── README.md                     ← you are here
-├── 00-index/
-│   ├── METHODOLOGY.md            how the docs were produced & verified
-│   └── GROUND-TRUTH-INVENTORY.md machine-extracted census (the audit baseline)
-├── 01-modules/                   one document per module/tab — the bulk of the work
-├── 02-verification/              two independent review passes + findings register
+├── RULINGS.md                    the precedence index: which rule wins
+├── ref/                          one-page answers per topic
+├── 00-index/                     census, method, system overview
+├── 01-modules/                   one document per module of the prototype
 ├── 03-data/                      data model, global state, structured JSON export
 ├── 04-relations/                 how modules and entities connect
-└── 05-restructure/               proposed 5-tab information architecture
+├── 05-restructure/               specs and design specs for the console's screens
+├── 06-design-reference/          the design rules, in partials; DESIGN.md concatenates them
+├── 07-api/                       generated API contract
+└── 08-i18n/                      generated string-key register
 ```
 
 ## Module documents
 
-Each follows the same skeleton so any two are comparable: purpose, entry points,
-layout map, data model, formulas, KPIs, displayed data, input fields, actions,
-tables, modals, states/badges, cross-module links, hardcoded values, i18n, gaps,
-and a line-number index.
+Each follows the same skeleton so any two are comparable: purpose, entry points, layout map,
+data model, formulas, KPIs, displayed data, input fields, actions, tables, modals,
+states/badges, cross-module links, hardcoded values, i18n, gaps, and a line-number index.
 
 | Group | Documents |
 |---|---|
@@ -73,16 +62,16 @@ and a line-number index.
 
 | Marker | Meaning |
 |---|---|
-| `L1234` | Verified at that line of the source file |
-| `UNVERIFIED` | Not confirmable from source; the reason is stated inline |
-| `MOCK` | Hardcoded / seeded demo value, not real behaviour |
-| `BUG` | Source behaviour contradicts apparent intent; reproduction given |
+| `L1234` | Verified at that line of the prototype |
+| `UNVERIFIED` | Not confirmable from the prototype; the reason is stated inline |
+| `MOCK` | Hardcoded or seeded demo value, not real behaviour |
+| `BUG` | Prototype behaviour contradicts apparent intent; reproduction given |
 
 ## Caveats
 
-- **Static analysis.** The panel was read, not executed. Runtime-only behaviour
-  is inferred and marked where inference was needed.
-- **Seed data is fiction.** Formulas are real; the numbers they operate on are
-  demo values. Record counts describe the seed, not production.
-- **Citations are pinned to this file version.** Editing the source invalidates
-  line numbers — re-run the census in `METHODOLOGY.md` after changes.
+- **Static analysis.** The prototype is read, not executed. Runtime-only behaviour is
+  inferred, and every inference is marked.
+- **Seed data is fiction.** Formulas are real; the numbers they operate on are demo values.
+  Record counts describe the seed, not production.
+- **Citations are pinned to one file version.** Editing the prototype invalidates line
+  numbers — re-run the census in [00-index/METHODOLOGY.md](00-index/METHODOLOGY.md).
