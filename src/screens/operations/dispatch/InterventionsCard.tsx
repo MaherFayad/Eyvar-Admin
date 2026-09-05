@@ -12,7 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { BreachedIcon, PendingIcon } from '@/components/icons'
 import { StatusBadge } from '@/components/StatusBadge'
 import { isApiError, type Intervention, type IsoDateTime } from '@/data/types'
-import type { Translate } from '@/lib'
+import type { Translator } from '@/lib'
 
 interface InterventionsCardProps {
   items: Intervention[]
@@ -26,7 +26,7 @@ interface InterventionsCardProps {
   /** Throws on refusal; this card states it on the row that refused. */
   onAcknowledge: (item: Intervention) => Promise<void>
   onReassign: (item: Intervention) => void
-  t: Translate
+  t: Translator
 }
 
 const REFUSAL_ID = 'dispatch-intervention-refusal'
@@ -86,7 +86,7 @@ export function InterventionsCard({
             {t('dispatch.interventions.title')}
           </CardTitle>
           <StatusBadge tone="warning">
-            {t('dispatch.interventions.active', { count: items.length })}
+            {t.plural('dispatch.interventions.active', { count: items.length })}
           </StatusBadge>
         </div>
       </CardHeader>
@@ -132,7 +132,7 @@ export function InterventionsCard({
                   </div>
                   {/* H2 — an SLA figure is a VALUE, not a badge label. */}
                   <span className="shrink-0 font-mono text-xs text-warning-foreground">
-                    {t('dispatch.intervention.elapsed', { minutes: elapsed(item.raisedAt) })}
+                    {t.plural('dispatch.intervention.elapsed', { minutes: elapsed(item.raisedAt) })}
                   </span>
                 </div>
 

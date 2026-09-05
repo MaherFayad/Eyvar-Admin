@@ -1,4 +1,7 @@
 import { describe, expect, it } from 'vitest'
+import { AR as SHIPPED_AR, EN as SHIPPED_EN } from '@/i18n/dictionaries'
+import { DISPATCH_EN } from '@/screens/operations/dispatch/copy'
+import { withFallback } from '@/screens/operations/localCopy'
 import { createTranslator, type Dictionary } from './translate'
 import {
   PLURAL_CATEGORIES,
@@ -7,6 +10,7 @@ import {
   pluralCountIn,
   pluralFormKey,
   pluralFormsIn,
+  type PluralCategory,
   selectPluralForm,
 } from './plural'
 
@@ -296,5 +300,90 @@ describe('t.plural — the eight §11 keys, end to end', () => {
 describe('plain t() is untouched', () => {
   it('still resolves a non-plural key with two numbers', () => {
     expect(en()('onboarding.progress', { done: 2, total: 7 })).toBe('2 of 7 completed')
+  })
+})
+
+/* ═════════ the families this product ships, at the counts that break ════════
+
+   1 one · 2 two · 3 few · 11 many · 100 other. Five samples reach five
+   different Arabic forms; a family that answers one string to all five is an
+   English plural wearing an Arabic dictionary, which is what every one of
+   these keys was before. The English side keeps two forms and that is correct.
+*/
+
+/** `[count, the CLDR category Arabic puts it in]`. */
+const ARABIC_SAMPLES: ReadonlyArray<readonly [number, PluralCategory]> = [
+  [1, 'one'],
+  [2, 'two'],
+  [3, 'few'],
+  [11, 'many'],
+  [100, 'other'],
+]
+
+/** The families converted for the dispatch, queues, my-work and shell copy. */
+const SHIPPED: ReadonlyArray<readonly [string, string]> = [
+  ['dispatch.intervention.elapsed', 'minutes'],
+  ['dispatch.interventions.active', 'count'],
+  ['dispatch.interventions.strip', 'count'],
+  ['dispatch.map.unplaced', 'count'],
+  ['dispatch.feed.scope.fleet', 'count'],
+  ['dispatch.feed.scope.pending', 'count'],
+  ['dispatch.feed.scope.trips', 'count'],
+  ['queue.owner.expiry', 'minutes'],
+  ['myWork.meta', 'count'],
+  ['myWork.toast.claimed', 'count'],
+  ['shell.nav.backlog', 'count'],
+  ['shell.topbar.mineA11y', 'count'],
+  ['shell.notifications.newCount', 'count'],
+]
+
+describe('the plural families the four dictionaries ship', () => {
+  /* `DISPATCH_EN` is not registered in `dictionaries.ts`, so Dispatch reaches
+     its own copy through `withFallback` and nothing else. Wrapping here is what
+     the screens do. */
+  const arabic = withFallback(
+    createTranslator({ dictionary: SHIPPED_AR, fallback: SHIPPED_EN, language: 'ar' }),
+    DISPATCH_EN,
+  )
+  const english = withFallback(
+    createTranslator({ dictionary: SHIPPED_EN, fallback: SHIPPED_EN, language: 'en' }),
+    DISPATCH_EN,
+  )
+
+  it.each(SHIPPED)('reads %s in the Arabic form the count calls for', (family, param) => {
+    for (const [count, category] of ARABIC_SAMPLES) {
+      const declared = SHIPPED_AR[`${family}#${category}`]
+      expect(declared, `${family}#${category} is missing from AR`).toBeDefined()
+      expect(arabic.plural(family, { [param]: count }), `${family} at ${count}`).toBe(
+        (declared as string).replace(`{${param}}`, String(count)),
+      )
+    }
+  })
+
+  it.each(SHIPPED)('gives %s five readings across the five counts, not one', (family, param) => {
+    const readings = ARABIC_SAMPLES.map(([count]) => arabic.plural(family, { [param]: count }))
+    /* `many` and `other` legitimately share a form in Arabic (`{n} دقيقة`), so
+       the floor is four distinct readings out of five, never one. */
+    expect(new Set(readings).size, readings.join(' | ')).toBeGreaterThanOrEqual(4)
+  })
+
+  it('keeps English at its two forms', () => {
+    expect(english.plural('myWork.meta', { count: 1 })).toBe('1 item')
+    expect(english.plural('myWork.meta', { count: 2 })).toBe('2 items')
+    expect(english.plural('myWork.meta', { count: 11 })).toBe('11 items')
+    expect(english.plural('dispatch.interventions.strip', { count: 1 })).toBe('1 intervention')
+    expect(english.plural('dispatch.interventions.strip', { count: 4 })).toBe('4 interventions')
+  })
+
+  it('resolves a family a screen owns but dictionaries.ts has not registered', () => {
+    /* Without the `defaultValue#<selector>` params `withFallback` prepares,
+       `t.plural` on Dispatch throws on every family the screen owns: a family
+       has no bare key for the plain `defaultValue` path to carry. */
+    const bare = withFallback(
+      createTranslator({ dictionary: {}, fallback: {}, language: 'en', onMissingKey: (k) => k }),
+      DISPATCH_EN,
+    )
+    expect(bare.plural('dispatch.feed.scope.fleet', { count: 1 })).toBe('1 captain on shift')
+    expect(bare.plural('dispatch.feed.scope.fleet', { count: 5 })).toBe('5 captains on shift')
   })
 })

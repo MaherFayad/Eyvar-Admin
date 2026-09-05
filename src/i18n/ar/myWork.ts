@@ -18,8 +18,12 @@
 import type { Dictionary } from '@/lib'
 
 export const MY_WORK_AR: Dictionary = {
-  'myWork.meta.one': 'عنصر واحد',
-  'myWork.meta.other': '{count} من العناصر',
+  'myWork.meta#zero': 'لا عناصر',
+  'myWork.meta#one': 'عنصر واحد',
+  'myWork.meta#two': 'عنصران',
+  'myWork.meta#few': '{count} عناصر',
+  'myWork.meta#many': '{count} عنصراً',
+  'myWork.meta#other': '{count} عنصر',
   'myWork.meta.hint': 'ما تحمله وما لم يُستلَم، في كل قوائم العمل. والجدول يعدّ هذا العرض.',
   'myWork.search': 'ابحث بالموضوع أو المعرّف أو قائمة العمل',
   'myWork.col.item': 'العنصر',
@@ -68,7 +72,12 @@ export const MY_WORK_AR: Dictionary = {
   'myWork.action.claim.blocked.one': 'هذا العنصر مُستلَم بالفعل، أو أن قائمة عمله غير موصولة بعد.',
   'myWork.action.claim.blocked.other': '{count} من العناصر المحدَّدة مُستلَمة بالفعل، أو أن قوائم عملها غير موصولة بعد.',
   'myWork.action.claim.blocked.all': 'كل العناصر المحدَّدة ({count}) مُستلَمة بالفعل، أو أن قوائم عملها غير موصولة بعد.',
-  'myWork.toast.claimed.other': 'تم استلام {count} من العناصر',
+  'myWork.toast.claimed#zero': 'لم يُستلم أي عنصر',
+  'myWork.toast.claimed#one': 'تم استلام عنصر واحد',
+  'myWork.toast.claimed#two': 'تم استلام عنصرين',
+  'myWork.toast.claimed#few': 'تم استلام {count} عناصر',
+  'myWork.toast.claimed#many': 'تم استلام {count} عنصراً',
+  'myWork.toast.claimed#other': 'تم استلام {count} عنصر',
   'myWork.claim.unavailable': 'استلم هذا من {queue}. لم تُبنَ بعد.',
   'myWork.empty.cleared.heading': 'لا شيء معلَّق',
   'myWork.empty.cleared.mine': 'لا تحمل أي عنصر. هناك عمل غير مُسنَد بانتظار من يستلمه.',

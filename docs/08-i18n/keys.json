@@ -1,13 +1,13 @@
 {
   "totals": {
-    "keys": 5762,
-    "en": 5471,
-    "ar": 5762,
+    "keys": 5831,
+    "en": 5481,
+    "ar": 5831,
     "arMissing": 0,
-    "arExtra": 291,
+    "arExtra": 350,
     "copyFiles": 36,
-    "unregisteredKeys": 187,
-    "pluralForms": 53,
+    "unregisteredKeys": 194,
+    "pluralForms": 65,
     "defaultValue": 0,
     "defaultValueForwarded": 2,
     "emDashEn": 92,
@@ -36,7 +36,7 @@
       "exports": [
         "PEOPLE_EN"
       ],
-      "keys": 335,
+      "keys": 338,
       "notInEN": 0
     },
     {
@@ -214,7 +214,7 @@
       "exports": [
         "MY_WORK_EN"
       ],
-      "keys": 64,
+      "keys": 67,
       "notInEN": 0
     },
     {
@@ -246,7 +246,7 @@
       "exports": [
         "QUEUE_SHARED_EN"
       ],
-      "keys": 46,
+      "keys": 47,
       "notInEN": 0
     },
     {
@@ -304,8 +304,8 @@
       "exports": [
         "DISPATCH_EN"
       ],
-      "keys": 82,
-      "notInEN": 80
+      "keys": 89,
+      "notInEN": 87
     }
   ],
   "noCopyFile": [

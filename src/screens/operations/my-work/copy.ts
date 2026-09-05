@@ -9,8 +9,10 @@
 import type { Dictionary } from '@/lib'
 
 export const MY_WORK_EN: Dictionary = {
-  'myWork.meta.one': '1 item',
-  'myWork.meta.other': '{count} items',
+  /* A plural family, chosen by `Intl.PluralRules` rather than by the screen.
+     `count === 1 ? … : …` has two branches and Arabic needs six. */
+  'myWork.meta#one': '1 item',
+  'myWork.meta#other': '{count} items',
   /* **X3 / O8 / X15** — the header line counts the BACKLOG, so it agrees with
      the rail badge and disagrees with the mounted view. That surprise is what
      this sentence answers, and it is asked for rather than read. */
@@ -122,7 +124,8 @@ export const MY_WORK_EN: Dictionary = {
     '{count} of the selected items are already claimed, or their queue is not connected yet.',
   'myWork.action.claim.blocked.all':
     'All {count} selected items are already claimed, or their queue is not connected yet.',
-  'myWork.toast.claimed.other': '{count} items claimed',
+  'myWork.toast.claimed#one': '1 item claimed',
+  'myWork.toast.claimed#other': '{count} items claimed',
 
   'myWork.claim.unavailable': 'Claim this from {queue}. It is not built yet.',
 

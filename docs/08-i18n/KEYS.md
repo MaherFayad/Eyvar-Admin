@@ -9,14 +9,14 @@ this file is stale or when the `defaultValue` ratchet slips.
 
 | | |
 |---|---:|
-| **Translatable keys, all dictionaries** | **5762** |
-| Reachable from `EN` (what the shell renders) | 5471 |
-| Keys in `AR` | 5762 |
+| **Translatable keys, all dictionaries** | **5831** |
+| Reachable from `EN` (what the shell renders) | 5481 |
+| Keys in `AR` | 5831 |
 | **Keys Arabic is missing** | **0** |
-| Keys in `AR` and not in `EN` (plural forms, unregistered screens) | 291 |
-| Plural forms (`key#category`) inside `EN` | 53 |
+| Keys in `AR` and not in `EN` (plural forms, unregistered screens) | 350 |
+| Plural forms (`key#category`) inside `EN` | 65 |
 | `copy.ts` files | 36 |
-| Keys in a `copy.ts` the shell has NOT registered | 187 |
+| Keys in a `copy.ts` the shell has NOT registered | 194 |
 | **`defaultValue` call sites (the ratchet)** | **0** |
 | `defaultValue` forwarding a Dictionary (exempt) | 2 |
 | **English values carrying an em dash (the ratchet)** | **92** |
@@ -447,7 +447,7 @@ Measured on English only, and a placeholder counts as one word.
 |---|---|---:|
 | `src/screens/financials/copy.ts` | `FINANCIALS_EN` | 785 |
 | `src/screens/reports/copy.ts` | `REPORTS_EN` | 570 |
-| `src/screens/operations/people/copy.ts` | `PEOPLE_EN` | 335 |
+| `src/screens/operations/people/copy.ts` | `PEOPLE_EN` | 338 |
 | `src/screens/metrics/copy.ts` | `OVERVIEW_EN` | 252 |
 | `src/components/profile/copy.ts` | `PROFILE_EN` | 249 |
 | `src/screens/admin/workspace/copy.ts` | `ADMIN_WORKSPACE_EN` | 238 |
@@ -469,11 +469,11 @@ Measured on English only, and a placeholder counts as one word.
 | `src/screens/onboarding/copy.ts` | `ONBOARDING_EN` | 81 |
 | `src/screens/operations/requests/copy.ts` | `REQUESTS_EN` | 80 |
 | `src/screens/management/zones/copy.ts` | `ZONES_EN` | 67 |
-| `src/screens/operations/my-work/copy.ts` | `MY_WORK_EN` | 64 |
+| `src/screens/operations/my-work/copy.ts` | `MY_WORK_EN` | 67 |
 | `src/screens/support/fairness/copy.ts` | `FAIRNESS_EN` | 63 |
 | `src/components/profile/request/copy.ts` | `REQUEST_PROFILE_EN` | 61 |
 | `src/screens/support/safety/copy.ts` | `SAFETY_EN` | 56 |
-| `src/screens/queues/copy.ts` | `QUEUE_SHARED_EN` | 46 |
+| `src/screens/queues/copy.ts` | `QUEUE_SHARED_EN` | 47 |
 | `src/screens/entity/copy.ts` | `ENTITY_RIDER_EN` | 33 |
 | `src/components/profile/rider/copy.ts` | `RIDER_PROFILE_EN` | 30 |
 | `src/components/profile/subscription/copy.ts` | `SUBSCRIPTION_PROFILE_EN` | 27 |
@@ -490,7 +490,7 @@ this is a wiring gap, not a translation one -- but a translator handed only
 | File | Exports | Keys | Not in `EN` |
 |---|---|---:|---:|
 | `src/screens/operations/corporate/copy.ts` | `CORPORATE_EN` | 108 | 107 |
-| `src/screens/operations/dispatch/copy.ts` | `DISPATCH_EN` | 82 | 80 |
+| `src/screens/operations/dispatch/copy.ts` | `DISPATCH_EN` | 89 | 87 |
 
 ## Screens with no `copy.ts`
 

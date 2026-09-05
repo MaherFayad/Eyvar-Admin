@@ -57,7 +57,7 @@ function renderMyWork(search = '') {
 
 /** The number in the page header's meta line, whichever plural key it used. */
 async function headerCount(): Promise<number> {
-  const other = copy('myWork.meta.other')
+  const other = copy('myWork.meta#other')
   const pattern = new RegExp(`^${other.replace('{count}', '([\\d,٠-٩]+)')}$`)
   const line = await screen.findByText(pattern)
   return Number(line.textContent!.replace(/[^\d]/g, ''))

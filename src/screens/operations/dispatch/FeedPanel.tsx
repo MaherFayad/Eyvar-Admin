@@ -29,7 +29,7 @@ import type {
   TripStatus,
   VehicleClass,
 } from '@/data/types'
-import { ABSENT, formatCount, type Direction, type Language, type Translate } from '@/lib'
+import { ABSENT, formatCount, type Direction, type Language, type Translator } from '@/lib'
 import { cn } from '@/lib/utils'
 
 export type FeedTab = 'pending' | 'trips' | 'fleet'
@@ -56,7 +56,7 @@ export interface FeedPanelProps {
 
   language: Language
   dir: Direction
-  t: Translate
+  t: Translator
 }
 
 const DENIED_ID = 'dispatch-feed-denied'
@@ -130,10 +130,10 @@ export function FeedPanel({
 
   const scope =
     tab === 'pending'
-      ? t('dispatch.feed.scope.pending', { count: formatCount(totals.pending, language) })
+      ? t.plural('dispatch.feed.scope.pending', { count: totals.pending })
       : tab === 'trips'
-        ? t('dispatch.feed.scope.trips', { count: formatCount(totals.trips, language) })
-        : t('dispatch.feed.scope.fleet', { count: formatCount(totals.fleet, language) })
+        ? t.plural('dispatch.feed.scope.trips', { count: totals.trips })
+        : t.plural('dispatch.feed.scope.fleet', { count: totals.fleet })
 
   return (
     <div

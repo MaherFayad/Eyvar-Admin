@@ -104,7 +104,7 @@ import type {
   SubTabView,
 } from '@/data/types'
 import { CONVERSATION_CHANNELS, CONVERSATION_STATUSES } from '@/data/types'
-import { formatCount, formatDate, type Language, type Translate } from '@/lib'
+import { formatCount, formatDate, type Language, type Translator } from '@/lib'
 import { useAsync, useIndexTable } from '@/hooks'
 import type { DataColumn } from '@/components/DataTable'
 import { ErrorState } from '@/components/ErrorState'
@@ -737,7 +737,7 @@ export function ConversationConsoleScreen({ row }: { row: SubTabRoute }) {
 /* ─────────────────────────────── columns ───────────────────────────────── */
 
 interface ConversationDeps {
-  t: Translate
+  t: Translator
   language: Language
   now: IsoDateTime
   canWrite: boolean

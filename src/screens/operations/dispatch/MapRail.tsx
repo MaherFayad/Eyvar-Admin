@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Switch } from '@/components/ui/switch'
 import { InfoHint } from '@/components/InfoHint'
 import { ChevronLeftIcon, ChevronRightIcon, directionalIcon } from '@/components/icons'
-import { formatCount, type Direction, type Language, type Translate } from '@/lib'
+import { formatCount, type Direction, type Language, type Translator } from '@/lib'
 import { cn } from '@/lib/utils'
 import type { DispatchLayer, LayerState } from './DispatchMap'
 
@@ -28,7 +28,7 @@ export interface MapRailProps {
 
   language: Language
   dir: Direction
-  t: Translate
+  t: Translator
 }
 
 const CARD_TITLE =
@@ -107,9 +107,7 @@ export function MapRail({
             <span className="flex min-w-0 items-center gap-2">
               <span aria-hidden="true" className="size-1.5 shrink-0 rounded-full bg-destructive" />
               <span className="truncate text-xs text-foreground">
-                {t('dispatch.interventions.strip', {
-                  count: formatCount(interventionCount, language),
-                })}
+                {t.plural('dispatch.interventions.strip', { count: interventionCount })}
               </span>
             </span>
             <span className="flex shrink-0 items-center gap-1 text-2xs text-muted-foreground">

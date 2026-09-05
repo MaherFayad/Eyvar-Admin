@@ -24,6 +24,7 @@ import {
 import { ApiError, type Intervention, type RideRequest, type SubTabRoute } from '@/data/types'
 import { resetClock } from '@/hooks'
 import { EN } from '@/i18n/dictionaries'
+import { pluralCategory, pluralFormKey } from '@/lib/i18n/plural'
 import { ShellProvider } from '@/shell/ShellContext'
 import { DISPATCH_EN } from './copy'
 import { DispatchScreen } from './DispatchScreen'
@@ -234,7 +235,12 @@ describe('T1.2 — the two intervention controls are writes now', () => {
     if (!first) throw new Error('Fixtures carry no open intervention.')
     await user.click(
       await screen.findByRole('button', {
-        name: new RegExp(fill('dispatch.interventions.strip', { count: String(items.length) })),
+        name: new RegExp(
+          /* A plural family: the form is the selector's, not a guess. */
+          fill(pluralFormKey('dispatch.interventions.strip', pluralCategory(items.length, 'en')), {
+            count: String(items.length),
+          }),
+        ),
       }),
     )
     return first
