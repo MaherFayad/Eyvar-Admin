@@ -27,7 +27,7 @@ import { toast } from 'sonner'
 import { getLiveRateCard, getPlan, savePlan } from '@/data/clients'
 import type { PlanKey, RateCard, SubscriptionPlan } from '@/data/types'
 import { useAsync, useForm, type Field } from '@/hooks'
-import { formatCount, formatMoney, formatPercent, parseNumericInput, type Language } from '@/lib'
+import { formatCount, formatMoney, formatPercent, type Language } from '@/lib'
 import { Banner } from '@/components/Banner'
 import { ErrorState } from '@/components/ErrorState'
 import { FullBleedEditorShell } from '@/components/PageShell'
@@ -47,9 +47,16 @@ import { Switch } from '@/components/ui/switch'
 import { ViewSwitcher } from '@/components/table/ViewSwitcher'
 import { useShell } from '@/shell/ShellContext'
 import { derivePlan, type PlanClass } from './derived'
+import { NumberField } from './fields'
 import { PlanCalculations } from './PlanCalculations'
 import { PlanPreview } from './PlanPreview'
-import type { PlanDerived, PlanValues } from './planForm'
+import {
+  isTrialActive,
+  trialFromPlan,
+  type PlanDerived,
+  type PlanTrial,
+  type PlanValues,
+} from './planForm'
 
 /**
  * The character limit on a plan's display copy — **AC-448**. It is the server's
@@ -180,6 +187,22 @@ function PlanEditorForm({
      where the console is so an Arabic operator opens on the screen they read. */
   const [previewLanguage, setPreviewLanguage] = useState<Language>(language)
 
+  /* §11.8 — the numbers the Calculations view can change. Not form state: a
+     trial never dirties the form and never reaches `savePlan()`, so Q7's
+     pricing boundary holds at the seam. `trialKey` remounts the fields on
+     reset so their text adopts the plan's numbers. */
+  const [trial, setTrial] = useState<PlanTrial>(() => trialFromPlan(plan))
+  const [trialKey, setTrialKey] = useState(0)
+  const trialActive = isTrialActive(trial, plan)
+  const changeTrial = useCallback(
+    (patch: Partial<PlanTrial>) => setTrial((current) => ({ ...current, ...patch })),
+    [],
+  )
+  const resetTrial = useCallback(() => {
+    setTrial(trialFromPlan(plan))
+    setTrialKey((key) => key + 1)
+  }, [plan])
+
   /**
    * How one substituted operand is written for a reader. `20` becomes `20 min`
    * because the expression it came from reads `exampleMinutes`; a rate stays a
@@ -214,19 +237,11 @@ function PlanEditorForm({
      * definitions this reads and the preview quotes their results, so a
      * definition change moves all three.
      */
-    derive: (values) =>
-      derivePlan(
-        {
-          commissionPercent: plan.commissionPercent,
-          discountPercent: plan.discountPercent,
-          executeDays: values.executeDays,
-          economyPerMinuteHalalas: plan.economyPerMinuteHalalas,
-          economyPerKmHalalas: plan.economyPerKmHalalas,
-          comfortPerMinuteHalalas: plan.comfortPerMinuteHalalas,
-          comfortPerKmHalalas: plan.comfortPerKmHalalas,
-        },
-        renderOperand,
-      ),
+    derive: useCallback(
+      (values: PlanValues) =>
+        derivePlan({ ...trial, executeDays: values.executeDays }, renderOperand),
+      [trial, renderOperand],
+    ),
 
     /**
      * **AC-394 / §8.6** — the message goes on the INPUT. A derived value has no
@@ -333,6 +348,7 @@ function PlanEditorForm({
           t={t}
           translatorFor={translatorFor}
           vatIncluded={vatIncluded}
+          trialActive={trialActive}
         />
       }
       t={t}
@@ -359,10 +375,14 @@ function PlanEditorForm({
           />
         ) : (
           <PlanCalculations
-            values={form.values}
+            trial={trial}
+            trialKey={trialKey}
+            trialActive={trialActive}
+            onChangeTrial={changeTrial}
+            onResetTrial={resetTrial}
+            tripsField={form.field('executeDays')}
+            onChangeTrips={(value) => form.setValue('executeDays', value)}
             derived={form.derived}
-            commissionPercent={plan.commissionPercent}
-            discountPercent={plan.discountPercent}
             t={t}
             language={language}
           />
@@ -712,41 +732,6 @@ function FeatureField({
       />
       <p id={`${id}-count`} className="text-end text-xs text-muted-foreground tabular-nums">
         {count}
-      </p>
-    </div>
-  )
-}
-
-/**
- * The numeric field, and the **one** coercion (§8.2.5). A blank field is `null`,
- * which flows into the derived chain and renders an em dash. There is no second
- * function with a different blank-field answer.
- */
-function NumberField({
-  field,
-  label,
-  onChange,
-}: {
-  field: Field<number | null>
-  label: string
-  onChange: (value: number | null) => void
-}) {
-  const id = field.controlProps.id
-  return (
-    <div className="flex flex-col gap-1">
-      <Label htmlFor={id}>{label}</Label>
-      <Input
-        {...field.controlProps}
-        inputMode="numeric"
-        value={field.value === null ? '' : String(field.value)}
-        /* **AC-396** — dependents update on the `input` event, with no flash,
-           no colour transition and no count-up. A controlled value is what
-           makes that true rather than a debounce nobody can see. */
-        onChange={(event) => onChange(parseNumericInput(event.target.value))}
-        onBlur={field.onBlur}
-      />
-      <p id={field.errorId} className="text-xs text-muted-foreground">
-        {field.error ?? ''}
       </p>
     </div>
   )

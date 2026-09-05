@@ -218,6 +218,13 @@ export interface PlanPricingInputs {
   commissionPercent: number | null
   discountPercent: number | null
   executeDays: number | null
+  /**
+   * The example trip the chain prices. Absent means `PLAN_EXAMPLE_INPUTS`;
+   * `null` is a blank the operator typed and propagates like any other (AC-393).
+   * FINANCIALS-UX-PLAN §11.8.
+   */
+  exampleMinutes?: number | null
+  exampleKm?: number | null
   economyPerMinuteHalalas: number | null
   economyPerKmHalalas: number | null
   comfortPerMinuteHalalas: number | null
@@ -408,8 +415,9 @@ export function derivePlanClass(
   renderName?: SubstitutionRenderer,
 ): DerivedValue[] {
   const scope: Record<string, number | null> = {
-    exampleMinutes: PLAN_EXAMPLE_INPUTS.exampleMinutes,
-    exampleKm: PLAN_EXAMPLE_INPUTS.exampleKm,
+    exampleMinutes:
+      inputs.exampleMinutes === undefined ? PLAN_EXAMPLE_INPUTS.exampleMinutes : inputs.exampleMinutes,
+    exampleKm: inputs.exampleKm === undefined ? PLAN_EXAMPLE_INPUTS.exampleKm : inputs.exampleKm,
     commissionPercent: inputs.commissionPercent,
     discountPercent: inputs.discountPercent,
     executeDays: inputs.executeDays,

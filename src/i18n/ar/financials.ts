@@ -934,4 +934,14 @@ export const FINANCIALS_AR: Dictionary = {
   'fin.planEditor.rider.subscribe': 'اشتراك',
   'fin.planEditor.rider.unnamed': 'باقة بلا اسم',
   /* ── end §11 ── */
+  /* ── FINANCIALS-UX-PLAN §11.8 — trial numbers on the Calculations view ── */
+  'fin.planEditor.calc.trial.help': 'غيّر أي رقم لترى طريقة الحساب. القيم التجريبية لا تُحفظ مع الباقة.',
+  'fin.planEditor.calc.trial.reset': 'إعادة أرقام الباقة',
+  'fin.planEditor.calc.distance.label': 'المسافة (كم)',
+  'fin.planEditor.calc.duration.label': 'المدة (دقيقة)',
+  'fin.planEditor.calc.rate.minute': 'لكل دقيقة (ر.س)',
+  'fin.planEditor.calc.rate.km': 'لكل كم (ر.س)',
+  'fin.planEditor.calc.nonNegative': 'أدخل 0 أو أكثر.',
+  'fin.planEditor.preview.caption.trial': 'تتضمن أرقامًا تجريبية غير محفوظة.',
+  /* ── end §11.8 ── */
 }

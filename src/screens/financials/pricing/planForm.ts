@@ -7,9 +7,9 @@
  * all read these, and none of them may redeclare a shape another one writes.
  */
 
-import type { PlanFeature, SubscriptionPlan } from '@/data/types'
+import { PLAN_EXAMPLE_INPUTS, type PlanFeature, type SubscriptionPlan } from '@/data/types'
 import { ABSENT, formatMoney, formatPercent, type Language } from '@/lib'
-import type { DerivedValue, PlanClass } from './derived'
+import type { DerivedValue, PlanClass, PlanPricingInputs } from './derived'
 
 /**
  * **The catalogue half only.** The pricing half is absent for the same reason
@@ -33,6 +33,36 @@ export interface PlanValues {
 }
 
 export type PlanDerived = Record<PlanClass, DerivedValue[]>
+
+/**
+ * The numbers the Calculations view lets an operator change — §11.8. Every
+ * input the chain reads except `executeDays`, which is a catalogue field and
+ * lives in `PlanValues`. A trial is NOT form state: it never dirties the form
+ * and `savePlan()` never sees it, so Stage A's pricing boundary (spec §4.5,
+ * Q7) holds at the seam while the working can still be tried against any
+ * number.
+ */
+export type PlanTrial = Omit<Required<PlanPricingInputs>, 'executeDays'>
+
+/** The plan's own numbers, as the trial starts and as `Reset` returns it. */
+export function trialFromPlan(plan: SubscriptionPlan): PlanTrial {
+  return {
+    exampleKm: PLAN_EXAMPLE_INPUTS.exampleKm,
+    exampleMinutes: PLAN_EXAMPLE_INPUTS.exampleMinutes,
+    commissionPercent: plan.commissionPercent,
+    discountPercent: plan.discountPercent,
+    economyPerMinuteHalalas: plan.economyPerMinuteHalalas,
+    economyPerKmHalalas: plan.economyPerKmHalalas,
+    comfortPerMinuteHalalas: plan.comfortPerMinuteHalalas,
+    comfortPerKmHalalas: plan.comfortPerKmHalalas,
+  }
+}
+
+/** Whether any trial number differs from the plan's — what shows `Reset`. */
+export function isTrialActive(trial: PlanTrial, plan: SubscriptionPlan): boolean {
+  const base = trialFromPlan(plan)
+  return (Object.keys(base) as (keyof PlanTrial)[]).some((key) => trial[key] !== base[key])
+}
 
 /**
  * §8.2 / **AC-391**, as attributes. Spread onto a `span`, never onto an input,

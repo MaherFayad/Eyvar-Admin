@@ -327,18 +327,24 @@ describe('the plan editor', () => {
       expect(screen.getByText(EN['fin.planEditor.section.catalogue'] as string)).toBeTruthy(),
     )
     /* The worked example is the Calculations view of the data column now (§11);
-       the criterion is unchanged and is asserted where it renders. */
+       the criterion is unchanged and is asserted where it renders. Each literal
+       input is the control that changes it (§11.8), so the header is read from
+       the three labelled inputs. */
     await user.click(calculationsTab())
 
     const plan = await getPlan('monthly' as PlanKey)
-    /* `10 km ·` and not `10 km`: the working under each line now states the
-       same literal input (`20 min × 0.95 + 10 km × 1.10`), which is the point
-       of it, so the header is matched on the separator only it carries. */
-    const header = screen.getByText(
-      new RegExp(`${PLAN_EXAMPLE_INPUTS.exampleKm} km ·`),
+    /* Re-queried per call: the panel remounts when the tab swaps. */
+    const input = (label: string) =>
+      within(screen.getByTestId('plan-calculations')).getByLabelText(label) as HTMLInputElement
+    expect(input(EN['fin.planEditor.calc.distance.label'] as string).value).toBe(
+      String(PLAN_EXAMPLE_INPUTS.exampleKm),
     )
-    expect(header.textContent).toContain(`${PLAN_EXAMPLE_INPUTS.exampleMinutes} min`)
-    expect(header.textContent).toContain(String(plan.executeDays))
+    expect(input(EN['fin.planEditor.calc.duration.label'] as string).value).toBe(
+      String(PLAN_EXAMPLE_INPUTS.exampleMinutes),
+    )
+    expect(input(EN['fin.planEditor.executeDays.label'] as string).value).toBe(
+      String(plan.executeDays),
+    )
 
     /* The note, in words. */
     expect(screen.getByText(EN['fin.planEditor.preview.note.plan'] as string)).toBeTruthy()
@@ -349,9 +355,71 @@ describe('the plan editor', () => {
     await user.clear(trips)
     await user.type(trips, '44')
     await user.click(calculationsTab())
+    expect(input(EN['fin.planEditor.executeDays.label'] as string).value).toBe('44')
+  })
+
+  /**
+   * §11.8 — the numbers the working reads are inputs on the Calculations view.
+   * A changed commission moves `Captain earns` on the `input` event, and it is
+   * a trial: `Save` stays disabled, because nothing about the record changed
+   * (`useForm` rule 2, spec §4.5 Stage A).
+   */
+  it('a trial number on the Calculations view moves the working and does not arm Save', async () => {
+    const user = userEvent.setup()
+    mountEditor('weekly')
+    await waitFor(() =>
+      expect(screen.getByText(EN['fin.planEditor.section.catalogue'] as string)).toBeTruthy(),
+    )
+    await user.click(calculationsTab())
+
+    const earnsLabel = EN['pricing.derived.driverEarns'] as string
+    const before = derivedLine(earnsLabel)
+    expect(before).not.toBe('—')
+
+    const commission = screen.getByLabelText(EN['fin.planEditor.commissionPercent.label'] as string)
+    await user.clear(commission)
+    await user.type(commission, '50')
+
+    expect(derivedLine(earnsLabel)).not.toBe(before)
     expect(
-      screen.getByText(new RegExp(`${PLAN_EXAMPLE_INPUTS.exampleKm} km ·`)).textContent,
-    ).toContain('44')
+      screen.getByText(EN['fin.planEditor.preview.caption.trial'] as string),
+    ).toBeTruthy()
+    const save = screen.getByRole('button', { name: EN['shell.saveBar.save'] as string })
+    expect(save.hasAttribute('disabled')).toBe(true)
+  })
+
+  /**
+   * §11.8 — `Reset to plan` appears once a trial number differs from the plan's,
+   * and returns every input and every line to the plan's own numbers.
+   */
+  it('Reset to plan returns the trial numbers to the plan', async () => {
+    const user = userEvent.setup()
+    mountEditor('weekly')
+    await waitFor(() =>
+      expect(screen.getByText(EN['fin.planEditor.section.catalogue'] as string)).toBeTruthy(),
+    )
+    await user.click(calculationsTab())
+
+    const resetLabel = EN['fin.planEditor.calc.trial.reset'] as string
+    expect(screen.queryByRole('button', { name: resetLabel })).toBeNull()
+
+    const earnsLabel = EN['pricing.derived.driverEarns'] as string
+    const before = derivedLine(earnsLabel)
+    const commission = screen.getByLabelText(
+      EN['fin.planEditor.commissionPercent.label'] as string,
+    ) as HTMLInputElement
+    const initial = commission.value
+    await user.clear(commission)
+    await user.type(commission, '50')
+    expect(derivedLine(earnsLabel)).not.toBe(before)
+
+    await user.click(screen.getByRole('button', { name: resetLabel }))
+    expect(
+      (screen.getByLabelText(EN['fin.planEditor.commissionPercent.label'] as string) as HTMLInputElement)
+        .value,
+    ).toBe(initial)
+    expect(derivedLine(earnsLabel)).toBe(before)
+    expect(screen.queryByRole('button', { name: resetLabel })).toBeNull()
   })
 
   /**
