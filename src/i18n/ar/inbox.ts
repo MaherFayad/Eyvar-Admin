@@ -41,12 +41,8 @@ export const INBOX_AR: Dictionary = {
 
   'inbox.composer.label': 'الرد على {name}',
   'inbox.composer.tab.verb': 'الرد على',
-  'inbox.composer.consequence.reply': 'يُرسل إلى {name} عبر {channel}',
-  'inbox.composer.consequence.note': 'ملاحظة داخلية. لا تُرسل إلى العميل.',
   'inbox.composer.placeholder.reply': 'اكتب ردًّا إلى {name}…',
   'inbox.composer.placeholder.note': 'اكتب ملاحظة داخلية…',
-  'inbox.composer.keys.reply': 'Enter يُرسل إلى {name} · Shift + Enter يضيف سطرًا',
-  'inbox.composer.keys.note': 'Enter يضيف ملاحظة داخلية · Shift + Enter يضيف سطرًا',
   'inbox.composer.announce.reply': 'الرد. يُرسل إلى {name}.',
   'inbox.composer.announce.note': 'ملاحظة داخلية. لا تُرسل إلى العميل.',
 

@@ -57,7 +57,7 @@ import { LogCallModal } from '@/screens/support/tickets/LogCallModal'
 import { NewTicketModal, type TicketRequester } from '@/screens/support/tickets/NewTicketModal'
 import { cn } from '@/lib/utils'
 import { conversationSla } from './sla'
-import { CHANNEL_KEY, CLOSE_REASONS, CLOSE_REASON_KEY } from './vocabulary'
+import { CLOSE_REASONS, CLOSE_REASON_KEY } from './vocabulary'
 import { Composer, type ComposerHandle } from './Composer'
 import { ContextRail, RailToggle } from './ContextRail'
 import { ConversationList } from './ConversationList'
@@ -466,7 +466,6 @@ export function InboxScreen({ row }: { row: SubTabRoute }) {
   const grabRefusal = writeRefusal ?? capReason
 
   const customer = record?.participants.find((party) => party.kind === 'customer') ?? null
-  const customerEmail = customer === null ? null : addressOn(customer, 'email')
   const composerRefusal: string | null =
     record === null
       ? null
@@ -849,16 +848,10 @@ export function InboxScreen({ row }: { row: SubTabRoute }) {
               conversationId={record.id}
               channel={record.channel}
               customerName={record.entityName}
-              channelLabel={t(CHANNEL_KEY[record.channel])}
               t={t}
               refusal={composerRefusal}
               quietlyDisabled={thread.status === 'loading'}
               noteOnly={record.channel === 'phone'}
-              emailSwitch={
-                record.channel === 'chat'
-                  ? { address: customerEmail, refusal: customerEmail === null ? t('conversations.composer.noHandle') : null }
-                  : null
-              }
               restored={thread.restored}
               templateSurface={record.channel === 'email' ? 'email' : record.channel === 'phone' ? null : 'chat'}
               onSend={thread.send}

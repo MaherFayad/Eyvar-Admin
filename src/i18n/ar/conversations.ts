@@ -90,8 +90,6 @@ export const CONVERSATIONS_AR: Dictionary = {
   'conversations.composer.note': 'ملاحظة داخلية',
   'conversations.composer.send': 'إرسال',
   'conversations.composer.addNote': 'إضافة ملاحظة',
-  'conversations.composer.byEmail': 'الرد عبر البريد الإلكتروني',
-  'conversations.composer.byEmail.pressed': 'يذهب هذا الرد بالبريد الإلكتروني إلى {address}.',
   'conversations.composer.unclaimed': 'استلم هذه المحادثة قبل الرد.',
   'conversations.composer.heldBy': '{name} يتولّى هذه المحادثة.',
   'conversations.composer.closed': 'هذه المحادثة مغلقة. أعد فتحها للرد.',

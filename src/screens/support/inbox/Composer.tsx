@@ -1,9 +1,11 @@
 /**
- * The inbox composer (design 12 §5, §5.x / AC-CC-11, §8.6). Six register
- * carriers, none colour alone: the segmented pair, the whole surface moving to
- * `--ev-note`, the standing consequence line, the placeholder, `Send` filled
- * against `Add note` secondary, and the key hint. Drafts per conversation and
- * register (§8.6.9); refusals as real text with `aria-describedby` (§8.6.3).
+ * The inbox composer (design 12 §5, §5.4 / AC-CC-11, §8.6). Four register
+ * carriers, none colour alone: the tab pair, the whole surface moving to
+ * `--ev-note`, the placeholder, and `Send` filled against `Add note` secondary.
+ * Owner ruling of 2026-09-06 dropped the consequence line, the key hint and
+ * `Reply by email`; Enter still sends and Shift + Enter still adds a line.
+ * Drafts per conversation and register (§8.6.9); refusals as real text with
+ * `aria-describedby` (§8.6.3).
  */
 
 import {
@@ -23,7 +25,6 @@ import { useAnnounce } from '@/hooks'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
-import { Toggle } from '@/components/ui/toggle'
 import { FileTextIcon, NoteIcon, SendIcon } from '@/components/icons'
 import { cn } from '@/lib/utils'
 import { TemplatePicker } from '../shared/TemplatePicker'
@@ -44,8 +45,6 @@ export interface ComposerProps {
   conversationId: string
   channel: ConversationChannel
   customerName: string
-  /** The conversation's channel, as a word, for the consequence line. */
-  channelLabel: string
   t: Translate
   /** §8.6.8: the one refusal sentence, or `null` when the composer is live. */
   refusal: string | null
@@ -53,11 +52,10 @@ export interface ComposerProps {
   quietlyDisabled: boolean
   /** `phone`: note register only. */
   noteOnly: boolean
-  /** §8.6.5: `Reply by email`, only where the conversation can carry email. */
-  emailSwitch: { address: string | null; refusal: string | null } | null
   /** §8.6.7: a body restored by `Send again`. */
   restored: { body: string; messageId: string; token: number } | null
   templateSurface: MessagingTemplateSurface | null
+  /** `byEmail` survives on the seam with no control to set it; the composer always sends false. */
   onSend: (input: { body: string; visibility: MessageVisibility; byEmail: boolean }) => Promise<Message>
   onRetry: (messageId: string) => Promise<Message>
 }
@@ -68,12 +66,10 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
     conversationId,
     channel,
     customerName,
-    channelLabel,
     t,
     refusal,
     quietlyDisabled,
     noteOnly,
-    emailSwitch,
     restored,
     templateSurface,
     onSend,
@@ -90,7 +86,6 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
     setDraft((current) => ({ ...current, body: typeof next === 'function' ? next(current.body) : next }))
   const setRegister = (next: MessageVisibility) =>
     setDraft((current) => ({ ...current, register: next, body: readDraft(current.id, next) }))
-  const [byEmail, setByEmail] = useState(false)
   const [sending, setSending] = useState(false)
   const [rejection, setRejection] = useState<string | null>(null)
   const [restoredNotice, setRestoredNotice] = useState(false)
@@ -99,13 +94,11 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
   const field = useRef<HTMLTextAreaElement | null>(null)
   const ownId = useId()
   const reasonId = reasonIdProp ?? ownId
-  const consequenceId = useId()
 
   const note = register === 'internal'
 
   useEffect(() => {
     setDraft((current) => (current.id === conversationId ? current : openDraft(conversationId, noteOnly)))
-    setByEmail(false)
     setRestoredNotice(false)
     setRejection(null)
     setRetryOf(null)
@@ -167,7 +160,7 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
     try {
       const retrying = retryOf !== null && retryOf.body === outgoing && visibility === 'customer'
       if (retrying) await onRetry(retryOf.messageId)
-      else await onSend({ body: outgoing, visibility, byEmail })
+      else await onSend({ body: outgoing, visibility, byEmail: false })
       setRetryOf(null)
       /* Carrier 6: a posted note hands the field back to Reply. */
       if (visibility === 'internal' && !noteOnly) switchRegister('customer')
@@ -247,21 +240,13 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
           </TabsList>
         </Tabs>
 
-        {/* Carrier 3: the standing consequence line, always rendered. */}
-        <p id={consequenceId} className="flex items-center gap-1.5 px-3 pt-2 text-xs text-muted-foreground">
-          {note ? <NoteIcon className="size-3.5" /> : <SendIcon className="size-3.5" />}
-          {note
-            ? t('inbox.composer.consequence.note')
-            : t('inbox.composer.consequence.reply', { name: customerName, channel: channelLabel })}
-        </p>
-
-        {/* Carriers 2 and 4: the field shares the surface; the placeholder names the register. */}
+        {/* Carriers 2 and 3: the field shares the surface; the placeholder names the register. */}
         <Textarea
           ref={field}
           rows={2}
           value={body}
           disabled={blocked}
-          aria-describedby={[consequenceId, describedBy].filter(Boolean).join(' ')}
+          aria-describedby={describedBy}
           aria-label={note ? t('conversations.composer.note') : t('inbox.composer.label', { name: customerName })}
           placeholder={
             blocked
@@ -298,19 +283,7 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
               t={t}
             />
           )}
-          {emailSwitch !== null && !note && (
-            <Toggle
-              variant="outline"
-              size="default"
-              pressed={byEmail}
-              disabled={blocked || emailSwitch.refusal !== null}
-              aria-describedby={blocked ? describedBy : emailSwitch.refusal !== null ? `${reasonId}-email` : undefined}
-              onPressedChange={setByEmail}
-            >
-              {t('conversations.composer.byEmail')}
-            </Toggle>
-          )}
-          {/* Carrier 5: only a reply gets the filled button (AC-CC-09). */}
+          {/* Carrier 4: only a reply gets the filled button (AC-CC-09). */}
           <Button
             variant={note ? 'secondary' : 'default'}
             size="default"
@@ -324,22 +297,6 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
         </div>
       </div>
 
-      {/* Carrier 6: the key hint names the register. Outside the surface. */}
-      <p className="text-xs text-muted-foreground">
-        {note ? t('inbox.composer.keys.note') : t('inbox.composer.keys.reply', { name: customerName })}
-      </p>
-
-      {emailSwitch?.address != null && byEmail && !note && (
-        <p className="text-xs text-muted-foreground">
-          <bdi>{t('conversations.composer.byEmail.pressed', { address: emailSwitch.address })}</bdi>
-        </p>
-      )}
-      {/* §8.6.8: the toggle's own reason only while the composer is live (V-5). */}
-      {emailSwitch?.refusal != null && !note && !blocked && (
-        <p id={`${reasonId}-email`} className="text-xs text-muted-foreground">
-          {emailSwitch.refusal}
-        </p>
-      )}
       {refusal !== null && (
         <p id={reasonId} className="text-xs text-muted-foreground">
           {refusal}

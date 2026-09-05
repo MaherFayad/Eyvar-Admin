@@ -292,6 +292,9 @@ describe('AC-CC-10 the thread and composer mirror by logical utilities alone', (
     }
     const send = screen.getByRole('button', { name: copy('conversations.composer.send') })
     const toolbar = send.parentElement!
+    /* The toolbar is two controls: `Insert template` at the start, `Send` at the end. */
+    expect(toolbar.children).toHaveLength(2)
+    expect(toolbar.firstElementChild).toHaveAccessibleName(copy('ticket.template.insert'))
     expect(toolbar.lastElementChild).toBe(send)
     expect(send.className).toContain('ms-auto')
   })
@@ -300,24 +303,19 @@ describe('AC-CC-10 the thread and composer mirror by logical utilities alone', (
 /* ═══════════════════════ AC-CC-11 · the register ══════════════════════ */
 
 describe('AC-CC-11 the register is unmistakable', () => {
-  it('states the consequence per register, fills no button in the note register, and returns to Reply after a note', async () => {
+  it('names the register in the tab, the placeholder and the button, fills no button in the note register, and returns to Reply after a note', async () => {
     const user = userEvent.setup()
     const name = await nameOf('CNV-102')
     renderInbox(at('CNV-102'))
     await screen.findByRole('region', { name: copy('inbox.thread.label', { name }) })
     /* The placeholder is blank while the thread loads (§5), so the field must be live first. */
     await waitFor(() => expect(composerField(name)).toBeEnabled())
-    const replyConsequence = copy('inbox.composer.consequence.reply', { name, channel: copy('conversations.channel.chat') })
-    expect(screen.getByText(replyConsequence)).toBeInTheDocument()
-    expect(composerField(name)).toHaveAccessibleDescription(replyConsequence)
-    expect(screen.getByText(copy('inbox.composer.keys.reply', { name }))).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: copy('inbox.composer.label', { name }) })).toHaveAttribute('aria-selected', 'true')
     expect(composerField(name)).toHaveAttribute('placeholder', copy('inbox.composer.placeholder.reply', { name }))
 
     await user.click(screen.getByRole('tab', { name: copy('conversations.composer.note') }))
     const noteField = screen.getByRole('textbox', { name: copy('conversations.composer.note') })
-    /* The announcer repeats the note sentence, so the standing line is read the way AT reads it: as the field's description. */
-    expect(noteField).toHaveAccessibleDescription(copy('inbox.composer.consequence.note'))
-    expect(screen.getByText(copy('inbox.composer.keys.note'))).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: copy('conversations.composer.note') })).toHaveAttribute('aria-selected', 'true')
     expect(noteField).toHaveAttribute('placeholder', copy('inbox.composer.placeholder.note'))
     expect(screen.queryByRole('button', { name: copy('conversations.composer.send') })).toBeNull()
     const addNote = screen.getByRole('button', { name: copy('conversations.composer.addNote') })
@@ -326,8 +324,9 @@ describe('AC-CC-11 the register is unmistakable', () => {
 
     await user.type(noteField, 'Billing shows the escrow is stuck.{Enter}')
     expect(await screen.findByText('Billing shows the escrow is stuck.')).toBeInTheDocument()
-    await waitFor(() => expect(composerField(name)).toHaveAccessibleDescription(replyConsequence))
-    expect(screen.getByText(copy('inbox.composer.keys.reply', { name }))).toBeInTheDocument()
+    await waitFor(() =>
+      expect(screen.getByRole('tab', { name: copy('inbox.composer.label', { name }) })).toHaveAttribute('aria-selected', 'true'),
+    )
     expect(screen.getByRole('button', { name: copy('conversations.composer.send') })).toBeInTheDocument()
   })
 
@@ -341,15 +340,13 @@ describe('AC-CC-11 the register is unmistakable', () => {
     composerField(name).focus()
     expect(composerField(name)).toHaveFocus()
     await user.keyboard('{Control>}{Shift>}n{/Shift}{/Control}')
-    const noteField = await screen.findByRole('textbox', { name: copy('conversations.composer.note') })
-    expect(noteField).toHaveAccessibleDescription(copy('inbox.composer.consequence.note'))
+    await screen.findByRole('textbox', { name: copy('conversations.composer.note') })
+    expect(screen.getByRole('tab', { name: copy('conversations.composer.note') })).toHaveAttribute('aria-selected', 'true')
     await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent(copy('inbox.composer.announce.note')))
     /* The same chord toggles back, and the announcement names the customer. */
     await user.keyboard('{Control>}{Shift>}n{/Shift}{/Control}')
     await waitFor(() =>
-      expect(composerField(name)).toHaveAccessibleDescription(
-        copy('inbox.composer.consequence.reply', { name, channel: copy('conversations.channel.chat') }),
-      ),
+      expect(screen.getByRole('tab', { name: copy('inbox.composer.label', { name }) })).toHaveAttribute('aria-selected', 'true'),
     )
     await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent(copy('inbox.composer.announce.reply', { name })))
   })
@@ -386,9 +383,8 @@ describe('the composer refuses in place, with its reason as real text', () => {
     await screen.findByRole('region', { name: copy('inbox.thread.label', { name }) })
     expect(screen.queryByRole('tab', { name: copy('inbox.composer.label', { name }) })).toBeNull()
     expect(screen.getByRole('tab', { name: copy('conversations.composer.note') })).toBeInTheDocument()
-    expect(screen.getByRole('textbox', { name: copy('conversations.composer.note') })).toHaveAccessibleDescription(
-      literal(copy('inbox.composer.consequence.note')),
-    )
+    expect(screen.getAllByRole('tab')).toHaveLength(1)
+    expect(screen.getByRole('textbox', { name: copy('conversations.composer.note') })).toBeInTheDocument()
   })
 })
 
@@ -566,57 +562,16 @@ describe('Phase C · sending', () => {
     expect(screen.queryByText(copy('queue.toast.claimed'))).toBeNull()
   })
 
-  /** §8.6.3: an empty field disables `Send` and renders no reason; the field's only description is the consequence line. */
+  /** §8.6.3: an empty field disables `Send` and renders no reason, so the field carries no description at all. */
   it('disables Send on an empty field without explaining why', async () => {
     const name = await nameOf('CNV-102')
     renderInbox(at('CNV-102'))
     const field = await liveComposer(name)
     expect(screen.getByRole('button', { name: copy('conversations.composer.send') })).toBeDisabled()
-    expect(field).toHaveAccessibleDescription(
-      copy('inbox.composer.consequence.reply', { name, channel: copy('conversations.channel.chat') }),
-    )
+    expect(field).toHaveAccessibleDescription('')
     for (const key of ['unclaimed', 'closed', 'noHandle', 'threadError']) {
       expect(screen.queryByText(copy(`conversations.composer.${key}`))).toBeNull()
     }
-  })
-
-  /** §8.6.5 end to end: the message carries `email`, the conversation stays a chat. */
-  it('sends one reply by email from a chat, names the address, and leaves the conversation a chat', async () => {
-    const user = userEvent.setup()
-    const name = await nameOf('CNV-102')
-    renderInbox(at('CNV-102'))
-    const field = await liveComposer(name)
-    const toggle = screen.getByRole('button', { name: copy('conversations.composer.byEmail') })
-    expect(toggle).toBeEnabled()
-    expect(toggle).toHaveAttribute('aria-pressed', 'false')
-    await user.click(toggle)
-    expect(toggle).toHaveAttribute('aria-pressed', 'true')
-    const named = await screen.findByText(copy('conversations.composer.byEmail.pressed', { address: 'nora.alharbi@example.com' }))
-    expect(named.closest('bdi')).not.toBeNull()
-    await user.type(field, 'Sending the receipt across now.')
-    await user.click(screen.getByRole('button', { name: copy('conversations.composer.send') }))
-    expect(await thread(name).findByText('Sending the receipt across now.')).toBeInTheDocument()
-    const after = await byId('CNV-102')
-    expect(after.channel).toBe('chat')
-    expect(after.messages.find((m) => m.body === 'Sending the receipt across now.')?.channel).toBe('email')
-  })
-
-  /** §8.6.5 / D17: refused at rest, and the reason is real text the toggle points at. */
-  it('refuses Reply by email on a chat with no address on file, with the reason as text', async () => {
-    const name = await nameOf('CNV-108')
-    renderInbox(at('CNV-108'))
-    await liveComposer(name)
-    const toggle = screen.getByRole('button', { name: copy('conversations.composer.byEmail') })
-    expect(toggle).toBeDisabled()
-    const reasonId = toggle.getAttribute('aria-describedby') as string
-    expect(document.getElementById(reasonId)).toHaveTextContent(copy('conversations.composer.noHandle'))
-  })
-
-  it('offers no Reply by email on an email conversation', async () => {
-    const name = await nameOf('CNV-110')
-    renderInbox(at('CNV-110'))
-    await screen.findByRole('region', { name: copy('inbox.thread.label', { name }) })
-    expect(screen.queryByRole('button', { name: copy('conversations.composer.byEmail') })).toBeNull()
   })
 
   /** SUPPORT-UX-PLAN §7.3: a template lands in the field and nothing is sent. */

@@ -37,15 +37,12 @@ export const INBOX_EN: Dictionary = {
   'inbox.header.details': 'Details',
   'inbox.bulk.clear': 'Clear selection',
 
-  /* the composer, AC-CC-11: six carriers, none colour alone */
+  /* the composer, AC-CC-11: four carriers, none colour alone. The owner's
+     ruling of 2026-09-06 dropped the consequence line and the key hint. */
   'inbox.composer.label': 'Reply to {name}',
   'inbox.composer.tab.verb': 'Reply to',
-  'inbox.composer.consequence.reply': 'Sent to {name} by {channel}',
-  'inbox.composer.consequence.note': 'Internal note. Not sent to the customer.',
   'inbox.composer.placeholder.reply': 'Write a reply to {name}…',
   'inbox.composer.placeholder.note': 'Write an internal note…',
-  'inbox.composer.keys.reply': 'Enter sends to {name} · Shift + Enter adds a line',
-  'inbox.composer.keys.note': 'Enter adds an internal note · Shift + Enter adds a line',
   'inbox.composer.announce.reply': 'Reply. Sends to {name}.',
   'inbox.composer.announce.note': 'Internal note. Not sent to the customer.',
 
@@ -226,16 +223,6 @@ export const CONVERSATIONS_EN: Dictionary = {
   /* carrier 4 — **the send label names the register.** */
   'conversations.composer.send': 'Send',
   'conversations.composer.addNote': 'Add note',
-  /* carrier 5 — the line beneath the composer. The key names stay Latin and the
-     separator and the sentence order belong to the translator, so this is ONE
-     template and never three concatenated fragments (§9). */
-
-  /* §8.6.5 — one control, and **the label never changes**. */
-  'conversations.composer.byEmail': 'Reply by email',
-  /* §8.6.5 — the address is NAMED before the press, and it is `<bdi>`-isolated
-     at the call site: unisolated, an Arabic paragraph reorders the `@` and the
-     TLD. Reachable now that `handles` can answer what the address IS (F-3). */
-  'conversations.composer.byEmail.pressed': 'This reply goes by email to {address}.',
 
   /* §8.6.3 — every reason `Send` is refused, as real text beneath the composer
      (§8.6.8: once per screen, never per control, and never a tooltip). */
@@ -247,8 +234,9 @@ export const CONVERSATIONS_EN: Dictionary = {
   'conversations.composer.phone': 'A call has no message to send. Log a note instead.',
   'conversations.composer.whatsapp':
     'WhatsApp isn’t connected yet. This conversation is read-only.',
-  /* **F-4** — `CNV-110` is an EMAIL conversation with `handle: null`, so there
-     is no `Reply by email` to disable and the refusal lands on `Send`. */
+  /* **F-4** — `CNV-110` is an EMAIL conversation with `handle: null`: the
+     refusal lands on `Send`, which is the only place it renders now that the
+     `Reply by email` toggle is gone. */
   'conversations.composer.noHandle': 'No email address on file for this rider.',
   /* D17's grammar: a capability sentence — no deictic, no count, naming the
      permission and who can grant it — which is why it reads the same on this

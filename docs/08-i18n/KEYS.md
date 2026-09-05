@@ -9,9 +9,9 @@ this file is stale or when the `defaultValue` ratchet slips.
 
 | | |
 |---|---:|
-| **Translatable keys, all dictionaries** | **6820** |
-| Reachable from `EN` (what the shell renders) | 6470 |
-| Keys in `AR` | 6820 |
+| **Translatable keys, all dictionaries** | **6814** |
+| Reachable from `EN` (what the shell renders) | 6464 |
+| Keys in `AR` | 6814 |
 | **Keys Arabic is missing** | **0** |
 | Keys in `AR` and not in `EN` (plural forms, unregistered screens) | 350 |
 | Plural forms (`key#category`) inside `EN` | 65 |
@@ -437,9 +437,9 @@ Measured on English only, and a placeholder counts as one word.
 | `src/screens/support/tickets/copy.ts` | `TICKETS_EN` | 236 |
 | `src/screens/admin/team/copy.ts` | `ADMIN_TEAM_EN` | 206 |
 | `src/screens/admin/data/copy.ts` | `ADMIN_DATA_EN` | 189 |
-| `src/screens/support/inbox/copy.ts` | `CONVERSATIONS_EN`, `INBOX_EN` | 178 |
 | `src/screens/admin/communications/copy.ts` | `COMMUNICATIONS_EN` | 173 |
 | `src/screens/auth/copy.ts` | `AUTH_EN` | 172 |
+| `src/screens/support/inbox/copy.ts` | `CONVERSATIONS_EN`, `INBOX_EN` | 172 |
 | `src/screens/admin/policy/copy.ts` | `POLICY_EN` | 170 |
 | `src/screens/support/disputes/copy.ts` | `DISPUTES_EN` | 168 |
 | `src/screens/operations/subscriptions/copy.ts` | `SUBSCRIPTIONS_EN` | 138 |

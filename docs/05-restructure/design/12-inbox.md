@@ -18,7 +18,7 @@ row in §10 says so. `DESIGN.md` has no inbox row; the nearest rules are cited.
 `inbox-{list,mine,thread,note,empty-thread,long-name,snoozed}-{wide,compact}-{en,ar}-<label>.png`
 plus `inbox-{thread,note}-wide-en-dark-<label>.png` under `scripts/harness/shots/`) and
 `scripts/harness/support-queues.mjs` (`contact-centre` and `contact-centre-thread` at 1280, en
-and ar). The verified frames are filed under `docs/02-verification/inbox/`.
+and ar).
 
 ## 1. Pattern
 
@@ -79,12 +79,11 @@ B = 976 − 544 = **432px** expanded, 664px with C collapsed. Arabic 392 / 624. 
 │                    │ ┃ Billing shows the escrow is stuck.    │                       │
 │                    │        Sarah claimed this conversation  │                       │
 │                    │ Nora is typing…                         │                       │
-│                    │ ┌ Reply │ Internal note ───────────────┐│                       │
+│                    │ ┌ Reply to Nora │ Internal note ──────┐│                       │
 │                    │ │ Write a reply…                       ││                       │
-│                    │ │ [Insert template] [Reply by email]   ││                       │
-│                    │ │                             [ Send ] ││                       │
+│                    │ │ [Insert template]           [ Send ] ││                       │
 │                    │ └──────────────────────────────────────┘│                       │
-│                    │ Enter sends · Shift + Enter adds a line  │                       │
+│                    │                                          │                       │
 └────────────────────┴─────────────────────────────────────────┴───────────────────────┘
 ```
 
@@ -331,60 +330,80 @@ Docked at B's foot, `--ev-surface`, 1px `--ev-hairline-control` border, radius 8
 
 ```
 ┌─────────────────────────────────────────────────┐   Reply register
-│ [ Reply ]  Internal note                        │   Tabs on the top edge, 32px, selected =
-│─────────────────────────────────────────────────│   --ev-bg2 fill + weight 600 (tabs.tsx)
-│ Write a reply…                                  │   Textarea, no inner border, 2 rows min,
-│                                                 │   grows to 8 (`field-sizing-content`,
-│─────────────────────────────────────────────────│   max-h 8 × 24px), then scrolls
-│ [Insert template] [Reply by email]     [ Send ] │   toolbar 40px: ghost xs, Toggle outline,
-└─────────────────────────────────────────────────┘   Send = default, inline-end
-  Enter sends · Shift + Enter adds a line              text-2xs --ev-text-2, outside the surface
+│ [ Reply to Nora ] Internal note                 │   Tabs at the inline-start of the top edge,
+│─────────────────────────────────────────────────│   32px, each sized to its own content,
+│ Write a reply to Nora…                          │   labels at the tab's own inline-start
+│                                                 │   Textarea, no inner border, 2 rows min,
+│─────────────────────────────────────────────────│   grows to 8, then scrolls
+│ [Insert template]                      [ Send ] │   toolbar 40px: two controls, ghost at the
+└─────────────────────────────────────────────────┘   start, Send = default at the inline-end
 
 ┃┌────────────────────────────────────────────────┐   Internal note register
-┃│  Reply  [ Internal note ]                      │   whole surface --ev-note; 3px
+┃│  Reply to Nora  [ Internal note ]              │   whole surface --ev-note; 3px
 ┃│────────────────────────────────────────────────│   --ev-note-bar inline-start edge, the
-┃│ Write a note for your team…                    │   same two carriers the NoteBlock wears
+┃│ Write an internal note…                        │   same two carriers the NoteBlock wears
 ┃│                                                │
 ┃│────────────────────────────────────────────────│
-┃│ [Insert template]                  [ Add note ]│   Reply by email absent in this register
+┃│ [Insert template]                  [ Add note ]│
 ┃└────────────────────────────────────────────────┘
-  Only your team can see this. Enter adds the note · Shift + Enter adds a line.
 ```
+
+Nothing is printed under the surface but a refusal. **Owner ruling, 2026-09-06:** the standing
+consequence line, the key hint and the `Reply by email` toggle are all removed; see §5.4.
 
 | Element | Component | Notes |
 |---|---|---|
-| Register | `Tabs` restyled: `TabsList` flush to the surface's top edge, `TabsTrigger` 32px, `←`/`→` between tabs | §8.6.2's five non-colour carriers stay; `--ev-note` is a sixth, added, not substituted |
+| Register | `Tabs` restyled: `TabsList` flush to the surface's top edge, `TabsTrigger` 32px, `←`/`→` between tabs | each trigger sizes to its own content and starts its label at the inline-start; neither is centred and neither escapes the surface (§5.4) |
 | Field | `Textarea` `rows={2}`, `field-sizing-content`, `max-h` 8 lines, transparent ground, focus ring on the composer surface (`focus-within`) | placeholder blank while refused |
 | `Insert template` | existing `TemplatePicker` trigger as `Button ghost` (`default`, 32px: `xs` is 11px in Latin) with `FileTextIcon` | surface `chat` / `email`; present in both registers; absent on phone (no surface) |
-| `Reply by email` | `Toggle variant="outline"` (`default`, 32px, one height with `Insert template`) `aria-pressed` | §8.6.5: only on `chat`; refusal on the toggle with `conversations.composer.noHandle` |
+| `Reply by email` | **not rendered** — owner ruling, 2026-09-06 | The seam keeps the capability: `replyConversation(id, { body, visibility, channel })` still accepts `channel: 'email'`. There is no control for it in the composer, in any state or on any channel, so §8.6.5's toggle does not apply here |
 | Attachment slot | **not rendered** in v1 | see §10 |
-| `Send` / `Add note` | `Button variant="default" size="sm"` | the only filled button on the screen while held (AC-CC-09); disabled while empty with no reason |
+| `Send` / `Add note` | `Button variant="default" size="sm"` | the only filled button on the screen while held (AC-CC-09); disabled while empty with no reason. The toolbar is exactly two controls: `Insert template` at the start, this at the end |
 | Refusal line | `<p id=…>` `text-xs` `--ev-text-2` under the surface, once | §8.6.3 / §8.6.8: real text beneath, never in the placeholder |
 | Phone | `Internal note` tab only | `conversations.composer.phone` |
 | WhatsApp | no composer; `conversations.composer.whatsapp` in its place | D19 |
 
-Sending, rejection, `Send again` (§4.6), the keyboard line and drafts are governed by §8.6 and D16a
-verbatim. Draft per conversation and register, in memory only, indicated nowhere.
+Sending, rejection, `Send again` (§4.6) and drafts are governed by §8.6 and D16a verbatim.
+Draft per conversation and register, in memory only, indicated nowhere. `Enter` sends and
+`Shift + Enter` adds a line — the behaviour is unchanged; only its printed hint is gone.
 
 ### 5.4 The register is unmistakable (AC-CC-11)
 
-Six carriers at once, none colour alone. (1) The register is a wide segmented pair on the
-composer's top edge, icon plus full label: `Reply to {name}` (send icon) and `Internal note`
-(eye-off icon); the active segment shares the composer surface's colour so it reads as the tab
-of the card beneath it. On a long name the name is its own span with `truncate` inside a
-`min-w-0` trigger; the verb and the icon are `shrink-0`; `Internal note` is `flex-none` at its
-natural width so the reply tab takes the rest and an ordinary name never elides; the trigger's accessible name stays the full `inbox.composer.label` string. No
-Reply-only form, no first-name form. (2) In the note register the whole surface and the field move to
-`--ev-note` with the 3px `--ev-note-bar` inline-start edge; there is no pale field inside a
-tinted card. (3) A standing label line between the tabs and the field states the consequence:
-`Sent to {name} by {channel}` / `Internal note. Not sent to the customer.` with the icon; always
-rendered. (4) Placeholder: `Write a reply to {name}…` / `Write an internal note…`. (5) Reply
-sends with the filled `Send`; a note is added with a secondary `Add note`, so a filled button on
-this screen always means the customer will see it. (6) After a note is added the register
-returns to Reply; the key hint reads `Enter sends to {name}` / `Enter adds an internal note`.
-`Ctrl/⌘+Shift+N` toggles the register; the change is announced through `useAnnounce`. Opening
-another conversation lands on Reply unless a note draft exists for it. Tests: the label line per
-register; the note register has no filled button. Harness: capture CNV-102 in both registers.
+**Four carriers at once, none colour alone.** This is the current rule. Six were specified; the
+owner removed two on 2026-09-06 as standing chrome an operator stops reading — the consequence
+line and the key hint — and they are recorded as removed rather than deferred. The four that
+remain are the ones an operator cannot avoid looking at: the tab they pressed, the ground they
+are typing on, the words in the field before they type, and the button they are about to press.
+
+1. **The tabs.** A tab pair anchored at the inline-start of the composer's top edge, icon plus
+   full label: `Reply to {name}` (send icon) and `Internal note` (eye-off icon). Each tab sizes
+   to its own content and starts its label at its own inline-start; neither is centred, neither
+   is stretched, and neither escapes the surface. On a long name the name is its own span with
+   `truncate` inside a `min-w-0` trigger, and the reply tab is the one that shrinks
+   (`flex-initial`) while `Internal note` stays `flex-none` at its natural width; the verb and
+   the icon are `shrink-0`. The trigger's accessible name stays the whole
+   `inbox.composer.label` string. The active tab shares the composer surface's colour so it
+   reads as the tab of the card beneath it, with no seam. No Reply-only form, no first-name
+   form.
+2. **The ground.** In the note register the whole surface and the field move to `--ev-note`
+   with the 3px `--ev-note-bar` inline-start edge; there is no pale field inside a tinted card.
+3. **The placeholder.** `Write a reply to {name}…` / `Write an internal note…`.
+4. **The button.** Reply sends with the filled `Send`; a note is added with a secondary
+   `Add note`, so a filled button on this screen always means the customer will see it.
+
+After a note is added the register returns to Reply. `Ctrl/⌘+Shift+N` toggles the register and
+the change is announced through `useAnnounce` (`inbox.composer.announce.*`); the announcement
+carries the sentence the deleted consequence line used to print, which is where a sentence of
+that kind belongs. Opening another conversation lands on Reply unless a note draft exists for
+it. Tests: the selected tab, the placeholder and the button per register; the note register has
+no filled button. Harness: capture CNV-102 in both registers.
+
+**Removed, and why they are not to come back without a new ruling.** `Sent to {name} by
+{channel}` and `Internal note. Not sent to the customer.` (the standing line) and
+`Enter sends to {name} · Shift + Enter adds a line` (the key hint) printed on every frame in
+both registers, so they carried no information at the moment the operator needed one. Their
+keys — `inbox.composer.consequence.*` and `inbox.composer.keys.*` — are deleted from `copy.ts`
+and from `src/i18n/ar/inbox.ts`. The keyboard behaviour is untouched.
 
 ## 6. Pane C — context
 
@@ -478,7 +497,7 @@ No new radius: bubbles use `--ev-radius-card`; the squared corner is `--radius-s
 | 6 | Refusal as real text beneath, not in the placeholder | an earlier draft used the placeholder | §8.6.3; a placeholder is not real text and is not reachable by `aria-describedby` |
 | 7 | System line has no rule | an earlier draft gave it one | §8.6.2 shape; the rule is the day divider's carrier |
 | 8 | `Create ticket` on a resolution breach is the first visible ghost, not filled | **D22**, AC-964, §4.5 | §3.9 / CLAUDE.md rule 6: one filled button per screen, and §8.6 gives it to `Send`. The prompt still renders (`conversations.ticket.overdue` in C). **Owner decision Q-CC6** |
-| 9 | No attachment control | an earlier draft had one | D19's reasoning: a control for a pipe that does not exist; §11.2 would cost a second reason line. Slot reserved before `Reply by email`. **Q-CC7** |
+| 9 | No attachment control | an earlier draft had one | D19's reasoning: a control for a pipe that does not exist; §11.2 would cost a second reason line. Slot reserved at the start of the toolbar. **Q-CC7** |
 | 10 | Bubble time on hover/focus-within plus visually hidden | §7.3 hover-only | the group's last time is always visible and bounds the rest within 5 min; AT gets every time |
 | 12 | Snoozed: `Create ticket` alone visible, `Transfer` · `Close conversation` · `Snooze until…` in `⋯` | §4.1's first draft (`Transfer` · `Close conversation` visible, `Create ticket` in a `⋯` of one) | D8-b: a `⋯` of one may not exist and three labelled ghosts leave the identity 0px at 1280 in English. Changing the wake time is a real act on a snoozed conversation (`snoozeConversation` sets a new `snoozedUntil`), so the `⋯` holds three and nothing is withheld; row 8 keeps `Create ticket` the first ghost |
 | 14 | Line 2 yields in order: the channel word goes `sr-only` when it cannot show whole, then the status badge hides, never the clock | §4.1 anatomy | The glyph beside it carries the channel; a word cut to one letter is decoded, not read (§5.7). The clock is the one fact that decides the next act |
@@ -584,10 +603,6 @@ These are the `conversations.*` strings the thread and composer render. They are
 | Register segments | `Reply` · `Internal note` |
 | Send, reply register | `Send` |
 | Send, note register | `Add note` |
-| Keyboard line, reply | `Enter sends · Shift + Enter adds a line` |
-| Keyboard line, note | `Only your team can see this. Enter adds the note · Shift + Enter adds a line.` |
-| Channel switch | `Reply by email` |
-| Channel switch, pressed | `This reply goes by email to {address}.` |
 | Delivery | `Sending…` · `Sent` · `Delivered` · `Read` |
 | Delivery, failed | `Not delivered — {failureMessage}` |
 | Failed actions | `Send again` · `Add an email address` |
@@ -602,7 +617,7 @@ These are the `conversations.*` strings the thread and composer render. They are
 | Composer, closed | `This conversation is closed. Reopen it to reply.` |
 | Composer, phone | `A call has no message to send. Log a note instead.` |
 | Composer, WhatsApp | `WhatsApp isn't connected yet. This conversation is read-only.` |
-| Send / switch, no handle | `No email address on file for this rider.` |
+| Send, no handle | `No email address on file for this rider.` — `conversations.composer.noHandle`, and the only place it renders now that the toggle is gone: an email conversation to a rider with no email address refuses `Send` with it (`CNV-110`) |
 | Send, no permission | `You need the “Contact users” permission. An owner can grant it.` (D17's template) |
 | `Claim`, at the cap | `You are holding 3 live chats, which is the limit.` (D22) |
 | Send rejected, 409 | `This conversation was closed. Reopen it to send.` |
