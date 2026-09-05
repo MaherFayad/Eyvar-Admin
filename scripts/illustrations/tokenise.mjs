@@ -62,7 +62,9 @@ async function convert(page, file) {
     const d = attrs.match(/\bd="([^"]+)"/)?.[1]
     const transform = attrs.match(/transform="([^"]+)"/)?.[1]
     if (!fill || !d) throw new Error('path without fill or d')
-    if (new RegExp(`^M 0 0 L ${vw} 0 L ${vw} ${vh} L 0 ${vh} L 0 0 z$`).test(d.trim())) continue
+    /* The canvas: the full rect, or any white piece anchored at the origin
+       (Recraft sometimes splits the ground around a figure). */
+    if (fill.replace(/s/g, '') === 'rgb(255,255,255)' && /^M 0 0 [LC]/.test(d.trim()) && /L 0 0 z$/.test(d.trim())) continue
     const cls = nearestFill(fill, file)
     kept.push({ cls, d, transform: transform && transform !== 'translate(0,0)' ? transform : null })
   }

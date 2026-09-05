@@ -98,11 +98,11 @@ for (const [slug, name] of USERS) {
   console.log(`\n== ${slug}`)
   await switchTo(name)
   if (slug !== 'owner') {
-    /* The welcome comes first: five slides, then Start opens the layer. */
+    /* The welcome comes first: four slides, then Start opens the layer. */
     if ((await dialog().count()) === 0) fail(`${slug}: the welcome did not open after the switch`)
-    if ((await dialog().getByText(/Welcome to Eyvar Admin/).count()) === 0) fail(`${slug}: the dialog is not the welcome`)
+    if ((await dialog().getByText(/^Welcome, /).count()) === 0) fail(`${slug}: the dialog is not the welcome`)
     await page.screenshot({ path: `${OUT}/welcome-${slug}.png` })
-    for (let i = 0; i < 4; i += 1) {
+    for (let i = 0; i < 3; i += 1) {
       await page.getByRole('button', { name: 'Next' }).click()
       await page.waitForTimeout(150)
     }
@@ -138,7 +138,7 @@ for (const [slug, name] of USERS) {
   if (beacon === null) fail(`${slug}: no beacon after closing the layer`)
   else {
     console.log(`  beacon ${beacon.w}px wide, ${beacon.right}px from the end edge, ${beacon.bottom}px from the bottom`)
-    if (beacon.right !== 16 || beacon.bottom !== 16) fail(`${slug}: beacon is not 16px from the corner`)
+    if (beacon.right !== 24 || beacon.bottom !== 24) fail(`${slug}: beacon is not 24px from the corner`)
   }
   await page.screenshot({ path: `${OUT}/beacon-${slug}.png` })
   /* The ring opens the small panel, not the layer. */
@@ -176,7 +176,7 @@ const beaconAr = await page.evaluate(() => {
   const el = document.querySelector('[data-testid="onboarding-beacon"]')
   return el ? Math.round(el.getBoundingClientRect().left) : null
 })
-if (beaconAr !== 16) fail(`arabic: beacon should sit 16px from the left edge, got ${beaconAr}`)
+if (beaconAr !== 24) fail(`arabic: beacon should sit 24px from the left edge, got ${beaconAr}`)
 await page.screenshot({ path: `${OUT}/beacon-ar.png` })
 
 await browser.close()

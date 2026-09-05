@@ -35,11 +35,11 @@ import { SupportBoundaryArt } from './SupportBoundaryArt'
 import { SupportGoodwillArt } from './SupportGoodwillArt'
 import { SupportProfileArt } from './SupportProfileArt'
 import { SupportTicketArt } from './SupportTicketArt'
-import { WelcomeConsoleArt } from './WelcomeConsoleArt'
-import { WelcomePathArt } from './WelcomePathArt'
+import { WelcomeLoopArt } from './WelcomeLoopArt'
+import { WelcomeRouteArt } from './WelcomeRouteArt'
 
 export type { ArtProps }
-export { CompleteArt, WelcomeConsoleArt, WelcomePathArt }
+export { CompleteArt, WelcomeLoopArt, WelcomeRouteArt }
 
 export const STEP_ART: Readonly<Record<string, ComponentType<ArtProps>>> = {
   'common.account': CommonAccountArt,

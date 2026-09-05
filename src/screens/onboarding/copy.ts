@@ -93,28 +93,26 @@ export const ONBOARDING_EN: Dictionary = {
   'onboarding.group.role': 'For your role',
 
   /* The first-arrival welcome (owner override of §5.6, RULINGS.md 2026-09-05). */
-  'onboarding.welcome.title': 'Welcome to Eyvar Admin, {name}',
+  'onboarding.welcome.eyebrow': 'Eyvar Admin',
+  'onboarding.welcome.title': 'Welcome, {name}',
   'onboarding.welcome.step1.body':
-    'Captains, riders, trips, subscriptions, wallets and the queues that keep them moving, on one screen you keep open all day.',
+    'Riders subscribe, captains drive, and this console is where the team keeps both moving: trips, wallets, payouts and every queue in between.',
+  'onboarding.welcome.step1.reach': 'Your role reaches {workspaces}.',
   'onboarding.welcome.step2.title': 'Your work arrives in one place',
   'onboarding.welcome.step2.body':
-    'Every queue reaches you in My Work. Claim an item, work it, release it. Nothing is yours until you claim it.',
-  'onboarding.welcome.step3.title': 'Everything you do is recorded',
+    'Every queue you can see lands in My Work. Claim an item to make it yours, work it on its own screen, then release it. Nothing is assigned to you silently.',
+  'onboarding.welcome.step3.title': 'Jump anywhere from the keyboard',
   'onboarding.welcome.step3.body':
-    'The activity log keeps your name on every action, and it tells you who is on call when something goes wrong.',
-  'onboarding.welcome.step4.title': 'Find anything from the keyboard',
+    'Press ⌘K, or Ctrl K on Windows, to open a queue, find a record by its ID, or run an action without leaving the page you are on.',
+  'onboarding.welcome.step4.title': 'Your first {count} tasks',
   'onboarding.welcome.step4.body':
-    'Press ⌘K to jump to a queue, open a record by its id, or run an action without leaving the page.',
-  'onboarding.welcome.step5.title': 'A short checklist for your role',
-  'onboarding.welcome.step5.body':
-    '{count} steps, each a real task on a real screen. Do them in any order, skip what you know, and come back from your account menu.',
+    '{count} real tasks on real screens, picked for your role. The console ticks a step the moment you do it. Come back any time from the ring in the corner or your account menu.',
   'onboarding.welcome.next': 'Next',
   'onboarding.welcome.back': 'Back',
   'onboarding.welcome.start': 'Start the checklist',
   'onboarding.welcome.later': 'Not now',
   'onboarding.welcome.progress': 'Step {current} of {total}',
   'onboarding.welcome.image.mywork': 'My Work, with claimed items and their deadlines',
-  'onboarding.welcome.image.activity': 'The activity log',
   'onboarding.welcome.image.palette': 'The command palette, listing queues with waiting items',
 
   /* The floating progress beacon. */

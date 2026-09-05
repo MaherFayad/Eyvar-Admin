@@ -55,7 +55,7 @@ hue", and `pairRefusal`'s rule for what may share one y-axis.
 The owner asked for a welcome on first arrival, a floating progress indicator, and pictures in
 the checklist. Three `DESIGN.md` positions yield, and only this far:
 
-- §5.6 "MUST NOT use modal wizards for onboarding": **one** modal welcome of five slides, shown
+- §5.6 "MUST NOT use modal wizards for onboarding": **one** modal welcome of at most five slides, shown
   once per account on the first session and never again (`WelcomeDialog`, stamped by
   `autoOpenedAt`). Closing it by any route counts as seen. No other wizard, tour, coach mark or
   spotlight is licensed by this.

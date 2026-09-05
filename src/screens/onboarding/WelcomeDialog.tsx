@@ -1,8 +1,9 @@
 /**
- * The first-arrival welcome: five slides on what the console is, shown once
- * per account and never again (owner override of §5.6, `docs/RULINGS.md`
- * 2026-09-05). Three slides show the product itself, two are drawn. Closing
- * by any route counts as seen; `Start the checklist` opens the layer.
+ * The first-arrival welcome: four slides, shown once per account and never
+ * again (owner override of §5.6, `docs/RULINGS.md` 2026-09-05). Picture on
+ * the start side, words on the end side; two slides show the product itself,
+ * two are drawn. Closing by any route counts as seen; `Start the checklist`
+ * opens the layer.
  */
 
 import { useState } from 'react'
@@ -15,11 +16,12 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import type { RoleName } from '@/data/types/session'
-import type { Language, Translator } from '@/lib'
+import { useTheme } from '@/hooks'
+import { localeFor, type Language, type Translator } from '@/lib'
 import { track } from '@/lib/analytics'
 import { cn } from '@/lib/utils'
 import { ROLE_INTRO_KEYS } from './copy'
-import { WelcomeConsoleArt, WelcomePathArt, type ArtProps } from './illustrations'
+import { ROLE_ART, WelcomeLoopArt, WelcomeRouteArt, type ArtProps } from './illustrations'
 import type { ComponentType } from 'react'
 
 export interface WelcomeDialogProps {
@@ -28,6 +30,8 @@ export interface WelcomeDialogProps {
   role: RoleName
   /** Reachable steps in the operator's track; the last slide names the count. */
   stepCount: number
+  /** Workspace titles the operator's role can open, in nav order. */
+  workspaceNames: readonly string[]
   language: Language
   t: Translator
   /** `start` is true when the operator chose to open the checklist. */
@@ -36,89 +40,113 @@ export interface WelcomeDialogProps {
 
 type Media =
   | { kind: 'art'; Art: ComponentType<ArtProps> }
-  | { kind: 'shot'; file: 'mywork' | 'activity' | 'palette'; altKey: string }
+  | { kind: 'shot'; file: 'mywork' | 'palette'; altKey: string }
 
-interface Slide {
-  id: 'step1' | 'step2' | 'step3' | 'step4' | 'step5'
-  media: Media
+type SlideId = 'step1' | 'step2' | 'step3' | 'step4'
+
+const SLIDE_IDS: readonly SlideId[] = ['step1', 'step2', 'step3', 'step4']
+
+/** The greeting uses the first name; the full name stays in the account menu. */
+function firstName(name: string): string {
+  return name.trim().split(/\s+/)[0] ?? name
 }
-
-const SLIDES: readonly Slide[] = [
-  { id: 'step1', media: { kind: 'art', Art: WelcomeConsoleArt } },
-  { id: 'step2', media: { kind: 'shot', file: 'mywork', altKey: 'onboarding.welcome.image.mywork' } },
-  { id: 'step3', media: { kind: 'shot', file: 'activity', altKey: 'onboarding.welcome.image.activity' } },
-  { id: 'step4', media: { kind: 'shot', file: 'palette', altKey: 'onboarding.welcome.image.palette' } },
-  { id: 'step5', media: { kind: 'art', Art: WelcomePathArt } },
-]
 
 export function WelcomeDialog({
   open,
   name,
   role,
   stepCount,
+  workspaceNames,
   language,
   t,
   onFinish,
 }: WelcomeDialogProps) {
   const [index, setIndex] = useState(0)
-  const slide = SLIDES[index] ?? SLIDES[0]!
-  const last = index === SLIDES.length - 1
+  /* A capture is stored per theme so a dark console never shows a light page. */
+  const { resolved: theme } = useTheme({ applyToDocument: false })
+  const id = SLIDE_IDS[index] ?? 'step1'
+  const last = index === SLIDE_IDS.length - 1
 
   const finish = (start: boolean) => {
     track('onboarding.welcome.finished', { start, slide: index + 1 })
     onFinish(start)
   }
   const go = (next: number) => {
-    const clamped = Math.max(0, Math.min(SLIDES.length - 1, next))
+    const clamped = Math.max(0, Math.min(SLIDE_IDS.length - 1, next))
     setIndex(clamped)
     track('onboarding.welcome.viewed', { slide: clamped + 1 })
   }
 
+  const media: Media =
+    id === 'step1'
+      ? { kind: 'art', Art: WelcomeLoopArt }
+      : id === 'step2'
+        ? { kind: 'shot', file: 'mywork', altKey: 'onboarding.welcome.image.mywork' }
+        : id === 'step3'
+          ? { kind: 'shot', file: 'palette', altKey: 'onboarding.welcome.image.palette' }
+          : { kind: 'art', Art: ROLE_ART[role] ?? WelcomeRouteArt }
+
   const title =
-    slide.id === 'step1'
-      ? t('onboarding.welcome.title', { name })
-      : t(`onboarding.welcome.${slide.id}.title`)
+    id === 'step1'
+      ? t('onboarding.welcome.title', { name: firstName(name) })
+      : id === 'step4'
+        ? t('onboarding.welcome.step4.title', { count: stepCount })
+        : t(`onboarding.welcome.${id}.title`)
   const body =
-    slide.id === 'step5'
-      ? t('onboarding.welcome.step5.body', { count: stepCount })
-      : t(`onboarding.welcome.${slide.id}.body`)
+    id === 'step4'
+      ? t('onboarding.welcome.step4.body', { count: stepCount })
+      : t(`onboarding.welcome.${id}.body`)
+  const reach =
+    id === 'step1' && workspaceNames.length > 0
+      ? t('onboarding.welcome.step1.reach', {
+          workspaces: new Intl.ListFormat(localeFor(language), { type: 'conjunction' }).format(
+            workspaceNames,
+          ),
+        })
+      : null
 
   return (
     <Dialog open={open} onOpenChange={(next) => !next && finish(false)}>
       <DialogContent size="lg">
-        {/* Media first: a 16:9 frame on the muted ground. A screenshot is
-            cropped to its top edge so the page title stays in view; the art
-            sits centred inside it. */}
-        <div className="flex aspect-video w-full items-center justify-center overflow-hidden rounded-lg bg-muted">
-          {slide.media.kind === 'art' ? (
-            <slide.media.Art className="h-3/5 w-3/5" />
-          ) : (
-            <img
-              src={`${import.meta.env.BASE_URL}onboarding/${slide.media.file}.${language}.png`}
-              alt={t(slide.media.altKey)}
-              className="h-full w-full object-cover object-top"
-            />
-          )}
-        </div>
+        <div className="flex items-stretch gap-5">
+          {/* The picture: a 3:2 frame on the muted ground. A capture is
+              cropped to its top edge so the page title stays in view; a
+              drawing sits inside with a little air around it. */}
+          <div className="flex aspect-3/2 w-3/5 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-muted">
+            {media.kind === 'art' ? (
+              <media.Art className="h-full w-full p-5" />
+            ) : (
+              <img
+                src={`${import.meta.env.BASE_URL}onboarding/${media.file}.${language}.${theme}.png`}
+                alt={t(media.altKey)}
+                className="h-full w-full object-cover object-top"
+              />
+            )}
+          </div>
 
-        <div className="flex flex-col gap-2">
-          <DialogTitle className="text-base font-semibold">{title}</DialogTitle>
-          <DialogDescription className="text-sm text-muted-foreground">{body}</DialogDescription>
-          {slide.id === 'step5' && (
-            <p className="text-sm text-foreground">{t(ROLE_INTRO_KEYS[role] ?? 'onboarding.intro.support')}</p>
-          )}
+          <div className="flex min-w-0 flex-1 flex-col justify-center gap-2 py-1">
+            {id === 'step1' && (
+              <p className="text-xs font-medium text-muted-foreground">{t('onboarding.welcome.eyebrow')}</p>
+            )}
+            <DialogTitle className="text-lg font-semibold text-balance">{title}</DialogTitle>
+            <DialogDescription className="text-sm text-muted-foreground">{body}</DialogDescription>
+            {reach !== null && <p className="text-sm text-foreground">{reach}</p>}
+            {id === 'step4' && (
+              <p className="text-sm text-foreground">{t(ROLE_INTRO_KEYS[role] ?? 'onboarding.intro.support')}</p>
+            )}
+          </div>
         </div>
 
         <DialogFooter className="flex-row items-center gap-2 sm:justify-between">
           <ol
             className="flex items-center gap-1.5"
-            aria-label={t('onboarding.welcome.progress', { current: index + 1, total: SLIDES.length })}
+            aria-label={t('onboarding.welcome.progress', { current: index + 1, total: SLIDE_IDS.length })}
           >
-            {SLIDES.map((each, i) => (
-              <li key={each.id}>
+            {SLIDE_IDS.map((each, i) => (
+              <li key={each}>
                 <button
                   type="button"
-                  aria-label={t('onboarding.welcome.progress', { current: i + 1, total: SLIDES.length })}
+                  aria-label={t('onboarding.welcome.progress', { current: i + 1, total: SLIDE_IDS.length })}
                   aria-current={i === index ? 'step' : undefined}
                   onClick={() => go(i)}
                   className={cn(

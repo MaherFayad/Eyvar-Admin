@@ -85,19 +85,39 @@ describe('AC-594 — "the welcome opens automatically exactly once, on the first
 
     const welcome = await screen.findByRole('dialog')
     expect(
-      within(welcome).getByText(en('onboarding.welcome.title').replace('{name}', session.name)),
+      within(welcome).getByText(en('onboarding.welcome.title').replace('{name}', session.name.split(' ')[0]!)),
     ).toBeInTheDocument()
+    /* Slide one names every workspace an Owner can open. */
+    const reach = within(welcome).getByText(en('onboarding.welcome.step1.reach').slice(0, 17), {
+      exact: false,
+    })
+    for (const workspace of ['management', 'operations', 'financials', 'support', 'admin']) {
+      expect(reach).toHaveTextContent(en(`workspace.${workspace}`))
+    }
     await waitFor(async () => {
       expect((await getOnboarding(owner)).state.autoOpenedAt).not.toBeNull()
     })
 
-    /* Five slides, dots reachable, then the checklist. */
-    for (let i = 0; i < 4; i += 1) {
+    /* Four slides, dots reachable, then the checklist. */
+    for (let i = 0; i < 3; i += 1) {
       await user.click(screen.getByRole('button', { name: en('onboarding.welcome.next') }))
     }
     await user.click(screen.getByRole('button', { name: en('onboarding.welcome.start') }))
     const layer = await screen.findByRole('dialog')
     expect(within(layer).getByText(en('onboarding.title'))).toBeInTheDocument()
+  })
+
+  it('tells Support which workspaces they reach, and Financials is not among them (AC-916)', async () => {
+    const support = await userWithRole('Support')
+    const session = await switchMockUser(support)
+    renderShell(session.landingRoute)
+
+    const welcome = await screen.findByRole('dialog')
+    const reach = within(welcome).getByText(en('onboarding.welcome.step1.reach').slice(0, 17), {
+      exact: false,
+    })
+    expect(reach).toHaveTextContent(en('workspace.support'))
+    expect(reach).not.toHaveTextContent(en('workspace.financials'))
   })
 
   it('leaves the layer closed after Not now, and shows the beacon instead', async () => {

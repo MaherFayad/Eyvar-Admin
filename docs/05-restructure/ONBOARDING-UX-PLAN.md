@@ -272,3 +272,23 @@ The owner's second review: the beacon should be a progress ring with the percent
 | **Skip removed** | No Skip control, no `Skipped (n)` group. The data layer keeps `skipStep` and `skippedStepIds`; nothing in the UI writes them. AC-633 and AC-634 are withdrawn by the owner; the tests that asserted the control were removed. |
 | **Quieter layer** | No sub-card behind the expanded step: body text in the muted ink, one primary `Open`, `Mark as done` as a plain button, the picture at inline-end. No group labels. The intro picture is 112×80. |
 | **Descriptions** | All 21 bodies rewritten in English and Arabic to say what to do, why, and what done looks like, in one or two sentences each. |
+
+---
+
+## 13. Round four — the welcome earns its first screen (2026-09-05)
+
+The owner's third review, of the welcome's first slide: a generic monitor floating in a dark box, a full name in the title, and a list of nouns for a body. "Major enhancement, in the illustration or the content, do some research."
+
+What the research said, and what it changed here. Appcues' and UserGuiding's onboarding-screen guides, and the Mobbin captures of Mixpanel, YNAB, Adobe Express and Airtable, agree on four things: greet by first name; put the picture beside the words, not above them; show the product itself wherever a slide is about the product; and keep the count low, because each extra step loses a share of the people still reading.
+
+| Move | What changed |
+|---|---|
+| **Four slides, not five** | The activity-log slide is gone; the checklist's `common.audit` step already takes the operator there. Slides: what Eyvar is and what your role reaches, My Work, ⌘K, your checklist. |
+| **Split layout** | The picture sits at inline-start in a 3:2 frame at three fifths of the width; the eyebrow, title, body and any extra line sit at inline-end, vertically centred. The Arabic build mirrors it. |
+| **First name** | `Welcome, Sarah`, with `Eyvar Admin` as the eyebrow above it. The full name stays in the account menu. |
+| **A true sentence** | Slide one ends with *Your role reaches Management, Operations, Financials, Support, and Admin*, built from `visibleWorkspaces` and `Intl.ListFormat`, so Support never reads Financials (AC-916). |
+| **The picture** | `welcome.loop`: a rider with a phone and a captain in a car joined by a subscription loop, a wallet and a ticked calendar inside it, a skyline along the ground. It fills the frame. The last slide shows the operator's own role picture (`ROLE_ART`), with `welcome.route`, a route across a city grid, for the two roles that have none. `welcome.console` and `welcome.path` are deleted. |
+| **Beacon margin** | The ring sits 24px from each edge instead of 16px; the owner found it too close to the corner. |
+| **Words** | Every slide rewritten in both languages: what the thing is, what you do with it, what it does back. The `skip what you know` clause is gone with Skip. |
+
+Captures are now 3:2 crops in both colour themes (`capture-welcome.mjs`, eight files), chosen at render time by `useTheme`; the activity capture is deleted.

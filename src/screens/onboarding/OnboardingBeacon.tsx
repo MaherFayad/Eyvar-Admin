@@ -68,7 +68,7 @@ export function OnboardingBeacon({
   }
 
   return (
-    <div data-testid="onboarding-beacon" className="fixed bottom-4 end-4 z-40">
+    <div data-testid="onboarding-beacon" className="fixed bottom-6 end-6 z-40">
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <button

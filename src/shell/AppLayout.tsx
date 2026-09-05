@@ -873,6 +873,7 @@ export function AppLayout() {
           name={shell.session.name}
           role={shell.onboarding.role}
           stepCount={shell.onboarding.totalCount}
+          workspaceNames={workspaces.map((workspace) => t(workspace.titleKey))}
           language={shell.language.language}
           t={t}
           onFinish={(start) => {
