@@ -17,7 +17,14 @@ import userEvent from '@testing-library/user-event'
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { MemoryRouter } from 'react-router-dom'
 import { toast } from 'sonner'
-import { disableMockLatency, listDrivers, listSubscriptions, resetDataLayer } from '@/data/clients'
+import {
+  disableMockLatency,
+  listDrivers,
+  listSubscriptions,
+  mockFailures,
+  resetDataLayer,
+  switchMockUser,
+} from '@/data/clients'
 import type { Driver, Subscription } from '@/data/types'
 import { ShellProvider } from '@/shell/ShellContext'
 import { AppRoutes } from '@/routes'
@@ -29,12 +36,14 @@ const en = (key: string, params: Record<string, string> = {}) =>
 
 const INDEX = '/operations/subscriptions'
 
-beforeEach(() => {
+beforeEach(async () => {
   disableMockLatency()
   resetDataLayer()
+  mockFailures.clear()
   /* Sonner's store outlives a render, so a toast raised by an earlier test is
      still queued when the next one mounts a Toaster. */
   toast.dismiss()
+  await switchMockUser('USR-1')
 })
 
 beforeAll(() => {
@@ -175,5 +184,116 @@ describe('T6.1 / D18 — freezing a subscription is reversible from the toast', 
     expect(within(dialog).getByText(en('subs.freeze.duration'))).toBeInTheDocument()
     await user.click(within(dialog).getAllByRole('combobox')[0]!)
     expect(await screen.findAllByRole('option')).toHaveLength(4)
+  })
+})
+
+/* ══════════════════════════ T8.1 — the rest ═════════════════════════════ */
+
+describe('D18 — `Cancel and settle` states its outcome and offers no undo', () => {
+  it('confirms first, names what will not change, and needs a reason before it can run', async () => {
+    const user = userEvent.setup()
+    renderApp(`${INDEX}?q=${live.id}`)
+    await screen.findByText(live.id)
+
+    const menu = await openRowMenu(user, live)
+    await user.click(within(menu).getByRole('menuitem', { name: en('subs.action.cancel') }))
+
+    const dialog = await screen.findByRole('dialog')
+    expect(within(dialog).getByText(en('subs.settle.title', { id: live.id }))).toBeInTheDocument()
+    expect(within(dialog).getByText(en('subs.settle.body'))).toBeInTheDocument()
+    /* §10.4 — the primary is dead until a reason is chosen. */
+    expect(within(dialog).getByRole('button', { name: en('subs.settle.confirm') })).toBeDisabled()
+  })
+
+  it('cancels through the client and the toast carries no undo', async () => {
+    const user = userEvent.setup()
+    renderApp(`${INDEX}?q=${live.id}`)
+    await screen.findByText(live.id)
+
+    const menu = await openRowMenu(user, live)
+    await user.click(within(menu).getByRole('menuitem', { name: en('subs.action.cancel') }))
+
+    const dialog = await screen.findByRole('dialog')
+    await user.click(within(dialog).getAllByRole('combobox')[0]!)
+    await user.click((await screen.findAllByRole('option'))[0]!)
+    await user.click(within(dialog).getByRole('button', { name: en('subs.settle.confirm') }))
+
+    /* The outcome sentence names the refund the SERVER returned. */
+    const toasted = await screen.findByText(/Subscription cancelled/)
+    expect(toasted).toBeInTheDocument()
+    /* D18 fails on both clauses here: no inverse, so no undo handle. */
+    await waitFor(() =>
+      expect(screen.queryByRole('button', { name: en('command.undo') })).toBeNull(),
+    )
+  })
+
+  it('§11.2 — a subscription already cancelled refuses the command in place, with its reason', async () => {
+    const user = userEvent.setup()
+    const page = (await listSubscriptions({ view: 'all', pageSize: 500 })).items
+    const terminal = page.find((sub) => sub.status === 'cancelled' || sub.status === 'expired')
+    if (!terminal) throw new Error('The fixtures must carry a cancelled or expired subscription.')
+
+    renderApp(`${INDEX}?view=all&q=${terminal.id}`)
+    await screen.findByText(terminal.id)
+    const menu = await openRowMenu(user, terminal)
+    const item = within(menu).getByRole('menuitem', { name: en('subs.action.cancel') })
+    expect(item).toHaveAttribute('aria-disabled', 'true')
+  })
+})
+
+describe('§4.11 — the four states', () => {
+  it('content: the index lists subscriptions with a count in the header', async () => {
+    renderApp()
+    const table = await screen.findByRole('table')
+    expect(within(table).getAllByRole('row').length).toBeGreaterThan(1)
+  })
+
+  it('loading: no table while the read is in flight', async () => {
+    renderApp()
+    expect(screen.queryByRole('table')).not.toBeInTheDocument()
+    await screen.findByRole('table')
+  })
+
+  /**
+   * AC-24 / AC-36 — this screen takes the PAGE scope on a whole-read failure,
+   * so the sentence is the shell's, not `subs.error.list` (which the DataTable
+   * branch below never reaches and which is therefore unused copy).
+   */
+  it('error: the page states the failure and offers a retry', async () => {
+    mockFailures.always('subscriptions.list')
+    renderApp()
+    expect(
+      await screen.findByText(
+        en('state.pageError.title', { resource: en('subtab.operations.subscriptions') }),
+      ),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: EN['state.pageError.action'] as string }),
+    ).toBeInTheDocument()
+    expect(screen.queryByRole('table')).toBeNull()
+  })
+
+  it('empty: a search matching nothing states so', async () => {
+    renderApp(`${INDEX}?q=zzzznotasubscription`)
+    expect(await screen.findByText(en('subs.empty.noMatch'))).toBeInTheDocument()
+  })
+})
+
+describe('§7.2 — the keyboard reaches the row commands', () => {
+  it('the row menu opens from the keyboard and Escape closes it', async () => {
+    const user = userEvent.setup()
+    renderApp(`${INDEX}?q=${live.id}`)
+    await screen.findByText(live.id)
+
+    const row = screen.getByText(live.id).closest('tr') as HTMLElement
+    const trigger = within(row).getByRole('button', {
+      name: en('table.rowActions', { row: live.id }),
+    })
+    trigger.focus()
+    await user.keyboard('{Enter}')
+    await screen.findByRole('menu')
+    await user.keyboard('{Escape}')
+    await waitFor(() => expect(screen.queryByRole('menu')).toBeNull())
+    expect(trigger).toHaveFocus()
   })
 })
