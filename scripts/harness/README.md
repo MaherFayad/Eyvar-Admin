@@ -21,24 +21,24 @@ Screenshots land in `scripts/harness/shots/` and JSON in `.tmp/`; both are git-i
 
 ## Across every route
 
-Run these two first. They sweep all 25 Management and Operations destinations and say
+Run these two first. They sweep all 26 Management and Operations destinations and say
 which screen to open a per-screen harness on.
 
 | Script | Proves |
 |---|---|
 | `ops-routes.routes.mjs` | not a harness: the route list the two below share, so they cannot drift into measuring different sets |
 | `ops-routes.mjs` | **T8.2.** Every Management and Operations route at 1280 × 800 and 1440 × 900, both languages: `h1`, banner and `role=alert` counts, horizontal overflow of the document and of `<main>`, how far the window actually scrolls, clipped table cells, and whether the zones inspector, the dispatch feed and rail and each `DetailPage` rail sit inside the first viewport. Exits non-zero on overflow or a panel below the fold at 1280. Takes a label; reads `HARNESS_BASE` |
-| `chrome.mjs` | **T9.16.** The same routes at 1280 × 800, both languages: em dashes in `innerText` (X14), visible 12px muted nodes inside cards, cells and headers counted apart (X15), buttons whose whole content is a text glyph and the `Back` controls per page (X16), lucide icons against those glyphs (X17), and the median and tallest table row (X19). Takes a label; reads `HARNESS_BASE` |
+| `chrome.mjs` | **T9.16.** The same 26 routes at 1280 × 800, both languages: em dashes in `innerText` (X14), visible 12px muted nodes inside cards, cells and headers counted apart (X15), buttons whose whole content is a text glyph and the `Back` controls per page (X16), lucide icons against those glyphs (X17), and the median and tallest table row (X19). Takes a label; reads `HARNESS_BASE` |
 
 **What they supersede.** Nothing is deleted — a per-screen harness prints detail these two
 cannot — but where they overlap, the sweep is the number to quote:
 
 - `reports-chrome.mjs`'s em dashes and row heights on three views: `chrome.mjs` prints the
-  same measures on all 25.
+  same measures on all 26.
 - `people.mjs`'s and `zones.mjs`'s per-route em-dash counts: same.
 - `dispatch.mjs`'s `glyphButtons`: `chrome.mjs` counts them everywhere.
 - `dispatch.mjs`'s and `zones.mjs`'s "is the panel inside the first viewport": `ops-routes.mjs`
-  asserts it on both maps and both detail pages and fails the run. The per-screen scripts
+  asserts it on both maps and every detail page and fails the run. The per-screen scripts
   still own *what is in* the panel — marks off-frame, visible zone rows, the two actions.
 - `table-density.mjs`'s and `ops-identity-widths.mjs`'s clipped-cell counts: `ops-routes.mjs`
   gives the per-route total; those two give the per-column widths a fix needs.
