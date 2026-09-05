@@ -56,10 +56,10 @@ hue", and `pairRefusal`'s rule for what may share one y-axis.
 ### A surface recesses, and nothing casts a shadow (2026-09-06)
 
 The owner ruled on how layers stack. **D33 — a surface is recessed.** A card, container,
-popover, dropdown, dialog, sheet or command palette is DARKER than the page it sits on, in
-both themes. The page is the lightest layer; nothing is ever raised above it. In light the
-page stays white and a card reads as a grey panel on it. In dark the page keeps its value and
-a card sits below it.
+table or popover is DARKER than the page it sits on, in both themes. Nothing is ever raised
+above the page. In light the page stays white and a card reads as a grey panel on it. In dark
+the page keeps its value and a card sits below it. Both page values are pinned: `#ffffff` in
+light and `#14181e` in dark. Only the surfaces on them move.
 
 **D34 — no shadows and no glows.** The three shadow tiers are deleted and no surface carries a
 drop shadow, an inset highlight or a glow. Separation is the value step plus a hairline,
