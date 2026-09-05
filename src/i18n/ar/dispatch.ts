@@ -1,18 +1,7 @@
 /**
- * Arabic - Operations > Live Dispatch.
- *
- * Emitted as one flat `Dictionary` so a reviewer reads a key beside its string
- * and nothing else. Every key here exists in the English dictionary of the same
- * name; `src/i18n/ar/index.ts` spreads this into `AR` in the same order
- * `dictionaries.ts` spreads the English side, so a duplicated key resolves the
- * same way in both languages.
- *
- * Conventions this file follows, from `design/20-arabic-glossary.md`:
- * Arabic punctuation (R1), the terminal full stop last (R2), one MSA register
- * (R3), Latin proper nouns and acronyms left alone (R4), masdar on buttons (R6),
- * and Western digits (R8). A plural family carries all six CLDR categories -
- * `zero one two few many other` - because Arabic marks exactly-two
- * grammatically and an English pair is wrong at 2.
+ * Arabic — Operations › Live Dispatch. One flat `Dictionary`, every key present
+ * in `DISPATCH_EN`, spread into `AR` in the English side's order.
+ * Conventions: `design/20-arabic-glossary.md` R1-R8.
  */
 
 import type { Dictionary } from '@/lib'
@@ -20,44 +9,39 @@ import type { Dictionary } from '@/lib'
 export const DISPATCH_AR: Dictionary = {
   'action.cancel': 'إلغاء',
   'column.rider': 'الراكب',
-  'dispatch.activeAlerts': 'نشطة',
   'dispatch.assignCaptain': 'إسناد كابتن',
-  'dispatch.autoMatchRate': 'معدل المطابقة الآلية',
-  'dispatch.avgMatchTime': 'متوسط زمن المطابقة',
-  'dispatch.confirmAssign': 'إسناد كابتن',
   'dispatch.dismissAlert': 'إقرار',
   'dispatch.empty.board.action': 'الانتقال إلى الطلبات',
-  'dispatch.empty.board.body': 'يتتبّع التوزيع المباشر الرحلات الجارية والطلبات المنتظرة كابتن ومن هو على الوردية. ويمتلئ مع بداية اليوم.',
+  'dispatch.empty.board.body': 'تظهر هنا الرحلات والطلبات المنتظرة والكباتن.',
   'dispatch.empty.board.heading': 'لا شيء يتحرك بعد',
   'dispatch.empty.fleet.body': 'يظهر الكباتن هنا مع دخولهم الوردية.',
   'dispatch.empty.fleet.heading': 'لا يوجد كابتن متصل',
-  'dispatch.empty.pending.body': 'لكل طلب رحلة كابتن. وتظهر هنا الطلبات غير المطابَقة.',
+  'dispatch.empty.pending.body': 'تظهر هنا الطلبات غير المطابَقة.',
   'dispatch.empty.pending.heading': 'لا شيء بالانتظار',
-  'dispatch.empty.trips.body': 'لا توجد رحلة على الطريق الآن. وتظهر الرحلات الجديدة هنا فور قبول الكباتن لها.',
+  'dispatch.empty.trips.body': 'تظهر الرحلات الجديدة هنا فور قبول الكباتن لها.',
   'dispatch.empty.trips.heading': 'لا شيء في الطريق',
-  'dispatch.error.telemetry': 'سرعة التوزيع غير متاحة أثناء تعطّل اللوحة.',
-  'dispatch.feed.activeTrips': 'الرحلات النشطة',
-  'dispatch.feed.fleet': 'الأسطول المتصل',
-  'dispatch.feed.pendingMatch': 'بانتظار التوزيع',
-  'dispatch.fleet.active': 'نشط',
-  'dispatch.fleetUtilization': 'استغلال الأسطول',
-  'dispatch.inTransit': 'في الطريق',
+  'dispatch.fleet.subs': '{active}/{max} اشتراكات',
   'dispatch.intervention.delayed': 'تأخّر في الوصول · {trip}',
   'dispatch.intervention.sos': 'إشارة استغاثة · {trip}',
   'dispatch.intervention.stranded': 'راكب عالق · {trip}',
   'dispatch.intervention.sub': '{captain} · {rider} في {place}',
   'dispatch.intervention.sub.noCaptain': 'بلا كابتن · {rider} في {place}',
   'dispatch.intervention.elapsed': 'مفتوح منذ {minutes} دقيقة',
+  'dispatch.intervention.refusal.already_acknowledged': 'سبق أن أقرّ بها مشغّل آخر.',
+  'dispatch.intervention.refusal.same_driver': 'هذا الكابتن مُسنَد إلى الرحلة بالفعل.',
+  'dispatch.intervention.refusal.driver_unavailable': 'هذا الكابتن ليس على الوردية.',
+  'dispatch.intervention.refusal.failed': 'لم يتغيّر شيء. أعد المحاولة.',
+  'dispatch.interventions.active': '{count} نشطة',
   'dispatch.interventions.title': 'التدخّلات المباشرة',
-  'dispatch.interventions.unavailable': 'التدخّلات للقراءة فقط حتى تُوصَل تغذية التنبيهات المباشرة. والإقرار أو إعادة الإسناد هنا لن يحفظ شيئًا.',
-  'dispatch.liveConnected': 'القياسات المباشرة متصلة',
-  'dispatch.liveTelemetry': 'سرعة التوزيع',
+  'dispatch.interventions.open': 'فتح',
+  'dispatch.interventions.strip': '{count} تدخّلات',
   'dispatch.map.a11y.desc': 'خريطة للرياض تحمل {trips} رحلات جارية، و{pending} طلبات تنتظر كابتن، و{captains} كابتن متصلين.',
+  'dispatch.map.fit': 'ملاءمة الإطار للأسطول',
   'dispatch.map.heading': 'خريطة التوزيع',
   'dispatch.map.pin.request': 'الطلب {id}، ينتظر في {pickup}، متجه إلى {destination}',
   'dispatch.map.pin.trip': 'الرحلة {id}، انطلقت من {pickup}، متجهة إلى {destination}',
   'dispatch.map.unknownPlace': 'موقع غير مسجّل',
-  'dispatch.map.unplaced': '{count} صفوف خارج هذه الخريطة',
+  'dispatch.map.unplaced': '{count} صفوف بلا موقع مسجّل',
   'dispatch.map.zoom.in': 'تكبير',
   'dispatch.map.zoom.out': 'تصغير',
   'dispatch.layers.captains': 'الكباتن',
@@ -75,26 +59,31 @@ export const DISPATCH_AR: Dictionary = {
   'dispatch.feed.scope.fleet': '{count} كابتن على الوردية',
   'dispatch.feed.scope.pending': '{count} تنتظر كابتن',
   'dispatch.feed.scope.trips': '{count} على الطريق',
-  'dispatch.fleet.subs': '{active}/{max} اشتراكات',
-  'dispatch.interventions.open': 'فتح',
-  'dispatch.interventions.strip': '{count} تدخّلات',
-  'dispatch.meta': '{count} رحلات جارية · حتى الساعة {time}',
+  /* Abbreviated, as the English is (`Updated {seconds}s ago`), and because the
+     counter passes through 3-10 every few seconds — the range where a spelled
+     unit would need the broken plural. Same `ث` as `dispatch.reading.seconds`. */
+  'dispatch.meta': 'حُدِّث قبل {seconds} ث',
   'dispatch.reading.autoMatch': 'المطابقة الآلية',
   'dispatch.reading.seconds': '{seconds} ث',
   'dispatch.reading.matchTime': 'زمن المطابقة',
   'dispatch.reading.utilisation': 'نسبة التشغيل',
   'dispatch.manual.desc': 'أسنِد كابتن إلى الطلب {id} لـ{rider}، مع الالتقاء في {pickup}.',
   'dispatch.manual.assignError': 'تعذّر إسناد الكابتن. لم يتغيّر شيء.',
-  'dispatch.manual.empty': 'لا يوجد كابتن على الوردية. يعود الإسناد عندما يتصل أحدهم.',
+  'dispatch.manual.empty': 'يعود الإسناد عندما يدخل كابتن الوردية.',
   'dispatch.manual.error': 'لم تُحمَّل قائمة الكباتن. أعد المحاولة، أو أغلق هذه النافذة ووزّع من قائمة العمل.',
   'dispatch.manual.loading': 'جارٍ تحميل الكباتن',
   'dispatch.manual.title': 'إسناد كابتن',
   'dispatch.noInterventions': 'كل رحلة مباشرة ضمن SLA الخاص بها.',
+  'dispatch.place': 'المكان',
   'dispatch.reassignCaptain': 'إعادة الإسناد',
+  'dispatch.reassign.desc': 'اختر الكابتن الذي سيتوجّه إلى هذا الراكب.',
+  'dispatch.reassign.title': 'إعادة إسناد الكابتن',
   'dispatch.tab.fleet': 'الأسطول',
   'dispatch.tab.pending': 'قيد الانتظار',
   'dispatch.tab.trips': 'الرحلات',
+  'dispatch.toast.acknowledged': 'تم الإقرار بـ {id}',
   'dispatch.toast.dispatched': 'أُسنِد الطلب {id} إلى الكابتن {name}',
+  'dispatch.toast.reassigned': 'أُعيد إسناد {id} إلى {name}',
   'dispatch.trip.status.assigned': 'مُسندة',
   'dispatch.trip.status.en-route': 'في الطريق',
   'dispatch.trip.status.in-trip': 'قيد التنفيذ',

@@ -1,40 +1,17 @@
 /**
- * **The rail that floats on the map's inline-end: layers, alerts, legend.**
- *
- * Three cards in one column, in the order an operator needs them: what is
- * drawn, what is wrong, and what the marks mean.
- *
- * ## The layer switches are a real control, not a preference
- *
- * Fifty-one captain dots over six waiting requests is a board where the thing
- * you are looking for is behind the thing you are not. Turning a layer off is
- * how an operator reads a crowded city, so each switch carries its layer's own
- * colour and its own count — the same pill the feed's tabs carry, so the tab,
- * the switch and the mark on the map are visibly one thing.
- *
- * ## The legend states what the marks do NOT mean
- *
- * `dispatch.legend.note`. A captain dot is placed from a registered district,
- * because nothing in `Driver` carries a position (`geo.ts`). A board that draws
- * a captain without saying that is a board an operator trusts for the one
- * decision it cannot support.
- *
- * Rules applied
- *   §7.5    the four legend marks differ in shape before they differ in
- *           colour — disc, square, ring, dot — so the key is readable in
- *           greyscale and the map is too.
- *   §11.2   the interventions strip opens a card whose two controls are
- *           disabled in place with a stated reason. Nothing is hidden.
- *   R5a     the strip's red is a live alert count on a monitor, which is one
- *           of the four places red is allowed, and it is the only red here.
- *   R18     the strip does not pulse. A blinking alert is an alert an operator
- *           learns to stop seeing.
+ * The rail floating on the map's inline-end: layers, alerts, legend — what is
+ * drawn, what is wrong, what the marks mean. §7.5 the four legend marks differ
+ * in shape before colour; R5a the strip's red is a live alert count on a
+ * monitor; R18 it does not pulse; X15 the legend's caveat is an `InfoHint` on
+ * the legend title, because it explains rather than changes what to do next.
  */
 
 import type { ReactNode } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Switch } from '@/components/ui/switch'
-import { formatCount, mirrorGlyph, type Direction, type Language, type Translate } from '@/lib'
+import { InfoHint } from '@/components/InfoHint'
+import { ChevronLeftIcon, ChevronRightIcon, directionalIcon } from '@/components/icons'
+import { formatCount, type Direction, type Language, type Translate } from '@/lib'
 import { cn } from '@/lib/utils'
 import type { DispatchLayer, LayerState } from './DispatchMap'
 
@@ -69,6 +46,12 @@ export function MapRail({
   dir,
   t,
 }: MapRailProps) {
+  /* Open points forward through the reading order; the card below is closed. */
+  const OpenChevron = directionalIcon(
+    dir,
+    interventionsOpen ? ChevronLeftIcon : ChevronRightIcon,
+    interventionsOpen ? ChevronRightIcon : ChevronLeftIcon,
+  )
   return (
     <>
       <Card className="shrink-0 gap-0 py-3 shadow-2">
@@ -129,9 +112,10 @@ export function MapRail({
                 })}
               </span>
             </span>
-            <span className="shrink-0 text-2xs text-muted-foreground">
-              {t('dispatch.interventions.open')}{' '}
-              <span aria-hidden="true">{mirrorGlyph('›', dir)}</span>
+            <span className="flex shrink-0 items-center gap-1 text-2xs text-muted-foreground">
+              {t('dispatch.interventions.open')}
+              {/* T9.10 / O10 — a registry chevron chosen by `dir` in code. */}
+              <OpenChevron aria-hidden="true" className="size-3.5" />
             </span>
           </button>
           {interventionsOpen && interventions}
@@ -140,7 +124,11 @@ export function MapRail({
 
       <Card className="shrink-0 gap-0 py-3 shadow-2">
         <CardHeader className="px-3 pb-2">
-          <CardTitle className={CARD_TITLE}>{t('dispatch.legend.title')}</CardTitle>
+          <CardTitle className={CARD_TITLE}>
+            {t('dispatch.legend.title')}
+            {/* X15 — the caveat an operator asks for, beside what it is about. */}
+            <InfoHint t={t}>{t('dispatch.legend.note')}</InfoHint>
+          </CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-1.5 px-3">
           <LegendRow mark={<span className="size-2.5 rounded-full bg-foreground" />}>
@@ -159,8 +147,6 @@ export function MapRail({
           <LegendRow mark={<span className="size-2 rounded-full bg-chart-series" />}>
             {t('dispatch.legend.captainOnline')}
           </LegendRow>
-          {/* The caveat, in the same card as the mark it is about. */}
-          <p className="pt-1 text-2xs text-muted-foreground">{t('dispatch.legend.note')}</p>
         </CardContent>
       </Card>
     </>
