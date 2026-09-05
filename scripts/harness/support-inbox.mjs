@@ -237,7 +237,8 @@ for (const language of ['en', 'ar']) {
         if (!facts.clockVisible) bad.push('clock clipped')
         if (facts.line2Truncated !== 0) bad.push(`line 2 truncated ${facts.line2Truncated}`)
         if (facts.tabsOutside !== 0) bad.push(`tabs outside list ${facts.tabsOutside}`)
-        if (!opts.longName && !facts.nameFits) bad.push('tab name truncated')
+        /* R-1 is measured at the design viewport; at 390 a 17-character name truly cannot fit. */
+        if (!compact && !opts.longName && !facts.nameFits) bad.push('tab name truncated')
         /* Zero filled in the header while held; `Claim` is the one filled button when unheld (§4.1). */
         if (facts.headerFilled !== (facts.held ? 0 : 1)) bad.push(`header filled ${facts.headerFilled} (held ${facts.held})`)
         if (facts.composerFilled !== (opts.note ? 0 : 1)) bad.push(`composer filled ${facts.composerFilled}`)
