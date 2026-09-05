@@ -166,8 +166,9 @@ export function approvalRefusal(
   const open = openDocuments(applicant)
   if (open.length > 0) {
     /* The sentence NAMES the documents rather than counting them. *"2 documents
-       still open"* makes the operator go and find out which; the words are
-       already on the chips above and repeating them costs nothing. */
+       still open"* makes the operator go and find out which. AC-75 exempts this
+       join: the list runs to an unknown length, so it cannot be one key, and
+       `·` is the separator the Arabic dictionary already uses between values. */
     return t('applicant.action.documentsOpen', {
       documents: open.map((type) => t(`people.col.doc.${DOC_KEY[type]}`)).join(' · '),
     })

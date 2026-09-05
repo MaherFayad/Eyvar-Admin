@@ -9,9 +9,9 @@ this file is stale or when the `defaultValue` ratchet slips.
 
 | | |
 |---|---:|
-| **Translatable keys, all dictionaries** | **5700** |
-| Reachable from `EN` (what the shell renders) | 5421 |
-| Keys in `AR` | 5700 |
+| **Translatable keys, all dictionaries** | **5615** |
+| Reachable from `EN` (what the shell renders) | 5336 |
+| Keys in `AR` | 5615 |
 | **Keys Arabic is missing** | **0** |
 | Keys in `AR` and not in `EN` (plural forms, unregistered screens) | 279 |
 | Plural forms (`key#category`) inside `EN` | 53 |
@@ -19,9 +19,9 @@ this file is stale or when the `defaultValue` ratchet slips.
 | Keys in a `copy.ts` the shell has NOT registered | 175 |
 | **`defaultValue` call sites (the ratchet)** | **0** |
 | `defaultValue` forwarding a Dictionary (exempt) | 2 |
-| **English values carrying an em dash (the ratchet)** | **112** |
-| **Arabic values carrying an em dash (the ratchet)** | **115** |
-| **English values over their word budget (the ratchet)** | **192** |
+| **English values carrying an em dash (the ratchet)** | **110** |
+| **Arabic values carrying an em dash (the ratchet)** | **113** |
+| **English values over their word budget (the ratchet)** | **185** |
 
 `AR` is **complete**: every key reachable from `EN` resolves in Arabic, so no
 screen mixes the two languages. `arExtra` is not drift -- Arabic declares six CLDR
@@ -39,7 +39,7 @@ None left. Add the lint rule and delete this section.
 
 ## The em-dash ratchet
 
-Ceilings **112** English and **115** Arabic, measured **112** and **115**. **X14**:
+Ceilings **110** English and **113** Arabic, measured **110** and **113**. **X14**:
 no em dash in a string an operator reads. `·` separates a qualifier, two clauses
 become two sentences, and a numeric range keeps the en dash in *Showing 1-7 of 7*.
 Both ceilings only ever fall.
@@ -58,7 +58,6 @@ Both ceilings only ever fall.
 | ar | `src/i18n/ar/metrics.ts` | 2 |
 | ar | `src/i18n/ar/myWork.ts` | 1 |
 | ar | `src/i18n/ar/onboarding.ts` | 10 |
-| ar | `src/i18n/ar/people.ts` | 2 |
 | ar | `src/i18n/ar/policy.ts` | 5 |
 | ar | `src/i18n/ar/pwa.ts` | 1 |
 | ar | `src/i18n/ar/reports.ts` | 3 |
@@ -85,7 +84,6 @@ Both ceilings only ever fall.
 | en | `src/screens/onboarding/copy.ts` | 7 |
 | en | `src/screens/operations/assurance/copy.ts` | 4 |
 | en | `src/screens/operations/my-work/copy.ts` | 1 |
-| en | `src/screens/operations/people/copy.ts` | 2 |
 | en | `src/screens/operations/requests/copy.ts` | 3 |
 | en | `src/screens/operations/subscriptions/copy.ts` | 3 |
 | en | `src/screens/reports/copy.ts` | 3 |
@@ -276,10 +274,6 @@ Both ceilings only ever fall.
 | ar | `overview.hero.group` | المؤشرات الرئيسية — اختر واحدًا لعرض مخططه |
 | en | `overview.lede.support-overview` | Everything open in front of a person — incidents, tickets and the response times on them. |
 | en | `overview.hero.group` | Lead metrics — pick one to chart |
-| ar | `applicant.docReason.legend` | مرفوض — {reason} |
-| ar | `applicant.signal.ip` | موقع الاتصال {location} — متوافق مع مدينة التشغيل. |
-| en | `applicant.docReason.legend` | Rejected — {reason} |
-| en | `applicant.signal.ip` | IP location {location} — consistent with the operating city. |
 | ar | `policy.sla.grid.desc` | تعمل قائمة العمل على القيمة الافتراضية للمستوى ما لم تتجاوزها. الهدف المتجاوَز يتوقف عن اتّباع المستوى — أعده لتعيده إلى الوراثة. |
 | ar | `policy.reasons.desc` | المفردات المغلقة التي يُصنَّف بها كل إلغاء واسترداد وإيقاف ونزاع. لا يُحذف الرمز ولا يُعاد تسميته أبدًا — أوقفه واذكر ما حلّ محله، لأن السجلات التاريخية تشير إلى المفتاح. |
 | ar | `policy.reasons.new.desc` | اختر المفتاح بعناية — فهو لا يُعاد تسميته ولا يُعاد استخدامه أبدًا، حتى بعد إيقافه. |
@@ -331,17 +325,17 @@ Both ceilings only ever fall.
 
 ## The word budget
 
-Ceiling **192**, measured **192**. **X18**: a slot an operator scans holds a
+Ceiling **185**, measured **185**. **X18**: a slot an operator scans holds a
 fixed number of words. A key is put in a class by its name; the mapping is in
 the generator header. Anything longer moves to `InfoHint` or the detail surface.
 Measured on English only, and a placeholder counts as one word.
 
 | Class | Budget, in words | Over |
 |---|---:|---:|
-| title | 4 | 94 |
-| empty body | 12 | 48 |
-| empty title | 5 | 20 |
+| title | 4 | 93 |
+| empty body | 12 | 45 |
 | button | 3 | 19 |
+| empty title | 5 | 17 |
 | meta | 6 | 9 |
 | badge | 2 | 1 |
 | banner | 20 | 1 |
@@ -385,8 +379,6 @@ Measured on English only, and a placeholder counts as one word.
 | empty body | 21 | `admin.team.empty.body` | Invite the people who run dispatch, finance and support. Each one gets a role, a permission set and a compensation cap. |
 | empty body | 20 | `myWork.empty.firstRun.body` | Anything you hold, and anything nobody has picked up, from Requests to Safety — sorted by deadline, not by label. |
 | empty body | 20 | `overview.empty.body` | This board reports on captains, riders, trips and subscriptions. Numbers appear here as soon as there is activity to count. |
-| empty body | 20 | `people.empty.applications.body` | Every captain who applies lands in this queue with their documents, so you can approve or reject in one place. |
-| empty body | 20 | `people.empty.compliance.body` | Once a captain has a compliance file you can see every expiry date here and act before dispatch is affected. |
 | empty body | 20 | `trips.empty.firstRun.body` | Every subscription leg and every quick ride lands here once it starts, with its fare, its route and its rating. |
 | empty body | 19 | `comms.identity.empty.body` | A sender identity is the from-address on every transactional message. Until one is verified the system cannot send email. |
 | empty body | 19 | `entity.rider.payments.empty.body` | This rider has not paid for a trip by card. Quick ride fares appear here as they are captured. |
@@ -401,7 +393,6 @@ Measured on English only, and a placeholder counts as one word.
 | empty body | 16 | `comms.push.empty.body` | A broadcast is a one-off push message to a whole audience. Every send is recorded here. |
 | empty body | 16 | `dispatch.empty.trips.body` | No trip is on the road right now. New trips appear here as captains accept them. |
 | empty body | 16 | `myWork.empty.routed` | Nothing is open in the queues routed to your role. Other queues may still have work. |
-| empty body | 16 | `people.empty.riders.body` | Riders appear here as soon as they register, with their wallet balance, subscriptions and churn risk. |
 | empty body | 15 | `conversations.empty.cleared.unassigned` | Every conversation has an operator. New ones appear here the moment a customer writes in. |
 | empty body | 15 | `entity.driver.ledger.empty.body` | A completed trip accrues earnings here, and a payout takes them out. Neither has happened. |
 | empty body | 15 | `requests.empty.firstRun.body` | Every instant ride and every subscription sign-up waiting on a captain appears in this queue. |
@@ -426,7 +417,6 @@ Measured on English only, and a placeholder counts as one word.
 | empty title | 8 | `overview.empty.heading` | Captains, riders, trips and subscriptions, on one board |
 | empty title | 8 | `zones.empty.heading` | Where demand and supply meet, district by district |
 | empty title | 7 | `comms.log.empty.outbox.heading` | Every message the system sends lands here |
-| empty title | 7 | `people.empty.riders.heading` | The rider roster, with wallets and renewals |
 | empty title | 7 | `policy.reasons.empty.heading` | One word for each way work ends |
 | empty title | 7 | `trips.empty.firstRun.heading` | Every journey taken, and what it earned |
 | empty title | 6 | `admin.integrations.webhook.empty.heading` | Tell another system when something happens |
@@ -436,8 +426,6 @@ Measured on English only, and a placeholder counts as one word.
 | empty title | 6 | `fairness.empty.firstRun.heading` | The route back for a captain |
 | empty title | 6 | `fin.payout.empty.heading` | No captain has earnings this period |
 | empty title | 6 | `fin.wallet.empty.heading` | No rider holds a wallet balance |
-| empty title | 6 | `people.empty.captains.heading` | Every captain, from application to compliance |
-| empty title | 6 | `people.empty.compliance.heading` | Document expiry, for the whole fleet |
 | empty title | 6 | `rb.dashboard.empty.heading` | This dashboard has no reports yet |
 | meta | 11 | `zones.meta` | {zones} zones · {starved} starved · {cities} of {allCities} cities live |
 | meta | 10 | `admin.activity.meta` | Append-only. Every mutating action, with the operator who took it. |
@@ -531,7 +519,6 @@ Measured on English only, and a placeholder counts as one word.
 | title | 5 | `onboarding.step.finance.routing.title` | Know which queue reaches you |
 | title | 5 | `onboarding.step.owner.position.title` | State the current contribution margin |
 | title | 5 | `onboarding.step.owner.pricing.title` | Settle how captains are paid |
-| title | 5 | `people.takeOver.title` | Take this application from {name}? |
 | title | 5 | `policy.sla.breach.title` | When a target is breached |
 | title | 5 | `queue.takeOver.title` | Take this over from {name}? |
 | title | 5 | `rb.canvas.table.heading` | The numbers behind this chart |
@@ -549,9 +536,9 @@ Measured on English only, and a placeholder counts as one word.
 
 | File | Exports | Keys |
 |---|---|---:|
-| `src/screens/financials/copy.ts` | `FINANCIALS_EN` | 785 |
+| `src/screens/financials/copy.ts` | `FINANCIALS_EN` | 694 |
 | `src/screens/reports/copy.ts` | `REPORTS_EN` | 564 |
-| `src/screens/operations/people/copy.ts` | `PEOPLE_EN` | 329 |
+| `src/screens/operations/people/copy.ts` | `PEOPLE_EN` | 335 |
 | `src/screens/metrics/copy.ts` | `OVERVIEW_EN` | 250 |
 | `src/components/profile/copy.ts` | `PROFILE_EN` | 249 |
 | `src/screens/admin/workspace/copy.ts` | `ADMIN_WORKSPACE_EN` | 238 |
@@ -612,8 +599,5 @@ A value that is only punctuation, or that opens or closes on whitespace, is
 half a sentence something else completes -- **AC-75**. It reads correctly in
 English and puts the two halves on opposite sides of the run in Arabic.
 
-| File | Key | Value |
-|---|---|---|
-| `src/i18n/ar/financials.ts` | `metric.delta.points` | ` نقطة` |
-| `src/screens/financials/copy.ts` | `metric.delta.points` | ` pts` |
+None.
 

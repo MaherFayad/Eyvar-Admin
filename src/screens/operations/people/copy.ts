@@ -182,10 +182,13 @@ export const PEOPLE_EN: Dictionary = {
   'people.filter.value.suspended.false': 'Active',
   'people.filter.chip': '{field}: {value}',
 
-  /* §9.4 — a queue scope that is a VIEW, not a filter chip. Named separately
-     so the operator can clear it from the same row the chips live in. */
+  /* §9.4 — a queue scope that is a VIEW, not a filter chip. T3.1: the chip's
+     control is named by what it SHOWS, so widening and narrowing read alike. */
   'people.scope.breached': 'Past SLA only',
-  'people.scope.clear': 'Show every application',
+  'people.scope.open': 'Open applications',
+  'people.scope.every': 'Every application',
+  'people.scope.showOpen': 'Show open only',
+  'people.scope.showDecided': 'Show decided too',
 
   /* ── row and bulk actions ───────────────────────────────────────────── */
   'people.action.viewProfile': 'Open 360° profile',
@@ -254,7 +257,7 @@ export const PEOPLE_EN: Dictionary = {
   'people.reject.reasonHelp': 'The applicant sees this, so name what they need to fix.',
   'people.reject.confirm': 'Reject application',
 
-  'people.takeOver.title': 'Take this application from {name}?',
+  'people.takeOver.title': 'Take from {name}?',
   'people.takeOver.body':
     '{name} loses it without being asked, and the take-over is recorded. Nothing they have already decided changes.',
   'people.takeOver.confirm': 'Take over',
@@ -296,7 +299,7 @@ export const PEOPLE_EN: Dictionary = {
 
   /* ── the four states, per view (§11.1, §11.2, R8) ───────────────────── */
   /* `first-run` names the VALUE of the section, never the absence of data. */
-  'people.empty.captains.heading': 'Every captain, from application to compliance',
+  'people.empty.captains.heading': 'Captains, from application to compliance',
   'people.empty.captains.body':
     'Add a captain to start reviewing documents, tracking readiness, and assigning trips.',
   'people.empty.captains.primary': 'Add captain',
@@ -305,19 +308,19 @@ export const PEOPLE_EN: Dictionary = {
 
   'people.empty.applications.heading': 'Applications arrive here for review',
   'people.empty.applications.body':
-    'Every captain who applies lands in this queue with their documents, so you can approve or reject in one place.',
+    'Captains who apply land here with their documents, ready to decide.',
   'people.empty.applications.primary': 'Invite a captain to apply',
   'people.empty.applications.noMatch': 'No applications match these filters.',
 
-  'people.empty.compliance.heading': 'Document expiry, for the whole fleet',
+  'people.empty.compliance.heading': 'Document expiry across the fleet',
   'people.empty.compliance.body':
-    'Once a captain has a compliance file you can see every expiry date here and act before dispatch is affected.',
+    "Every captain's document expiry dates land here, so you can act early.",
   'people.empty.compliance.primary': 'Add a compliance file',
   'people.empty.compliance.noMatch': 'No compliance files match these filters.',
 
-  'people.empty.riders.heading': 'The rider roster, with wallets and renewals',
+  'people.empty.riders.heading': 'The rider roster, with wallets',
   'people.empty.riders.body':
-    'Riders appear here as soon as they register, with their wallet balance, subscriptions and churn risk.',
+    'Riders land here on registration, with wallet, subscriptions and churn risk.',
   'people.empty.riders.primary': 'Invite riders',
   'people.empty.riders.noMatch': 'No riders match these filters.',
 
@@ -386,6 +389,10 @@ export const PEOPLE_EN: Dictionary = {
   'applicant.iban': 'IBAN',
   'applicant.ipLocation': 'IP location',
   'applicant.lastIp': 'Last IP',
+  /* AC-75 — the header meta line as ONE key. Four values joined in code gave
+     the translator no say in the order or the separator. */
+  'applicant.meta': '{id} · {city} · {applied}',
+  'applicant.vehiclePlate': '{vehicle} · {plate}',
   'applicant.movementLog': 'Movement log',
   'applicant.movementLog.empty': 'Nothing recorded for this applicant yet.',
   'applicant.nationalId': 'National ID',
@@ -434,7 +441,7 @@ export const PEOPLE_EN: Dictionary = {
   'applicant.docReason.mismatch': 'Does not match the national ID',
   'applicant.docReason.wrongType': 'Wrong document uploaded',
   'applicant.docReason.suspectedForgery': 'Suspected forgery',
-  'applicant.docReason.legend': 'Rejected — {reason}',
+  'applicant.docReason.legend': 'Rejected · {reason}',
 
   /* The review header. `n of m` counts VERIFIED documents, never uploaded
      ones: an upload nobody has looked at is not progress. */
@@ -455,6 +462,9 @@ export const PEOPLE_EN: Dictionary = {
   'applicant.review.scanError': 'The scan could not be fetched.',
   'applicant.review.scanRetry': 'Try again',
   'applicant.review.openFull': 'Open full size',
+  /* AC-75 — the scan's accessible name. A screen reader cannot tell one
+     `alt="scan"` from another on a page with four. */
+  'applicant.review.scanName': '{label} · {name}',
 
   /* The three verdicts on ONE document. They are not the application's
      decision and are worded so nobody reads them as one. */
@@ -505,7 +515,7 @@ export const PEOPLE_EN: Dictionary = {
   /* The signals block — what the application arrived from. */
   'applicant.signal.device': 'Device {device} also used by another application.',
   'applicant.signal.address': 'Address in {address} is shared with an active captain.',
-  'applicant.signal.ip': 'IP location {location} — consistent with the operating city.',
+  'applicant.signal.ip': 'IP location {location}. Consistent with the operating city.',
   'applicant.signal.ipMismatch': 'IP location {location} does not match the operating city.',
   'applicant.signal.none': 'Nothing on this application looks unusual.',
 }

@@ -42,6 +42,7 @@ import { listDriverCompliance, listDrivers } from '../clients/drivers'
 import { listFairnessCases } from '../clients/fairness'
 import { getMetricBoard } from '../clients/metrics'
 import { listWorkItems, myWorkBacklogSize } from '../clients/myWork'
+import { getNavCounts } from '../clients/navCounts'
 import { listRequests } from '../clients/requests'
 import { listSafetyIncidents } from '../clients/safety'
 import { SUB_TABS } from './routeTable'
@@ -278,16 +279,21 @@ describe('one authority per number — spec §19, AC-720 to AC-724', () => {
     expect(needed.value).toBe(3)
   })
 
-  it('AC-721 under O8 — operations-people counts its default view, not a cross-view sum', async () => {
+  it('AC-721 under O8 — operations-people shows no badge, and the tile still counts', async () => {
     /**
-     * **O8 supersedes the old reading of AC-721.** The badge used to be five
-     * applications plus two lapsed documents: a number that appeared on no
-     * single page, so no operator could reconcile it (X3). It now counts what
-     * the default `captains` view shows, and the tile still counts only the
-     * applications, so the two remain different numbers for a stated reason.
+     * **O8 refined supersedes AC-721.** The badge was five applications plus
+     * two lapsed documents — a number on no single page (X3) — then the captain
+     * roster. A roster is not work owed, so People now carries no badge; what
+     * an operator must act on is still counted, on the board tile and in each
+     * queue. The seeded literal stays as documentation of the roster's size.
      */
     const captains = await listDrivers({ pageSize: 500 })
-    expect(row('operations-people').count, 'the badge is the default view').toBe(captains.total)
+    expect(row('operations-people').count, 'the seed still records the roster').toBe(captains.total)
+    const served = await getNavCounts()
+    expect(
+      served.subTabs.find((s) => s.subTabId === 'operations-people')!.count,
+      'but the client serves no badge for a roster',
+    ).toBeNull()
 
     const applications = await listApplicants({ pageSize: 200 })
     const waiting = applications.items.filter(
@@ -303,7 +309,6 @@ describe('one authority per number — spec §19, AC-720 to AC-724', () => {
     const board = await getMetricBoard('operations-overview')
     const tile = board.metrics.find((m) => m.key === 'operations.overview.pendingApplications')!
     expect(tile.value, 'the tile counts applications only').toBe(waiting.length)
-    expect(tile.value).not.toBe(row('operations-people').count)
   })
 
   it('AC-723 — operations-my-work backlog and the breached tile differ legitimately', async () => {
