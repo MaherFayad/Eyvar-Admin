@@ -1,8 +1,8 @@
 {
   "totals": {
-    "keys": 5939,
-    "en": 5664,
-    "ar": 5939,
+    "keys": 5959,
+    "en": 5684,
+    "ar": 5959,
     "arMissing": 0,
     "arExtra": 275,
     "copyFiles": 36,
@@ -44,7 +44,7 @@
       "exports": [
         "OVERVIEW_EN"
       ],
-      "keys": 253,
+      "keys": 264,
       "notInEN": 0
     },
     {
@@ -68,7 +68,7 @@
       "exports": [
         "TICKETS_EN"
       ],
-      "keys": 217,
+      "keys": 221,
       "notInEN": 0
     },
     {
@@ -104,19 +104,19 @@
       "notInEN": 0
     },
     {
+      "file": "src/screens/support/disputes/copy.ts",
+      "exports": [
+        "DISPUTES_EN"
+      ],
+      "keys": 168,
+      "notInEN": 0
+    },
+    {
       "file": "src/screens/admin/policy/copy.ts",
       "exports": [
         "POLICY_EN"
       ],
       "keys": 166,
-      "notInEN": 0
-    },
-    {
-      "file": "src/screens/support/disputes/copy.ts",
-      "exports": [
-        "DISPUTES_EN"
-      ],
-      "keys": 163,
       "notInEN": 0
     },
     {

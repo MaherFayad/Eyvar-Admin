@@ -1263,7 +1263,7 @@
       "method": "POST",
       "path": "/api/v1/disputes/:id/claim",
       "client": "src/data/clients/disputes.ts",
-      "function": "claimDispute",
+      "function": "requestDisputeApproval",
       "params": null,
       "body": "{ userId, takeOver }",
       "returns": "Dispute",
@@ -1280,6 +1280,21 @@
           "code": "409",
           "when": "`claimed_by_other` when another operator holds it and `takeOver` is unset"
         },
+        {
+          "code": "409",
+          "when": "when no operator's cap covers the amount"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/disputes/:id/claim",
+      "client": "src/data/clients/disputes.ts",
+      "function": "claimDispute",
+      "params": null,
+      "body": "{ takeOver? }",
+      "returns": "Dispute",
+      "statuses": [
         {
           "code": "404",
           "when": "when the id does not exist"
@@ -1310,6 +1325,33 @@
         {
           "code": "409",
           "when": "`already_resolved` on a decided claim. Ownership only; the clock does not reset."
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/disputes/:id/request-approval",
+      "client": "src/data/clients/disputes.ts",
+      "function": "requestDisputeApproval",
+      "params": null,
+      "body": "{ userId, takeOver }",
+      "returns": "Dispute",
+      "statuses": [
+        {
+          "code": "404",
+          "when": "when the id does not exist"
+        },
+        {
+          "code": "409",
+          "when": "`already_resolved` when the dispute is resolved"
+        },
+        {
+          "code": "409",
+          "when": "`claimed_by_other` when another operator holds it and `takeOver` is unset"
+        },
+        {
+          "code": "409",
+          "when": "when no operator's cap covers the amount"
         }
       ]
     },

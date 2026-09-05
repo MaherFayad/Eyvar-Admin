@@ -110,6 +110,11 @@ export const TICKETS_EN: Dictionary = {
   /* ── the detail page ──────────────────────────────────────────────── */
   'ticket.detail.meta': '{id} · {requester} · {category}',
   'ticket.detail.back': 'Back to tickets',
+  'ticket.field.csat': 'Rating',
+  'ticket.csat.short': '{score} of 5',
+  'ticket.csat.none': 'No rating yet.',
+  'ticket.audit.clocksRederived': 'Promises re-derived on {count} open tickets after a policy change',
+  'ticket.audit.csatRequested': 'Rating request sent by {channel}',
   'ticket.template.insert': 'Insert template',
   'ticket.template.forReason': 'For this reason code',
   'ticket.template.all': 'All templates',
@@ -281,7 +286,6 @@ export const TICKETS_EN: Dictionary = {
   /* ── toasts ───────────────────────────────────────────────────────── */
   'ticket.toast.claimed': '{id} is yours',
   'ticket.toast.claimFailed': '{id} was not claimed',
-  'ticket.toast.replied': 'Sent to {channel}',
   'ticket.toast.replyFailed': 'The reply was not sent',
   /* The undo D18 traded the confirm away for. `commands/tickets.ts` took that
      trade — remove the dialog, the reversal is the net — and this screen never

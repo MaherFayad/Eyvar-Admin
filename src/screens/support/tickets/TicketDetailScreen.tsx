@@ -34,7 +34,7 @@ import type {
 } from '@/data/types'
 import type { ReasonCode } from '@/data/types/policy'
 import { useAsync, useNow } from '@/hooks'
-import { formatDate, formatDuration, queueClock, type QueueClockInput } from '@/lib'
+import { formatDate, formatDuration, queueClock, type QueueClockInput, formatCount } from '@/lib'
 import { EmptyState } from '@/components/EmptyState'
 import { ErrorState } from '@/components/ErrorState'
 import { LoadingSkeleton } from '@/components/LoadingSkeleton'
@@ -204,7 +204,7 @@ export function TicketDetailScreen() {
     try {
       await replyTicket(record.id, replyText.trim(), currentUserId, currentUserName)
       setReplyText('')
-      toast.success(t('ticket.toast.replied', { channel: channelLabel }))
+      /* X3 / R10: the thread's delivery word is the confirmation; no toast. */
       ticket.refetch()
     } catch {
       toast.error(t('ticket.toast.replyFailed'))
@@ -691,6 +691,15 @@ export function TicketDetailScreen() {
             {record.ownerName ?? t('ticket.owner.unassigned')}
           </span>
         </Row>
+        {decided && (
+          <Row label={t('ticket.field.csat')}>
+            <span className="text-foreground">
+              {record.csat === null
+                ? t('ticket.csat.none')
+                : t('ticket.csat.short', { score: formatCount(record.csat.score, language) })}
+            </span>
+          </Row>
+        )}
       </CardContent>
     </Card>,
 

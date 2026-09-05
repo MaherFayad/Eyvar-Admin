@@ -5,7 +5,7 @@
 
 import { beforeEach, describe, expect, it } from 'vitest'
 import { EYVAR_NOW, offsetFromNow } from '../mock/clock'
-import { addMinutes } from '../types/ticket'
+import { addMinutes, ticketSlaTargets } from '../types/ticket'
 import { isApiError } from '../types/common'
 import { listAuditEntries, resetAudit } from './audit'
 import { listNotifications, resetNotifications } from './notifications'
@@ -21,6 +21,7 @@ import {
   logTicketCall,
   recodeTicket,
   reopenTicket,
+  rederiveOpenTicketClocks,
   replyTicket,
   resetTickets,
   resolveTicket,
@@ -373,5 +374,50 @@ describe('search by phone (§7.5)', () => {
     const digits = ticket.requesterPhone!.replace(/\D/g, '').slice(-7)
     const { items } = await listTickets({ q: digits, pageSize: 50 })
     expect(items.map((t) => t.id)).toContain('TKT-501')
+  })
+})
+
+describe('the policy reaches every open ticket (§9.1)', () => {
+  it('re-derives the promises on open tickets when the grid moves, and audits the count', async () => {
+    const before = await getTicket('TKT-501')
+    const policy = currentPolicy()
+    const tier = ticketSlaTargets(policy, before.reasonCode).tier
+    const moved = {
+      ...policy,
+      sla: {
+        ...policy.sla,
+        queues: policy.sla.queues.map((queue) =>
+          queue.queueId !== 'ticket'
+            ? queue
+            : {
+                ...queue,
+                tiers: queue.tiers.map((cell) =>
+                  cell.tier !== tier
+                    ? cell
+                    : { ...cell, firstResponseMinutes: ticketSlaTargets(policy, before.reasonCode).firstResponseMinutes + 60 },
+                ),
+              },
+        ),
+      },
+    }
+    const count = rederiveOpenTicketClocks(moved)
+    expect(count).toBeGreaterThan(0)
+    const after = await getTicket('TKT-501')
+    expect(minutesBetween(before.firstResponseDueAt!, after.firstResponseDueAt!)).toBe(60)
+    const audit = await listAuditEntries({ subjectType: 'policy' })
+    const line = audit.items.find((entry) => entry.action === 'ticket.clocksRederived')
+    expect(line?.detail.params?.count).toBe(count)
+    const decided = await getTicket('TKT-504')
+    expect(decided.status).toBe('resolved')
+  })
+})
+
+describe('CSAT (§9.4)', () => {
+  it('carries a rating on a decided ticket and asks for one when a ticket is resolved', async () => {
+    expect((await getTicket('TKT-504')).csat?.score).toBe(4)
+    expect((await getTicket('TKT-501')).csat).toBeNull()
+    await resolveTicket('TKT-501')
+    const audit = await listAuditEntries({ subjectType: 'ticket', subjectId: 'TKT-501' })
+    expect(audit.items.some((entry) => entry.action === 'ticket.csatRequested')).toBe(true)
   })
 })

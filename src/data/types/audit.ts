@@ -114,6 +114,9 @@ export type AuditAction =
   | 'ticket.resolve'
   | 'ticket.reopen'
   | 'ticket.slaBreach'
+  | 'ticket.clocksRederived'
+  | 'ticket.csatRequested'
+  | 'dispute.approvalRequested'
   | 'permission.denied'
 
 export interface AuditEntry {

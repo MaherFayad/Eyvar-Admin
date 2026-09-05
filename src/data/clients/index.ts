@@ -991,6 +991,7 @@ export {
   DISPUTE_OPERATIONS,
   advanceLostFoundItem,
   claimDispute,
+  requestDisputeApproval,
   releaseDispute,
   currentDisputes,
   getDispute,

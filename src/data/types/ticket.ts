@@ -105,6 +105,14 @@ export interface Ticket extends WorkQueueRow {
   messages: TicketMessage[]
   /** Every call wrap-up, oldest first. `[]` is an answer, not the absence of one. */
   callLogs: TicketCallLog[]
+  /** B4: the customer's rating after the ticket was decided, or `null` until one arrives. */
+  csat: TicketCsat | null
+}
+
+export interface TicketCsat {
+  score: 1 | 2 | 3 | 4 | 5
+  comment: string | null
+  at: IsoDateTime
 }
 
 /* ── the SLA, resolved from policy ─────────────────────────────────────── */

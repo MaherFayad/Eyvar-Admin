@@ -37,6 +37,7 @@
  */
 
 import { DATA_SOURCE, registerOperations } from '../config'
+import { rederiveOpenTicketClocks } from './tickets'
 import { EYVAR_NOW } from '../mock/clock'
 import { mock, mockMutation, notFound } from '../mock/delay'
 import { ApiError, type ApiErrorDetail, type Paginated } from '../types/common'
@@ -199,6 +200,8 @@ export async function saveOperationalPolicy(
 
     const changedFields = diffPolicy(before, next)
     policyState = next
+    /* B1: the grid moved, so every open ticket's promises move with it (§9.1). */
+    if (JSON.stringify(before.sla) !== JSON.stringify(next.sla)) rederiveOpenTicketClocks(next)
 
     if (changedFields.length > 0) {
       appendAudit({

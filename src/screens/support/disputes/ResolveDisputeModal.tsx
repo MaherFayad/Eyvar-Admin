@@ -53,9 +53,11 @@ import {
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { Money } from '@/components/Money'
-import type { ResolveDisputeInput } from '@/data/clients'
+import { getTeamUser, type ResolveDisputeInput } from '@/data/clients'
+import { useAsync } from '@/hooks'
 import { DISPUTE_OUTCOMES, type Dispute, type DisputeOutcome } from '@/data/types/dispute'
 import { isApiError } from '@/data/types'
+import { useShell } from '@/shell/ShellContext'
 import { formatDate, formatMoney, parseMoneyInput, type Language, type Translate } from '@/lib'
 
 export interface ResolveDisputeModalProps {
@@ -70,6 +72,8 @@ export interface ResolveDisputeModalProps {
    * rather than swallowing.
    */
   onConfirm: (input: ResolveDisputeInput) => Promise<void>
+  /** B2: hands the dispute to an operator whose cap covers the amount. */
+  onRequestApproval?: (amountHalalas: number) => Promise<void>
   t: Translate
   language: Language
 }
@@ -88,9 +92,18 @@ export function ResolveDisputeModal({
   canWrite,
   onClose,
   onConfirm,
+  onRequestApproval,
   t,
   language,
 }: ResolveDisputeModalProps) {
+  /* B2: the signed-in operator's ceiling from their team record; `null` is no ceiling. */
+  const session = useShell().session
+  const me = useAsync((signal) => getTeamUser(session?.userId ?? '', signal), {
+    deps: [session?.userId],
+    enabled: session !== null,
+    cacheKey: 'session.me',
+  })
+  const capHalalas = me.data?.compensationCapHalalas ?? null
   const [outcome, setOutcome] = useState<DisputeOutcome>('full-refund')
   const [amountInput, setAmountInput] = useState('')
   const [note, setNote] = useState('')
@@ -139,8 +152,12 @@ export function ResolveDisputeModal({
         max: formatMoney(dispute.amountHalalas, { unit: 'code' }),
       })
     }
+    if (capHalalas !== null && amountHalalas > capHalalas) {
+      return t('dispute.resolve.blocked.aboveCap', { cap: formatMoney(capHalalas, { unit: 'code' }) })
+    }
     return null
-  }, [amountHalalas, canWrite, dispute, editable, t])
+  }, [amountHalalas, canWrite, capHalalas, dispute, editable, t])
+  const aboveCap = capHalalas !== null && amountHalalas !== null && amountHalalas > capHalalas
 
   if (dispute === null) return null
 
@@ -312,6 +329,12 @@ export function ResolveDisputeModal({
           {/* The derived line. It is the sentence the operator is agreeing to. */}
           <p className="rounded-md border border-border bg-background px-3 py-2 text-xs text-foreground">
             {willMove}
+            {capHalalas !== null && (
+              <>
+                {' '}
+                {t('dispute.resolve.capLine', { cap: formatMoney(capHalalas, { unit: 'code' }) })}
+              </>
+            )}
           </p>
 
           {failure !== null && (
@@ -325,6 +348,26 @@ export function ResolveDisputeModal({
           <Button variant="secondary" size="xs" onClick={onClose} disabled={busy}>
             {t('dispute.resolve.cancel')}
           </Button>
+          {aboveCap && onRequestApproval !== undefined && amountHalalas !== null && (
+            <Button
+              variant="secondary"
+              size="xs"
+              disabled={busy}
+              onClick={() => {
+                setBusy(true)
+                onRequestApproval(amountHalalas)
+                  .then(onClose)
+                  .catch((error: unknown) =>
+                    setFailure(
+                      t('dispute.resolve.failed', { reason: isApiError(error) ? error.message : String(error) }),
+                    ),
+                  )
+                  .finally(() => setBusy(false))
+              }}
+            >
+              {t('dispute.resolve.requestApproval')}
+            </Button>
+          )}
           <span className="flex flex-col items-stretch gap-1">
             <Button
               size="xs"

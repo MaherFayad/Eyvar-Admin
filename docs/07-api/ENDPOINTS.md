@@ -8,7 +8,7 @@ The source of truth is the docblock above each exported function in
 client and regenerate. Conventions, envelopes, auth and error shapes live in
 [CONTRACT.md](CONTRACT.md); this file is only *what exists*.
 
-**321 endpoints across 47 client modules.**
+**323 endpoints across 47 client modules.**
 
 ## `src/data/clients/alerts.ts`
 
@@ -171,8 +171,10 @@ client and regenerate. Conventions, envelopes, auth and error shapes live in
 | GET | `/api/v1/disputes` | `Paginated<Dispute>` | `QueryParams + status · kind · claimantType` | - | `listDisputes()` |
 | POST | `/api/v1/disputes` | `Dispute` | `NewDisputeInput` | **422** `claim_required` on an empty claim<br>**422** `amount_required` at or below zero. Legacy could not create one (`13b` §18.1). | `createDispute()` |
 | GET | `/api/v1/disputes/:id` | `Dispute` | - | **404** when the id does not exist | `getDispute()` |
-| POST | `/api/v1/disputes/:id/claim` | `Dispute` | `{ userId, takeOver }` | **404** when the id does not exist<br>**409** `already_resolved` when the dispute is resolved<br>**409** `claimed_by_other` when another operator holds it and `takeOver` is unset<br>**404** when the id does not exist<br>**409** `claimed_by_other` when another operator holds a live claim and `takeOver` is unset<br>**409** `already_resolved` on a decided claim | `claimDispute()` |
+| POST | `/api/v1/disputes/:id/claim` | `Dispute` | `{ userId, takeOver }` | **404** when the id does not exist<br>**409** `already_resolved` when the dispute is resolved<br>**409** `claimed_by_other` when another operator holds it and `takeOver` is unset<br>**409** when no operator's cap covers the amount | `requestDisputeApproval()` |
+| POST | `/api/v1/disputes/:id/claim` | `Dispute` | `{ takeOver? }` | **404** when the id does not exist<br>**409** `claimed_by_other` when another operator holds a live claim and `takeOver` is unset<br>**409** `already_resolved` on a decided claim | `claimDispute()` |
 | POST | `/api/v1/disputes/:id/release` | `Dispute` | - | **404** when the id does not exist<br>**409** `already_resolved` on a decided claim. Ownership only; the clock does not reset. | `releaseDispute()` |
+| POST | `/api/v1/disputes/:id/request-approval` | `Dispute` | `{ userId, takeOver }` | **404** when the id does not exist<br>**409** `already_resolved` when the dispute is resolved<br>**409** `claimed_by_other` when another operator holds it and `takeOver` is unset<br>**409** when no operator's cap covers the amount | `requestDisputeApproval()` |
 | POST | `/api/v1/disputes/:id/resolve` | `{ dispute, refund }` | `{ outcome, refundHalalas, note }` | **409** when the dispute is already resolved<br>**422** on an amount that contradicts the outcome<br>**403** when a goodwill credit is above the operator's authority (`adjustWallet`) | `resolveDispute()` |
 | GET | `/api/v1/disputes/facets` | `Facets — field name -> [{ value, count }], count-descending` | - | - | `getDisputeFacets()` |
 | GET | `/api/v1/lost-found` | `Paginated<LostFoundItem>` | `{ disputeId: dispute.id },` | - | `listLostFound()` |

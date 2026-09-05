@@ -215,6 +215,11 @@ export const DISPUTES_EN: Dictionary = {
   'dispute.resolve.cancel': 'Cancel',
   'dispute.resolve.blocked.amountRequired': 'Enter the amount to settle before confirming.',
   'dispute.resolve.blocked.amountAboveClaim': 'A settlement cannot exceed the {max} claimed.',
+  'dispute.resolve.blocked.aboveCap': 'Above your cap of {cap}. Request approval to hand it on.',
+  'dispute.resolve.capLine': 'Up to {cap}: your cap.',
+  'dispute.resolve.requestApproval': 'Request approval',
+  'dispute.toast.approvalRequested': 'Handed to {name} for approval',
+  'dispute.audit.approvalRequested': 'Approval requested from {name}',
   'dispute.resolve.blocked.permission': 'You cannot resolve claims. Ask an Owner for the “Ticket handling” permission.',
   'dispute.resolve.failed': 'The verdict was not recorded and no money moved. {reason}',
 

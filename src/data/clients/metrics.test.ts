@@ -838,7 +838,7 @@ describe('9 — breakdowns, the shape R4-4 added (AC-690 – AC-697)', () => {
     }
   })
 
-  it('AC-692 — a breakdown with zero rows exists, and it is the honest one', async () => {
+  it('AC-692 / B3 — the contact reasons list is fed by the ticket store, most first', async () => {
     /**
      * Contact reasons: *"the most valuable list in the product"* (§11.3), and
      * it ships empty because `DB.contacts` is `[]` (`:14718`). The registry of
@@ -848,8 +848,9 @@ describe('9 — breakdowns, the shape R4-4 added (AC-690 – AC-697)', () => {
      */
     const board = await getMetricBoard('support-overview')
     const contacts = board.breakdowns.find((b) => b.key === 'support.contactReasons')!
-    expect(contacts.rows).toEqual([])
-    expect(contacts.rowsTotal).toBe(0)
+    expect(contacts.rows.length).toBeGreaterThan(0)
+    expect(contacts.rowsTotal).toBeGreaterThanOrEqual(contacts.rows.length)
+    expect(contacts.awaitingStore).toBeNull()
   })
 
   it('AC-693 — a row either links to something filtered to it, or is not a link', async () => {
@@ -1676,6 +1677,8 @@ describe('13 — the metric ↔ series join that §E4 selects on', () => {
         "support.overview.openIncidents = 6 · 50 up vs previous-period:4",
         "support.overview.medianTimeToFirstResponse = 14 · 27.3 up vs previous-period:11",
         "support.overview.ticketsBreaching = 1 · 0 flat vs previous-period:1",
+        "support.overview.csat = 4 · -4.8 down vs previous-period:4.2",
+        "support.overview.firstContactResolution = 100 · 100 up vs previous-period:50",
         "support.overview.promiseKept = 50 · -37.5 down vs previous-period:80",
         "support.overview.contactsPerThousandTrips = null · null null vs none:no-history",
         "support.overview.uncodedContactShare = null · null null vs target:3",

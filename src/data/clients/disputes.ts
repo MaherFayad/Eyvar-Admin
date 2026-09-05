@@ -78,6 +78,7 @@ import {
 import type { IsoDateTime } from '../types/common'
 import type { Refund } from '../types/financials'
 import { http } from './http'
+import { appendAudit } from './audit'
 import { currentMockUserId } from './session'
 import { claimFor, doneClaim, releasedClaim } from './claims'
 import { liveClaim } from './requests'
@@ -108,6 +109,7 @@ export const DISPUTE_OPERATIONS = {
   get: 'disputes.get',
   facets: 'disputes.facets',
   claim: 'disputes.claim',
+  requestApproval: 'disputes.requestApproval',
   release: 'disputes.release',
   resolve: 'disputes.resolve',
   lostFoundList: 'lostFound.list',
@@ -312,6 +314,58 @@ export async function getDispute(id: string, signal?: AbortSignal): Promise<Disp
  * Ownership moves an `open` claim to `under-review`, the only way that status
  * is reached. Omit `userId` and the claimant is the session.
  */
+/**
+ * POST /api/v1/disputes/:id/request-approval
+ *   body: { amountHalalas }
+ *   -> Dispute
+ *   409 when no operator's cap covers the amount
+ * B2 (§9.2): handed to an operator whose cap covers the settlement, so the decision is theirs.
+ */
+export async function requestDisputeApproval(
+  id: string,
+  amountHalalas: number,
+  signal?: AbortSignal,
+): Promise<Dispute> {
+  if (DATA_SOURCE === 'http') {
+    return http.post<Dispute>(`/disputes/${id}/request-approval`, { amountHalalas }, { signal })
+  }
+  return mockMutation(DISPUTE_OPERATIONS.requestApproval, signal, () => {
+    const idx = dynamicDisputes.findIndex((d) => d.id === id)
+    const existing = dynamicDisputes[idx]
+    if (!existing) throw notFound('dispute', id)
+    if (existing.status === 'resolved') throw alreadyResolved(existing)
+    const me = currentMockUserId()
+    const approver = teamUserFixtures.find(
+      (u) => u.id !== me && (u.compensationCapHalalas === null || u.compensationCapHalalas >= amountHalalas),
+    )
+    if (!approver) {
+      throw new ApiError({
+        status: 409,
+        kind: 'conflict',
+        code: 'no_approver',
+        message: 'No operator holds a cap that covers this amount.',
+        retryable: false,
+      })
+    }
+    const updated = normalise({
+      ...existing,
+      ownership: claimFor('dispute', id, existing.ownership, { id: approver.id, name: approver.name }, true),
+      status: existing.status === 'open' ? 'under-review' : existing.status,
+    })
+    dynamicDisputes = replaceAt(dynamicDisputes, idx, updated)
+    appendAudit({
+      action: 'dispute.approvalRequested',
+      subjectType: 'dispute',
+      subjectId: id,
+      amountHalalas,
+      reasonCode: null,
+      note: null,
+      detail: { key: 'dispute.audit.approvalRequested', params: { name: approver.name } },
+    })
+    return updated
+  })
+}
+
 /**
  * POST /api/v1/disputes/:id/claim
  *   body: { takeOver? }

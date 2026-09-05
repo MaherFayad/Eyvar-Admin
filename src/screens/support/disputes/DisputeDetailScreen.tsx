@@ -9,6 +9,7 @@ import { useMemo, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import {
+  requestDisputeApproval,
   claimDispute,
   getDispute,
   liveClaim,
@@ -375,6 +376,13 @@ export function DisputeDetailScreen() {
         canWrite={canWrite}
         onClose={() => setResolving(false)}
         onConfirm={handleResolve}
+        onRequestApproval={async (amountHalalas) => {
+          const target = dispute
+          if (!target) return
+          const handed = await requestDisputeApproval(target.id, amountHalalas)
+          toast.success(t('dispute.toast.approvalRequested', { name: handed.ownership?.ownerName ?? '' }))
+          record.refetch()
+        }}
         t={t}
         language={language}
       />

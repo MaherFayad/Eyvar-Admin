@@ -533,3 +533,16 @@ describe('ease of use (SUPPORT-UX-PLAN.md §7)', () => {
     expect(await screen.findByText(en('profile.rider.support.heading'))).toBeInTheDocument()
   })
 })
+
+describe('CSAT reads on the decided row and the record (§9.4)', () => {
+  it('shows the score on the decided row and on the record', async () => {
+    renderApp(`${INDEX}?view=done`)
+    expect(await screen.findByText(fill('ticket.csat.short', { score: '4' }))).toBeInTheDocument()
+  })
+
+  it('names the rating on the ticket card of a decided ticket', async () => {
+    renderApp(detail('TKT-504'))
+    expect(await screen.findByText(en('ticket.field.csat'))).toBeInTheDocument()
+    expect(screen.getByText(fill('ticket.csat.short', { score: '4' }))).toBeInTheDocument()
+  })
+})

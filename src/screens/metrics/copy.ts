@@ -471,6 +471,8 @@ export const OVERVIEW_EN: Dictionary = {
   'metric.support.overview.repeatContactRate': 'Repeat-contact rate',
   'metric.support.overview.ticketsBreaching': 'Tickets past their promise',
   'metric.support.overview.promiseKept': 'First replies inside the promise',
+  'metric.support.overview.csat': 'Customer satisfaction',
+  'metric.support.overview.firstContactResolution': 'First-contact resolution',
 
   /* Admin › Overview — "Is the console itself safe, staffed, and inside its
      statutory obligations?" */
@@ -543,6 +545,8 @@ export const OVERVIEW_EN: Dictionary = {
      3 (`:14659`). It gates the ranked list below it: above the ceiling, the
      ranking is not trustworthy. */
   'caption.uncodedCeiling': 'The ceiling is 3%.',
+  'caption.csatSevenDay': 'Mean rating out of 5 over the last seven days.',
+  'caption.firstContactResolution': 'Resolved with one reply or one call, as a share of resolved tickets.',
   /* AC-675. `higherIsBetter` is true on this tile and every instinct says
      otherwise, so the tile has to say why.
 
@@ -613,7 +617,7 @@ export const OVERVIEW_EN: Dictionary = {
   'breakdown.risk.subscriptionsByRenewalLikelihood': 'Top 5 subscriptions least likely to renew',
   'breakdown.zones.citiesHealth': 'All 4 cities, by zones live',
   'breakdown.operations.backlogByQueue': 'All 5 queues, by open items',
-  'breakdown.support.contactReasons': 'Top 5 contact reasons, per 1,000 trips',
+  'breakdown.support.contactReasons': 'Top 5 contact reasons, by tickets',
   'breakdown.admin.rotaGapsByDay': 'All 7 days, by on-call slots unassigned',
 
   /* AC-696, one key, one sentence, every breakdown. R4-4 §4.1 writes it out:
@@ -764,6 +768,14 @@ export const OVERVIEW_EN: Dictionary = {
      `weekend`, `nightBlock`, `churnHigh`, `churnMedium`, `cityLive`,
      `documentExpired`. Nothing is kept behind a flag. */
   'breakdown.sub.lateOfTrips': '{late} of {total} trips ran late',
+  'breakdown.sub.reasonOwner': 'Owned by {team}',
+  /* B3: the reason rows, keyed under `breakdown.` as AC-697 asks; the words are the vocabulary's. */
+  'breakdown.reason.PAY_INCORRECT_CHARGE': 'Rider charged incorrectly',
+  'breakdown.reason.PAY_DECLINED': 'Payment failed or was declined',
+  'breakdown.reason.TRP_LOST_ITEM': 'Rider left belongings in the vehicle',
+  'breakdown.reason.CAP_NOSHOW': 'Captain no-show',
+  'breakdown.reason.APP_CRASH': 'App crashes or will not open',
+  'breakdown.sub.reasonNoOwner': 'No owning team',
   'breakdown.sub.lateOfTripsExpired': 'Document expired · {late} of {total} trips ran late',
   'breakdown.sub.churnHighTrips': 'High churn risk · {trips} trips',
   'breakdown.sub.churnMediumTrips': 'Medium churn risk · {trips} trips',

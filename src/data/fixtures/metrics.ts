@@ -239,6 +239,7 @@ import { allTripFixtures } from './trips'
 import { safetyIncidentFixtures } from './safety'
 import { fairnessCaseFixtures } from './fairness'
 import { ticketFixtures } from './tickets'
+import { operationalPolicyFixture } from './policy'
 import { ticketIsLive } from '../types/ticket'
 
 /**
@@ -361,6 +362,49 @@ const promiseKeptPercent = (() => {
   if (answered.length === 0) return null
   const kept = answered.filter((t) => Date.parse(t.firstResponseAt!) <= Date.parse(t.firstResponseDueAt!)).length
   return Math.round((kept / answered.length) * 100)
+})()
+
+/* B4: the mean rating over decided tickets that were rated; `null` until one is. */
+const csatMean = (() => {
+  const rated = ticketFixtures.filter((t) => t.csat !== null)
+  if (rated.length === 0) return null
+  return Math.round((rated.reduce((sum, t) => sum + t.csat!.score, 0) / rated.length) * 10) / 10
+})()
+
+/* B6: resolved with exactly one customer-visible reply or one resolved-on-call log, over resolved. */
+const firstContactResolutionPercent = (() => {
+  const resolved = ticketFixtures.filter((t) => t.status === 'resolved' || t.status === 'closed')
+  if (resolved.length === 0) return null
+  const first = resolved.filter((t) => {
+    const replies = t.messages.filter((m) => m.senderType === 'agent' && m.visibility !== 'internal').length
+    const calls = t.callLogs.filter((c) => c.outcome === 'resolved-on-call').length
+    return replies === 1 || calls === 1
+  }).length
+  return Math.round((first / resolved.length) * 100)
+})()
+
+/* B3: contacts by reason code, most first, with the code's owning team as the second line. */
+const contactReasonRows: MetricBreakdownRow[] = (() => {
+  const counts = new Map<string, number>()
+  for (const ticket of ticketFixtures) counts.set(ticket.reasonCode, (counts.get(ticket.reasonCode) ?? 0) + 1)
+  const ranked = [...counts.entries()].sort((a, b) => b[1] - a[1])
+  const max = ranked[0]?.[1] ?? 0
+  /* R5-6: a bar only where the rows shown differ; then every row carries its share. */
+  const bar = ranked.slice(0, 5).some(([, count]) => count !== max)
+  return ranked.map(([code, count]) => {
+    const registry = operationalPolicyFixture.reasonCodes.find((each) => each.key === code)
+    return {
+      id: code,
+      label: registry ? { kind: 'key', key: `breakdown.reason.${code}`, params: null } : { kind: 'text', text: code },
+      subLabelKey: registry?.ownerTeam ? 'breakdown.sub.reasonOwner' : 'breakdown.sub.reasonNoOwner',
+      subLabelParams: registry?.ownerTeam ? { team: registry.ownerTeam } : null,
+      value: count,
+      unit: 'count',
+      currency: null,
+      barFraction: bar ? count / max : null,
+      drilldownRoute: '/support/tickets?view=all',
+    }
+  })
 })()
 
 const incidentsOpenOn = (day: IsoDate) =>
@@ -2396,6 +2440,50 @@ export const metricSeeds: MetricSeed[] = [
     drilldownRoute: '/support/tickets?view=open&filter=breached',
   },
   {
+    key: 'support.overview.csat',
+    subTabId: 'support-overview',
+    category: 'service',
+    value: csatMean,
+    absenceReason: csatMean === null ? 'not-captured' : null,
+    unit: 'rating',
+    currency: null,
+    asOf: EYVAR_NOW,
+    periodStart: SNAPSHOT_CURRENT.start,
+    periodEnd: SNAPSHOT_CURRENT.end,
+    comparison: {
+      kind: 'previous-period',
+      value: 4.2,
+      periodStart: SNAPSHOT_PREVIOUS.start,
+      periodEnd: SNAPSHOT_PREVIOUS.end,
+    },
+    higherIsBetter: true,
+    caption: 'caption.csatSevenDay',
+    sourceResource: 'tickets',
+    drilldownRoute: '/support/tickets?view=done',
+  },
+  {
+    key: 'support.overview.firstContactResolution',
+    subTabId: 'support-overview',
+    category: 'service',
+    value: firstContactResolutionPercent,
+    absenceReason: firstContactResolutionPercent === null ? 'not-computable' : null,
+    unit: 'percent',
+    currency: null,
+    asOf: EYVAR_NOW,
+    periodStart: SNAPSHOT_CURRENT.start,
+    periodEnd: SNAPSHOT_CURRENT.end,
+    comparison: {
+      kind: 'previous-period',
+      value: 50,
+      periodStart: SNAPSHOT_PREVIOUS.start,
+      periodEnd: SNAPSHOT_PREVIOUS.end,
+    },
+    higherIsBetter: true,
+    caption: 'caption.firstContactResolution',
+    sourceResource: 'tickets',
+    drilldownRoute: '/support/tickets?view=done',
+  },
+  {
     key: 'support.overview.promiseKept',
     subTabId: 'support-overview',
     category: 'service',
@@ -4204,13 +4292,13 @@ export const boardBreakdowns: Record<string, MetricBreakdown[]> = {
     {
       key: 'support.contactReasons',
       dimension: 'reason-code',
-      rowsShown: 5,
-      rowsTotal: 0,
+      rowsShown: Math.min(5, contactReasonRows.length),
+      rowsTotal: contactReasonRows.length,
       /* **`false`, and it is not a prediction about the day rows arrive.**
          R5-6 makes `max > min` across *the rows shown* a condition of the bar,
          and zero rows cannot meet it. Whoever seeds the contact log re-decides
          this against the rows they seed. */
-      bar: false,
+      bar: contactReasonRows.some((row) => row.barFraction !== null),
       /**
        * **No caveat — R5-9 §20.2 — on the one card R5-9 was written for.**
        *
@@ -4242,8 +4330,8 @@ export const boardBreakdowns: Record<string, MetricBreakdown[]> = {
        * volumes would put a ranking of made-up product problems in front of the
        * person who has to act on it, which is exactly what Q-101 forbids.
        */
-      awaitingStore: 'contact-log',
-      rows: [],
+      awaitingStore: null,
+      rows: contactReasonRows.slice(0, 5),
     },
   ],
 

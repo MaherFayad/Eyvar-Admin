@@ -34,6 +34,7 @@ import { useCallback, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import {
+  requestDisputeApproval,
   advanceLostFoundItem,
   claimDispute,
   listDisputes,
@@ -745,6 +746,13 @@ export function DisputesScreen({ row }: { row: SubTabRoute }) {
         canWrite={canWrite}
         onClose={() => setActiveDispute(null)}
         onConfirm={handleResolve}
+        onRequestApproval={async (amountHalalas) => {
+          const target = activeDispute
+          if (!target) return
+          const handed = await requestDisputeApproval(target.id, amountHalalas)
+          toast.success(t('dispute.toast.approvalRequested', { name: handed.ownership?.ownerName ?? '' }))
+          disputes.refetch()
+        }}
         t={t}
         language={language}
       />

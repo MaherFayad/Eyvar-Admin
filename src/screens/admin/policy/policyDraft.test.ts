@@ -215,12 +215,13 @@ describe('F-014 — the same three assertions fail against the legacy save', () 
     const before = await getOperationalPolicy()
     const sizeBefore = auditLogSize()
     await saveTheWayLegacyDid(before)
-    expect(auditLogSize()).toBe(sizeBefore + 1)
+    /* B1 (§9.1): a moved grid also writes the re-derivation line for open tickets. */
+    expect(auditLogSize()).toBeGreaterThanOrEqual(sizeBefore + 1)
 
     const log = await listAuditEntries({ subjectType: 'policy' })
-    expect(log.items[0]?.action).toBe('policy.save')
-    expect(log.items[0]?.detail.key).toBe('policy.audit.saved')
-    expect(String(log.items[0]?.detail.params?.fields)).toContain('firstResponseMinutes')
+    const saved = log.items.find((entry) => entry.action === 'policy.save')
+    expect(saved?.detail.key).toBe('policy.audit.saved')
+    expect(String(saved?.detail.params?.fields)).toContain('firstResponseMinutes')
   })
 
   /**

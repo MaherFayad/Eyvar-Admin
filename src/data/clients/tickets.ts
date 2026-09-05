@@ -37,6 +37,7 @@ import { claimFor as claimForEntity, doneClaim, releasedClaim } from './claims'
 import { http } from './http'
 import { pushNotification } from './notifications'
 import { currentPolicy } from './policy'
+import type { OperationalPolicy } from '../types/policy'
 import { liveClaim } from './requests'
 import { currentMockUserId } from './session'
 import { fixturesLoaded, onFixturesLoaded, type Fixtures } from '../mock/fixtures'
@@ -546,6 +547,47 @@ export async function takeNextTicket(signal?: AbortSignal): Promise<Ticket> {
 }
 
 /**
+ * B1 (§9.1): after Admin › Policy saves, every OPEN ticket's promises are
+ * re-derived from the new grid; decided tickets keep their history. One audit
+ * line names the count. Returns how many tickets moved.
+ */
+export function rederiveOpenTicketClocks(policy: OperationalPolicy): number {
+  let count = 0
+  dynamicTickets.forEach((ticket, index) => {
+    if (!ticketIsLive(ticket)) return
+    const targets = ticketSlaTargets(policy, ticket.reasonCode)
+    const stamped = stampTicketClocks(targets, ticket.createdAt)
+    const next = {
+      ...ticket,
+      ...stamped,
+      firstResponseBreachedAt: ticket.firstResponseBreachedAt,
+      slaBreachedAt: ticket.slaBreachedAt,
+      slaDueAt: stamped.slaDueAt === null ? null : addMinutes(stamped.slaDueAt, ticket.pausedMinutes),
+      updateDueAt:
+        targets.updateEveryMinutes === null
+          ? null
+          : addMinutes(ticket.lastUpdateAt ?? ticket.createdAt, targets.updateEveryMinutes),
+    }
+    if (next.slaDueAt !== ticket.slaDueAt || next.firstResponseDueAt !== ticket.firstResponseDueAt || next.updateDueAt !== ticket.updateDueAt) {
+      commit(index, next)
+      count += 1
+    }
+  })
+  if (count > 0) {
+    appendAudit({
+      action: 'ticket.clocksRederived',
+      subjectType: 'policy',
+      subjectId: 'operational',
+      amountHalalas: null,
+      reasonCode: null,
+      note: null,
+      detail: { key: 'ticket.audit.clocksRederived', params: { count } },
+    })
+  }
+  return count
+}
+
+/**
  * POST /api/v1/tickets/:id/call-log
  *   body: { outcome, notes }
  *   -> Ticket
@@ -756,6 +798,8 @@ export async function resolveTicket(id: string, signal?: AbortSignal): Promise<T
       claim: doneClaim(ticket.claim, claimFor(ticket, me, true)),
     })
     audit('ticket.resolve', next, null)
+    /* B4: the rating request goes down the ticket's channel; no channel, no request. */
+    if (next.channel !== null) audit('ticket.csatRequested', next, null, { channel: next.channel })
     return next
   })
 }
@@ -839,6 +883,7 @@ export function mintTicket(input: NewTicketInput): Ticket {
     entityName: input.entityName,
     entityType: input.entityType,
     requesterPhone: null,
+    csat: null,
     category: input.category,
     reasonCode: input.reasonCode,
     priority: input.priority ?? PRIORITY_BY_TIER[targets.tier],

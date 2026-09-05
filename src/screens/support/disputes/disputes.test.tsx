@@ -18,6 +18,7 @@ import userEvent from '@testing-library/user-event'
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { MemoryRouter } from 'react-router-dom'
 import {
+  switchMockUser,
   advanceLostFoundItem,
   auditLogSize,
   disableMockLatency,
@@ -520,5 +521,28 @@ describe('AC-74 — every string resolves through a key', () => {
       const source = stripComments(readFileSync(file, 'utf8'))
       expect(source.includes('defaultValue'), file).toBe(false)
     }
+  })
+})
+
+describe('the compensation ceiling (§9.2)', () => {
+  it('refuses a settlement above the operator cap and hands it on for approval', async () => {
+    const user = userEvent.setup()
+    await switchMockUser('USR-3')
+    /* Lina's cap is SAR 100; any unheld claim above it will do. */
+    const { items } = await listDisputes({ view: 'unassigned', pageSize: 50 })
+    const target = items.find((d) => d.amountHalalas > 10_000)!
+    renderApp(`/support/disputes/${target.id}`)
+    /* Resolving an unheld claim takes it; the record offers no separate Claim. */
+    await user.click(await screen.findByRole('button', { name: en('dispute.action.resolve') }))
+    const dialog = await screen.findByRole('dialog')
+    await user.click(within(dialog).getByRole('combobox'))
+    await user.click(await screen.findByRole('option', { name: en('dispute.outcome.full-refund') }))
+    await expect
+      .poll(() => (within(dialog).getByRole('button', { name: en('dispute.resolve.confirm') }) as HTMLButtonElement).disabled)
+      .toBe(true)
+    expect(within(dialog).getByText(/Above your cap/)).toBeInTheDocument()
+    await user.click(within(dialog).getByRole('button', { name: en('dispute.resolve.requestApproval') }))
+    await expect.poll(async () => (await getDispute(target.id)).ownership?.ownerId).not.toBe('USR-3')
+    expect((await getDispute(target.id)).ownership?.state).toBe('claimed')
   })
 })

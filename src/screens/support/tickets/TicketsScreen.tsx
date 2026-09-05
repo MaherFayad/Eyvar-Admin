@@ -441,6 +441,12 @@ export function ticketColumns(deps: TicketDeps): ReadonlyArray<DataColumn<Ticket
           <StatusBadge tone={STATUS_TONE[ticket.status]}>
             {t(`ticket.status.${ticket.status}`)}
           </StatusBadge>
+          {/* B4: the rating rides the decided row as text, never a second chip. */}
+          {ticket.csat !== null && (
+            <span className="ms-2 text-xs text-muted-foreground">
+              {t('ticket.csat.short', { score: formatCount(ticket.csat.score, language) })}
+            </span>
+          )}
         </Cell>
       ),
     },
