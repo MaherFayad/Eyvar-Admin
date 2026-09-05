@@ -5,7 +5,7 @@
  */
 
 import type { Conversation, IsoDateTime } from '@/data/types'
-import { conversationSla, runningClock, type ConversationSla } from '../conversations/sla'
+import { conversationSla, runningClock, type ConversationSla } from './sla'
 
 export interface InboxRow {
   conversation: Conversation

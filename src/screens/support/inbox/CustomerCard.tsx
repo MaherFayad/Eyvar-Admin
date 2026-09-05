@@ -11,7 +11,7 @@ import type { Translator } from '@/lib'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Avatar } from '@/components/Avatar'
-import { CHANNEL_KEY } from '../conversations/vocabulary'
+import { CHANNEL_KEY } from './vocabulary'
 
 export interface CustomerCardProps {
   conversation: Conversation

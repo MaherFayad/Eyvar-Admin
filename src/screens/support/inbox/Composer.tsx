@@ -27,7 +27,7 @@ import { Toggle } from '@/components/ui/toggle'
 import { FileTextIcon, NoteIcon, SendIcon } from '@/components/icons'
 import { cn } from '@/lib/utils'
 import { TemplatePicker } from '../shared/TemplatePicker'
-import { clearDraft, readDraft, writeDraft } from '../conversations/drafts'
+import { clearDraft, readDraft, writeDraft } from './drafts'
 
 /** §8.7: `typing: true` is re-published at most once a second. */
 const TYPING_DEBOUNCE_MS = 1_000

@@ -14,7 +14,7 @@ import { RowCriticalMarker } from '@/components/StatusBadge'
 import { SlaCell } from '@/screens/queues'
 import { cn } from '@/lib/utils'
 import { conversationAssignee } from '@/data/clients'
-import { runningClock } from '../conversations/sla'
+import { runningClock } from './sla'
 import type { InboxRow } from './order'
 
 export interface ConversationListItemProps {

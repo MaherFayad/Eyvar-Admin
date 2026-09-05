@@ -2044,7 +2044,7 @@ export const conversationFixtures: Conversation[] = [
  *
  * **The concurrent-chat cap is D22's — three — and it is still not a number in
  * this layer.** It lives as a constant in the console
- * (`screens/support/conversations/presence.ts`) because `types/policy.ts` has
+ * (`hooks/usePresence.ts`) because `types/policy.ts` has
  * no field for it. It belongs in Admin › Operational Policy › Limits (D20), and
  * until it does, two places could disagree about it. Raised, not invented here.
  *

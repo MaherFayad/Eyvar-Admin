@@ -12,7 +12,7 @@ import { formatDate, formatFileSize, type Language, type Translate } from '@/lib
 import { Button } from '@/components/ui/button'
 import { StatusBadge } from '@/components/StatusBadge'
 import { cn } from '@/lib/utils'
-import { CHANNEL_KEY } from '../conversations/vocabulary'
+import { CHANNEL_KEY } from './vocabulary'
 import { DeliveryLine } from './DeliveryLine'
 
 export interface BubbleProps {

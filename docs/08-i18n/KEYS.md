@@ -9,13 +9,13 @@ this file is stale or when the `defaultValue` ratchet slips.
 
 | | |
 |---|---:|
-| **Translatable keys, all dictionaries** | **6487** |
-| Reachable from `EN` (what the shell renders) | 6137 |
-| Keys in `AR` | 6487 |
+| **Translatable keys, all dictionaries** | **6438** |
+| Reachable from `EN` (what the shell renders) | 6088 |
+| Keys in `AR` | 6438 |
 | **Keys Arabic is missing** | **0** |
 | Keys in `AR` and not in `EN` (plural forms, unregistered screens) | 350 |
 | Plural forms (`key#category`) inside `EN` | 65 |
-| `copy.ts` files | 38 |
+| `copy.ts` files | 37 |
 | Keys in a `copy.ts` the shell has NOT registered | 194 |
 | **`defaultValue` call sites (the ratchet)** | **0** |
 | `defaultValue` forwarding a Dictionary (exempt) | 2 |
@@ -71,9 +71,9 @@ Both ceilings only ever fall.
 | en | `src/screens/auth/copy.ts` | 1 |
 | en | `src/screens/financials/copy.ts` | 30 |
 | en | `src/screens/onboarding/copy.ts` | 7 |
-| en | `src/screens/support/conversations/copy.ts` | 2 |
 | en | `src/screens/support/disputes/copy.ts` | 2 |
 | en | `src/screens/support/fairness/copy.ts` | 1 |
+| en | `src/screens/support/inbox/copy.ts` | 2 |
 | en | `src/screens/support/safety/copy.ts` | 2 |
 | en | `src/screens/support/tickets/copy.ts` | 1 |
 
@@ -449,8 +449,8 @@ Measured on English only, and a placeholder counts as one word.
 | `src/screens/support/tickets/copy.ts` | `TICKETS_EN` | 236 |
 | `src/screens/admin/team/copy.ts` | `ADMIN_TEAM_EN` | 214 |
 | `src/screens/admin/data/copy.ts` | `ADMIN_DATA_EN` | 189 |
-| `src/screens/support/conversations/copy.ts` | `CONVERSATIONS_EN` | 184 |
 | `src/screens/admin/communications/copy.ts` | `COMMUNICATIONS_EN` | 178 |
+| `src/screens/support/inbox/copy.ts` | `CONVERSATIONS_EN`, `INBOX_EN` | 178 |
 | `src/screens/auth/copy.ts` | `AUTH_EN` | 172 |
 | `src/screens/admin/policy/copy.ts` | `POLICY_EN` | 168 |
 | `src/screens/support/disputes/copy.ts` | `DISPUTES_EN` | 168 |
@@ -470,7 +470,6 @@ Measured on English only, and a placeholder counts as one word.
 | `src/screens/management/zones/copy.ts` | `ZONES_EN` | 67 |
 | `src/components/profile/request/copy.ts` | `REQUEST_PROFILE_EN` | 61 |
 | `src/screens/queues/copy.ts` | `QUEUE_SHARED_EN` | 47 |
-| `src/screens/support/inbox/copy.ts` | `INBOX_EN` | 43 |
 | `src/screens/entity/copy.ts` | `ENTITY_RIDER_EN` | 33 |
 | `src/components/profile/rider/copy.ts` | `RIDER_PROFILE_EN` | 30 |
 | `src/components/profile/subscription/copy.ts` | `SUBSCRIPTION_PROFILE_EN` | 27 |
@@ -497,7 +496,6 @@ somewhere else -- the shell dictionary, or a `defaultValue`.
 | Directory | Screens |
 |---|---|
 | `src/screens` | `EntityPageScreen.tsx`, `SubTabScreen.tsx` |
-| `src/screens/support/contacts` | `ContactCentreScreen.tsx` |
 
 ## Fragment templates
 

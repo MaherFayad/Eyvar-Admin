@@ -22,8 +22,8 @@ import { Avatar } from '@/components/Avatar'
 import { StatusBadge } from '@/components/StatusBadge'
 import { ChatIcon, EmailIcon, InfoIcon, MoreIcon, PhoneIcon, WhatsAppIcon, backIcon } from '@/components/icons'
 import { SlaCell } from '@/screens/queues'
-import { conversationSla, runningClock } from '../conversations/sla'
-import { CHANNEL_KEY, STATUS_KEY, STATUS_TONE } from '../conversations/vocabulary'
+import { conversationSla, runningClock } from './sla'
+import { CHANNEL_KEY, STATUS_KEY, STATUS_TONE } from './vocabulary'
 
 export interface HeaderAction {
   id: string

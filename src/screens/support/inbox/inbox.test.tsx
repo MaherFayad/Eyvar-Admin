@@ -32,7 +32,7 @@ import { formatCount } from '@/lib'
 import { EN } from '@/i18n/dictionaries'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { useShell, ShellProvider } from '@/shell/ShellContext'
-import { resetDrafts } from '../conversations/drafts'
+import { resetDrafts } from './drafts'
 import { InboxScreen } from './InboxScreen'
 import { Thread } from './Thread'
 

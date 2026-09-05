@@ -11,7 +11,7 @@ import type { Conversation, IsoDateTime } from '@/data/types'
 import { formatCount, formatDate, type Language, type Translator } from '@/lib'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { OwnerChip, SlaCell, queueClock } from '@/screens/queues'
-import { conversationSla } from '../conversations/sla'
+import { conversationSla } from './sla'
 
 export interface ThreadCardProps {
   conversation: Conversation
