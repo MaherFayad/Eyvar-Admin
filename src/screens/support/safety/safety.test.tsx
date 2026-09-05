@@ -128,7 +128,10 @@ describe('the record (AC-S-37)', () => {
     await user.click(within(dialog).getByRole('button', { name: en('safety.close.confirm') }))
     /* The record holds the closed row and converts in place. */
     expect((await screen.findAllByText(en('safety.step.closed'))).length).toBeGreaterThan(0)
-    expect(screen.getByText(en('safety.status.closed'))).toBeInTheDocument()
+    /* The status badge; the Promises card's closed row carries the same word as its label. */
+    expect(
+      screen.getByText(en('safety.status.closed'), { selector: '[data-slot=badge]' }),
+    ).toBeInTheDocument()
   })
 
   it('confirms before deciding an incident somebody else holds, naming them', async () => {

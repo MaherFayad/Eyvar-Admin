@@ -66,8 +66,10 @@ import { DataTable, type DataColumn, type RowAction } from '@/components/DataTab
 import { ViewSwitcher } from '@/components/table/ViewSwitcher'
 import { ErrorState } from '@/components/ErrorState'
 import { LoadingSkeleton } from '@/components/LoadingSkeleton'
+import { KEY_VALUE_CELL, KEY_VALUE_HEAD, KEY_VALUE_ROW, KeyValueTable } from '@/components/KeyValueGrid'
 import { MoneyCell } from '@/components/Money'
 import { StatusBadge } from '@/components/StatusBadge'
+import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { useShell } from '@/shell/ShellContext'
@@ -596,52 +598,53 @@ function RateCardCard({
           <p className="text-xs text-muted-foreground">{t('fin.pricing.rateCard.vatIncluded')}</p>
         )}
 
-        <table className="w-full table-fixed text-sm">
+        {/* Rows rule and lift like every in-card key/value grid (plan §3 item 4). */}
+        <KeyValueTable className="text-sm">
           <thead>
-            <tr className="text-xs text-muted-foreground">
-              <th scope="col" className="py-1 text-start font-medium">
+            <tr className="border-b border-border-soft">
+              <th scope="col" className={cn(KEY_VALUE_HEAD, KEY_VALUE_CELL, 'text-start')}>
                 {t('fin.pricing.rateCard.col.class')}
               </th>
-              <th scope="col" className="py-1 text-end font-medium">
+              <th scope="col" className={cn(KEY_VALUE_HEAD, KEY_VALUE_CELL, 'text-end')}>
                 {t('fin.pricing.rateCard.col.base')}
               </th>
-              <th scope="col" className="py-1 text-end font-medium">
+              <th scope="col" className={cn(KEY_VALUE_HEAD, KEY_VALUE_CELL, 'text-end')}>
                 {t('fin.pricing.rateCard.col.perKm')}
               </th>
-              <th scope="col" className="py-1 text-end font-medium">
+              <th scope="col" className={cn(KEY_VALUE_HEAD, KEY_VALUE_CELL, 'text-end')}>
                 {t('fin.pricing.rateCard.col.perMin')}
               </th>
-              <th scope="col" className="py-1 text-end font-medium">
+              <th scope="col" className={cn(KEY_VALUE_HEAD, KEY_VALUE_CELL, 'text-end')}>
                 {t('fin.pricing.rateCard.col.minFare')}
               </th>
-              <th scope="col" className="py-1 text-end font-medium">
+              <th scope="col" className={cn(KEY_VALUE_HEAD, KEY_VALUE_CELL, 'text-end')}>
                 {t('fin.pricing.rateCard.col.cancelFee')}
               </th>
             </tr>
           </thead>
           <tbody>
             {card.classes.map((vehicleClass) => (
-              <tr key={vehicleClass.id}>
-                <td className="py-1 text-foreground">{vehicleClass.label}</td>
-                <td className="py-1 text-end">
+              <tr key={vehicleClass.id} className={KEY_VALUE_ROW}>
+                <td className={cn('py-1.5 text-foreground', KEY_VALUE_CELL)}>{vehicleClass.label}</td>
+                <td className={cn('py-1.5', KEY_VALUE_CELL)}>
                   <MoneyCell amount={vehicleClass.baseHalalas} />
                 </td>
-                <td className="py-1 text-end">
+                <td className={cn('py-1.5', KEY_VALUE_CELL)}>
                   <MoneyCell amount={vehicleClass.perKmHalalas} />
                 </td>
-                <td className="py-1 text-end">
+                <td className={cn('py-1.5', KEY_VALUE_CELL)}>
                   <MoneyCell amount={vehicleClass.perMinHalalas} />
                 </td>
-                <td className="py-1 text-end">
+                <td className={cn('py-1.5', KEY_VALUE_CELL)}>
                   <MoneyCell amount={vehicleClass.minFareHalalas} />
                 </td>
-                <td className="py-1 text-end">
+                <td className={cn('py-1.5', KEY_VALUE_CELL)}>
                   <MoneyCell amount={vehicleClass.cancelFeeHalalas} />
                 </td>
               </tr>
             ))}
           </tbody>
-        </table>
+        </KeyValueTable>
 
         <p className="text-xs text-muted-foreground">
           {card.simulation === null
