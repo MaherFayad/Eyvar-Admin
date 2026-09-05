@@ -575,7 +575,7 @@ Task ids are `T<phase>.<n>`. **Role** is the agent definition under `.claude/age
 |---|---|---|---|---|
 | **T6.1** | Retire `components/actions/trip.ts` and `subscription.ts`; Trips, Subscriptions and their sheets resolve `commands/trips.ts` and `commands/subscriptions.ts` the way Captains does, so Flag, Unflag and Freeze carry D18's undo | `components/actions/*`, `TripsScreen.tsx:80-87`, `SubscriptionsScreen.tsx:90-100` | test: a flag is undone from the toast within 10s | F |
 | **T6.2** | `j` / `k` row focus, `.` opens the focused row's actions, `g` then a letter jumps sub-tabs — all resolved through the registry (P8-T4) | `commands/`, `DataTable.tsx` | `commands.test.tsx` | F |
-| **T6.3** | Page-size control in the toolbar behind the preferences client (P1-T5) | `DataTable.tsx:2517`, `clients/preferences.ts` | test | F |
+| **T6.3** | ~~Page-size control in the toolbar~~ Reversed by the owner: tables scroll, they do not page, so no rows-per-page control sits beside `Scroll for more`. `ui.pageSize` stays as the fetch chunk only | `DataTable.tsx`, `table/pageSize.ts` | shell suite | F |
 
 ### Phase 7 — Declared content (product-owner → product-designer → frontend-engineer) — **waits on O3, O4, O5**
 

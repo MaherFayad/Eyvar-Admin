@@ -463,11 +463,6 @@ export const SHELL_AR: Dictionary = {
   'table.showing': 'عرض {from}–{to} من {total}',
   'table.previous': '‹ السابق',
   'table.next': 'التالي ›',
-  'table.pageSize': 'صفوف بالصفحة',
-  /* `{count} صفوف` is the paucal form and was wrong at 1, 2 and 11 and up.
-     A plural family needs `DataTableProps.t` widened to `Translator`; until
-     then the count follows the noun, which does not inflect with it. */
-  'table.pageSize.option': 'الصفوف في الصفحة: {count}',
   'table.learnMore': 'معرفة المزيد عن {resource}.',
   'table.sort': 'ترتيب',
   'table.sortBy': 'الترتيب حسب',
