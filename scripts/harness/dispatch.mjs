@@ -128,16 +128,18 @@ const probe = () =>
     }
   })
 
-/** The meta line's own text — T1.3's age. */
+/**
+ * The meta line's own text — T1.3's age. Found by the connection dot it is
+ * wrapped around rather than by its words, which differ per language and are
+ * the thing under test.
+ */
 const age = () =>
-  page.evaluate(() => {
-    const line = [...document.querySelectorAll('span')]
-      .map((s) => s.textContent?.trim() ?? '')
-      /* `dispatch.meta` in either language. `ثانية` rather than `منذ`, which
-         an intervention's elapsed line also carries. */
-      .find((text) => /ago|ثانية/.test(text))
-    return line ?? ''
-  })
+  page.evaluate(
+    () =>
+      document
+        .querySelector('[class*="size-1.5"][class*="bg-chart-series"]')
+        ?.parentElement?.textContent?.trim() ?? '',
+  )
 
 const before = await probe()
 const ageT0 = await age()
