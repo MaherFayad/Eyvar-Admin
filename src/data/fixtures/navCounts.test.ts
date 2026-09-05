@@ -134,7 +134,7 @@ describe('`attention` means breached, not non-empty', () => {
      * incidents are inside their 60-minute resolve window and neither has had a
      * single protocol step ticked. T1's `firstResponseMin` is 0 (`:14652`).
      */
-    const critical = await listSafetyIncidents({ view: 'critical-sos', pageSize: 100 })
+    const critical = await listSafetyIncidents({ view: 'critical', pageSize: 100 })
     const unacknowledged = critical.items.filter(
       (i) => i.status === 'open' && i.firstResponseBreachedAt !== null,
     )

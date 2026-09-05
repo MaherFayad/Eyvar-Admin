@@ -127,11 +127,20 @@ const TicketDetailScreen = lazy(() =>
 const DisputesScreen = lazy(() =>
   import('@/screens/support/disputes').then((m) => ({ default: m.DisputesScreen })),
 )
+const DisputeDetailScreen = lazy(() =>
+  import('@/screens/support/disputes').then((m) => ({ default: m.DisputeDetailScreen })),
+)
 const SafetyScreen = lazy(() =>
   import('@/screens/support/safety').then((m) => ({ default: m.SafetyScreen })),
 )
+const IncidentDetailScreen = lazy(() =>
+  import('@/screens/support/safety').then((m) => ({ default: m.IncidentDetailScreen })),
+)
 const FairnessScreen = lazy(() =>
   import('@/screens/support/fairness').then((m) => ({ default: m.FairnessScreen })),
+)
+const CaseDetailScreen = lazy(() =>
+  import('@/screens/support/fairness').then((m) => ({ default: m.CaseDetailScreen })),
 )
 const ContactCentreScreen = lazy(() =>
   import('@/screens/support/contacts').then((m) => ({ default: m.ContactCentreScreen })),
@@ -160,6 +169,9 @@ const AdminActivityScreen = lazy(() =>
 /* Wave 4 - ONE screen for all eight section 3.7 metric-tile sub-tabs. */
 const MetricBoardScreen = lazy(() =>
   import('@/screens/metrics').then((m) => ({ default: m.MetricBoardScreen })),
+)
+const SupportDesk = lazy(() =>
+  import('@/screens/support/desk/SupportDesk').then((m) => ({ default: m.SupportDesk })),
 )
 
 /* Wave 3 - the seven Financials sub-tabs and the one full-bleed editor. */
@@ -512,7 +524,7 @@ function screenFor(row: SubTabRoute) {
   if (row.subTabId === 'management-growth') return <GrowthScreen row={row} />
 
   if (row.subTabId !== 'support-fairness' && METRIC_BOARD_SUB_TABS.includes(row.subTabId)) {
-    return <MetricBoardScreen row={row} />
+    return <MetricBoardScreen row={row} prelude={row.subTabId === 'support-overview' ? <SupportDesk /> : undefined} />
   }
 
   return <SubTabScreen row={row} />
@@ -566,6 +578,15 @@ function detailScreenFor(row: SubTabRoute, detail: DetailRoute) {
   }
   if (row.subTabId === 'support-tickets') {
     return <TicketDetailScreen />
+  }
+  if (detail.kind === 'dispute') {
+    return <DisputeDetailScreen />
+  }
+  if (detail.kind === 'incident') {
+    return <IncidentDetailScreen />
+  }
+  if (detail.kind === 'fairness-case') {
+    return <CaseDetailScreen />
   }
   return <SubTabScreen row={row} />
 }

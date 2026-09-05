@@ -1,6 +1,6 @@
 /**
  * Safety & incidents — Support › Safety & Incidents, three views
- * (`open`, `critical-sos`, `closed`).
+ * (`open`, `critical`, `closed`).
  *
  * The queue notification **N7** has been pointing at since the notification
  * fixtures were written. `fixtures/navCounts.ts` recorded that gap and left
@@ -26,7 +26,7 @@ import { SAFETY_PROTOCOL_STEPS } from '../types/safety'
 import { http } from './http'
 import { signalled } from '../signals'
 import { currentMockUserId } from './session'
-import { nextClaim, persistRow } from './requests'
+import { nextClaim } from './requests'
 import { fixturesLoaded, onFixturesLoaded, type Fixtures } from '../mock/fixtures'
 
 /* Late-bound fixture rows. `mock/fixtures.ts` says why this is not a static
@@ -73,7 +73,16 @@ export interface SafetyQuery extends QueryParams {
 /** Which fixture set the mock serves. Switched by QA; never by app code. */
 type SafetyScenario = 'default' | 'quiet'
 let scenario: SafetyScenario = 'default'
-const rows = () => (scenario === 'quiet' ? safetyIncidentFixturesAllClosed : safetyIncidentFixtures)
+/* Session state: a mutation's result replaces its row, so a second step on the
+   same incident sees the first (S-8's record works them in sequence). */
+let dynamic: SafetyIncident[] | null = null
+const rows = (): readonly SafetyIncident[] =>
+  dynamic ?? (scenario === 'quiet' ? safetyIncidentFixturesAllClosed : safetyIncidentFixtures)
+
+function commit(updated: SafetyIncident): SafetyIncident {
+  dynamic = rows().map((i) => (i.id === updated.id ? updated : i))
+  return updated
+}
 
 const stepsDone = (i: SafetyIncident) => i.protocol.filter((s) => s.done).length
 
@@ -94,6 +103,15 @@ const safetyShape: QueryShape<SafetyIncident> = {
     status: (i) => i.status,
     type: (i) => i.type,
     stepsComplete: (i) => stepsDone(i),
+    /* AC-217 / AC-S-38: a breach counts from its stamp, then the RUNNING deadline
+       (acknowledge until answered, then resolve); closed and undated rows last. */
+    runningDue: (i) => {
+      if (i.status === 'closed') return Number.MAX_SAFE_INTEGER
+      const breach = i.firstResponseBreachedAt ?? i.slaBreachedAt
+      if (breach !== null) return Date.parse(breach) - 1e14
+      const due = i.firstResponseAt === null ? i.firstResponseDueAt : i.slaDueAt
+      return due === null ? Number.MAX_SAFE_INTEGER : Date.parse(due)
+    },
     /**
      * The inbox's own order — breached first, then by deadline, undated last
      * (`:19212`). **Not by severity**: *"a 'critical' incident with four hours
@@ -175,7 +193,7 @@ const safetyShape: QueryShape<SafetyIncident> = {
   views: {
     /* The three the route table declares (`fixtures/routeTable.ts:602`). */
     open: (i) => i.status === 'open',
-    'critical-sos': (i) => i.severity === 'critical',
+    'critical': (i) => i.severity === 'critical',
     closed: (i) => i.status === 'closed',
 
     all: () => true,
@@ -188,7 +206,7 @@ const safetyShape: QueryShape<SafetyIncident> = {
 /**
  * GET /api/v1/incidents
  *   params: q · status · type · page · pageSize · sort · filter ·
- *           view=open|critical-sos|closed|all|mine|unassigned|breached
+ *           view=open|critical|closed|all|mine|unassigned|breached
  *   -> Paginated<SafetyIncident>
  *
  * Sortable: id · openedAt · closedAt · slaDueAt · severity · status · type ·
@@ -274,7 +292,7 @@ export async function claimSafetyIncident(
     const row = rows().find((i) => i.id === id)
     if (!row) throw notFound('incident', id)
     const respondingNow = row.firstResponseAt === null
-    return persistRow(rows(), {
+    return commit({
       ...row,
       claim: nextClaim('incident', id, row.claim, opts.takeOver),
       firstResponseAt: respondingNow ? EYVAR_NOW : row.firstResponseAt,
@@ -298,7 +316,7 @@ export async function releaseSafetyIncident(
     const row = rows().find((i) => i.id === id)
     if (!row) throw notFound('incident', id)
     if (!row.claim) return row
-    return persistRow(rows(), {
+    return commit({
       ...row,
       claim: {
         ...row.claim,
@@ -348,7 +366,7 @@ export async function setSafetyProtocolStep(
     }
     const me = teamUserFixtures.find((u) => u.id === currentMockUserId())!
     const respondingNow = done && row.firstResponseAt === null
-    return {
+    return commit({
       ...row,
       protocol: row.protocol.map((s) =>
         s.key === step
@@ -365,7 +383,7 @@ export async function setSafetyProtocolStep(
       /* Answering clears the *response* breach going forward; it does not
          rewrite history — `slaBreachedAt` on the resolve clock is untouched. */
       firstResponseBreachedAt: respondingNow ? null : row.firstResponseBreachedAt,
-    }
+    })
   })
 }
 
@@ -407,7 +425,7 @@ export async function precautionarilySuspend(
       })
     }
     const me = teamUserFixtures.find((u) => u.id === currentMockUserId())!
-    return {
+    return commit({
       ...row,
       precautionarySuspension: {
         driverId: row.againstId,
@@ -422,7 +440,7 @@ export async function precautionarilySuspend(
           ? { ...s, done: true, completedByUserId: me.id, completedByUserName: me.name, completedAt: EYVAR_NOW }
           : s,
       ),
-    }
+    })
   })
 }
 
@@ -460,13 +478,13 @@ export async function closeSafetyIncident(
       })
     }
     const me = teamUserFixtures.find((u) => u.id === currentMockUserId())!
-    return {
+    return commit({
       ...row,
       status: 'closed' as const,
       closedAt: EYVAR_NOW,
       closedByUserId: me.id,
       closedByUserName: me.name,
-    }
+    })
   }))
 }
 
@@ -491,10 +509,12 @@ export async function getSafetyFacets(view?: string | null, signal?: AbortSignal
  */
 export function useQuietSafetyQueue(): void {
   scenario = 'quiet'
+  dynamic = null
 }
 
 export function resetSafetyIncidents(): void {
   scenario = 'default'
+  dynamic = null
 }
 
 /* ── AC-288 session state ──────────────────────────────────────────────── */

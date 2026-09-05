@@ -24,7 +24,7 @@ import { DATA_SOURCE, registerOperations } from '../config'
 import { EYVAR_NOW, toInstant } from '../mock/clock'
 import { mock } from '../mock/delay'
 import { computeFacets, runQuery, type QueryShape } from '../mock/query'
-import type { Claim, Facets, Paginated, QueryParams } from '../types/common'
+import type { Facets, Paginated, QueryParams } from '../types/common'
 import type { DisputeKind } from '../types/dispute'
 import type { FairnessCaseKind } from '../types/fairness'
 import type { SafetyIncidentType } from '../types/safety'
@@ -179,34 +179,6 @@ function assuranceSubtitle(
   return {
     subtitleKey: 'myWork.item.assurance.sub.unconfirmed',
     subtitleParams: { rider: riderName, captain: driverName },
-  }
-}
-
-/**
- * A `Claim` for a queue that records ownership as two columns rather than as a
- * claim record. Tickets and Disputes both do; everything the inbox needs
- * — who holds it, and is it live — is present either way.
- */
-function ownerClaim(
-  entityType: string,
-  entityId: string,
-  ownerId: string | null,
-  ownerName: string | null,
-  since: string,
-): Claim | null {
-  if (ownerId === null) return null
-  return {
-    key: `${entityType}:${entityId}`,
-    entityType,
-    entityId,
-    ownerId,
-    ownerName: ownerName ?? ownerId,
-    claimedAt: since,
-    touchedAt: EYVAR_NOW,
-    state: 'claimed',
-    releasedAt: null,
-    releaseReason: null,
-    takeovers: [],
   }
 }
 
@@ -427,17 +399,16 @@ function buildWorkItems(role: RoleName): WorkItem[] {
       entityType: k.entityType,
       route: route('ticket', k.id),
       routedToMyRole: WORK_ROUTING.ticket.includes(role),
-      claim: ownerClaim('ticket', k.id, k.ownerId, k.ownerName, k.createdAt),
-      slaStartedAt: k.createdAt,
+      /* A ticket is a work-queue row (S-1): its claim and clocks are its own. */
+      claim: k.claim,
+      slaStartedAt: k.slaStartedAt,
       slaDueAt: k.slaDueAt,
-      /* The window is the tier's, resolved server-side; the row carries the
-         due stamp and not the promise it came from. */
-      slaTargetMinutes: null,
-      slaBreachedAt: k.slaBreached ? k.slaDueAt : null,
-      slaSource: 'legacy-reason-code',
-      firstResponseDueAt: null,
-      firstResponseAt: null,
-      firstResponseBreachedAt: null,
+      slaTargetMinutes: k.slaTargetMinutes,
+      slaBreachedAt: k.slaBreachedAt,
+      slaSource: k.slaSource,
+      firstResponseDueAt: k.firstResponseDueAt,
+      firstResponseAt: k.firstResponseAt,
+      firstResponseBreachedAt: k.firstResponseBreachedAt,
     })
   }
 
@@ -446,7 +417,7 @@ function buildWorkItems(role: RoleName): WorkItem[] {
      stamp, so the clock is the comparison the queue itself makes. */
   for (const d of currentDisputes()) {
     if (d.status === 'resolved') continue
-    const breached = d.dueAt !== null && Date.parse(d.dueAt) < Date.parse(EYVAR_NOW)
+    const breached = d.slaBreachedAt !== null
     items.push({
       key: `dispute:${d.id}`,
       queue: 'dispute',
@@ -465,12 +436,12 @@ function buildWorkItems(role: RoleName): WorkItem[] {
       entityType: d.claimantType,
       route: route('dispute', d.id),
       routedToMyRole: WORK_ROUTING.dispute.includes(role),
-      claim: ownerClaim('dispute', d.id, d.ownerId, d.ownerName, d.filedAt),
-      slaStartedAt: d.filedAt,
-      slaDueAt: d.dueAt,
-      slaTargetMinutes: null,
-      slaBreachedAt: breached ? d.dueAt : null,
-      slaSource: 'legacy-policy',
+      claim: d.ownership,
+      slaStartedAt: d.slaStartedAt,
+      slaDueAt: d.slaDueAt,
+      slaTargetMinutes: d.slaTargetMinutes,
+      slaBreachedAt: d.slaBreachedAt,
+      slaSource: d.slaSource,
       firstResponseDueAt: null,
       firstResponseAt: null,
       firstResponseBreachedAt: null,
@@ -553,6 +524,12 @@ const workShape: QueryShape<WorkItem> = {
   views: {
     /* The three the route table declares (`fixtures/routeTable.ts:236`). */
     mine: (w) => w.claim?.state === 'claimed' && w.claim.ownerId === currentMockUserId(),
+    /* §6.4: held by me because someone handed it over, not because I claimed it. */
+    handed: (w) => {
+      const me = currentMockUserId()
+      const last = w.claim?.state === 'claimed' ? w.claim.takeovers.at(-1) : undefined
+      return w.claim?.ownerId === me && last !== undefined && last.toUserId === me && last.fromUserId !== me
+    },
     unassigned: (w) => w.claim === null || w.claim.state !== 'claimed',
     everything: () => true,
 

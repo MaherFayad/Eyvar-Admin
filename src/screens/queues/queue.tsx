@@ -266,6 +266,7 @@ export function OwnerChip({
           variant="ghost"
           size="xs"
           className="shrink-0"
+          data-row-claim=""
           onClick={onClaim}
           disabled={blocked}
           title={blocked ? reason : expiry}

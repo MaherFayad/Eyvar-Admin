@@ -459,9 +459,9 @@ const refLedgerSubject: CheckDefinition = {
 /**
  * Denormalised names, against the record that owns the name.
  *
- * **`TKT-501` is the acceptance test**: the ticket names rider `RDR-1041` as
- * *"Mohammed Al-Ghamdi"*, `fixtures/riders.ts:22` calls that same id *"Nora
- * Al-Harbi"*. Nothing in the product compares them, so a support agent opens
+ * **`TKT-504` is the acceptance test**: the ticket names captain `DRV-0104` as
+ * *"Sultan Al-Harbi"*, `fixtures/drivers.ts` calls that same id *"Hassan
+ * Al-Ghamdi"*. Nothing in the product compares them, so a support agent opens
  * the ticket and greets the customer by a stranger's name.
  *
  * Every denormalised name in the data layer is checked, not just the ticket:

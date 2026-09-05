@@ -958,7 +958,7 @@ describe('the third absence — a card awaiting a store (R5-11a)', () => {
         awaitingStore: 'contact-log',
       }),
     )
-    expect(screen.getByText('Top 5 contact reasons, per 1,000 trips')).toBeInTheDocument()
+    expect(screen.getByText('Top 5 contact reasons, by tickets')).toBeInTheDocument()
     expect(screen.getByText('Nothing is recorded here yet.')).toBeInTheDocument()
     expect(screen.queryByText('Nothing to rank for this period.')).not.toBeInTheDocument()
   })

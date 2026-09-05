@@ -19,7 +19,7 @@ import type { FairnessCase, FairnessCaseKind, FairnessCaseStatus } from '../type
 import { http } from './http'
 import { signalled } from '../signals'
 import { currentMockUserId } from './session'
-import { nextClaim, persistRow } from './requests'
+import { nextClaim } from './requests'
 import { fixturesLoaded, onFixturesLoaded, type Fixtures } from '../mock/fixtures'
 
 /* Late-bound fixture rows. `mock/fixtures.ts` says why this is not a static
@@ -35,6 +35,16 @@ onFixturesLoaded((f) => {
   fairnessCaseFixtures = [...f.fairnessCaseFixtures]
   teamUserFixtures = f.teamUserFixtures
 })
+
+/* Session state: a mutation's result replaces its row, so the record and the
+   queue read the same case after a claim or a decision (S-8). */
+let dynamic: FairnessCase[] | null = null
+const rows = (): readonly FairnessCase[] => dynamic ?? fairnessCaseFixtures
+
+function commit(updated: FairnessCase): FairnessCase {
+  dynamic = rows().map((c) => (c.id === updated.id ? updated : c))
+  return updated
+}
 
 export const FAIRNESS_OPERATIONS = {
   facets: 'fairness.facets',
@@ -164,7 +174,7 @@ export async function listFairnessCases(
       ...(params.status ? [{ field: 'status', op: 'eq' as const, value: params.status }] : []),
     ]
     const filters = extra.length ? [...(params.filters ?? []), ...extra] : params.filters
-    return runQuery(fairnessCaseFixtures, { ...params, filters }, fairnessShape)
+    return runQuery(rows(), { ...params, filters }, fairnessShape)
   })
 }
 
@@ -177,7 +187,7 @@ export async function getFairnessCase(id: string, signal?: AbortSignal): Promise
     return http.get<FairnessCase>(`/fairness-cases/${id}`, undefined, { signal })
   }
   return mock(FAIRNESS_OPERATIONS.get, signal, () => {
-    const row = fairnessCaseFixtures.find((c) => c.id === id)
+    const row = rows().find((c) => c.id === id)
     if (!row) throw notFound('fairness case', id)
     return row
   })
@@ -197,12 +207,9 @@ export async function claimFairnessCase(
     return signalled('queue.item.claimed', http.post<FairnessCase>(`/fairness-cases/${id}/claim`, opts, { signal }))
   }
   return signalled('queue.item.claimed', mockMutation(FAIRNESS_OPERATIONS.claim, signal, () => {
-    const row = fairnessCaseFixtures.find((c) => c.id === id)
+    const row = rows().find((c) => c.id === id)
     if (!row) throw notFound('fairness case', id)
-    return persistRow(fairnessCaseFixtures, {
-      ...row,
-      claim: nextClaim('fairness', id, row.claim, opts.takeOver),
-    })
+    return commit({ ...row, claim: nextClaim('fairness', id, row.claim, opts.takeOver) })
   }))
 }
 
@@ -215,10 +222,10 @@ export async function releaseFairnessCase(id: string, signal?: AbortSignal): Pro
     return http.post<FairnessCase>(`/fairness-cases/${id}/release`, undefined, { signal })
   }
   return mockMutation(FAIRNESS_OPERATIONS.release, signal, () => {
-    const row = fairnessCaseFixtures.find((c) => c.id === id)
+    const row = rows().find((c) => c.id === id)
     if (!row) throw notFound('fairness case', id)
     if (!row.claim) return row
-    return persistRow(fairnessCaseFixtures, {
+    return commit({
       ...row,
       claim: {
         ...row.claim,
@@ -261,7 +268,7 @@ export async function decideFairnessCase(
     return signalled('queue.item.disposed', http.post<FairnessCase>(`/fairness-cases/${id}/decide`, { outcome, rationale }, { signal }))
   }
   return signalled('queue.item.disposed', mockMutation(FAIRNESS_OPERATIONS.decide, signal, () => {
-    const row = fairnessCaseFixtures.find((c) => c.id === id)
+    const row = rows().find((c) => c.id === id)
     if (!row) throw notFound('fairness case', id)
     if (row.status !== 'open') {
       throw new ApiError({
@@ -284,7 +291,7 @@ export async function decideFairnessCase(
     }
     const me = teamUserFixtures.find((u) => u.id === currentMockUserId())!
     const overturned = outcome === 'overturned'
-    return {
+    return commit({
       ...row,
       status: outcome,
       decidedAt: EYVAR_NOW,
@@ -299,7 +306,7 @@ export async function decideFairnessCase(
             false
           : row.averageAdjusted,
       reinstatedAt: overturned && row.kind === 'suspension-appeal' ? EYVAR_NOW : row.reinstatedAt,
-    }
+    })
   }))
 }
 
@@ -316,7 +323,7 @@ export async function getFairnessFacets(
     return http.get<Facets>('/fairness-cases/facets', { view: view ?? undefined }, { signal })
   }
   return mock(FAIRNESS_OPERATIONS.facets, signal, () =>
-    computeFacets(fairnessCaseFixtures, fairnessShape, view),
+    computeFacets(rows(), fairnessShape, view),
   )
 }
 
@@ -328,6 +335,7 @@ export async function getFairnessFacets(
  * file's count of open cases.
  */
 export function resetFairnessCases(): void {
+  dynamic = null
   if (!fixturesLoaded()) return
   fairnessCaseFixtures = [...fairnessCaseSeed]
 }
@@ -340,5 +348,5 @@ export function resetFairnessCases(): void {
  * Mock only. In http mode My Work is one server query and this is never called.
  */
 export function currentFairnessCases(): readonly FairnessCase[] {
-  return fairnessCaseFixtures ?? []
+  return fixturesLoaded() ? rows() : []
 }

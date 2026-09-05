@@ -109,7 +109,8 @@ import { Banner } from '@/components/Banner'
 import { ReauthModal } from '@/components/auth/ReauthModal'
 import { SignOutDirtyDialog } from './SignOutDirtyDialog'
 import { FROZEN_REASON_ID } from '@/components/auth/AuthCredentialForm'
-import { useAsync, useCompactShell, useDrawerDisclosure, useFocusCapture, useOnline } from '@/hooks'
+import { useAsync, useCompactShell, useDrawerDisclosure, useFocusCapture, useOnline, usePresence } from '@/hooks'
+import { AvailabilityControl } from './AvailabilityControl'
 import { useDocumentTitle } from './useDocumentTitle'
 import type { SessionExpiryReason } from './session'
 
@@ -397,6 +398,14 @@ export function AppLayout() {
    * once, not to this one specially. Noted in the handoff rather than solved
    * here with a poll nobody asked for.
    */
+  /* §6.3: availability is a shell control; the console reads the same hook. */
+  const presence = usePresence({
+    currentUserId: shell.session?.userId ?? '',
+    role: shell.session?.role ?? null,
+    revision: 0,
+    enabled: shell.session !== null,
+  })
+
   const onCall = useAsync<string | null>(async (signal) => {
     const rota = await getOnCallRota(signal)
     if (rota.primaryUserId === null) return null
@@ -683,6 +692,7 @@ export function AppLayout() {
                  landed, and the read failed. A wrong name would be worse than
                  any of them, and a skeleton on a 28px chip would be noise. */
               onCallName={onCall.data ?? null}
+              availability={<AvailabilityControl presence={presence} t={t} language={language} />}
               menu={menu}
               compact={compact}
             />

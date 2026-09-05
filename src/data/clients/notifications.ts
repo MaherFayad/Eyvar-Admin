@@ -7,10 +7,10 @@
  */
 
 import { DATA_SOURCE, registerOperations } from '../config'
+import { EYVAR_NOW } from '../mock/clock'
 import { mock, mockMutation, notFound } from '../mock/delay'
 import { paginate } from '../mock/query'
-import type { LocalisedText, Paginated, QueryParams } from '../types/common'
-import { EYVAR_NOW } from '../mock/clock'
+import type { Paginated, QueryParams } from '../types/common'
 import {
   NOTIFICATION_PREVIEW_SIZE,
   NOTIFICATION_PRIORITY_RANK,
@@ -52,7 +52,6 @@ registerOperations(...Object.values(NOTIFICATION_OPERATIONS))
 
 /** Mutable copy so `markRead` is observable in the mock. Reset by `resetNotifications()`. */
 let rows!: Notification[]
-let mintedSequence = 900
 
 /**
  * Which seeded set `rows` is built from. A **flag rather than a direct write**,
@@ -158,6 +157,24 @@ export async function markAllNotificationsRead(signal?: AbortSignal): Promise<No
   })
 }
 
+/* ───────────────────────────── producers ────────────────────────────────── */
+
+let minted = 900
+
+/**
+ * Raise a notification from inside the data layer. Mock only: `clients/
+ * tickets.ts`'s SLA sweep calls it at a breach crossing (§8.4.3, once per
+ * crossing, batched per tick). In http mode the server raises them.
+ */
+export function pushNotification(
+  input: Omit<Notification, 'id' | 'createdAt' | 'read'>,
+): Notification {
+  minted += 1
+  const row: Notification = { ...input, id: `N${minted}`, createdAt: EYVAR_NOW, read: false }
+  rows = [row, ...rows]
+  return row
+}
+
 /* ─────────────────────────── QA affordances ────────────────────────────── */
 
 /** Serve the all-read set, so the `notif-unread-zero` state is one call away. */
@@ -173,6 +190,7 @@ export function useNoNotifications(): void {
 
 export function resetNotifications(): void {
   allRead = false
+  minted = 900
   /* Before the fixture chunk lands there is nothing seeded to reset, and the
      rows this would read are still undefined. The binder seeds fresh state. */
   if (fixturesLoaded()) rows = seedRows()
@@ -194,45 +212,17 @@ function sorted(all: Notification[]): Notification[] {
   })
 }
 
-/**
- * A notification the console mints on its own act (T6.5). Keyed copy only:
- * `title` stays empty and every renderer prefers `titleText`.
- */
-export function pushNotification(input: {
-  type: Notification['type']
-  priority: Notification['priority']
-  titleText: LocalisedText
-  bodyText?: LocalisedText | null
-  route?: string | null
-  entityId?: string | null
-  entityType?: string | null
-}): Notification | null {
-  if (!fixturesLoaded()) return null
-  mintedSequence += 1
-  const row: Notification = {
-    id: `NTF-${mintedSequence}`,
-    type: input.type,
-    priority: input.priority,
-    title: '',
-    body: null,
-    titleText: input.titleText,
-    bodyText: input.bodyText ?? null,
-    createdAt: EYVAR_NOW,
-    read: false,
-    route: input.route ?? null,
-    entityId: input.entityId ?? null,
-    entityType: input.entityType ?? null,
-  }
-  rows = [row, ...rows]
-  return { ...row }
-}
-
 /** A team event for `manage_team` holders, as a key and params (T6.5). */
 export function notifyTeam(key: string, params: Record<string, string | number>, userId: string): void {
+  if (!fixturesLoaded()) return
+  /* Keyed copy only (T6.5): `title` stays empty and the renderers prefer `titleText`. */
   pushNotification({
     type: 'team',
     priority: 'low',
+    title: '',
+    body: null,
     titleText: { key, params },
+    bodyText: null,
     route: '/admin/team',
     entityId: userId,
     entityType: 'operator',

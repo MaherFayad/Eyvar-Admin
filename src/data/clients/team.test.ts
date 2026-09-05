@@ -353,9 +353,11 @@ describe('every transition writes one audit entry naming who did what to whom', 
     await reinstateOperator('USR-3')
     await offboardOperator('USR-3', 'left the company')
 
-    expect(auditLogSize() - before).toBe(6)
-
-    const entries = (await listAuditEntries({ pageSize: 50 })).items
+    /* The suspend also releases what Lina held (T6.4), and each queue writes
+       its own release entry; the team's own trail is exactly six. */
+    const entries = (await listAuditEntries({ pageSize: 50 })).items.filter((e) => e.action.startsWith('team.'))
+    expect(entries).toHaveLength(6)
+    expect(auditLogSize() - before).toBeGreaterThanOrEqual(6)
     expect(entries.map((e) => e.action)).toEqual([
       'team.offboard',
       'team.reinstate',

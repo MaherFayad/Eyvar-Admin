@@ -66,13 +66,14 @@
  * is not repeated here.
  */
 
-import { offsetFromNow } from '../mock/clock'
-import type { Dispute, LostFoundItem } from '../types/dispute'
+import { EYVAR_NOW, offsetFromNow } from '../mock/clock'
+import type { Claim } from '../types/common'
+import type { Dispute, DisputeSeed, LostFoundItem, LostFoundSeed } from '../types/dispute'
 
 /** Legacy's own claim windows: a dispute is answered inside two working days. */
 const DISPUTE_SLA_HOURS = 48
 
-export const disputeFixtures: Dispute[] = [
+const disputeSeeds: DisputeSeed[] = [
   /* ── open ─────────────────────────────────────────────────────────── */
   {
     id: 'DSP-101',
@@ -831,9 +832,49 @@ export const disputeFixtures: Dispute[] = [
   },
 ]
 
+/**
+ * The queue block (S-1), derived from what the seed spells out: the claim from
+ * the owner, the clock from `dueAt` against the 48-hour policy, and a breach
+ * stamped where an open claim's deadline has already passed (`types/workQueue.ts`).
+ */
+function withQueue(seed: DisputeSeed): Dispute {
+  const claim: Claim | null =
+    seed.ownerId === null
+      ? null
+      : {
+          key: `dispute:${seed.id}`,
+          entityType: 'dispute',
+          entityId: seed.id,
+          ownerId: seed.ownerId,
+          ownerName: seed.ownerName ?? seed.ownerId,
+          claimedAt: seed.filedAt,
+          touchedAt: EYVAR_NOW,
+          state: seed.status === 'resolved' ? 'done' : 'claimed',
+          releasedAt: null,
+          releaseReason: null,
+          takeovers: [],
+        }
+  const breached =
+    seed.status !== 'resolved' && seed.dueAt !== null && Date.parse(seed.dueAt) < Date.parse(EYVAR_NOW)
+  return {
+    ...seed,
+    ownership: claim,
+    slaStartedAt: seed.dueAt === null ? null : seed.filedAt,
+    slaDueAt: seed.dueAt,
+    slaTargetMinutes: seed.dueAt === null ? null : DISPUTE_SLA_HOURS * 60,
+    slaBreachedAt: breached ? seed.dueAt : null,
+    slaSource: seed.dueAt === null ? 'unset' : 'legacy-policy',
+    firstResponseDueAt: null,
+    firstResponseAt: null,
+    firstResponseBreachedAt: null,
+  }
+}
+
+export const disputeFixtures: Dispute[] = disputeSeeds.map(withQueue)
+
 /* ────────────────────────── lost and found ─────────────────────────── */
 
-export const lostFoundFixtures: LostFoundItem[] = [
+const lostFoundSeeds: LostFoundSeed[] = [
   {
     id: 'LF-201',
     item: 'Apple MacBook Pro in a grey sleeve',
@@ -1188,4 +1229,34 @@ export const lostFoundFixtures: LostFoundItem[] = [
     updatedAt: offsetFromNow({ hours: -46 }),
     handoverNote: null,
   },
+  /* The ladder's other exit (S-7): searched, asked, and given up with a reason. */
+  {
+    id: 'LF-228',
+    item: 'Child car seat cover, grey',
+    tripId: 'TRP-9007',
+    riderId: 'RDR-2087',
+    riderName: 'Layla Al-Faraj',
+    driverId: 'DRV-0102',
+    driverName: 'Omar Farouk',
+    status: 'unrecoverable',
+    reportedAt: offsetFromNow({ days: -6 }),
+    updatedAt: offsetFromNow({ days: -4 }),
+    handoverNote: null,
+  },
 ]
+
+export const lostFoundFixtures: LostFoundItem[] = lostFoundSeeds.map((seed) => ({
+  ...seed,
+  transitions:
+    seed.status === 'unrecoverable'
+      ? [
+          {
+            to: 'unrecoverable' as const,
+            at: seed.updatedAt,
+            byUserId: 'USR-3',
+            byUserName: 'Lina Al-Otaibi',
+            note: 'Captain checked the vehicle twice and the office lost-property shelf. Nothing.',
+          },
+        ]
+      : [],
+}))

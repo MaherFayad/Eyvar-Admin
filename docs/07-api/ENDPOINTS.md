@@ -8,7 +8,7 @@ The source of truth is the docblock above each exported function in
 client and regenerate. Conventions, envelopes, auth and error shapes live in
 [CONTRACT.md](CONTRACT.md); this file is only *what exists*.
 
-**332 endpoints across 49 client modules.**
+**343 endpoints across 49 client modules.**
 
 ## `src/data/clients/alerts.ts`
 
@@ -124,6 +124,7 @@ client and regenerate. Conventions, envelopes, auth and error shapes live in
 | POST | `/api/v1/conversations/:id/messages/:messageId/retry` | `Message   (the **same** message, with a fresh delivery attempt)` | - | **404** naming the conversation, or the message inside it<br>**409** `conversation_closed`<br>**409** `retry_refused` when the message's current delivery is not `failed` — | `retryMessage()` |
 | POST | `/api/v1/conversations/:id/release` | `Conversation` | - | - | `releaseConversation()` |
 | POST | `/api/v1/conversations/:id/reopen` | `Conversation` | - | **409** `conversation_not_closed` — reopening an open conversation would | `reopenConversation()` |
+| POST | `/api/v1/conversations/:id/snooze` | `Conversation` | `{ until }` | **409** when the conversation is closed | `snoozeConversation()` |
 | POST | `/api/v1/conversations/:id/ticket` | `{ conversation: Conversation, ticket: Ticket }` | `{ subject?, category, reasonCode, priority }` | **409** `ticket_exists` when this conversation already has one<br>**422** `entity_not_ticketable` for an entity `Ticket` cannot describe | `createTicketForConversation()` |
 | POST | `/api/v1/conversations/:id/transfer` | `Conversation` | `{ toUserId: string, note?: string }` | **422** when `toUserId` is not an operator<br>**409** when the conversation is closed | `transferConversation()` |
 | POST | `/api/v1/conversations/:id/typing` | `204` | `{ typing: boolean }` | - | `sendTypingIndicator()` |
@@ -168,14 +169,19 @@ client and regenerate. Conventions, envelopes, auth and error shapes live in
 | Method | Path | Returns | Request | Fails with | Function |
 |---|---|---|---|---|---|
 | GET | `/api/v1/disputes` | `Paginated<Dispute>` | `QueryParams + status · kind · claimantType` | - | `listDisputes()` |
+| POST | `/api/v1/disputes` | `Dispute` | `NewDisputeInput` | **422** `claim_required` on an empty claim<br>**422** `amount_required` at or below zero. Legacy could not create one (`13b` §18.1). | `createDispute()` |
 | GET | `/api/v1/disputes/:id` | `Dispute` | - | **404** when the id does not exist | `getDispute()` |
-| POST | `/api/v1/disputes/:id/claim` | `Dispute` | `{ userId, takeOver }` | **404** when the id does not exist<br>**409** `already_resolved` when the dispute is resolved<br>**409** `claimed_by_other` when another operator holds it and `takeOver` is unset | `claimDispute()` |
-| POST | `/api/v1/disputes/:id/release` | `Dispute` | - | **404** when the id does not exist<br>**409** `already_resolved` when the dispute is resolved | `releaseDispute()` |
+| POST | `/api/v1/disputes/:id/claim` | `Dispute` | `{ userId, takeOver }` | **404** when the id does not exist<br>**409** `already_resolved` when the dispute is resolved<br>**409** `claimed_by_other` when another operator holds it and `takeOver` is unset<br>**409** when no operator's cap covers the amount | `requestDisputeApproval()` |
+| POST | `/api/v1/disputes/:id/claim` | `Dispute` | `{ takeOver? }` | **404** when the id does not exist<br>**409** `claimed_by_other` when another operator holds a live claim and `takeOver` is unset<br>**409** `already_resolved` on a decided claim | `claimDispute()` |
+| POST | `/api/v1/disputes/:id/release` | `Dispute` | - | **404** when the id does not exist<br>**409** `already_resolved` on a decided claim. Ownership only; the clock does not reset. | `releaseDispute()` |
+| POST | `/api/v1/disputes/:id/request-approval` | `Dispute` | `{ userId, takeOver }` | **404** when the id does not exist<br>**409** `already_resolved` when the dispute is resolved<br>**409** `claimed_by_other` when another operator holds it and `takeOver` is unset<br>**409** when no operator's cap covers the amount | `requestDisputeApproval()` |
 | POST | `/api/v1/disputes/:id/resolve` | `{ dispute, refund }` | `{ outcome, refundHalalas, note }` | **409** when the dispute is already resolved<br>**422** on an amount that contradicts the outcome<br>**403** when a goodwill credit is above the operator's authority (`adjustWallet`) | `resolveDispute()` |
 | GET | `/api/v1/disputes/facets` | `Facets — field name -> [{ value, count }], count-descending` | - | - | `getDisputeFacets()` |
 | GET | `/api/v1/lost-found` | `Paginated<LostFoundItem>` | `{ disputeId: dispute.id },` | - | `listLostFound()` |
+| POST | `/api/v1/lost-found` | `LostFoundItem` | `NewLostFoundInput` | **422** `item_required` on an empty description<br>**422** `trip_required` on no trip. Legacy could not create one (`13b` §18.2). | `createLostFoundItem()` |
 | GET | `/api/v1/lost-found/:id` | `LostFoundItem` | - | **404** when the id does not exist | `getLostFoundItem()` |
 | POST | `/api/v1/lost-found/:id/advance` | `LostFoundItem` | - | **409** when the item is already returned<br>**422** when the next step needs a captain and the report has none | `advanceLostFoundItem()` |
+| POST | `/api/v1/lost-found/:id/unrecoverable` | `LostFoundItem` | `{ note }` | **409** `already_closed` on a returned or unrecoverable report<br>**422** `note_required`. The ladder's other exit (S-7): giving up is a decision with a reason. | `markLostFoundUnrecoverable()` |
 
 ## `src/data/clients/drivers.ts`
 
@@ -537,14 +543,19 @@ client and regenerate. Conventions, envelopes, auth and error shapes live in
 | Method | Path | Returns | Request | Fails with | Function |
 |---|---|---|---|---|---|
 | GET | `/api/v1/tickets` | `Paginated<Ticket>` | `q, view, page, pageSize, sort, filter` | - | `listTickets()` |
-| POST | `/api/v1/tickets` | `Ticket` | `{ subject, entityId, entityName, entityType, category, reasonCode,` | - | `createTicket()` |
+| POST | `/api/v1/tickets` | `Ticket` | `NewTicketInput` | - | `createTicket()` |
 | GET | `/api/v1/tickets/:id` | `Ticket` | - | **404** when the id does not exist | `getTicket()` |
-| POST | `/api/v1/tickets/:id/call-log` | `Ticket` | `{ outcome, notes }` | **422** on an outcome outside the closed set | `logTicketCall()` |
-| POST | `/api/v1/tickets/:id/claim` | `Ticket` | `{ userId, takeOver }` | **404** when the id does not exist<br>**409** `claimed_by_other` when another operator holds it and `takeOver` is unset | `claimTicket()` |
+| POST | `/api/v1/tickets/:id/call-log` | `Ticket` | `{ outcome, notes }` | **422** on an outcome outside the closed set. A call moves the ticket on as a | `logTicketCall()` |
+| POST | `/api/v1/tickets/:id/claim` | `Ticket` | `{ takeOver? }` | **404** when the id does not exist<br>**409** `claimed_by_other` when another operator holds a live claim and `takeOver` is unset<br>**409** `ticket_decided` on a resolved or closed ticket | `claimTicket()` |
+| POST | `/api/v1/tickets/:id/priority` | `Ticket` | `{ priority }` | - | `setTicketPriority()` |
+| POST | `/api/v1/tickets/:id/reason-code` | `Ticket` | `{ reasonCode }` | **409** `ticket_decided` on a resolved or closed ticket. Re-derives the priority | `recodeTicket()` |
 | POST | `/api/v1/tickets/:id/release` | `Ticket` | - | **404** when the id does not exist | `releaseTicket()` |
-| POST | `/api/v1/tickets/:id/reopen` | `Ticket` | - | **404** when the id does not exist<br>**409** when the ticket is not resolved | `reopenTicket()` |
-| POST | `/api/v1/tickets/:id/reply` | `Ticket` | `{ body }` | **404** when the id does not exist | `replyTicket()` |
-| POST | `/api/v1/tickets/:id/resolve` | `Ticket` | - | **404** when the id does not exist<br>**409** when the ticket is already resolved | `resolveTicket()` |
+| POST | `/api/v1/tickets/:id/reopen` | `Ticket` | - | **404** when the id does not exist<br>**409** `ticket_open` when the ticket is not decided. Releases the decided claim; | `reopenTicket()` |
+| POST | `/api/v1/tickets/:id/reply` | `Ticket` | `{ body }` | **404** when the id does not exist<br>**409** `ticket_closed` on a closed ticket<br>**422** `no_channel` when the ticket has no reply destination | `replyTicket()` |
+| POST | `/api/v1/tickets/:id/resolve` | `Ticket` | - | **404** when the id does not exist<br>**409** `ticket_decided` when already resolved or closed. The claim becomes | `resolveTicket()` |
+| POST | `/api/v1/tickets/:id/status` | `Ticket` | `{ status: 'waiting' \| 'in-progress' }` | **409** `ticket_decided` on a resolved or closed ticket. `waiting` pauses the | `setTicketStatus()` |
+| POST | `/api/v1/tickets/:id/transfer` | `Ticket` | `{ toUserId, note }` | **404** when the id or the operator does not exist<br>**409** `ticket_decided` on a resolved or closed ticket<br>**422** `note_required` when the note is empty. The note lands as an internal message (AC-S-13). | `transferTicket()` |
+| POST | `/api/v1/tickets/take-next` | `Ticket` | `none` | **404** nothing is waiting to be claimed | `takeNextTicket()` |
 
 ## `src/data/clients/trips.ts`
 

@@ -240,9 +240,17 @@ function noticeTitle(notice: BoardNotice, t: Translate): string {
 }
 
 /* T7.1 — `views` is what a sub-tab hangs on its board, directly under the band
-   and above the board's own evidence; Growth is the one caller (O3: four
-   `?view=` tables). Undefined on the other eight, which render as before. */
-export function MetricBoardScreen({ row, views }: { row: SubTabRoute; views?: ReactNode }) {
+   and above the board's own evidence (Growth, O3). `prelude` renders under the
+   banner and above the tiles (Support's desk, S-5). Undefined elsewhere. */
+export function MetricBoardScreen({
+  row,
+  views,
+  prelude,
+}: {
+  row: SubTabRoute
+  views?: ReactNode
+  prelude?: ReactNode
+}) {
   const shell = useShell()
   const navigate = useNavigate()
   /* AC-74 — the copy lives in `./copy.ts` and travels in this screen's
@@ -529,6 +537,7 @@ export function MetricBoardScreen({ row, views }: { row: SubTabRoute; views?: Re
           t={t}
           language={language}
           navigate={navigate}
+          prelude={prelude}
         />
       )}
       </>
@@ -556,8 +565,10 @@ function BoardContent({
   t,
   language,
   navigate,
+  prelude,
 }: {
   board: MetricBoard
+  prelude?: ReactNode
   /**
    * §E4 — the `Metric.key` of the lead figure the band has checked, and so the
    * `TimeSeries.key` of the chart hoisted directly under it. `null` on a board
@@ -645,6 +656,7 @@ function BoardContent({
           }}
         />
       )}
+      {prelude}
 
       {/* **§E4 — THE CHART THE BAND IS DRIVING, directly under the band.**
           This is the reference's best single idea and the one part of it this

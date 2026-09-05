@@ -32,6 +32,7 @@ import { TICKETS_AR } from './tickets'
 import { DISPUTES_AR } from './disputes'
 import { FAIRNESS_AR } from './fairness'
 import { SAFETY_AR } from './safety'
+import { SUPPORT_DESK_AR } from './supportDesk'
 import { CONVERSATIONS_AR } from './conversations'
 import { OVERVIEW_AR } from './metrics'
 import { ZONES_AR } from './zones'
@@ -78,6 +79,7 @@ export const AR: Dictionary = {
   ...DISPUTES_AR,
   ...FAIRNESS_AR,
   ...SAFETY_AR,
+  ...SUPPORT_DESK_AR,
   ...CONVERSATIONS_AR,
   ...OVERVIEW_AR,
   ...ZONES_AR,

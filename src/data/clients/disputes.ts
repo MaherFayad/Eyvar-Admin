@@ -63,6 +63,7 @@ import { mock, mockMutation, notFound } from '../mock/delay'
 import { computeFacets, runQuery, type QueryShape } from '../mock/query'
 import { ApiError, type Facets, type Paginated, type QueryParams } from '../types/common'
 import {
+  lostFoundIsClosed,
   nextLostFoundStatus,
   outcomeMovesMoney,
   type Dispute,
@@ -72,11 +73,16 @@ import {
   type DisputeStatus,
   type LostFoundItem,
   type LostFoundStatus,
+  type LostFoundTransition,
 } from '../types/dispute'
+import type { IsoDateTime } from '../types/common'
 import type { Refund } from '../types/financials'
 import { http } from './http'
 import { emitOnboardingSignal, signalled } from '../signals'
+import { appendAudit } from './audit'
 import { currentMockUserId } from './session'
+import { claimFor, doneClaim, releasedClaim } from './claims'
+import { liveClaim } from './requests'
 import { postEntry } from './ledger'
 import { issueRefund } from './revenue'
 import { adjustWallet } from './wallets'
@@ -95,7 +101,7 @@ onFixturesLoaded((f) => {
   teamUserFixtures = f.teamUserFixtures
   /* Seeded here rather than at module load: these locals are built from
      late-bound fixtures, which are undefined until the fixture chunk lands. */
-  dynamicDisputes = [...disputeFixtures]
+  dynamicDisputes = disputeFixtures.map(normalise)
   dynamicLostFound = [...lostFoundFixtures]
 })
 
@@ -104,11 +110,15 @@ export const DISPUTE_OPERATIONS = {
   get: 'disputes.get',
   facets: 'disputes.facets',
   claim: 'disputes.claim',
+  requestApproval: 'disputes.requestApproval',
   release: 'disputes.release',
   resolve: 'disputes.resolve',
   lostFoundList: 'lostFound.list',
   lostFoundGet: 'lostFound.get',
   lostFoundAdvance: 'lostFound.advance',
+  lostFoundUnrecoverable: 'lostFound.unrecoverable',
+  lostFoundCreate: 'lostFound.create',
+  create: 'disputes.create',
 } as const
 
 /* Registered at module load, not on first call. `config.ts` says *"each client
@@ -138,7 +148,7 @@ export function resetDisputes(): void {
      state to reset and the rows this would read are still undefined. The
      binder in this module seeds fresh state when it does land. */
   if (!fixturesLoaded()) return
-  dynamicDisputes = [...disputeFixtures]
+  dynamicDisputes = disputeFixtures.map(normalise)
   dynamicLostFound = [...lostFoundFixtures]
 }
 
@@ -151,6 +161,17 @@ export function resetDisputes(): void {
  */
 export function currentDisputes(): readonly Dispute[] {
   return dynamicDisputes ?? []
+}
+
+/** `ownerId`/`ownerName` follow the live claim; on a decided claim, whoever decided it. */
+function normalise(dispute: Dispute): Dispute {
+  const held = dispute.status === 'resolved' ? dispute.ownership : liveClaim(dispute.ownership)
+  return { ...dispute, ownerId: held?.ownerId ?? null, ownerName: held?.ownerName ?? null }
+}
+
+function operator(userId?: string, userName?: string): { id: string; name: string } {
+  const id = userId ?? currentMockUserId()
+  return { id, name: userName ?? teamUserFixtures?.find((u) => u.id === id)?.name ?? id }
 }
 
 /* ────────────────────── query shapes ────────────────────────── */
@@ -196,8 +217,17 @@ const disputeShape: QueryShape<Dispute> = {
     subscriptionId: (d) => d.subscriptionId,
     ownerId: (d) => d.ownerId,
     outcome: (d) => d.resolution?.outcome ?? null,
+    unclaimed: (d) => d.ownerId === null && d.status !== 'resolved',
+    breached: (d) => d.slaBreachedAt !== null && d.status !== 'resolved',
   },
   facetable: ['status', 'kind', 'claimantType', 'outcome'],
+  views: {
+    all: () => true,
+    unassigned: (d) => d.status !== 'resolved' && d.ownerId === null,
+    mine: (d) => d.status !== 'resolved' && d.ownerId === currentMockUserId(),
+    open: (d) => d.status !== 'resolved',
+    decided: (d) => d.status === 'resolved',
+  },
 }
 
 const lostFoundShape: QueryShape<LostFoundItem> = {
@@ -285,6 +315,66 @@ export async function getDispute(id: string, signal?: AbortSignal): Promise<Disp
  * Ownership moves an `open` claim to `under-review`, the only way that status
  * is reached. Omit `userId` and the claimant is the session.
  */
+/**
+ * POST /api/v1/disputes/:id/request-approval
+ *   body: { amountHalalas }
+ *   -> Dispute
+ *   409 when no operator's cap covers the amount
+ * B2 (§9.2): handed to an operator whose cap covers the settlement, so the decision is theirs.
+ */
+export async function requestDisputeApproval(
+  id: string,
+  amountHalalas: number,
+  signal?: AbortSignal,
+): Promise<Dispute> {
+  if (DATA_SOURCE === 'http') {
+    return http.post<Dispute>(`/disputes/${id}/request-approval`, { amountHalalas }, { signal })
+  }
+  return mockMutation(DISPUTE_OPERATIONS.requestApproval, signal, () => {
+    const idx = dynamicDisputes.findIndex((d) => d.id === id)
+    const existing = dynamicDisputes[idx]
+    if (!existing) throw notFound('dispute', id)
+    if (existing.status === 'resolved') throw alreadyResolved(existing)
+    const me = currentMockUserId()
+    const approver = teamUserFixtures.find(
+      (u) => u.id !== me && (u.compensationCapHalalas === null || u.compensationCapHalalas >= amountHalalas),
+    )
+    if (!approver) {
+      throw new ApiError({
+        status: 409,
+        kind: 'conflict',
+        code: 'no_approver',
+        message: 'No operator holds a cap that covers this amount.',
+        retryable: false,
+      })
+    }
+    const updated = normalise({
+      ...existing,
+      ownership: claimFor('dispute', id, existing.ownership, { id: approver.id, name: approver.name }, true),
+      status: existing.status === 'open' ? 'under-review' : existing.status,
+    })
+    dynamicDisputes = replaceAt(dynamicDisputes, idx, updated)
+    appendAudit({
+      action: 'dispute.approvalRequested',
+      subjectType: 'dispute',
+      subjectId: id,
+      amountHalalas,
+      reasonCode: null,
+      note: null,
+      detail: { key: 'dispute.audit.approvalRequested', params: { name: approver.name } },
+    })
+    return updated
+  })
+}
+
+/**
+ * POST /api/v1/disputes/:id/claim
+ *   body: { takeOver? }
+ *   -> Dispute
+ *   404 when the id does not exist
+ *   409 `claimed_by_other` when another operator holds a live claim and `takeOver` is unset
+ *   409 `already_resolved` on a decided claim
+ */
 export async function claimDispute(
   id: string,
   userId?: string,
@@ -300,24 +390,12 @@ export async function claimDispute(
     const existing = dynamicDisputes[idx]
     if (!existing) throw notFound('dispute', id)
     if (existing.status === 'resolved') throw alreadyResolved(existing)
-    const me = teamUserFixtures.find((u) => u.id === currentMockUserId())
-    const owner = userId ?? me?.id ?? currentMockUserId()
-    /* A claim is not a lock, but a take-over is deliberate (`nextClaim`). */
-    if (existing.ownerId !== null && existing.ownerId !== owner && !opts.takeOver) {
-      throw new ApiError({
-        status: 409,
-        kind: 'conflict',
-        code: 'claimed_by_other',
-        message: `${existing.ownerName ?? existing.ownerId} is holding this dispute`,
-        retryable: false,
-      })
-    }
-    const updated: Dispute = {
+    const ownership = claimFor('dispute', id, existing.ownership, operator(userId, userName), opts.takeOver === true)
+    const updated = normalise({
       ...existing,
-      ownerId: owner,
-      ownerName: userName ?? (userId === undefined ? (me?.name ?? owner) : userId),
+      ownership,
       status: existing.status === 'open' ? 'under-review' : existing.status,
-    }
+    })
     dynamicDisputes = replaceAt(dynamicDisputes, idx, updated)
     return updated
   }))
@@ -327,10 +405,7 @@ export async function claimDispute(
  * POST /api/v1/disputes/:id/release
  *   -> Dispute
  *   404 when the id does not exist
- *   409 `already_resolved` when the dispute is resolved
- *
- * Ownership only. `under-review` falls back to `open`, because that status
- * means somebody is on it and now nobody is.
+ *   409 `already_resolved` on a decided claim. Ownership only; the clock does not reset.
  */
 export async function releaseDispute(id: string, signal?: AbortSignal): Promise<Dispute> {
   if (DATA_SOURCE === 'http') {
@@ -341,14 +416,79 @@ export async function releaseDispute(id: string, signal?: AbortSignal): Promise<
     const existing = dynamicDisputes[idx]
     if (!existing) throw notFound('dispute', id)
     if (existing.status === 'resolved') throw alreadyResolved(existing)
-    const updated: Dispute = {
+    const updated = normalise({
       ...existing,
-      ownerId: null,
-      ownerName: null,
+      ownership: releasedClaim(existing.ownership),
       status: existing.status === 'under-review' ? 'open' : existing.status,
-    }
+    })
     dynamicDisputes = replaceAt(dynamicDisputes, idx, updated)
     return updated
+  })
+}
+
+export interface NewDisputeInput {
+  kind: DisputeKind
+  claim: string
+  claimantId: string
+  claimantName: string
+  claimantType: DisputeClaimantType
+  againstId?: string | null
+  againstName?: string | null
+  tripId?: string | null
+  subscriptionId?: string | null
+  ticketId?: string | null
+  amountHalalas: number
+}
+
+/**
+ * POST /api/v1/disputes
+ *   body: NewDisputeInput
+ *   -> Dispute
+ *   422 `claim_required` on an empty claim
+ *   422 `amount_required` at or below zero. Legacy could not create one (`13b` §18.1).
+ */
+export async function createDispute(input: NewDisputeInput, signal?: AbortSignal): Promise<Dispute> {
+  if (DATA_SOURCE === 'http') {
+    return http.post<Dispute>('/disputes', input, { signal })
+  }
+  return mockMutation(DISPUTE_OPERATIONS.create, signal, () => {
+    if (input.claim.trim() === '') throw validation('claim_required', 'Say what is claimed', 'claim')
+    if (!Number.isFinite(input.amountHalalas) || input.amountHalalas <= 0) {
+      throw validation('amount_required', 'The amount claimed must be above zero', 'amountHalalas')
+    }
+    const dueAt = addMinutes(EYVAR_NOW, DISPUTE_VERDICT_MINUTES)
+    const created: Dispute = normalise({
+      id: `DSP-${100 + dynamicDisputes.length + 1}`,
+      kind: input.kind,
+      status: 'open',
+      claim: input.claim.trim(),
+      claimantId: input.claimantId,
+      claimantName: input.claimantName,
+      claimantType: input.claimantType,
+      againstId: input.againstId ?? null,
+      againstName: input.againstName ?? null,
+      tripId: input.tripId ?? null,
+      subscriptionId: input.subscriptionId ?? null,
+      ticketId: input.ticketId ?? null,
+      amountHalalas: Math.round(input.amountHalalas),
+      filedAt: EYVAR_NOW,
+      dueAt,
+      ownerId: null,
+      ownerName: null,
+      ownership: null,
+      evidence: [],
+      resolution: null,
+      slaStartedAt: EYVAR_NOW,
+      slaDueAt: dueAt,
+      slaTargetMinutes: DISPUTE_VERDICT_MINUTES,
+      slaBreachedAt: null,
+      slaSource: 'legacy-policy',
+      firstResponseDueAt: null,
+      firstResponseAt: null,
+      firstResponseBreachedAt: null,
+    })
+    dynamicDisputes = [created, ...dynamicDisputes]
+    return created
   })
 }
 
@@ -417,11 +557,14 @@ export async function resolveDispute(
   /* 3 — the verdict, recorded only now. */
   const me = teamUserFixtures.find((u) => u.id === currentMockUserId())
   const idx = dynamicDisputes.findIndex((d) => d.id === dispute.id)
-  const resolved: Dispute = {
+  const resolved: Dispute = normalise({
     ...dispute,
     status: 'resolved',
-    ownerId: dispute.ownerId ?? currentMockUserId(),
-    ownerName: dispute.ownerName ?? me?.name ?? currentMockUserId(),
+    /* The claim closes on the verdict, so the row records who decided it. */
+    ownership: doneClaim(
+      dispute.ownership,
+      claimFor('dispute', dispute.id, dispute.ownership, { id: me?.id ?? currentMockUserId(), name: me?.name ?? currentMockUserId() }, true),
+    ),
     resolution: {
       outcome: input.outcome,
       refundHalalas: outcomeMovesMoney(input.outcome) ? input.refundHalalas : 0,
@@ -431,7 +574,7 @@ export async function resolveDispute(
       resolvedByUserId: currentMockUserId(),
       resolvedByUserName: me?.name ?? currentMockUserId(),
     },
-  }
+  })
   dynamicDisputes = replaceAt(dynamicDisputes, idx, resolved)
   emitOnboardingSignal('queue.item.disposed')
   return { dispute: resolved, refund }
@@ -654,18 +797,119 @@ export async function advanceLostFoundItem(
       )
     }
 
+    const me = operator()
     const updated: LostFoundItem = {
       ...existing,
       status: next,
       updatedAt: EYVAR_NOW,
       handoverNote: input.handoverNote?.trim() ? input.handoverNote.trim() : existing.handoverNote,
+      transitions: [
+        ...existing.transitions,
+        { to: next, at: EYVAR_NOW, byUserId: me.id, byUserName: me.name, note: input.handoverNote?.trim() || null },
+      ],
     }
     dynamicLostFound = replaceAt(dynamicLostFound, idx, updated)
     return updated
   })
 }
 
+/**
+ * POST /api/v1/lost-found/:id/unrecoverable
+ *   body: { note }
+ *   -> LostFoundItem
+ *   409 `already_closed` on a returned or unrecoverable report
+ *   422 `note_required`. The ladder's other exit (S-7): giving up is a decision with a reason.
+ */
+export async function markLostFoundUnrecoverable(
+  input: { id: string; note: string },
+  signal?: AbortSignal,
+): Promise<LostFoundItem> {
+  if (DATA_SOURCE === 'http') {
+    return http.post<LostFoundItem>(`/lost-found/${input.id}/unrecoverable`, { note: input.note }, { signal })
+  }
+  return mockMutation(DISPUTE_OPERATIONS.lostFoundUnrecoverable, signal, () => {
+    const idx = dynamicLostFound.findIndex((l) => l.id === input.id)
+    const existing = dynamicLostFound[idx]
+    if (!existing) throw notFound('lost property report', input.id)
+    if (lostFoundIsClosed(existing.status)) {
+      throw new ApiError({
+        status: 409,
+        kind: 'conflict',
+        code: 'already_closed',
+        message: `${existing.id} is already closed`,
+        retryable: false,
+      })
+    }
+    if (input.note.trim() === '') throw validation('note_required', 'Say why the item cannot be recovered', 'note')
+    const me = operator()
+    const transition: LostFoundTransition = {
+      to: 'unrecoverable',
+      at: EYVAR_NOW,
+      byUserId: me.id,
+      byUserName: me.name,
+      note: input.note.trim(),
+    }
+    const updated: LostFoundItem = {
+      ...existing,
+      status: 'unrecoverable',
+      updatedAt: EYVAR_NOW,
+      transitions: [...existing.transitions, transition],
+    }
+    dynamicLostFound = replaceAt(dynamicLostFound, idx, updated)
+    return updated
+  })
+}
+
+export interface NewLostFoundInput {
+  item: string
+  tripId: string
+  riderId: string
+  riderName: string
+  driverId?: string | null
+  driverName?: string | null
+}
+
+/**
+ * POST /api/v1/lost-found
+ *   body: NewLostFoundInput
+ *   -> LostFoundItem
+ *   422 `item_required` on an empty description
+ *   422 `trip_required` on no trip. Legacy could not create one (`13b` §18.2).
+ */
+export async function createLostFoundItem(input: NewLostFoundInput, signal?: AbortSignal): Promise<LostFoundItem> {
+  if (DATA_SOURCE === 'http') {
+    return http.post<LostFoundItem>('/lost-found', input, { signal })
+  }
+  return mockMutation(DISPUTE_OPERATIONS.lostFoundCreate, signal, () => {
+    if (input.item.trim() === '') throw validation('item_required', 'Describe the item', 'item')
+    if (input.tripId.trim() === '') throw validation('trip_required', 'Name the trip', 'tripId')
+    const created: LostFoundItem = {
+      id: `LF-${200 + dynamicLostFound.length + 1}`,
+      item: input.item.trim(),
+      tripId: input.tripId.trim(),
+      riderId: input.riderId,
+      riderName: input.riderName,
+      driverId: input.driverId ?? null,
+      driverName: input.driverName ?? null,
+      status: 'searching',
+      reportedAt: EYVAR_NOW,
+      updatedAt: EYVAR_NOW,
+      handoverNote: null,
+      transitions: [],
+    }
+    dynamicLostFound = [created, ...dynamicLostFound]
+    return created
+  })
+}
+
 /* ──────────────────────── helpers ───────────────────────────── */
+
+/** The 48-hour verdict window every seeded claim carries (`fixtures/disputes.ts`). */
+const DISPUTE_VERDICT_MINUTES = 48 * 60
+
+function addMinutes(iso: IsoDateTime, minutes: number): IsoDateTime {
+  return new Date(Date.parse(iso) + minutes * 60_000).toISOString()
+}
 
 function replaceAt<T>(rows: readonly T[], index: number, row: T): T[] {
   const out = rows.slice()

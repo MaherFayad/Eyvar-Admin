@@ -86,9 +86,10 @@ async function seedLog({ money, plain }: { money: number; plain: number }) {
     })
   }
   /* `USR-4` is seeded `Invited` and cannot be suspended, so the plain entries
-     come from a suspend/reinstate pair on the two operators who can be. Each
-     transition writes exactly one entry, and none of them carries an amount. */
-  const active = ['USR-3', 'USR-5']
+     come from a suspend/reinstate pair on two operators who can be. `USR-6` and
+     `USR-7` hold no work, so the suspend releases nothing (T6.4) and each
+     transition writes exactly one entry, none carrying an amount. */
+  const active = ['USR-6', 'USR-7']
   for (let index = 0; index < plain; index += 1) {
     const id = active[index % active.length]!
     if (index < active.length) await suspendOperator(id, 'seeded')

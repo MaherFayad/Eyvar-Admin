@@ -26,8 +26,9 @@ import type { Dictionary } from '@/lib'
 
 export const TICKETS_EN: Dictionary = {
   /* ── the index ────────────────────────────────────────────────────── */
-  'ticket.meta#one': '1 ticket',
-  'ticket.meta#other': '{count} tickets',
+  /* §8's meta line, in `useQueueMeta`'s shape. */
+  'ticket.meta.one': '1 ticket',
+  'ticket.meta.other': '{count} tickets',
   'ticket.search': 'Search by ID, subject, requester or reason code',
 
   'ticket.col.ticket': 'Ticket',
@@ -39,6 +40,43 @@ export const TICKETS_EN: Dictionary = {
   'ticket.col.owner': 'Owner',
   'ticket.col.sla': 'Reply due',
   'ticket.col.opened': 'Opened',
+  'ticket.col.reasonCode': 'Reason code',
+  'ticket.col.channel': 'Channel',
+  /* §7.7: the identity's second line, one key. */
+  'ticket.line': '{requester} · {reason}',
+
+  /* ── the queue's promises (AC-211): the pill's accessible description ── */
+  'ticket.promise.first-response': 'First-reply deadline',
+  'ticket.promise.resolution': 'Resolution deadline',
+  'ticket.promise.update': 'Next-update deadline',
+  'ticket.promise.paused': 'Waiting on the customer. The resolution clock is paused.',
+  'ticket.promise.none': 'The clock stopped when the ticket was decided.',
+
+  /* ── R5a (a): one banner, one count ─────────────────────────────────── */
+  'ticket.banner.one': '1 ticket is past a promise.',
+  'ticket.banner.other': '{count} tickets are past a promise.',
+
+  /* ── the bulk bar (S-12): claims only ───────────────────────────────── */
+  'ticket.bulk.claim': 'Claim selected',
+  'ticket.bulk.claim.blocked.one': 'This ticket is already held, or already decided.',
+  'ticket.bulk.claim.blocked.other': '{count} of the selected tickets are already held or decided.',
+  'ticket.bulk.claim.blocked.all': 'None of the {count} selected tickets can be claimed.',
+
+  /* ── the cleared empties, per view (§4.7) ───────────────────────────── */
+  'ticket.empty.cleared.heading': 'Nothing is waiting',
+  'ticket.empty.cleared.unassigned': 'Every open ticket has an operator. New ones appear here.',
+  'ticket.empty.cleared.mine': 'You are not holding any tickets.',
+  'ticket.empty.cleared.open': 'No ticket is open.',
+  'ticket.empty.cleared.waiting': 'No ticket is waiting on a customer.',
+  'ticket.empty.cleared.done': 'No ticket has been decided yet.',
+  'ticket.empty.firstRun.action': 'Show decided tickets',
+
+  /* ── row failures (AC-41): the act, and the fix ─────────────────────── */
+  'ticket.error.row.claim': "Couldn't claim.",
+  'ticket.error.row.release': "Couldn't release.",
+  'ticket.error.row.resolve': "Couldn't resolve.",
+  'ticket.error.row.reopen': "Couldn't reopen.",
+  'ticket.toast.reopened.row': 'Reopened',
 
   'ticket.status.open': 'Open',
   'ticket.status.in-progress': 'In progress',
@@ -72,6 +110,17 @@ export const TICKETS_EN: Dictionary = {
   /* ── the detail page ──────────────────────────────────────────────── */
   'ticket.detail.meta': '{id} · {requester} · {category}',
   'ticket.detail.back': 'Back to tickets',
+  'ticket.field.csat': 'Rating',
+  'ticket.csat.short': '{score} of 5',
+  'ticket.csat.none': 'No rating yet.',
+  'ticket.audit.clocksRederived': 'Promises re-derived on {count} open tickets after a policy change',
+  'ticket.audit.csatRequested': 'Rating request sent by {channel}',
+  'ticket.template.insert': 'Insert template',
+  'ticket.template.forReason': 'For this reason code',
+  'ticket.template.all': 'All templates',
+  'ticket.template.none': 'No template is set up for this channel.',
+  'ticket.template.loading': 'Loading templates',
+  'ticket.template.error': 'Templates could not be read.',
   'ticket.detail.notFound': 'That ticket is not on record',
   'ticket.detail.notFoundBody': 'Nothing here answers to {id}. It may have been merged, or the link may be old.',
 
@@ -84,14 +133,100 @@ export const TICKETS_EN: Dictionary = {
   'ticket.field.channel': 'Reply goes to',
   'ticket.field.thread': 'Thread',
 
-  /* ── the SLA, which the console did not show at all ───────────────── */
-  'ticket.sla.heading': 'First reply',
+  /* ── the three promises (S-2) ─────────────────────────────────────── */
+  'ticket.sla.heading': 'Promises',
+  'ticket.sla.firstReply': 'First reply',
+  'ticket.sla.resolution': 'Resolution',
+  'ticket.sla.nextUpdate': 'Next update',
   'ticket.sla.due': 'Due {date}',
   'ticket.sla.breached': 'Breached',
-  'ticket.sla.breachedDetail': 'The first-reply promise on this ticket was missed. It is due {date}.',
+  'ticket.sla.breachedDetail': 'This promise was missed. It was due {date}.',
+  'ticket.sla.kept': 'Kept',
+  'ticket.sla.keptLate': 'Kept late',
   'ticket.sla.met': 'Answered inside the promise.',
+  'ticket.sla.paused': 'Waiting on the customer since {date}. The resolution clock is paused.',
   'ticket.sla.stopped': 'The clock stopped when the ticket was {status}.',
   'ticket.sla.age': 'Open {duration}',
+
+  /* ── the lifecycle on the header (S-4, §5.3) ──────────────────────── */
+  'ticket.action.blocked.decided': 'This ticket is decided. Reopen it first.',
+  'ticket.action.wait': 'Wait on customer',
+  'ticket.action.resume': 'Resume',
+  'ticket.action.transfer': 'Transfer…',
+  'ticket.action.recode': 'Change reason code…',
+  'ticket.action.priority': 'Change priority…',
+  'ticket.toast.waiting': '{id} is waiting on the customer',
+  'ticket.toast.resumed': '{id} is in progress again',
+  'ticket.toast.transferred': 'Transferred',
+  'ticket.toast.recoded': '{id} re-coded. Its promises were re-derived.',
+  'ticket.toast.priority': '{id} priority changed',
+  'ticket.toast.failed': '{id} was not updated',
+
+  'ticket.transfer.title': 'Transfer this ticket?',
+  'ticket.transfer.body':
+    'The operator you choose holds this ticket from the moment you confirm, and there is no undo. Its promises and its thread are unchanged, and your note is posted to the thread for them.',
+  'ticket.transfer.confirm': 'Transfer',
+  'ticket.transfer.choiceLabel': 'Transfer to',
+  'ticket.transfer.choiceHelp': 'Operators who are not active are not listed.',
+  'ticket.transfer.choiceMessage': 'Choose an operator.',
+  'ticket.transfer.choicePlaceholder': 'Choose an operator',
+  'ticket.transfer.blocked.noTargets': 'No other operator is active right now.',
+  'ticket.transfer.noteLabel': 'Note for the receiving operator',
+  'ticket.transfer.noteHelp': 'Posted to the thread as an internal note. The customer never sees it.',
+  'ticket.transfer.noteMessage': 'Write a note for the receiving operator.',
+
+  'ticket.recode.title': 'Re-code {id}?',
+  'ticket.recode.body':
+    'The priority and all three promises are re-derived from the new code, counted from when the ticket opened. Nothing on the thread changes.',
+  'ticket.recode.confirm': 'Change reason code',
+  'ticket.recode.choiceLabel': 'Reason code',
+  'ticket.recode.choiceHelp': 'The tier beside each code sets its promises.',
+  'ticket.recode.choiceMessage': 'Choose a reason code.',
+  'ticket.recode.choicePlaceholder': 'Choose a reason code',
+  'ticket.recode.choiceEmpty': 'No other reason code is available for tickets.',
+
+  'ticket.priority.title': 'Change priority on {id}?',
+  'ticket.priority.body': 'Priority orders nothing by itself; the promises stay as they are.',
+  'ticket.priority.confirm': 'Change priority',
+  'ticket.priority.choiceLabel': 'Priority',
+  'ticket.priority.choiceHelp': 'The reason code sets the default. This overrides it.',
+  'ticket.priority.choiceMessage': 'Choose a priority.',
+  'ticket.priority.choicePlaceholder': 'Choose a priority',
+
+  /* ── raising a ticket (S-4, AC-S-14, AC-S-15) ────────────────────── */
+  'ticket.new': 'New ticket',
+  'ticket.new.title': 'Raise a ticket',
+  'ticket.new.desc': 'The reason code sets the promises. The channel is where replies go, and it is never assumed.',
+  'ticket.new.requester': 'For',
+  'ticket.new.requester.placeholder': 'Search riders and captains by name or ID',
+  'ticket.new.requester.searching': 'Searching…',
+  'ticket.new.requester.none': 'Nobody matches. Try the ID.',
+  'ticket.new.requester.change': 'Change',
+  'ticket.new.reasonCode': 'Reason code',
+  'ticket.new.reasonCode.placeholder': 'Choose a reason code',
+  'ticket.new.promises': 'First reply within {firstReply}. Resolution within {resolution}.',
+  'ticket.new.priority': 'Priority',
+  'ticket.new.priority.placeholder': 'Set by the reason code',
+  'ticket.new.priority.help': 'The reason code sets the default. Change it only when the case warrants it.',
+  'ticket.new.subject': 'Subject',
+  'ticket.new.channel': 'Replies go to',
+  'ticket.new.channel.placeholder': 'Choose a channel',
+  'ticket.new.channel.help': 'A ticket with no channel cannot be replied to. Choose where this customer reads.',
+  'ticket.new.message': 'First message',
+  'ticket.new.message.help': 'In the customer’s words, if they wrote or said something.',
+  'ticket.new.confirm': 'Raise ticket',
+  'ticket.new.saving': 'Raising…',
+  'ticket.new.cancel': 'Cancel',
+  'ticket.new.blocked.requester': 'Choose who this ticket is for.',
+  'ticket.new.blocked.reasonCode': 'Choose a reason code.',
+  'ticket.new.blocked.subject': 'Give the ticket a subject.',
+  'ticket.new.blocked.channel': 'Choose where replies go. A ticket never assumes a channel.',
+  'ticket.new.failed': 'The ticket was not raised. {reason}',
+  'ticket.toast.created': '{id} raised',
+
+  /* ── an internal note on the ticket thread (S-3's first half) ─────── */
+  'ticket.thread.internal': 'Internal note',
+  'ticket.thread.notSent': 'Not sent to the customer',
 
   /* ── the channel, and the refusal when there is none ──────────────── */
   'ticket.channel.chat': 'In-app chat',
@@ -151,7 +286,6 @@ export const TICKETS_EN: Dictionary = {
   /* ── toasts ───────────────────────────────────────────────────────── */
   'ticket.toast.claimed': '{id} is yours',
   'ticket.toast.claimFailed': '{id} was not claimed',
-  'ticket.toast.replied': 'Sent to {channel}',
   'ticket.toast.replyFailed': 'The reply was not sent',
   /* The undo D18 traded the confirm away for. `commands/tickets.ts` took that
      trade — remove the dialog, the reversal is the net — and this screen never
@@ -170,4 +304,20 @@ export const TICKETS_EN: Dictionary = {
   'ticket.guide.say': 'What to say',
   'ticket.guide.do': 'What to do',
   'ticket.guide.policy': 'Policy {ref}',
+  /* The Activity Log's sentence for each ticket write (`audit.${action}` in `clients/tickets.ts`). */
+  'audit.ticket.create': 'Opened ticket {id}',
+  'audit.ticket.claim': 'Claimed ticket {id}',
+  'audit.ticket.release': 'Released ticket {id}',
+  'audit.ticket.transfer': 'Transferred ticket {id} from {from} to {to}',
+  'audit.ticket.reply': 'Replied on ticket {id}',
+  'audit.ticket.callLog': 'Logged a call on ticket {id}: {outcome}',
+  'audit.ticket.status': 'Set ticket {id} to {status}',
+  'audit.ticket.recode': 'Recoded ticket {id} from {from} to {to}',
+  'audit.ticket.priority': 'Changed the priority of ticket {id} from {from} to {to}',
+  'audit.ticket.resolve': 'Resolved ticket {id}',
+  'audit.ticket.reopen': 'Reopened ticket {id}',
+  'audit.ticket.slaBreach': 'Ticket {id} breached its {kind} target',
+  'audit.ticket.csatRequested': 'Asked for a rating on ticket {id} by {channel}',
+  'notification.ticket.slaBreach': 'SLA breach {id}',
+  'notification.ticket.slaBreachMany': 'SLA breach on {count} tickets',
 }

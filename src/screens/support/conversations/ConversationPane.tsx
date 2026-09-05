@@ -82,6 +82,7 @@ import type {
   MessageVisibility,
   Paginated,
 } from '@/data/types'
+import { TYPING_TTL_SECONDS } from '@/data/types'
 import {
   formatCount,
   formatDate,
@@ -100,6 +101,7 @@ import { DetailPage } from '@/components/PageShell'
 import { StatusBadge } from '@/components/StatusBadge'
 import { SlaCell, queueClock } from '@/screens/queues'
 import { MessageComposer } from './MessageComposer'
+import { ElsewhereCard } from '../shared/ElsewhereCard'
 import { conversationSla } from './sla'
 import { CHANNEL_KEY, STATUS_KEY, STATUS_TONE } from './vocabulary'
 
@@ -137,7 +139,15 @@ export interface ConversationPaneProps {
   onTakeOver: () => void
   onTransfer: () => void
   onClose: () => void
+  onSnooze: () => void
+  /** X2: on a phone conversation, logs the call on the linked ticket. */
+  onLogCall: () => void
+  logCallRefusal: string | null
   onReopen: () => void
+  /** D19 / AC-947: opens the ticket form with this conversation's party and channel locked. */
+  onCreateTicket: () => void
+  /** `null` when this party can be ticketed; the sentence otherwise. */
+  createTicketRefusal: string | null
 
   profileHref: string
   ticketHref: (ticketId: string) => string
@@ -157,10 +167,16 @@ export function ConversationPane({
   onTakeOver,
   onTransfer,
   onClose,
+  onSnooze,
+  onLogCall,
+  logCallRefusal,
   onReopen,
+  onCreateTicket,
+  createTicketRefusal,
   profileHref,
   ticketHref,
 }: ConversationPaneProps) {
+  const [typingBy, setTypingBy] = useState<{ name: string; receivedAt: number } | null>(null)
   const [windowSize, setWindowSize] = useState(THREAD_PAGE)
   const [restored, setRestored] = useState<{
     body: string
@@ -223,6 +239,8 @@ export function ConversationPane({
         setLive((current) => appendOnce(current, event.message))
       } else if (event.type === 'message.delivery') {
         setDeliveries((current) => new Map(current).set(event.messageId, event.delivery))
+      } else if (event.type === 'typing' && event.typing.actorId !== currentUserId) {
+        setTypingBy(event.typing.typing ? { name: event.typing.actorName, receivedAt: Date.now() } : null)
       }
     })
   }, [id])
@@ -377,6 +395,23 @@ export function ConversationPane({
    *      it is a ticket."* It is a conversion prompt, not an escalation.
    *   3. otherwise there is no primary, and that is a legitimate answer.
    */
+  /* §11.2: the form exists (`NewTicketModal`), so the control is live wherever
+     the party can be ticketed, and refused with its reason where it cannot. */
+  const createTicketRefused: string | null =
+    writeRefusal ??
+    createTicketRefusal ??
+    (conversation.ticketId !== null
+      ? t('conversations.ticket.linked', { id: conversation.ticketId })
+      : conversation.status === 'closed'
+        ? t('conversations.composer.closed')
+        : null)
+  const createTicketAction: PageAction = {
+    label: t('conversations.ticket.create'),
+    onClick: onCreateTicket,
+    disabled: createTicketRefused !== null,
+    reason: createTicketRefused,
+  }
+
   const primary: PageAction | undefined = (() => {
     if (conversation.status === 'closed') {
       /* §3.5's header primary on a closed thread. `reopenConversation` landed,
@@ -398,22 +433,8 @@ export function ConversationPane({
         disabled: writeRefusal !== null || grabRefusal !== null,
       }
     }
-    if (sla.resolutionBreached) {
-      return {
-        label: t('conversations.ticket.create'),
-        onClick: () => undefined,
-        /* **The operation exists; the FORM does not.**
-           `createTicketForConversation` writes both sides of D19's link in one
-           mutation, so the seam gap this control was blocked on is closed. What
-           it requires is a `category`, a `reasonCode` and a `priority` — three
-           operator choices — and §6.4 has no row for the conversion form that
-           would collect them. `ConfirmDialog` offers one `choice`, not three, and
-           a three-field modal is a design decision this file does not get to
-           make. Disabled in place with its reason (§11.2); raised to
-           product-designer with the options. */
-        disabled: true,
-      }
-    }
+    /* AC-964: past twenty minutes the conversion is the primary. */
+    if (sla.resolutionBreached && conversation.ticketId === null) return createTicketAction
     return undefined
   })()
 
@@ -424,11 +445,33 @@ export function ConversationPane({
       disabled: writeRefusal !== null || conversation.status === 'closed',
     },
     {
+      label: t('conversations.snooze'),
+      onClick: onSnooze,
+      disabled: writeRefusal !== null || conversation.status === 'closed' || conversation.status === 'snoozed',
+    },
+    ...(conversation.channel === 'phone'
+      ? [
+          {
+            label: t('conversations.logCall'),
+            onClick: onLogCall,
+            disabled: writeRefusal !== null || logCallRefusal !== null || conversation.status === 'closed',
+            reason: writeRefusal ?? logCallRefusal,
+          },
+        ]
+      : []),
+    {
       label: t('conversations.close'),
       onClick: onClose,
       disabled: writeRefusal !== null || conversation.status === 'closed',
     },
+    ...(primary === createTicketAction ? [] : [createTicketAction]),
   ]
+
+  /* §8.7: one muted line while the customer types; it expires on the TTL, read on the tick. */
+  const typingLine =
+    typingBy !== null && Date.now() - typingBy.receivedAt < TYPING_TTL_SECONDS * 1000 && tick >= 0
+      ? typingBy
+      : null
 
   /* ── the composer's refusal, resolved ONCE (§8.6.3, §8.6.8) ─────────── */
 
@@ -561,11 +604,20 @@ export function ConversationPane({
           {/* §8.6.1 — **the composer at the foot**, sticky to the column's
               bottom edge so the thread scrolls behind it. `bg-background` is the
               page's own ground; nothing new is introduced to make it opaque. */}
+          {typingLine !== null && (
+            <p className="mt-2 text-xs text-muted-foreground" aria-live="polite">
+              {t('conversations.typing', { name: typingLine.name })}
+            </p>
+          )}
+
           <div className="sticky bottom-0 mt-3 bg-background pb-1">
             <MessageComposer
               conversationId={id}
               channel={conversation.channel}
               t={t}
+              templateSurface={
+                conversation.channel === 'email' ? 'email' : conversation.channel === 'phone' ? null : 'chat'
+              }
               refusal={composerRefusal}
               quietlyDisabled={thread.status === 'loading'}
               noteOnly={conversation.channel === 'phone'}
@@ -609,6 +661,11 @@ export function ConversationPane({
           t={t}
           language={language}
           ticketHref={ticketHref}
+        />,
+        <ElsewhereCard
+          key="elsewhere"
+          entityType={conversation.entityType}
+          entityId={conversation.entityId}
         />,
         <HistoryCard key="history" conversation={conversation} t={t} language={language} />,
       ]}

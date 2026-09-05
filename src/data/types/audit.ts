@@ -93,6 +93,23 @@ export type AuditAction =
   | 'webhook.update'
   | 'webhook.rotateSecret'
   | 'webhook.replay'
+  /* Support › Tickets (SUPPORT-UX-PLAN.md §5.5). Legacy audited only close,
+     reopen and re-code; claim, reply and resolve were silent (`13a` §18.10). */
+  | 'ticket.create'
+  | 'ticket.claim'
+  | 'ticket.release'
+  | 'ticket.transfer'
+  | 'ticket.reply'
+  | 'ticket.callLog'
+  | 'ticket.status'
+  | 'ticket.recode'
+  | 'ticket.priority'
+  | 'ticket.resolve'
+  | 'ticket.reopen'
+  | 'ticket.slaBreach'
+  | 'ticket.clocksRederived'
+  | 'ticket.csatRequested'
+  | 'dispute.approvalRequested'
   | 'permission.denied'
 
 export interface AuditEntry {

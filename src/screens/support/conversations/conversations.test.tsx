@@ -33,6 +33,8 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { beforeEach, describe, expect, it } from 'vitest'
 import {
+  getConversation,
+  getTicket,
   claimConversation,
   disableMockLatency,
   transferConversation,
@@ -49,6 +51,7 @@ import { ShellProvider } from '@/shell/ShellContext'
 import { QUEUE_SHARED_EN } from '@/screens/queues/copy'
 import { ConversationConsoleScreen } from './ConversationConsoleScreen'
 import { CONVERSATIONS_EN } from './copy'
+import { TICKETS_EN } from '@/screens/support/tickets/copy'
 import { resetDrafts } from './drafts'
 import { compareForQueue, conversationSla, runningClock } from './sla'
 
@@ -63,7 +66,7 @@ const row = (): SubTabRoute => {
 }
 
 const copy = (key: string): string => {
-  const value = CONVERSATIONS_EN[key] ?? QUEUE_SHARED_EN[key]
+  const value = CONVERSATIONS_EN[key] ?? QUEUE_SHARED_EN[key] ?? TICKETS_EN[key]
   if (!value) throw new Error(`No dictionary key ${key}`)
   return value
 }
@@ -786,6 +789,33 @@ describe('the channel switch', () => {
 
 /* ═════════ the four controls that shipped dead, and now do not ═════════ */
 
+describe('AC-947 / AC-S-14 — a ticket raised from a conversation', () => {
+  it('links the two in both directions and renders the ticket link on the row', async () => {
+    renderConsole(paneAt('CNV-101'))
+    await screen.findByText(copy('conversations.composer.unclaimed'))
+    await userEvent.click(screen.getByRole('button', { name: copy('queue.claim') }))
+
+    await userEvent.click(await screen.findByRole('button', { name: copy('conversations.ticket.create') }))
+    const dialog = await screen.findByRole('dialog')
+    /* The party and the channel arrive locked from the conversation. */
+    expect(within(dialog).queryByPlaceholderText(copy('ticket.new.requester.placeholder'))).not.toBeInTheDocument()
+
+    await userEvent.click(within(dialog).getAllByRole('combobox')[0]!)
+    await userEvent.click(await screen.findByRole('option', { name: 'Captain late for pickup' }))
+    await userEvent.type(within(dialog).getByLabelText(copy('ticket.new.subject')), 'Late again')
+    await userEvent.click(within(dialog).getByRole('button', { name: copy('ticket.new.confirm') }))
+
+    await expect.poll(async () => (await byId('CNV-101')).ticketId).not.toBeNull()
+    const linked = await byId('CNV-101')
+    const ticket = await getTicket(linked.ticketId!)
+    expect(ticket.conversationId).toBe('CNV-101')
+    expect(ticket.channel).toBe(linked.channel)
+    expect(
+      await screen.findByRole('link', { name: copy('conversations.ticket.open').replace('{id}', ticket.id) }),
+    ).toBeInTheDocument()
+  })
+})
+
 describe('the controls the seam unblocked', () => {
   /**
    * §3.5 — the header primary on a closed thread. It shipped disabled in place
@@ -901,5 +931,44 @@ describe('the controls the seam unblocked', () => {
     expect(after.channel).toBe('chat')
     const sent = after.messages.find((m) => m.body === 'Sending the receipt across now.')
     expect(sent?.channel).toBe('email')
+  })
+})
+
+describe('canned responses in the composer (SUPPORT-UX-PLAN.md §7.3)', () => {
+  it('offers active chat templates and inserts one without sending', async () => {
+    const user = userEvent.setup()
+    renderConsole(['/support/contact-centre/CNV-102'])
+    const field = (await screen.findByLabelText(copy('conversations.composer.reply'))) as HTMLTextAreaElement
+    const before = (await getConversation('CNV-102')).messages.length
+    await user.click(screen.getByRole('button', { name: copy('ticket.template.insert') }))
+    await user.click(await screen.findByRole('menuitem', { name: /Acknowledge and hold/ }))
+    expect(field.value).toContain('I have this in front of me now')
+    expect((await getConversation('CNV-102')).messages.length).toBe(before)
+  })
+})
+
+describe('contact centre polish (SUPPORT-UX-PLAN.md §8.7)', () => {
+  /* O6 / D22: snoozing parks the conversation until a chosen time and pauses both clocks. */
+  it('snoozes a held conversation until a chosen time from the pane', async () => {
+    renderConsole(paneAt('CNV-102'))
+    await userEvent.click(await screen.findByRole('button', { name: copy('conversations.snooze') }))
+    const dialog = await screen.findByRole('dialog')
+    await userEvent.click(within(dialog).getByRole('combobox'))
+    await userEvent.click(await screen.findByRole('option', { name: copy('conversations.snooze.option.2h') }))
+    await userEvent.click(within(dialog).getByRole('button', { name: copy('conversations.snooze.confirm') }))
+    await expect.poll(async () => (await byId('CNV-102')).status).toBe('snoozed')
+    const snoozed = await byId('CNV-102')
+    expect(Date.parse(snoozed.snoozedUntil!) - Date.parse(EYVAR_NOW)).toBe(2 * 60 * 60_000)
+  })
+
+  /* §8.7: the customer's typing shows as one muted line beneath the thread. */
+  it('shows that the customer is typing after they read the reply', async () => {
+    renderConsole(paneAt('CNV-102'))
+    const field = await screen.findByLabelText(copy('conversations.composer.reply'))
+    await userEvent.type(field, 'Checking now.{Enter}')
+    const conversation = await byId('CNV-102')
+    expect(
+      await screen.findByText(copy('conversations.typing').replace('{name}', conversation.entityName), {}, { timeout: 9000 }),
+    ).toBeInTheDocument()
   })
 })

@@ -1,133 +1,152 @@
 /**
- * Support › Tickets — the index.
- *
- * Rules applied
- *   §11.2      **the row actions are declared for every row and disabled in
- *              place with a reason.** The old screen hid them: `canWrite &&
- *              !tk.ownerId && (<DropdownMenuItem …>)` at `:228` and
- *              `canWrite && tk.status !== 'resolved' && (…)` at `:233`, plus a
- *              `Claim` button in the owner cell at `:190` that vanished when
- *              the ticket was owned. An operator who cannot claim now sees the
- *              control and the sentence saying who has it.
- *   D8-b       two declared actions render as two labelled controls; the kebab
- *              starts at three. That is `DataTable`'s threshold — the old
- *              screen hand-rolled a `DropdownMenu` in an `actions` column,
- *              which is the shape D8-c says to delete once the shared component
- *              owns it.
- *   §9.3       the queue shows its SLA. `slaBreached` is a **stamp**: a decided
- *              ticket does not go on counting, and a passed deadline that was
- *              never breached renders as a date rather than `overdue 3d`.
- *   §7.5       the identity link is a real `<a>`-shaped control, not a `<div
- *              onClick>`. It keeps its focus ring.
- *   AC-74/75   every string is a key in `./copy`.
- *   §4.6 · 1   `view` is passed AFTER `table.params`, so the tab is not
- *              clobbered by the table's own null view.
+ * Support › Tickets — a §8.4 work queue (S-1, SUPPORT-UX-PLAN.md §5.1).
+ * `QueuePage` + `QueueTable`, the shared `OwnerChip`, `SlaCell`, R5a's banner
+ * and marker; `Resolve` keeps D18's undo, `Reopen` is its declared inverse.
+ * Bulk offers `Claim selected` and nothing else (S-12, §8.4 rule).
  */
 
-import { useCallback, useMemo } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { useMemo, useState } from 'react'
+import { useLocation } from 'react-router-dom'
 import { toast } from 'sonner'
-import { claimTicket, listTickets, reopenTicket, resolveTicket } from '@/data/clients'
-import type { Paginated, SubTabRoute, Ticket } from '@/data/types'
-import { useAsync, useIndexTable, useNow } from '@/hooks'
-import { NO_CLOCK, formatDate, formatSlaLabel, slaClock } from '@/lib'
-import { DataTable, type DataColumn, type RowAction } from '@/components/DataTable'
-import { PageHeader } from '@/components/PageHeader'
-import { SingleColumnPage } from '@/components/PageShell'
-import { StatusBadge } from '@/components/StatusBadge'
+import {
+  claimTicket,
+  listTickets,
+  liveClaim,
+  releaseTicket,
+  reopenTicket,
+  resolveTicket,
+} from '@/data/clients'
+import type { IsoDateTime, Paginated, SubTabRoute, Ticket } from '@/data/types'
+import { useAsync, useIndexTable } from '@/hooks'
+import { formatCount, formatDate, type Language, type Translator } from '@/lib'
+import type { DataColumn } from '@/components/DataTable'
+import { RowCriticalMarker, StatusBadge } from '@/components/StatusBadge'
+import { ConfirmDialog, type ConfirmRequest } from '@/components/ConfirmDialog'
 import { reasonLabel } from '@/i18n/vocabulary/copy'
 import { useShell } from '@/shell/ShellContext'
-import { useRouteState, withView } from '@/shell/routeState'
-import { PRIORITY_TONE, STATUS_TONE } from './tone'
+import {
+  Absent,
+  BreachBanner,
+  Cell,
+  DateCell,
+  MutedCell,
+  OwnerChip,
+  QueuePage,
+  QueueTable,
+  SlaCell,
+  SubjectIdentity,
+  useNowIso,
+  useQueueMeta,
+  useQueueViews,
+  useRowActions,
+  type RowFailure,
+} from '@/screens/queues'
 import { toastOutcome } from '@/commands'
+import { setRefusal } from '../../operations/bulkRefusal'
 import { withFallback } from '../../operations/localCopy'
+import { runningTicketClock, ticketIsDecided } from './clock'
+import { NewTicketModal } from './NewTicketModal'
+import { PRIORITY_TONE, STATUS_TONE } from './tone'
 import { TICKETS_EN } from './copy'
+
+/** §4.6 Q-32: a queue lands on the work nobody holds. */
+const DEFAULT_VIEW = 'unassigned'
+
+const CLEARED_BODY: Readonly<Record<string, string>> = {
+  unassigned: 'ticket.empty.cleared.unassigned',
+  mine: 'ticket.empty.cleared.mine',
+  open: 'ticket.empty.cleared.open',
+  waiting: 'ticket.empty.cleared.waiting',
+  done: 'ticket.empty.cleared.done',
+}
 
 export function TicketsScreen({ row }: { row: SubTabRoute }) {
   const shell = useShell()
-  const route = useRouteState()
   const location = useLocation()
-  const navigate = useNavigate()
-  /* AC-74 — the copy lives in `./copy.ts` and travels in this screen's
-     own chunk. `withFallback` resolves a key the shell dictionary does
-     not carry, so nothing here needs registering there. */
-  const t = useMemo(
-    /* **Memoised, and it is load-bearing.** `withFallback` returns a NEW
-       function on every call, and several screens carry `t` in a `deps`
-       array — so an unmemoised wrapper re-ran the fetch, which re-rendered,
-       which rebuilt the wrapper. Two suites hung outright. */
-    () => withFallback(shell.language.t, TICKETS_EN),
-    [shell.language.t],
-  )
+  /* Memoised: `withFallback` returns a new function per call and `t` sits in deps. */
+  const t = useMemo(() => withFallback(shell.language.t, TICKETS_EN), [shell.language.t])
   const { dir, language } = shell.language
-  const now = useNow(15)
+  const now = useNowIso(15)
 
-  const views = useMemo(() => [...row.views].sort((a, b) => a.order - b.order), [row.views])
-  const fallback = views.find((v) => v.isDefault)?.id ?? 'open'
-  const activeTab = views.some((v) => v.id === route.view) ? (route.view as string) : fallback
+  const { tabs, activeTab, selectTab } = useQueueViews(row, DEFAULT_VIEW, t)
+  const { meta, onTotal } = useQueueMeta(t, language, 'ticket.meta')
 
   const table = useIndexTable<Ticket>({
-    mode: 'index',
-    getRowId: (tk) => tk.id,
-    initialSort: { field: 'createdAt', dir: 'desc' },
+    mode: 'queue',
+    getRowId: (ticket) => ticket.id,
+    initialView: activeTab,
+    /* AC-217: breached first, then the running deadline; `No clock` last. */
+    initialSort: { field: 'urgency', dir: 'asc' },
+    bulkClaim: true,
   })
 
-  /* The tab LAST. `table.params.view` is `null` here and would otherwise
-     clobber it — `REMEDIATION-PLAN.md` §4.6 item 1, three live call sites. */
-  const queryParams = useMemo(
-    () => ({ ...table.params, view: activeTab }),
-    [table.params, activeTab],
-  )
-
-  const data = useAsync<Paginated<Ticket>>((signal) => listTickets(queryParams, signal), {
-    /* `queryParams` is the table query with the view tab merged in, and it is
-       the fetcher's only argument — so each tab keys separately and moving
-       between `Open` and `Mine` and back paints that tab's own rows. Claim and
-       resolve both call `refetch`, which bypasses the cache. */
-    deps: [queryParams],
+  const params = useMemo(() => ({ ...table.params, view: activeTab }), [table.params, activeTab])
+  const data = useAsync<Paginated<Ticket>>((signal) => listTickets(params, signal), {
+    deps: [params],
     cacheKey: 'tickets.list',
   })
 
-  const currentUserId = shell.session?.userId ?? 'USR-1'
-  const currentUserName = shell.session?.name ?? 'Sarah Al-Rashid'
-  const canWrite = shell.permissions.permissions.includes('manage_tickets')
-
-  const openTicket = useCallback(
-    (id: string) => navigate(`/support/tickets/${id}`),
-    [navigate],
+  /* R5a (a): live tickets past either promise, counted over the whole queue. */
+  const breached = useAsync<Paginated<Ticket>>(
+    (signal) =>
+      listTickets({ pageSize: 1, filters: [{ field: 'breached', op: 'eq', value: true }] }, signal),
+    { deps: ['breached'], cacheKey: 'tickets.list' },
   )
 
-  const handleClaim = useCallback(
-    async (ticket: Ticket) => {
-      try {
-        await claimTicket(ticket.id, currentUserId, currentUserName)
-        toast.success(t('ticket.toast.claimed', { id: ticket.id }))
-        data.refetch()
-      } catch {
-        toast.error(t('ticket.toast.claimFailed', { id: ticket.id }))
-      }
-    },
-    [currentUserId, currentUserName, data, t],
-  )
+  const actions = useRowActions<Ticket>({ t })
+  const [confirm, setConfirm] = useState<ConfirmRequest | null>(null)
+  const [claimingMany, setClaimingMany] = useState(false)
+  const [creating, setCreating] = useState(false)
 
-  /**
-   * **Resolve, with the undo D18 traded the confirm away for.**
-   *
-   * `commands/tickets.ts` declares `ticket.resolve` with an inverse and takes
-   * D18's trade — drop the dialog, because the reversal is the net. This screen
-   * never adopted the registry, so it got the removal without the net: resolving
-   * the wrong ticket had no confirm, no undo, no `Reopen` on either screen, and
-   * no audit line.
-   *
-   * `toastOutcome` is the same window the palette uses — ten seconds, hover
-   * pauses it, and the inverse runs **through the data seam** rather than
-   * flipping local state, so a second operator editing the record inside the
-   * window is discovered rather than overwritten.
-   */
-  const handleResolve = useCallback(
-    async (ticket: Ticket) => {
-      try {
-        await resolveTicket(ticket.id)
+  const rows = actions.rows(data.data?.items ?? [])
+  const scoped = table.filters.some((filter) => filter.field === 'breached')
+  const canWrite = shell.permissions.permissions.includes('manage_tickets') && !shell.isFrozen
+  const currentUserId = shell.session?.userId ?? ''
+
+  /* ── ownership (§4.2) ─────────────────────────────────────────────── */
+
+  function claim(ticket: Ticket, takeOver: boolean) {
+    void actions.run({
+      id: ticket.id,
+      errorKey: 'ticket.error.row.claim',
+      toastKey: takeOver ? 'queue.toast.takenOver' : 'queue.toast.claimed',
+      action: () => claimTicket(ticket.id, undefined, undefined, { takeOver }),
+    }).then((ok) => ok && breached.refetch())
+    setConfirm(null)
+  }
+
+  /** AC-S-10: the confirmation names the operator who loses the ticket. */
+  function askTakeOver(ticket: Ticket) {
+    const owner = liveClaim(ticket.claim)?.ownerName ?? ''
+    setConfirm({
+      title: t('queue.takeOver.title', { name: owner }),
+      body: t('queue.takeOver.body', { name: owner }),
+      confirmLabel: t('queue.takeOver.confirm'),
+      onConfirm: () => claim(ticket, true),
+    })
+  }
+
+  function release(ticket: Ticket) {
+    void actions.run({
+      id: ticket.id,
+      errorKey: 'ticket.error.row.release',
+      toastKey: 'queue.toast.released',
+      action: () => releaseTicket(ticket.id),
+    })
+  }
+
+  /* ── dispositions ─────────────────────────────────────────────────── */
+
+  /** D18: no dialog, because the inverse is one press away on the toast. */
+  function resolve(ticket: Ticket) {
+    void actions
+      .run({
+        id: ticket.id,
+        errorKey: 'ticket.error.row.resolve',
+        action: () => resolveTicket(ticket.id),
+      })
+      .then((ok) => {
+        if (!ok) return
         toastOutcome(
           {
             message: t('ticket.toast.resolved', { id: ticket.id }),
@@ -143,255 +162,417 @@ export function TicketsScreen({ row }: { row: SubTabRoute }) {
           },
           t,
         )
-        data.refetch()
-      } catch {
-        toast.error(t('ticket.toast.resolveFailed', { id: ticket.id }))
-      }
-    },
-    [data, t],
-  )
+      })
+  }
 
-  const columns: DataColumn<Ticket>[] = useMemo(
-    () => [
-      {
-        id: 'id',
-        sortField: 'id',
-        emphasis: 'primary',
-        csv: (tk) => tk.id,
-        header: t('ticket.col.ticket'),
-        width: 104,
-        dataType: 'text',
-        alwaysVisible: true,
-        cell: (tk) => (
-          /* §7.5 / defect D19 — a real button, keyboard-reachable, with the
-             focus ring its primitive ships. Never a `<div onClick>`. */
-          <button
-            type="button"
-            onClick={() => openTicket(tk.id)}
-            aria-label={t('ticket.a11y.open', { id: tk.id })}
-            className="rounded-sm font-mono text-xs font-semibold text-foreground hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-          >
-            {tk.id}
-          </button>
-        ),
-      },
-      {
-        id: 'subject',
-        header: t('ticket.col.subject'),
-        minWidth: 240,
-        dataType: 'text',
-        sortField: 'subject',
-        cell: (tk) => (
-          <button
-            type="button"
-            onClick={() => openTicket(tk.id)}
-            className="block max-w-full truncate rounded-sm text-start text-xs font-medium text-foreground hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-          >
-            {tk.subject}
-          </button>
-        ),
-        secondaryLine: (tk) => (
-          <span className="block truncate text-xs text-muted-foreground">
-            {tk.entityName} · {tk.entityId}
-          </span>
-        ),
-      },
-      {
-        id: 'category',
-        /* **Text, not select, and the type is the reason.** `Ticket.category` is a
-           bare `string` — the fixtures carry four values today and nothing in the
-           type stops a fifth arriving. A select would enumerate the four and
-           silently hide every ticket in a category added after this line was
-           written; a contains-match cannot go stale. */
-        filter: { kind: 'text', field: 'category' },
-        sortField: 'category',
-        header: t('ticket.col.category'),
-        /* Left at 150 deliberately, and the measurement is why. The reason line
-           below is now a SENTENCE, so widening to 230 looked obviously right —
-           but the row measured **93px at both widths**, because its height is
-           set by the SUBJECT column (240px) wrapping a long ticket subject, not
-           by this cell. Widening here spends 80px of a 1280px viewport and buys
-           nothing.
+  function reopen(ticket: Ticket) {
+    void actions.run({
+      id: ticket.id,
+      errorKey: 'ticket.error.row.reopen',
+      toastKey: 'ticket.toast.reopened.row',
+      action: () => reopenTicket(ticket.id),
+    })
+  }
 
-           The real finding is §9.1's rule — *"the row grows to fit; never
-           truncates"* — which was written for a short second line (an id, a
-           route) and does not survive sentence-length content: the support
-           queue runs at 93px a row against 49px for a single-line table. That is
-           a hierarchy decision, not a width tweak. See `19-execution-log.md`. */
-        width: 150,
-        dataType: 'enum',
-        cell: (tk) => <span className="text-xs text-foreground">{tk.category}</span>,
-        /* A3 — the reason code, as a SENTENCE. This line printed
-           `fare_dispute` in `font-mono`: a machine identifier, untranslatable
-           by construction, and unreadable in either language. The code itself
-           is one click away on the detail pane, which is where a
-           support-to-engineering handoff needs it; a 150px queue cell is not. */
-        secondaryLine: (tk) => (
-          <span className="block truncate text-xs text-muted-foreground">
-            {reasonLabel(t, tk.reasonCode)}
-          </span>
-        ),
-      },
-      {
-        id: 'priority',
-        filter: {
-          kind: 'select',
-          field: 'priority',
-          options: (['Critical', 'High', 'Medium', 'Low'] as const).map((value) => ({
-            value,
-            label: t(`ticket.priority.${value}`),
-          })),
-        },
-        header: t('ticket.col.priority'),
-        width: 104,
-        dataType: 'enum',
-        sortField: 'priority',
-        cell: (tk) => (
-          <StatusBadge tone={PRIORITY_TONE[tk.priority]}>
-            {t(`ticket.priority.${tk.priority}`)}
-          </StatusBadge>
-        ),
-      },
-      {
-        id: 'status',
-        /* §15 — the shape already facets `status`; the column said nothing, so an
-           SLA console could be sorted by state and not narrowed to one. The five
-           are `TicketStatus`'s own union, in lifecycle order, and each label is the
-           key the CELL renders — so a chip and its rows read identically. */
-        filter: {
-          kind: 'select',
-          field: 'status',
-          options: (['open', 'in-progress', 'waiting', 'resolved', 'closed'] as const).map(
-            (value) => ({ value, label: t(`ticket.status.${value}`) }),
-          ),
-        },
-        emphasis: 'data',
-        header: t('ticket.col.status'),
-        width: 140,
-        dataType: 'enum',
-        sortField: 'status',
-        cell: (tk) => (
-          <StatusBadge tone={STATUS_TONE[tk.status]}>
-            {t(`ticket.status.${tk.status}`)}
-          </StatusBadge>
-        ),
-        secondaryLine: (tk) => (
-          <span className="block truncate text-xs text-muted-foreground">
-            {tk.ownerName ?? t('ticket.owner.unassigned')}
-          </span>
-        ),
-      },
-      {
-        id: 'sla',
-        emphasis: 'data',
-        header: t('ticket.col.sla'),
-        width: 124,
-        dataType: 'date',
-        cell: (tk) => {
-          const terminal = tk.status === 'resolved' || tk.status === 'closed'
-          const live = slaClock({ dueAt: tk.slaDueAt, startedAt: tk.createdAt }, now)
-          /* The stamp decides. A decided ticket's clock has stopped, and a
-             deadline that passed without a breach was a promise KEPT — printing
-             `overdue` on either is the queue lying about its own backlog. */
-          const clock = terminal || (live.kind === 'breached' && !tk.slaBreached) ? NO_CLOCK : live
-          return (
-            <StatusBadge tone={tk.slaBreached || clock.band !== 'neutral' ? 'warning' : 'neutral'}>
-              {tk.slaBreached ? t('ticket.sla.breached') : formatSlaLabel(clock, t)}
-            </StatusBadge>
-          )
-        },
-      },
-      {
-        id: 'createdAt',
-        header: t('ticket.col.opened'),
-        width: 116,
-        dataType: 'date',
-        sortField: 'createdAt',
-        cell: (tk) => (
-          <span className="text-xs text-muted-foreground">
-            {formatDate(tk.createdAt, { style: 'day-month-time', language })}
-          </span>
-        ),
-      },
-    ],
-    [language, now, openTicket, t],
-  )
+  /* ── the bulk bar (§9.3, D21): claims only ────────────────────────── */
 
-  /* §11.2 — declared for every row; `disabled` and `reason` do the refusing. */
-  const rowActions: RowAction<Ticket>[] = useMemo(
-    () => [
-      {
-        label: t('ticket.action.claim'),
-        onSelect: (tk) => void handleClaim(tk),
-        disabled: (tk) => !canWrite || tk.status === 'closed' || tk.ownerId !== null,
-        reason: (tk) => {
-          if (!canWrite) return t('ticket.action.claim.blocked.permission')
-          if (tk.status === 'closed') return t('ticket.action.claim.blocked.closed')
-          if (tk.ownerId !== null) {
-            return t('ticket.action.claim.blocked.owned', { name: tk.ownerName ?? tk.ownerId })
-          }
-          return null
-        },
-      },
-      {
-        label: t('ticket.action.resolve'),
-        onSelect: (tk) => void handleResolve(tk),
-        disabled: (tk) => !canWrite || tk.status === 'resolved' || tk.status === 'closed',
-        reason: (tk) => {
-          if (!canWrite) return t('ticket.action.resolve.blocked.permission')
-          if (tk.status === 'resolved' || tk.status === 'closed') {
-            return t('ticket.action.resolve.blocked.done', {
-              status: t(`ticket.status.${tk.status}`),
-            })
-          }
-          return null
-        },
-      },
-    ],
-    [canWrite, handleClaim, handleResolve, t],
-  )
+  const selected = rows.filter((ticket) => table.selectedIds.has(ticket.id))
+  const claimRefusal = setRefusal({
+    targets: selected,
+    getId: (ticket) => ticket.id,
+    isBlocked: (ticket) => ticketIsDecided(ticket) || liveClaim(ticket.claim) !== null,
+    roleReason: canWrite ? null : t('ticket.action.claim.blocked.permission'),
+    blockedKeyPrefix: 'ticket.bulk.claim.blocked',
+    t,
+    language,
+  })
 
-  const tabs = views.map((v) => ({ id: v.id, label: t(v.titleKey) }))
-  const total = data.data?.total ?? 0
+  async function claimSelected(ids: ReadonlySet<string>) {
+    setClaimingMany(true)
+    try {
+      await Promise.all([...ids].map((id) => claimTicket(id, undefined, undefined, { takeOver: false })))
+      table.clearSelection()
+      toast(
+        ids.size === 1
+          ? t('queue.toast.claimed')
+          : t('ticket.toast.claimed.other', { count: formatCount(ids.size, language) }),
+      )
+    } catch {
+      toast(t('ticket.error.row.claim'))
+    } finally {
+      setClaimingMany(false)
+      data.refetch()
+    }
+  }
+
+  const columns = ticketColumns({
+    t,
+    language,
+    now,
+    canWrite,
+    currentUserId,
+    detailHref: (id) => `/support/tickets/${id}${location.search}`,
+    failure: actions.failure,
+    onClaim: (ticket) => claim(ticket, false),
+    onRelease: release,
+    onTakeOver: askTakeOver,
+  })
 
   return (
-    <SingleColumnPage
-      header={
-        <PageHeader
-          title={t(row.titleKey)}
-          meta={t.plural('ticket.meta', { count: total })}
-          t={t}
-          dir={dir}
-        />
-      }
+    <QueuePage
+      row={row}
+      meta={meta}
+      t={t}
+      dir={dir}
+      primaryAction={{
+        label: t('ticket.new'),
+        onClick: () => setCreating(true),
+        disabled: !canWrite,
+        reason: canWrite ? null : t('ticket.action.claim.blocked.permission'),
+      }}
     >
-      <DataTable
-        table={table}
-        rows={data.data?.items ?? []}
-        columns={columns}
-        getRowId={(tk) => tk.id}
-        status={data.status}
-        total={total}
+      <NewTicketModal
+        open={creating}
+        onClose={() => setCreating(false)}
+        onCreated={(created) => {
+          setCreating(false)
+          toast.success(t('ticket.toast.created', { id: created.id }))
+          data.refetch()
+          breached.refetch()
+        }}
         t={t}
         language={language}
+      />
+      <BreachBanner
+        id="support-tickets-sla"
+        count={breached.data?.total ?? 0}
+        scoped={scoped}
+        onShowBreached={() => table.setFilter({ field: 'breached', op: 'eq', value: true })}
+        t={t}
+        language={language}
+        oneKey="ticket.banner.one"
+        otherKey="ticket.banner.other"
+      />
+
+      <QueueTable
+        t={t}
+        language={language}
+        table={table}
+        rows={rows}
+        status={data.status}
+        total={data.data?.total ?? 0}
+        getRowId={(ticket) => ticket.id}
+        columns={columns}
         tableId="support-tickets"
-        view={activeTab}
         tabs={tabs}
         activeTab={activeTab}
-        onSelectTab={(id) =>
-          navigate({ pathname: location.pathname, search: withView(location.search, id) })
-        }
+        onSelectTab={selectTab}
+        onTotal={onTotal}
+        now={now}
         searchPlaceholder={t('ticket.search')}
-        rowActions={rowActions}
-        rowActionsWidth={200}
+        extraFilters={[
+          {
+            field: 'breached',
+            label: t('queue.filter.breached'),
+            kind: 'boolean',
+            trueLabel: t('queue.filter.breached.yes'),
+            falseLabel: t('queue.filter.breached.no'),
+          },
+        ]}
+        /* R5a: the same predicate as the marker and the pill. */
+        isRowCritical={(ticket) => runningTicketClock(ticket, now).result.breached}
+        /* One disposition per view: `Done` holds decided rows and offers
+           `Reopen`; every other view holds live rows and offers `Resolve`. The
+           counterpart is stated on the detail header (§11.2); repeating its
+           refusal on every row here would level the pitch up (R20). */
+        rowActions={
+          activeTab === 'done'
+            ? [
+                {
+                  label: t('ticket.action.reopen'),
+                  onSelect: reopen,
+                  disabled: (ticket) => !canWrite || !ticketIsDecided(ticket),
+                  reason: (ticket) =>
+                    !canWrite
+                      ? t('ticket.action.reopen.blocked.permission')
+                      : ticketIsDecided(ticket)
+                        ? null
+                        : t('ticket.action.reopen.blocked.open', {
+                            status: t(`ticket.status.${ticket.status}`),
+                          }),
+                },
+              ]
+            : [
+                {
+                  label: t('ticket.action.resolve'),
+                  onSelect: resolve,
+                  disabled: (ticket) => !canWrite || ticketIsDecided(ticket),
+                  reason: (ticket) =>
+                    !canWrite
+                      ? t('ticket.action.resolve.blocked.permission')
+                      : ticketIsDecided(ticket)
+                        ? t('ticket.action.resolve.blocked.done', {
+                            status: t(`ticket.status.${ticket.status}`),
+                          })
+                        : null,
+                },
+              ]
+        }
+        rowActionsWidth={112}
+        bulkActions={[
+          {
+            label: t('ticket.bulk.claim'),
+            onClick: (ids) => void claimSelected(ids),
+            disabled: claimRefusal.refused || claimingMany,
+            reason: claimRefusal.reason,
+            eligibleIds: claimRefusal.eligibleIds,
+          },
+        ]}
+        cleared={{
+          heading: t('ticket.empty.cleared.heading'),
+          body: t(CLEARED_BODY[activeTab] ?? 'ticket.empty.cleared.unassigned'),
+        }}
         firstRun={{
           heading: t('ticket.empty.heading'),
           body: t('ticket.empty.body'),
-          actions: [],
+          actions: [{ label: t('ticket.empty.firstRun.action'), onClick: () => selectTab('done') }],
         }}
         noMatch={{ message: t('ticket.empty.noMatch') }}
         error={{ message: t('ticket.error.read'), onRetry: data.refetch }}
       />
-    </SingleColumnPage>
+
+      <ConfirmDialog request={confirm} onClose={() => setConfirm(null)} busy={actions.busy} t={t} />
+    </QueuePage>
   )
+}
+
+/* ─────────────────────────────── columns ───────────────────────────────── */
+
+interface TicketDeps {
+  /* `Translator`, not `Translate`: the owner chip pluralises (T5.12). */
+  t: Translator
+  language: Language
+  now: IsoDateTime
+  canWrite: boolean
+  currentUserId: string
+  detailHref: (id: string) => string
+  failure: (id: string) => RowFailure | undefined
+  onClaim: (ticket: Ticket) => void
+  onRelease: (ticket: Ticket) => void
+  onTakeOver: (ticket: Ticket) => void
+}
+
+/** §7.3 budget: `96 + 120 + 136 + 176 = 528`, plus the identity's `minWidth: 200`. */
+export function ticketColumns(deps: TicketDeps): ReadonlyArray<DataColumn<Ticket>> {
+  const { t, language, now } = deps
+
+  return [
+    {
+      id: 'ticket',
+      emphasis: 'primary',
+      csv: (ticket) => ticket.subject,
+      header: t('ticket.col.ticket'),
+      alwaysVisible: true,
+      minWidth: 200,
+      dataType: 'text',
+      sortField: 'subject',
+      cell: (ticket) => {
+        const clock = runningTicketClock(ticket, now)
+        return (
+          <>
+            {clock.result.breached && <RowCriticalMarker />}
+            <SubjectIdentity
+              to={deps.detailHref(ticket.id)}
+              title={ticket.subject}
+              /* §7.7: who is asking, and the reason as a sentence. One key. */
+              secondary={t('ticket.line', {
+                requester: ticket.entityName,
+                reason: reasonLabel(t, ticket.reasonCode),
+              })}
+              label={t('ticket.a11y.open', { id: ticket.id })}
+            />
+          </>
+        )
+      },
+    },
+    {
+      id: 'priority',
+      emphasis: 'data',
+      header: t('ticket.col.priority'),
+      width: 96,
+      dataType: 'enum',
+      sortField: 'priority',
+      filter: {
+        kind: 'select',
+        field: 'priority',
+        options: (['Critical', 'High', 'Medium', 'Low'] as const).map((value) => ({
+          value,
+          label: t(`ticket.priority.${value}`),
+        })),
+      },
+      /* R4-10 / Safety's precedent: only the two escalated levels wear a chip;
+         `Medium` and `Low` are words (D-21, H7's one-badge budget). */
+      cell: (ticket) =>
+        ticket.priority === 'Low' || ticket.priority === 'Medium' ? (
+          <Cell className="text-muted-foreground">{t(`ticket.priority.${ticket.priority}`)}</Cell>
+        ) : (
+          <Cell>
+            <StatusBadge tone={PRIORITY_TONE[ticket.priority]}>
+              {t(`ticket.priority.${ticket.priority}`)}
+            </StatusBadge>
+          </Cell>
+        ),
+    },
+    {
+      id: 'status',
+      emphasis: 'data',
+      header: t('ticket.col.status'),
+      width: 120,
+      dataType: 'enum',
+      sortField: 'status',
+      filter: {
+        kind: 'select',
+        field: 'status',
+        options: (['open', 'in-progress', 'waiting', 'resolved', 'closed'] as const).map(
+          (value) => ({ value, label: t(`ticket.status.${value}`) }),
+        ),
+      },
+      cell: (ticket) => (
+        <Cell>
+          <StatusBadge tone={STATUS_TONE[ticket.status]}>
+            {t(`ticket.status.${ticket.status}`)}
+          </StatusBadge>
+          {/* B4: the rating rides the decided row as text, never a second chip. */}
+          {ticket.csat !== null && (
+            <span className="ms-2 text-xs text-muted-foreground">
+              {t('ticket.csat.short', { score: formatCount(ticket.csat.score, language) })}
+            </span>
+          )}
+        </Cell>
+      ),
+    },
+    {
+      id: 'sla',
+      emphasis: 'data',
+      header: t('queue.col.sla'),
+      width: 136,
+      dataType: 'date',
+      cell: (ticket) => {
+        const clock = runningTicketClock(ticket, now)
+        return (
+          <SlaCell
+            result={clock.result}
+            dueAt={clock.input?.dueAt ?? null}
+            t={t}
+            language={language}
+            promiseLabel={t(`ticket.promise.${clock.promise}`)}
+          />
+        )
+      },
+    },
+    {
+      id: 'owner',
+      header: t('queue.col.owner'),
+      width: 176,
+      dataType: 'enum',
+      filter: {
+        kind: 'boolean',
+        field: 'unclaimed',
+        trueLabel: t('queue.owner.unclaimed'),
+        falseLabel: t('queue.filter.breached.no'),
+      },
+      cell: (ticket) => {
+        const failed = deps.failure(ticket.id)
+        if (failed) {
+          return (
+            <MutedCell title={failed.message}>
+              <button
+                type="button"
+                className="rounded-sm underline underline-offset-2 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                onClick={failed.retry}
+              >
+                {t('queue.error.retry')}
+              </button>
+            </MutedCell>
+          )
+        }
+        if (ticketIsDecided(ticket)) {
+          return ticket.ownerName === null ? <Absent /> : <MutedCell>{ticket.ownerName}</MutedCell>
+        }
+        return (
+          <OwnerChip
+            claim={ticket.claim}
+            currentUserId={deps.currentUserId}
+            now={now}
+            t={t}
+            canWrite={deps.canWrite}
+            disabledReason={t('ticket.action.claim.blocked.permission')}
+            onClaim={() => deps.onClaim(ticket)}
+            onRelease={() => deps.onRelease(ticket)}
+            onTakeOver={() => deps.onTakeOver(ticket)}
+          />
+        )
+      },
+    },
+
+    /* ── behind the column control (§7.4) ─────────────────────────────── */
+    {
+      id: 'id',
+      header: t('queue.col.id'),
+      width: 104,
+      dataType: 'id',
+      defaultHidden: true,
+      sortField: 'id',
+      cell: (ticket) => <MutedCell className="font-mono">{ticket.id}</MutedCell>,
+    },
+    {
+      id: 'category',
+      header: t('ticket.col.category'),
+      width: 136,
+      dataType: 'enum',
+      defaultHidden: true,
+      sortField: 'category',
+      filter: { kind: 'text', field: 'category' },
+      cell: (ticket) => <Cell>{ticket.category}</Cell>,
+    },
+    {
+      id: 'reasonCode',
+      header: t('ticket.col.reasonCode'),
+      width: 176,
+      dataType: 'id',
+      defaultHidden: true,
+      filter: { kind: 'text', field: 'reasonCode' },
+      cell: (ticket) => (
+        <MutedCell className="font-mono">
+          <bdi>{ticket.reasonCode}</bdi>
+        </MutedCell>
+      ),
+    },
+    {
+      id: 'channel',
+      header: t('ticket.col.channel'),
+      width: 112,
+      dataType: 'enum',
+      defaultHidden: true,
+      cell: (ticket) =>
+        ticket.channel === null ? (
+          <Absent word={t('ticket.channel.unknown')} />
+        ) : (
+          <Cell>{t(`ticket.channel.${ticket.channel}`)}</Cell>
+        ),
+    },
+    {
+      id: 'createdAt',
+      header: t('ticket.col.opened'),
+      width: 136,
+      dataType: 'date',
+      defaultHidden: true,
+      sortField: 'createdAt',
+      cell: (ticket) => (
+        <DateCell>
+          <bdi>{formatDate(ticket.createdAt, { style: 'day-month-time', language })}</bdi>
+        </DateCell>
+      ),
+    },
+  ]
 }

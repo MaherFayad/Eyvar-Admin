@@ -107,7 +107,7 @@ export const notificationFixtures: Notification[] = [
     body: 'Al Malaz → Riyadh Park · captain Khalid Mansour · 8 minutes late',
     createdAt: offsetFromNow({ minutes: -6 }),
     read: false,
-    route: '/support/safety?view=critical-sos',
+    route: '/support/safety?view=critical',
     entityId: 'TRP-7742',
     entityType: 'trip',
   },

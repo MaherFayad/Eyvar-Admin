@@ -43,7 +43,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import type { SubTabRoute, SubTabView } from '@/data/types'
 import { formatCount, type Direction, type Language, type Translate } from '@/lib'
 import { Banner } from '@/components/Banner'
-import { PageHeader } from '@/components/PageHeader'
+import { PageHeader, type PageAction } from '@/components/PageHeader'
 import { SingleColumnPage } from '@/components/PageShell'
 import {
   DataTable,
@@ -132,6 +132,7 @@ export function QueuePage({
   hint = null,
   t,
   dir,
+  primaryAction,
   children,
 }: {
   row: SubTabRoute
@@ -144,6 +145,8 @@ export function QueuePage({
   hint?: ReactNode
   t: Translate
   dir: Direction
+  /** R3: at most one. A queue that can create its own rows names the act here. */
+  primaryAction?: PageAction
   children: ReactNode
 }) {
   /* Still ONE line (V4): the hint is a 14px icon on the same baseline, not a
@@ -158,7 +161,11 @@ export function QueuePage({
       </span>
     )
   return (
-    <SingleColumnPage header={<PageHeader title={t(row.titleKey)} meta={line} t={t} dir={dir} />}>
+    <SingleColumnPage
+      header={
+        <PageHeader title={t(row.titleKey)} meta={line} primaryAction={primaryAction} t={t} dir={dir} />
+      }
+    >
       {children}
     </SingleColumnPage>
   )

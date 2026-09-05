@@ -37,6 +37,7 @@
  */
 
 import { DATA_SOURCE, registerOperations } from '../config'
+import { rederiveOpenTicketClocks } from './tickets'
 import { EYVAR_NOW } from '../mock/clock'
 import { mock, mockMutation, notFound } from '../mock/delay'
 import { ApiError, type ApiErrorDetail, type Paginated } from '../types/common'
@@ -99,6 +100,18 @@ function clone<T>(value: T): T {
 }
 
 let policyState!: OperationalPolicy
+
+/**
+ * The policy document, synchronously, for the clients that stamp promises
+ * inside one `mockMutation` (`clients/tickets.ts`). Mock only: in http mode
+ * the server resolves an SLA and this is never called.
+ */
+/** D22: the cap's ceiling. Four already breaks the 45-second promise. */
+export const CHAT_CAP_MAX = 8
+
+export function currentPolicy(): OperationalPolicy {
+  return policyState
+}
 
 export function resetPolicy(): void {
   /* Nothing seeded yet: the fixture chunk has not landed, so there is no
@@ -193,6 +206,8 @@ export async function saveOperationalPolicy(
 
     const changedFields = diffPolicy(before, next)
     policyState = next
+    /* B1: the grid moved, so every open ticket's promises move with it (§9.1). */
+    if (JSON.stringify(before.sla) !== JSON.stringify(next.sla)) rederiveOpenTicketClocks(next)
 
     if (changedFields.length > 0) {
       appendAudit({
@@ -644,6 +659,7 @@ export function diffPolicy(before: OperationalPolicy, after: OperationalPolicy):
     'maxCaptainDailyDrivingMinutes',
     'maxConcurrentSubscriptionsPerCaptain',
     'maxRiderDailyCancellations',
+    'maxConcurrentChatsPerOperator',
   ] as const) {
     if (before.limits[field] !== after.limits[field]) changed.push(`limits.${field}`)
   }
@@ -750,6 +766,14 @@ function validatePolicyInput(input: SaveOperationalPolicyInput): ApiErrorDetail[
     1,
   )
   positive('limits.maxRiderDailyCancellations', input.limits.maxRiderDailyCancellations, 0)
+  positive('limits.maxConcurrentChatsPerOperator', input.limits.maxConcurrentChatsPerOperator, 1)
+  if (input.limits.maxConcurrentChatsPerOperator > CHAT_CAP_MAX) {
+    details.push({
+      field: 'limits.maxConcurrentChatsPerOperator',
+      code: 'range',
+      message: `At most ${CHAT_CAP_MAX} chats per operator`,
+    })
+  }
 
   const seenCityIds = new Set<string>()
   for (const city of input.cities) {

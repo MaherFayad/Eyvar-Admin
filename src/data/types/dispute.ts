@@ -45,7 +45,8 @@
  *    when a plan is re-priced is not a ceiling.
  */
 
-import type { Halalas, IsoDateTime } from './common'
+import type { Claim, Halalas, IsoDateTime } from './common'
+import type { SlaTracked } from './workQueue'
 
 /* ────────────────────────────── disputes ───────────────────────────── */
 
@@ -183,10 +184,17 @@ export interface DisputeResolution {
   resolvedByUserName: string
 }
 
-export interface Dispute {
+/**
+ * A work-queue row (S-1) in all but name: `claim` was already the claimant's
+ * own words, so the shared `Claim` lives on `ownership`, beside the `SlaTracked`
+ * block. `ownerId` and `ownerName` are the live claim, projected by the client.
+ */
+export interface Dispute extends SlaTracked {
   id: string
   kind: DisputeKind
   status: DisputeStatus
+  /** The shared ownership contract (§8.4.1). `null` = nobody holds it. */
+  ownership: Claim | null
 
   /** The claimant's own words. Legacy `claim` (`:14392`). */
   claim: string
@@ -245,13 +253,28 @@ export interface Dispute {
  * the next state from a chain of ternaries that nothing could check. Four
  * states with no flow is three chances to get the order wrong.
  */
-export type LostFoundStatus = 'searching' | 'with-captain' | 'returned'
+export type LostFoundStatus = 'searching' | 'with-captain' | 'returned' | 'unrecoverable'
 
 export const LOST_FOUND_STATUSES: readonly LostFoundStatus[] = [
   'searching',
   'with-captain',
   'returned',
+  'unrecoverable',
 ]
+
+/** The two terminal states: back with its owner, or given up (S-7). */
+export function lostFoundIsClosed(status: LostFoundStatus): boolean {
+  return status === 'returned' || status === 'unrecoverable'
+}
+
+/** One step down the ladder, recorded (AC-S-20). */
+export interface LostFoundTransition {
+  to: LostFoundStatus
+  at: IsoDateTime
+  byUserId: string
+  byUserName: string
+  note: string | null
+}
 
 /**
  * Legacy `LF_FLOW` (`:14453`) as data: the one state each state may advance to,
@@ -264,6 +287,7 @@ export const LOST_FOUND_FLOW: Readonly<Record<LostFoundStatus, LostFoundStatus |
     searching: 'with-captain',
     'with-captain': 'returned',
     returned: null,
+    unrecoverable: null,
   })
 
 export function nextLostFoundStatus(status: LostFoundStatus): LostFoundStatus | null {
@@ -296,4 +320,13 @@ export interface LostFoundItem {
   updatedAt: IsoDateTime
   /** Where the handover is arranged. `null` until it is. */
   handoverNote: string | null
+  /** Every step taken, oldest first. `[]` on a report nobody has moved. */
+  transitions: LostFoundTransition[]
 }
+
+/** The fields a seeded row spells out; the queue block is derived (`fixtures/disputes.ts`). */
+export type DisputeSeed = Omit<Dispute, keyof SlaTracked | 'ownership' | 'ownerId' | 'ownerName'> & {
+  ownerId: string | null
+  ownerName: string | null
+}
+export type LostFoundSeed = Omit<LostFoundItem, 'transitions'>

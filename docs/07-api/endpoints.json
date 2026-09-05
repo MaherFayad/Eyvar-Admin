@@ -867,6 +867,21 @@
     },
     {
       "method": "POST",
+      "path": "/api/v1/conversations/:id/snooze",
+      "client": "src/data/clients/conversations.ts",
+      "function": "snoozeConversation",
+      "params": null,
+      "body": "{ until }",
+      "returns": "Conversation",
+      "statuses": [
+        {
+          "code": "409",
+          "when": "when the conversation is closed"
+        }
+      ]
+    },
+    {
+      "method": "POST",
       "path": "/api/v1/conversations/:id/ticket",
       "client": "src/data/clients/conversations.ts",
       "function": "createTicketForConversation",
@@ -1211,6 +1226,25 @@
       "statuses": []
     },
     {
+      "method": "POST",
+      "path": "/api/v1/disputes",
+      "client": "src/data/clients/disputes.ts",
+      "function": "createDispute",
+      "params": null,
+      "body": "NewDisputeInput",
+      "returns": "Dispute",
+      "statuses": [
+        {
+          "code": "422",
+          "when": "`claim_required` on an empty claim"
+        },
+        {
+          "code": "422",
+          "when": "`amount_required` at or below zero. Legacy could not create one (`13b` §18.1)."
+        }
+      ]
+    },
+    {
       "method": "GET",
       "path": "/api/v1/disputes/:id",
       "client": "src/data/clients/disputes.ts",
@@ -1229,7 +1263,7 @@
       "method": "POST",
       "path": "/api/v1/disputes/:id/claim",
       "client": "src/data/clients/disputes.ts",
-      "function": "claimDispute",
+      "function": "requestDisputeApproval",
       "params": null,
       "body": "{ userId, takeOver }",
       "returns": "Dispute",
@@ -1245,6 +1279,33 @@
         {
           "code": "409",
           "when": "`claimed_by_other` when another operator holds it and `takeOver` is unset"
+        },
+        {
+          "code": "409",
+          "when": "when no operator's cap covers the amount"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/disputes/:id/claim",
+      "client": "src/data/clients/disputes.ts",
+      "function": "claimDispute",
+      "params": null,
+      "body": "{ takeOver? }",
+      "returns": "Dispute",
+      "statuses": [
+        {
+          "code": "404",
+          "when": "when the id does not exist"
+        },
+        {
+          "code": "409",
+          "when": "`claimed_by_other` when another operator holds a live claim and `takeOver` is unset"
+        },
+        {
+          "code": "409",
+          "when": "`already_resolved` on a decided claim"
         }
       ]
     },
@@ -1263,7 +1324,34 @@
         },
         {
           "code": "409",
+          "when": "`already_resolved` on a decided claim. Ownership only; the clock does not reset."
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/disputes/:id/request-approval",
+      "client": "src/data/clients/disputes.ts",
+      "function": "requestDisputeApproval",
+      "params": null,
+      "body": "{ userId, takeOver }",
+      "returns": "Dispute",
+      "statuses": [
+        {
+          "code": "404",
+          "when": "when the id does not exist"
+        },
+        {
+          "code": "409",
           "when": "`already_resolved` when the dispute is resolved"
+        },
+        {
+          "code": "409",
+          "when": "`claimed_by_other` when another operator holds it and `takeOver` is unset"
+        },
+        {
+          "code": "409",
+          "when": "when no operator's cap covers the amount"
         }
       ]
     },
@@ -2158,6 +2246,25 @@
       "statuses": []
     },
     {
+      "method": "POST",
+      "path": "/api/v1/lost-found",
+      "client": "src/data/clients/disputes.ts",
+      "function": "createLostFoundItem",
+      "params": null,
+      "body": "NewLostFoundInput",
+      "returns": "LostFoundItem",
+      "statuses": [
+        {
+          "code": "422",
+          "when": "`item_required` on an empty description"
+        },
+        {
+          "code": "422",
+          "when": "`trip_required` on no trip. Legacy could not create one (`13b` §18.2)."
+        }
+      ]
+    },
+    {
       "method": "GET",
       "path": "/api/v1/lost-found/:id",
       "client": "src/data/clients/disputes.ts",
@@ -2188,6 +2295,25 @@
         {
           "code": "422",
           "when": "when the next step needs a captain and the report has none"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/lost-found/:id/unrecoverable",
+      "client": "src/data/clients/disputes.ts",
+      "function": "markLostFoundUnrecoverable",
+      "params": null,
+      "body": "{ note }",
+      "returns": "LostFoundItem",
+      "statuses": [
+        {
+          "code": "409",
+          "when": "`already_closed` on a returned or unrecoverable report"
+        },
+        {
+          "code": "422",
+          "when": "`note_required`. The ladder's other exit (S-7): giving up is a decision with a reason."
         }
       ]
     },
@@ -3538,7 +3664,7 @@
       "client": "src/data/clients/tickets.ts",
       "function": "createTicket",
       "params": null,
-      "body": "{ subject, entityId, entityName, entityType, category, reasonCode,",
+      "body": "NewTicketInput",
       "returns": "Ticket",
       "statuses": []
     },
@@ -3568,7 +3694,7 @@
       "statuses": [
         {
           "code": "422",
-          "when": "on an outcome outside the closed set"
+          "when": "on an outcome outside the closed set. A call moves the ticket on as a"
         }
       ]
     },
@@ -3578,7 +3704,7 @@
       "client": "src/data/clients/tickets.ts",
       "function": "claimTicket",
       "params": null,
-      "body": "{ userId, takeOver }",
+      "body": "{ takeOver? }",
       "returns": "Ticket",
       "statuses": [
         {
@@ -3587,7 +3713,36 @@
         },
         {
           "code": "409",
-          "when": "`claimed_by_other` when another operator holds it and `takeOver` is unset"
+          "when": "`claimed_by_other` when another operator holds a live claim and `takeOver` is unset"
+        },
+        {
+          "code": "409",
+          "when": "`ticket_decided` on a resolved or closed ticket"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tickets/:id/priority",
+      "client": "src/data/clients/tickets.ts",
+      "function": "setTicketPriority",
+      "params": null,
+      "body": "{ priority }",
+      "returns": "Ticket",
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tickets/:id/reason-code",
+      "client": "src/data/clients/tickets.ts",
+      "function": "recodeTicket",
+      "params": null,
+      "body": "{ reasonCode }",
+      "returns": "Ticket",
+      "statuses": [
+        {
+          "code": "409",
+          "when": "`ticket_decided` on a resolved or closed ticket. Re-derives the priority"
         }
       ]
     },
@@ -3621,7 +3776,7 @@
         },
         {
           "code": "409",
-          "when": "when the ticket is not resolved"
+          "when": "`ticket_open` when the ticket is not decided. Releases the decided claim;"
         }
       ]
     },
@@ -3637,6 +3792,14 @@
         {
           "code": "404",
           "when": "when the id does not exist"
+        },
+        {
+          "code": "409",
+          "when": "`ticket_closed` on a closed ticket"
+        },
+        {
+          "code": "422",
+          "when": "`no_channel` when the ticket has no reply destination"
         }
       ]
     },
@@ -3655,7 +3818,60 @@
         },
         {
           "code": "409",
-          "when": "when the ticket is already resolved"
+          "when": "`ticket_decided` when already resolved or closed. The claim becomes"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tickets/:id/status",
+      "client": "src/data/clients/tickets.ts",
+      "function": "setTicketStatus",
+      "params": null,
+      "body": "{ status: 'waiting' | 'in-progress' }",
+      "returns": "Ticket",
+      "statuses": [
+        {
+          "code": "409",
+          "when": "`ticket_decided` on a resolved or closed ticket. `waiting` pauses the"
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tickets/:id/transfer",
+      "client": "src/data/clients/tickets.ts",
+      "function": "transferTicket",
+      "params": null,
+      "body": "{ toUserId, note }",
+      "returns": "Ticket",
+      "statuses": [
+        {
+          "code": "404",
+          "when": "when the id or the operator does not exist"
+        },
+        {
+          "code": "409",
+          "when": "`ticket_decided` on a resolved or closed ticket"
+        },
+        {
+          "code": "422",
+          "when": "`note_required` when the note is empty. The note lands as an internal message (AC-S-13)."
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tickets/take-next",
+      "client": "src/data/clients/tickets.ts",
+      "function": "takeNextTicket",
+      "params": null,
+      "body": "none",
+      "returns": "Ticket",
+      "statuses": [
+        {
+          "code": "404",
+          "when": "nothing is waiting to be claimed"
         }
       ]
     },

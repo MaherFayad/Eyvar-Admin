@@ -535,9 +535,11 @@ describe('reply — and what a reply is not', () => {
      * must still be in the conversation. `CNV-101`'s customer has not left, so
      * all four states run. The other branch is asserted below.
      */
-    expect(pendingRealtimeCount()).toBe(3)
+    /* Three delivery steps, then the customer's typing signal (§8.7). */
+    expect(pendingRealtimeCount()).toBe(4)
     drainRealtime()
     expect(events.map((e) => e.state).filter(Boolean)).toEqual(['sent', 'delivered', 'read'])
+    expect(events.at(-1)?.type).toBe('typing')
   })
 
   it('stops at delivered when the customer has closed the tab', async () => {

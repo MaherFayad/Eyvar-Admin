@@ -275,6 +275,12 @@ export interface ReasonCode {
   state: ReasonCodeState
   /** The tier the work opened under this code inherits. */
   tier: SlaTierKey
+  /**
+   * A recurring "next update" promise in minutes, for the few codes that make
+   * one (legacy `upd`, `:14670`: a late captain every 15, a lost item every 30).
+   * Absent or `null` = no such promise.
+   */
+  updateEveryMinutes?: number | null
   /** The team that can make this code stop existing. `null` = unassigned (`:14669`). */
   ownerTeam: string | null
   /** `null` while active. Set once, on retirement; never cleared by a restore. */
@@ -334,6 +340,8 @@ export interface SafetyLimits {
    * operator's own cap on Team & Access overrides it (O-T5).
    */
   compensationCapHalalasByRole: Record<string, number | null>
+  /** D22: live chats one operator may hold at once. Owner is exempt. Range 1 to 8. */
+  maxConcurrentChatsPerOperator: number
 }
 
 /* ═══════════════════ the document ═══════════════════ */

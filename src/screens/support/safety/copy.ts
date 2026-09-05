@@ -66,6 +66,20 @@ export const SAFETY_EN: Dictionary = {
   'safety.step.document': 'Document',
   'safety.step.a11y': '{step} — {incident}',
   'safety.step.countLabel': '{done} of {total} protocol steps complete',
+  'safety.step.progress': '{done} of {total}',
+
+  /* ── the record (S-8, F-2) ──────────────────────────────────────────── */
+  'safety.detail.meta': '{id} · {type} · opened {opened}',
+  'safety.detail.back': 'Back to incidents',
+  'safety.detail.notFound': 'That incident is not on record',
+  'safety.detail.notFoundBody': 'Nothing here answers to {id}. The link may be old.',
+  'safety.detail.promises': 'Promises',
+  'safety.detail.acknowledgedAt': 'Acknowledged {date}',
+  'safety.detail.parties': 'Parties',
+  'safety.detail.against': 'Against {name}',
+  'safety.detail.noAgainst': 'Nobody is named.',
+  'safety.detail.reporter': 'Reported by {name}',
+  'safety.detail.trip': 'Trip {trip}',
   /* **Q-69 / AC-315** — order is enforced for `document` only, and it is
      enforced at RENDER (Q-25), so the operator meets the rule and not a 422. */
   'safety.step.documentBlocked': 'Contact, verify and act have to be complete first.',

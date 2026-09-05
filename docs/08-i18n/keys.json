@@ -1,13 +1,13 @@
 {
   "totals": {
-    "keys": 6114,
-    "en": 5764,
-    "ar": 6114,
+    "keys": 6388,
+    "en": 6042,
+    "ar": 6388,
     "arMissing": 0,
-    "arExtra": 350,
+    "arExtra": 346,
     "copyFiles": 37,
     "unregisteredKeys": 194,
-    "pluralForms": 65,
+    "pluralForms": 63,
     "defaultValue": 0,
     "defaultValueForwarded": 2,
     "emDashEn": 89,
@@ -52,7 +52,7 @@
       "exports": [
         "OVERVIEW_EN"
       ],
-      "keys": 252,
+      "keys": 266,
       "notInEN": 0
     },
     {
@@ -61,6 +61,14 @@
         "ADMIN_WORKSPACE_EN"
       ],
       "keys": 238,
+      "notInEN": 0
+    },
+    {
+      "file": "src/screens/support/tickets/copy.ts",
+      "exports": [
+        "TICKETS_EN"
+      ],
+      "keys": 236,
       "notInEN": 0
     },
     {
@@ -77,6 +85,14 @@
         "ADMIN_DATA_EN"
       ],
       "keys": 189,
+      "notInEN": 0
+    },
+    {
+      "file": "src/screens/support/conversations/copy.ts",
+      "exports": [
+        "CONVERSATIONS_EN"
+      ],
+      "keys": 184,
       "notInEN": 0
     },
     {
@@ -100,15 +116,15 @@
       "exports": [
         "POLICY_EN"
       ],
-      "keys": 166,
+      "keys": 168,
       "notInEN": 0
     },
     {
-      "file": "src/screens/support/conversations/copy.ts",
+      "file": "src/screens/support/disputes/copy.ts",
       "exports": [
-        "CONVERSATIONS_EN"
+        "DISPUTES_EN"
       ],
-      "keys": 164,
+      "keys": 168,
       "notInEN": 0
     },
     {
@@ -136,14 +152,6 @@
       "notInEN": 0
     },
     {
-      "file": "src/screens/support/tickets/copy.ts",
-      "exports": [
-        "TICKETS_EN"
-      ],
-      "keys": 110,
-      "notInEN": 0
-    },
-    {
       "file": "src/components/profile/driver/copy.ts",
       "exports": [
         "DRIVER_PROFILE_EN"
@@ -155,14 +163,6 @@
       "file": "src/screens/operations/trips/copy.ts",
       "exports": [
         "TRIPS_EN"
-      ],
-      "keys": 104,
-      "notInEN": 0
-    },
-    {
-      "file": "src/screens/support/disputes/copy.ts",
-      "exports": [
-        "DISPUTES_EN"
       ],
       "keys": 104,
       "notInEN": 0
@@ -210,11 +210,27 @@
       "notInEN": 0
     },
     {
+      "file": "src/screens/support/fairness/copy.ts",
+      "exports": [
+        "FAIRNESS_EN"
+      ],
+      "keys": 77,
+      "notInEN": 0
+    },
+    {
       "file": "src/screens/operations/my-work/copy.ts",
       "exports": [
         "MY_WORK_EN"
       ],
       "keys": 69,
+      "notInEN": 0
+    },
+    {
+      "file": "src/screens/support/safety/copy.ts",
+      "exports": [
+        "SAFETY_EN"
+      ],
+      "keys": 68,
       "notInEN": 0
     },
     {
@@ -226,27 +242,11 @@
       "notInEN": 0
     },
     {
-      "file": "src/screens/support/fairness/copy.ts",
-      "exports": [
-        "FAIRNESS_EN"
-      ],
-      "keys": 63,
-      "notInEN": 0
-    },
-    {
       "file": "src/components/profile/request/copy.ts",
       "exports": [
         "REQUEST_PROFILE_EN"
       ],
       "keys": 61,
-      "notInEN": 0
-    },
-    {
-      "file": "src/screens/support/safety/copy.ts",
-      "exports": [
-        "SAFETY_EN"
-      ],
-      "keys": 56,
       "notInEN": 0
     },
     {

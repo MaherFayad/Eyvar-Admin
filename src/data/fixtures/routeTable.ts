@@ -128,6 +128,36 @@ const CONVERSATION_DETAIL: DetailRoute = {
   patterns: ['P2'],
 }
 
+const DISPUTE_DETAIL: DetailRoute = {
+  kind: 'dispute',
+  path: '/support/disputes/:disputeId',
+  parentSubTabId: 'support-disputes',
+  paramName: 'disputeId',
+  titleKey: 'route.disputes.detail',
+  shape: 'detail',
+  patterns: ['P2'],
+}
+
+const INCIDENT_DETAIL: DetailRoute = {
+  kind: 'incident',
+  path: '/support/safety/:incidentId',
+  parentSubTabId: 'support-safety',
+  paramName: 'incidentId',
+  titleKey: 'route.safety.detail',
+  shape: 'detail',
+  patterns: ['P2'],
+}
+
+const FAIRNESS_DETAIL: DetailRoute = {
+  kind: 'fairness-case',
+  path: '/support/fairness/:caseId',
+  parentSubTabId: 'support-fairness',
+  paramName: 'caseId',
+  titleKey: 'route.fairness.detail',
+  shape: 'detail',
+  patterns: ['P2'],
+}
+
 const TICKET_DETAIL: DetailRoute = {
   kind: 'ticket',
   path: '/support/tickets/:ticketId',
@@ -360,6 +390,7 @@ export const SUB_TABS: SubTabRoute[] = [
     subtitleKey: 'subtab.operations.myWork.sub',
     views: views(
       ['mine', 'view.myWork.mine'],
+      ['handed', 'view.myWork.handed'],
       ['unassigned', 'view.myWork.unassigned'],
       ['everything', 'view.myWork.everything'],
     ),
@@ -775,17 +806,18 @@ export const SUB_TABS: SubTabRoute[] = [
     order: 2,
     titleKey: 'subtab.support.tickets',
     subtitleKey: 'subtab.support.tickets.sub',
+    /* A §8.4 queue (S-1): it lands on the work nobody holds (Q-32). */
     views: views(
+      ['unassigned', 'view.tickets.unassigned'],
+      ['mine', 'view.tickets.mine'],
       ['open', 'view.tickets.open'],
-      ['in-progress', 'view.tickets.inProgress'],
       ['waiting', 'view.tickets.waiting'],
-      ['resolved', 'view.tickets.resolved'],
-      ['by-reason-code', 'view.tickets.byReasonCode'],
+      ['done', 'view.tickets.done'],
     ),
     detailRoutes: [TICKET_DETAIL],
     legacyPageIds: ['support', 'ticket-detail'],
     legacySettingsPanes: [],
-    patterns: ['P9'],
+    patterns: ['P8'],
     shape: 'single',
     viewPermission: 'view_support',
     writePermission: 'manage_tickets',
@@ -798,8 +830,14 @@ export const SUB_TABS: SubTabRoute[] = [
     order: 3,
     titleKey: 'subtab.support.disputes',
     subtitleKey: 'subtab.support.disputes.sub',
-    views: views(['disputes', 'view.disputes.disputes'], ['lost-and-found', 'view.disputes.lostAndFound']),
-    detailRoutes: [],
+    /* Open and decided claims are two views (R20: a decided row carries no
+       refused action); lost property is a second collection on the same tab strip. */
+    views: views(
+      ['disputes', 'view.disputes.disputes'],
+      ['decided', 'view.disputes.decided'],
+      ['lost-and-found', 'view.disputes.lostAndFound'],
+    ),
+    detailRoutes: [DISPUTE_DETAIL],
     legacyPageIds: ['support'],
     legacySettingsPanes: [],
     patterns: ['P9'],
@@ -821,7 +859,7 @@ export const SUB_TABS: SubTabRoute[] = [
       ['rider-reports', 'view.fairness.riderReports'],
       ['captain-economics', 'view.fairness.captainEconomics'],
     ),
-    detailRoutes: [],
+    detailRoutes: [FAIRNESS_DETAIL],
     legacyPageIds: ['fairness'],
     legacySettingsPanes: [],
     patterns: ['P5', 'P8'],
@@ -837,12 +875,14 @@ export const SUB_TABS: SubTabRoute[] = [
     order: 5,
     titleKey: 'subtab.support.safety',
     subtitleKey: 'subtab.support.safety.sub',
+    /* Spec §8.9: `critical`, not `critical-sos` (severity is not type), and an `all` view. */
     views: views(
       ['open', 'view.safety.open'],
-      ['critical-sos', 'view.safety.criticalSos'],
+      ['critical', 'view.safety.critical'],
       ['closed', 'view.safety.closed'],
+      ['all', 'view.safety.all'],
     ),
-    detailRoutes: [],
+    detailRoutes: [INCIDENT_DETAIL],
     legacyPageIds: ['safety'],
     legacySettingsPanes: [],
     patterns: ['P9'],

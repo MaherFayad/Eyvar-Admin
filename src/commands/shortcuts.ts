@@ -17,7 +17,7 @@ import type { SubTabRoute, WorkspaceId } from '@/data/types'
  * What a key press over a focused row MEANS. `null` is "not ours" — the row
  * hands the event on, which is how `Escape` still reaches a sheet above it.
  */
-export type RowIntent = 'row.next' | 'row.previous' | 'row.actions'
+export type RowIntent = 'row.next' | 'row.previous' | 'row.actions' | 'row.claim'
 
 /**
  * `j`/`k` are the vi pair every list keyboard in this class uses, and they sit
@@ -35,6 +35,7 @@ export function rowIntentFor(event: {
   if (event.key === 'j') return 'row.next'
   if (event.key === 'k') return 'row.previous'
   if (event.key === '.') return 'row.actions'
+  if (event.key === 'c') return 'row.claim'
   return null
 }
 

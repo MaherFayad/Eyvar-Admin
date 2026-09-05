@@ -455,7 +455,7 @@ describe('wave 2 — the SLA fields a work queue is actually sorted and filtered
   })
 
   it('models two clocks, and lets the first break while the second still runs', async () => {
-    const page = await listSafetyIncidents({ view: 'critical-sos', pageSize: 100 })
+    const page = await listSafetyIncidents({ view: 'critical', pageSize: 100 })
     const sos = page.items.find((i) => i.id === 'INC-015')!
     expect(sos.firstResponseBreachedAt).not.toBeNull()
     expect(sos.slaBreachedAt).toBeNull()

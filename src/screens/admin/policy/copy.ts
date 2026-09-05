@@ -89,6 +89,8 @@ export const POLICY_EN: Dictionary = {
   'policy.limits.riderCancels': 'Rider daily cancellations',
   'policy.limits.caps': 'Compensation cap by role, SAR',
   'policy.limits.caps.help': 'What an operator may credit a rider wallet without a second approval. Blank is no cap. A cap set on the operator in Team & Access wins.',
+  'policy.limits.chatCap': 'Concurrent chats per operator',
+  'policy.limits.chatCap.help': 'From 1 to 8. Owners are exempt.',
 
   /* ── 4a. SLA tier defaults ────────────────────────────────────── */
   'policy.sla.tiers.title': 'SLA tier defaults',
