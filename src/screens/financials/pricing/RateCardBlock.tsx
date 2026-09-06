@@ -619,7 +619,7 @@ function RateCardSkeleton({ t }: { t: Translator }) {
         {[0, 1, 2, 3].map((row) => (
           <div
             key={row}
-            className="flex min-h-row-media flex-col justify-center gap-1 border-b border-border-soft px-3"
+            className="flex min-h-row-media flex-col justify-center gap-1 border-b border-border-soft px-3 py-3"
           >
             <Skeleton className="h-3 w-2/3" />
             <Skeleton className="h-3 w-full" />

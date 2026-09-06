@@ -22,7 +22,14 @@ import {
   resetDataLayer,
   switchMockUser,
 } from '@/data/clients'
-import type { RateCard, SubTabRoute, SurgeSuspension } from '@/data/types'
+import type {
+  Paginated,
+  RateCard,
+  SubTabRoute,
+  SurgeSuspension,
+  SurgeWindow,
+  Zone,
+} from '@/data/types'
 import { fixedClock } from '@/data/mock/clock'
 import { resetClock, setClockSource } from '@/hooks'
 import { EN } from '@/i18n/dictionaries'
@@ -32,6 +39,10 @@ import { PricingScreen } from './PricingScreen'
 /** What `listRateCards` answers with, when a test needs a shape fixtures lack. */
 let cardsOverride: RateCard[] | null = null
 let suspensionsOverride: SurgeSuspension[] | null = null
+/* The `Surge` card's two reads, so §10.6's empties are reachable: the fixtures
+   ship three windows and six districts and neither client takes a query. */
+let windowsOverride: SurgeWindow[] | null = null
+let zonesOverride: Zone[] | null = null
 let liveReads = 0
 let listReads = 0
 
@@ -51,6 +62,15 @@ vi.mock('@/data/clients', async (importOriginal) => {
     listSurgeSuspensions: async (signal?: AbortSignal) => {
       const all = await actual.listSurgeSuspensions(signal)
       return suspensionsOverride ?? all
+    },
+    listSurgeWindows: async (signal?: AbortSignal) => {
+      const all = await actual.listSurgeWindows(signal)
+      return windowsOverride ?? all
+    },
+    listZones: async (params?: Parameters<typeof actual.listZones>[0]) => {
+      const page = await actual.listZones(params)
+      if (zonesOverride === null) return page
+      return { ...page, items: zonesOverride, total: zonesOverride.length } as Paginated<Zone>
     },
   }
 })
@@ -79,6 +99,8 @@ beforeEach(() => {
   mockFailures.clear()
   cardsOverride = null
   suspensionsOverride = null
+  windowsOverride = null
+  zonesOverride = null
   liveReads = 0
   listReads = 0
 })
@@ -798,5 +820,517 @@ describe('surge windows, suspend and suspensions', () => {
       .getByText(copy('fin.pricing.surge.suspensions.empty'))
       .closest('div') as HTMLElement
     expect(empty.querySelector('svg'), 'R8 — no illustration').toBeNull()
+  })
+})
+
+/* ════════ what the rebuild changed, and what nothing was asserting ═══════ */
+
+/**
+ * Revision 2 of the design spec, plus **D35a / D35b / D36**. Every test below
+ * covers a criterion the rebuild added or moved, and every one of them was
+ * either unasserted or asserted only as a clause inside a test named after a
+ * different criterion.
+ *
+ * **Not here, and deliberately: AC-RC-32, 44, 45 and 47.** All four are
+ * computed-style criteria — the seven-rung ramp, the Arabic row *minimum*, the
+ * 4/8/12/24 spacing scale, and D35a's 1px hairline on a disabled control. jsdom
+ * loads no stylesheet and lays out no table, so a jsdom assertion on any of
+ * them would pass against a screen with none of it. They belong to
+ * `scripts/harness/fin-rate-card.mjs`, which measures them in Chromium.
+ */
+const suspendLabel = () => copy('fin.pricing.surge.suspend.confirm')
+const districtGroup = () =>
+  screen.getByRole('radiogroup', { name: copy('fin.pricing.surge.suspend.group.label') })
+const suspendButton = () => within(surgeCard()).getByRole('button', { name: suspendLabel() })
+const impactBand = () =>
+  within(pane())
+    .getByText(copy('fin.pricing.rateCard.impact.heading'))
+    .closest('section') as HTMLElement
+
+describe('band D, the one primary, and D35b', () => {
+  it('AC-RC-37 — band D is three labelled figures and one caption, the delta neutral text and no arrow', async () => {
+    await mounted()
+    const band = impactBand()
+
+    /* Three figures, each one LABELLED: no bare number sits in the row. */
+    for (const key of ['impact.before', 'impact.after', 'impact.change']) {
+      expect(
+        within(band).getAllByText(copy(`fin.pricing.rateCard.${key}`)),
+        `${key} is stated once`,
+      ).toHaveLength(1)
+    }
+    expect(band.textContent).toContain('21.80')
+    expect(band.textContent).toContain('22.94')
+
+    /* One caption for the band, absorbing the two meta lines that flanked it. */
+    const caption = within(band).getByText(
+      fill('fin.pricing.rateCard.impact.caption.past', { trips: '4,186', date: '21 Mar' }),
+    )
+    expect(caption.tagName).toBe('P')
+    expect(within(band).getAllByText(/Measured against/)).toHaveLength(1)
+
+    /* R4-5 / X-RC-7 — the delta is a quantity, so it is neither a badge nor a
+       pill, and no arrow stands in for the word. */
+    const change = within(band).getByText('+5.2%')
+    expect(change.closest('[data-slot="badge"]')).toBeNull()
+    expect(band.textContent).not.toContain('→')
+    expect(document.body.textContent).not.toContain('→')
+  })
+
+  it('AC-RC-42 — exactly one control on the view carries the default variant, and it is Suspend surge', async () => {
+    const user = userEvent.setup()
+    await mounted()
+
+    const filled = [...document.querySelectorAll('[data-variant="default"]')]
+    expect(filled).toHaveLength(1)
+    expect(filled[0]).toHaveAccessibleName(suspendLabel())
+
+    /* A draft adds the only other control on the view, and it does not claim
+       the primary: `secondary`, disabled, with its refusal beside it. */
+    await user.click(rowFor(DRAFT_UNMODELLED))
+    await waitFor(() => expect(pane().textContent).toContain(DRAFT_UNMODELLED))
+    const approve = within(pane()).getByRole('button', {
+      name: copy('fin.pricing.rateCard.approve'),
+    })
+    expect(approve.getAttribute('data-variant')).toBe('secondary')
+    expect(approve).toBeDisabled()
+    expect([...document.querySelectorAll('[data-variant="default"]')]).toHaveLength(1)
+  })
+
+  it('AC-RC-48 — the Surge card carries one heading, and the district band is labelled, not headed', async () => {
+    await mounted()
+    const card = surgeCard()
+    const headings = within(card).getAllByRole('heading')
+    expect(headings).toHaveLength(1)
+    expect(headings[0]).toHaveAccessibleName(copy('fin.pricing.surge.heading'))
+
+    /* The group's accessible name comes from a VISIBLE label, so a sighted
+       operator and a screen-reader operator read the same word. */
+    const label = within(card).getByText(copy('fin.pricing.surge.suspend.group.label'))
+    expect(label.tagName).not.toMatch(/^H[1-6]$/)
+    expect(districtGroup()).toHaveAccessibleName(copy('fin.pricing.surge.suspend.group.label'))
+    expect(label.id).toBe(districtGroup().getAttribute('aria-labelledby'))
+  })
+
+  it('D35b — the card title and the control never carry the same string, by accessible name', async () => {
+    const user = userEvent.setup()
+    await mounted()
+    const card = surgeCard()
+
+    /* One element in the card answers to `Suspend surge`, and it is a button. */
+    const named = within(card).getAllByRole('button', { name: suspendLabel() })
+    expect(named).toHaveLength(1)
+    expect(named[0]?.tagName).toBe('BUTTON')
+    expect(within(card).queryAllByRole('heading', { name: suspendLabel() })).toHaveLength(0)
+    expect(screen.queryAllByRole('heading', { name: suspendLabel() })).toHaveLength(0)
+
+    /* The title is a noun phrase for the object; the button is a verb phrase
+       for the act, and the two are different strings. */
+    const title = within(card).getByRole('heading')
+    expect(title.textContent).not.toBe(named[0]?.textContent)
+
+    /* The instruction is stated once, on the line where it changes what the
+       operator can do — the refusal — and not a second time as a subtitle. */
+    expect(within(card).getAllByText(copy('fin.pricing.surge.suspend.prompt'))).toHaveLength(1)
+
+    /* The confirmation is a second SURFACE, not a second line in this card:
+       `copy.md` 5 has the dialog echo the act it confirms, and while it is open
+       the card is out of the accessibility tree entirely. Closed again, the
+       card still answers to the string exactly once. */
+    await user.click(within(districtGroup()).getAllByRole('radio')[0] as HTMLElement)
+    await user.click(suspendButton())
+    const dialog = await screen.findByRole('dialog')
+    expect(within(dialog).getByRole('button', { name: suspendLabel() })).toBeTruthy()
+    await user.keyboard('{Escape}')
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+    expect(within(surgeCard()).getAllByRole('button', { name: suspendLabel() })).toHaveLength(1)
+  })
+})
+
+/* ═══════════ the write gate names the permission this sub-tab wants ══════ */
+
+/**
+ * The regression this pins. `useWriteGate` handed every Financials sub-tab
+ * `fin.payout.blocked.permission` — *"You cannot pay a captain…"* — under a
+ * control that suspends surge on a screen with no captain and no payout.
+ *
+ * The refusal is only reachable by signing in an operator who does not hold
+ * `manage_plans`: the default `USR-1` is an Owner with all twenty keys, and
+ * every role holding `view_finance` holds `manage_plans` in its baseline. So
+ * each test below states its positive twin — the same control, the same
+ * render, with the permission present — because a gate no operator can fail is
+ * a gate that cannot be tested (`shell/permissions.ts:37`).
+ */
+describe('AC-RC-27 — a blocked control names the permission its own sub-tab wants', () => {
+  const pricingRefusal = () =>
+    fill('fin.pricing.blocked.permission', {
+      permission: EN['account.permission.manage_plans'] as string,
+    })
+
+  it('AC-RC-27 — holding manage_plans, a district arms the primary and no permission is named', async () => {
+    const user = userEvent.setup()
+    const owner = await getSession()
+    expect(owner.permissions, 'the default session is the positive twin').toContain('manage_plans')
+
+    await mounted()
+    const primary = suspendButton()
+    expect(primary).toBeDisabled()
+    /* Disabled for the reason the SCREEN owns, not for a permission. */
+    const before = document.getElementById(primary.getAttribute('aria-describedby') ?? '')
+    expect(before?.textContent).toBe(copy('fin.pricing.surge.suspend.prompt'))
+
+    await user.click(within(districtGroup()).getAllByRole('radio')[0] as HTMLElement)
+    expect(primary).toBeEnabled()
+    expect(document.body.textContent).not.toContain(pricingRefusal())
+    expect(document.body.textContent).not.toContain('permission')
+  })
+
+  it('AC-RC-27 — without manage_plans the refusal names manage_plans, and no district lifts it', async () => {
+    const user = userEvent.setup()
+    const support = await switchMockUser('USR-4')
+    expect(support.permissions).not.toContain('manage_plans')
+    expect(pricingRow().writePermission, 'Pricing gates on manage_plans').toBe('manage_plans')
+
+    await mounted()
+    const primary = suspendButton()
+    expect(primary).toBeDisabled()
+    expect(primary.getAttribute('title'), 'a refusal is text, never a tooltip').toBeNull()
+
+    const reason = document.getElementById(primary.getAttribute('aria-describedby') ?? '')
+    expect(reason?.textContent).toBe(pricingRefusal())
+    /* It quotes the permission's LABEL, never the bare key (D17 clause 1). */
+    expect(reason?.textContent).toContain(EN['account.permission.manage_plans'] as string)
+    expect(reason?.textContent).not.toContain('manage_plans')
+
+    /* And it is the GATE talking, not the screen: choosing a district is still
+       possible and still refuses, with the same sentence. */
+    const chip = within(districtGroup()).getAllByRole('radio')[0] as HTMLElement
+    await user.click(chip)
+    expect(chip.getAttribute('data-state')).toBe('on')
+    expect(primary).toBeDisabled()
+    expect(
+      document.getElementById(primary.getAttribute('aria-describedby') ?? '')?.textContent,
+    ).toBe(pricingRefusal())
+  })
+
+  it('AC-RC-27 — the same refusal reaches Approve, and the captain sentence is nowhere on the view', async () => {
+    const user = userEvent.setup()
+    /* Non-vacuity: the payout sentence is a live key with a captain in it, so
+       an assertion that it is absent is an assertion about this screen. */
+    expect(copy('fin.payout.blocked.permission')).toContain('captain')
+
+    await switchMockUser('USR-4')
+    await mounted()
+    await user.click(rowFor(DRAFT_UNMODELLED))
+    await waitFor(() => expect(pane().textContent).toContain(DRAFT_UNMODELLED))
+
+    const approve = within(pane()).getByRole('button', {
+      name: copy('fin.pricing.rateCard.approve'),
+    })
+    expect(approve).toBeDisabled()
+    const reason = document.getElementById(approve.getAttribute('aria-describedby') ?? '')
+    expect(reason?.textContent).toBe(pricingRefusal())
+
+    expect(document.body.textContent).not.toContain('captain')
+    expect(document.body.textContent).not.toContain(copy('fin.payout.blocked.permission'))
+  })
+})
+
+/* ══════════ the Surge card's four states, and one read per band ══════════ */
+
+describe('AC-RC-49 — one failed read never blanks the other band', () => {
+  it('AC-RC-49 — a failed windows read errors inside the card and the district band still renders', async () => {
+    const user = userEvent.setup()
+    mockFailures.once('pricing.surgeWindows')
+    await mounted()
+
+    const card = surgeCard()
+    expect(within(card).getByText(copy('fin.pricing.surge.error.windows'))).toBeTruthy()
+    expect(
+      within(card).queryByRole('columnheader', { name: copy('fin.pricing.surge.col.window') }),
+    ).toBeNull()
+    /* The lever is not blanked by a read it does not depend on. */
+    expect(
+      within(card).getByRole('radiogroup', {
+        name: copy('fin.pricing.surge.suspend.group.label'),
+      }),
+    ).toBeTruthy()
+    expect(suspendButton()).toBeTruthy()
+
+    await user.click(within(card).getByRole('button', { name: copy('fin.error.retry') }))
+    await waitFor(() =>
+      expect(
+        within(surgeCard()).getByRole('columnheader', {
+          name: copy('fin.pricing.surge.col.window'),
+        }),
+      ).toBeTruthy(),
+    )
+  })
+
+  it('AC-RC-49 — a failed districts read errors and the windows table still renders', async () => {
+    mockFailures.once('zones.list')
+    await mounted()
+
+    const card = surgeCard()
+    expect(within(card).getByText(copy('fin.pricing.surge.error.districts'))).toBeTruthy()
+    /* §10.6 — the primary is not rendered where there is nothing to choose. */
+    expect(within(card).queryByRole('button', { name: suspendLabel() })).toBeNull()
+    expect(
+      within(card).getByRole('columnheader', { name: copy('fin.pricing.surge.col.window') }),
+    ).toBeTruthy()
+    expect(within(card).getAllByText(copy('fin.pricing.surge.day.sun')).length).toBeGreaterThan(0)
+  })
+
+  it('§10.6 — with no window set the card says so in words and keeps the district band', async () => {
+    /* Non-vacuity: the fixtures ship three windows. */
+    expect((await listSurgeWindows()).length).toBe(3)
+    windowsOverride = []
+    await mounted()
+
+    const card = surgeCard()
+    expect(within(card).getByText(copy('fin.pricing.surge.empty'))).toBeTruthy()
+    expect(within(card).queryAllByRole('table')).toHaveLength(0)
+    expect(card.querySelector('svg'), 'R8 — no illustration on an empty band').toBeNull()
+    expect(suspendButton()).toBeTruthy()
+  })
+
+  it('§10.6 — with no district tracked the card says so and renders no primary', async () => {
+    zonesOverride = []
+    await mounted()
+
+    const card = surgeCard()
+    expect(within(card).getByText(copy('fin.pricing.surge.suspend.district.empty'))).toBeTruthy()
+    expect(within(card).queryByRole('radiogroup')).toBeNull()
+    expect(within(card).queryByRole('button', { name: suspendLabel() })).toBeNull()
+    /* The windows the operator cannot suspend are still stated. */
+    expect(
+      within(card).getByRole('columnheader', { name: copy('fin.pricing.surge.col.window') }),
+    ).toBeTruthy()
+  })
+
+  it('§10.6 — while the two reads are in flight the bands are busy, with no spinner', () => {
+    mount()
+    const busy = [...document.querySelectorAll('[aria-busy="true"]')]
+    expect(busy.length).toBeGreaterThan(0)
+    expect(document.querySelector('[data-slot="spinner"]')).toBeNull()
+    expect(document.querySelectorAll('[data-slot="skeleton"]').length).toBeGreaterThan(4)
+    /* Nothing promises a chip that has not arrived. */
+    expect(screen.queryAllByRole('radiogroup')).toHaveLength(0)
+  })
+
+  it('§10.6 — a failed suspensions read renders the table error and the Surge card still stands', async () => {
+    mockFailures.once('pricing.surgeSuspensions')
+    await mounted()
+    await waitFor(() => expect(screen.getByText(copy('fin.error.read'))).toBeTruthy())
+    expect(screen.getByRole('button', { name: EN['state.pageError.action'] as string })).toBeTruthy()
+    expect(surgeCard()).toBeTruthy()
+    expect(rail()).toBeTruthy()
+  })
+})
+
+/* ═════════════ the copy the rebuild applied, on the surface ═════════════ */
+
+describe('the applied copy sheet', () => {
+  it('no retired string reaches the surface, and its replacement does', async () => {
+    const user = userEvent.setup()
+    await mounted()
+
+    const retired = [
+      /* §3.6 / §6 — the pane footer, both halves said elsewhere. */
+      'This card prices every trip today',
+      'Editing waits on the pricing owner decision',
+      /* §4.2 — the panel that said everything twice. */
+      'Choose a district, then confirm.',
+      /* §3.2 — `consumer` is not a word this product uses of a person. */
+      'Consumer prices',
+      /* §3.4 — a refusal stated where it could not be acted on. */
+      'cannot be approved',
+      /* §3.5 — the half that only defined its own heading. */
+      'Guardrails a card is checked against',
+      /* §4.1 — the operator is addressed as `you`, not as a department. */
+      'Windows are set by pricing',
+    ]
+    for (const gone of retired) {
+      expect(document.body.textContent, `retired: ${gone}`).not.toContain(gone)
+    }
+
+    for (const key of [
+      'fin.pricing.rateCard.stat.riderPrices',
+      'fin.pricing.rateCard.floors.caption',
+      'fin.pricing.surge.readOnly',
+    ]) {
+      expect(document.body.textContent, `replacement: ${key}`).toContain(copy(key))
+    }
+
+    /* §3.4's replacement renders on the card it is about, and only there. */
+    await user.click(rowFor(DRAFT_UNMODELLED))
+    await waitFor(() => expect(pane().textContent).toContain(DRAFT_UNMODELLED))
+    expect(within(pane()).getByText(copy('fin.pricing.rateCard.impact.none'))).toBeTruthy()
+  })
+
+  it('no em dash reaches the surface, in a string or in a fixture', async () => {
+    const user = userEvent.setup()
+    await mounted()
+    /* Non-vacuity: the two suspension reasons that carried one are on screen. */
+    const table = await suspensionsTable()
+    expect(table.textContent).toContain('Stadium event')
+    expect(document.body.textContent, 'X14 — no U+2014 anywhere').not.toContain('—')
+
+    /* The confirmation carried the third one, and it named `zone` in prose. */
+    await user.click(within(districtGroup()).getAllByRole('radio')[0] as HTMLElement)
+    await user.click(suspendButton())
+    const dialog = await screen.findByRole('dialog')
+    expect(dialog.textContent).not.toContain('—')
+    expect(dialog.textContent).not.toContain('zone')
+    expect(dialog.textContent).toContain('district')
+    /* §4.3 — the consequence states its magnitude, and the reason's helper
+       text stops carrying a duration that is not a constraint on a reason. */
+    expect(dialog.textContent).toContain('12 hours')
+    expect(within(dialog).getByText(copy('fin.pricing.surge.suspend.reason.help'))).toBeTruthy()
+    expect(dialog.textContent).not.toContain('Up to 12 hours')
+  })
+
+  it('D36 — five money columns state SAR once, and no column label repeats the unit', async () => {
+    await mounted()
+    const table = within(pane()).getAllByRole('table')[0] as HTMLElement
+    const head = table.querySelector('thead') as HTMLElement
+    for (const header of within(table).getAllByRole('columnheader')) {
+      expect(header.textContent, 'the unit is not repeated per label').not.toContain('SAR')
+    }
+    expect(head.textContent?.match(/SAR/g) ?? []).toHaveLength(1)
+    /* The rung is `aria-hidden`, so the caption is where a screen-reader
+       operator is told the unit instead. */
+    const rung = within(head).getByText('SAR').closest('[aria-hidden="true"]')
+    expect(rung, 'a colspan rung announces poorly, so it is hidden').toBeTruthy()
+    const caption = table.querySelector('caption') as HTMLElement
+    expect(caption.textContent).toContain('All figures in SAR.')
+  })
+})
+
+/* ═════════════════════════ the keyboard paths ═══════════════════════════ */
+
+describe('the keyboard reaches every act on the view', () => {
+  it('§12.1 — Tab out of the rail lands on the district field, since a live pane holds no control', async () => {
+    const user = userEvent.setup()
+    await mounted()
+    expect(
+      within(pane()).queryAllByRole('button'),
+      'a live pane holds nothing focusable',
+    ).toHaveLength(0)
+
+    rowFor(LIVE).focus()
+    await user.tab()
+    const chips = within(districtGroup()).getAllByRole('radio')
+    expect(document.activeElement, 'the next stop is the first district chip').toBe(chips[0])
+
+    await user.keyboard('{Enter}')
+    expect(chips[0]?.getAttribute('data-state')).toBe('on')
+    await user.tab()
+    expect(document.activeElement).toBe(suspendButton())
+  })
+
+  it('§12.2 — Escape closes the confirmation and writes nothing', async () => {
+    const user = userEvent.setup()
+    await mounted()
+    const before = (await listSurgeSuspensions()).length
+    await user.click(within(districtGroup()).getAllByRole('radio')[0] as HTMLElement)
+
+    const primary = suspendButton()
+    primary.focus()
+    /* The primary is reached and fired from the keyboard alone. */
+    await user.keyboard('{Enter}')
+    const dialog = await screen.findByRole('dialog')
+    expect(within(dialog).getByRole('button', { name: suspendLabel() })).toBeDisabled()
+
+    await user.keyboard('{Escape}')
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+    /* Nothing was written: the log is the length it was. */
+    expect((await listSurgeSuspensions()).length).toBe(before)
+    /* And the district survives the dismissal, so the operator does not start
+       the act again from nothing. */
+    expect(within(districtGroup()).getAllByRole('radio')[0]?.getAttribute('data-state')).toBe('on')
+  })
+
+  /**
+   * **FAILING, and it is the product that is wrong.** Closing the confirmation
+   * leaves `document.activeElement` on `<body>`: the operator's place in the
+   * page is gone and the next `Tab` restarts at the top of the document.
+   *
+   * Reproduced by both routes out of the dialog — `Escape` and `Cancel` — and
+   * it survives an 8-second `waitFor`, so it is not a timing artefact. It is
+   * also not a jsdom limit: the identical assertion passes at
+   * `operations/requests/requests.test.tsx:541`, over `ConfirmDialog`, whose
+   * own comment records the same defect being fixed — *"it could not while
+   * `ConfirmDialog` unmounted itself on close."*
+   * `ConfirmMoneyDialog.tsx:153` still renders `<Dialog open>` and is unmounted
+   * by its parent, where `components/ConfirmDialog.tsx:164` renders
+   * `open={request !== null}`. Not fixed here: shared file, engineer's call.
+   */
+  it('§12.2 — focus returns to the control that opened the confirmation', async () => {
+    const user = userEvent.setup()
+    await mounted()
+    await user.click(within(districtGroup()).getAllByRole('radio')[0] as HTMLElement)
+
+    suspendButton().focus()
+    await user.keyboard('{Enter}')
+    await screen.findByRole('dialog')
+    await user.keyboard('{Escape}')
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+    await waitFor(() =>
+      expect(document.activeElement, 'Escape returns focus to the trigger').toBe(suspendButton()),
+    )
+
+    /* The same, by the dialog's own dismissal control. */
+    suspendButton().focus()
+    await user.click(suspendButton())
+    const dialog = await screen.findByRole('dialog')
+    await user.click(within(dialog).getByRole('button', { name: copy('queue.confirm.cancel') }))
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+    await waitFor(() =>
+      expect(document.activeElement, 'Cancel returns focus to the trigger').toBe(suspendButton()),
+    )
+  })
+})
+
+/* ════════════════════ the pane's four bands, in order ═══════════════════ */
+
+describe('the pane is four bands and stops', () => {
+  it('AC-RC-35 — four bands in the order identity, prices, terms, impact, and nothing below the fourth', async () => {
+    await mounted()
+    /* The live region is band-independent; the four bands are what is left. */
+    const bands = [...pane().children].filter((child) => child.getAttribute('role') !== 'status')
+    expect(bands).toHaveLength(4)
+
+    const [identity, prices, terms, impact] = bands as HTMLElement[]
+    expect(identity?.textContent).toContain(LIVE)
+    expect(identity?.textContent).toContain(copy('fin.pricing.rateCard.status.live'))
+    expect(within(prices as HTMLElement).getByRole('table')).toBeTruthy()
+    expect(terms?.textContent).toContain(copy('fin.pricing.rateCard.terms.heading'))
+    expect(terms?.textContent).toContain(copy('fin.pricing.rateCard.floors.heading'))
+    expect(impact?.textContent).toContain(copy('fin.pricing.rateCard.impact.heading'))
+
+    /* Three hairlines: one under each change of subject, none under the last. */
+    expect(pane().querySelectorAll(':scope > .border-t')).toHaveLength(3)
+    expect(identity?.className).not.toContain('border-t')
+    /* §6 — the orphan footer that used to sit under band D is gone. */
+    expect(pane().lastElementChild).toBe(impact)
+  })
+
+  it('AC-RC-36 — both halves of band C are the same instrument: key/value rows, never a cluster', async () => {
+    await mounted()
+    const terms = within(pane())
+      .getByText(copy('fin.pricing.rateCard.terms.heading'))
+      .closest('div') as HTMLElement
+    const lists = terms.querySelectorAll('dl')
+    expect(lists, 'two halves, two lists').toHaveLength(2)
+    /* Three rows beside four, each one a label and its single value. A
+       label-over-figure cluster is what revision 1 put beside this list. */
+    expect(lists[0]?.querySelectorAll('dt')).toHaveLength(3)
+    expect(lists[1]?.querySelectorAll('dt')).toHaveLength(4)
+    for (const list of lists) {
+      expect(list.querySelectorAll('dt').length).toBe(list.querySelectorAll('dd').length)
+    }
+    /* One caption for the band, not one per column. */
+    expect(within(terms).getAllByText(copy('fin.pricing.rateCard.floors.caption'))).toHaveLength(1)
   })
 })

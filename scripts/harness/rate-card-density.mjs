@@ -612,10 +612,15 @@ const probe = (vh) => {
               verticalDistance: +(R(suspendButton).top - R(suspendHeading).bottom).toFixed(1),
             }
           : null,
-      duplicateStrings: [...suspendCard.querySelectorAll('*')]
-        .filter((n) => n.children.length === 0)
-        .map((n) => n.textContent.trim())
-        .filter((s, i, a) => s !== '' && a.indexOf(s) !== i),
+      /* D35b deleted the `Suspend surge` heading, so this selector can now
+         land on an h2 outside any card. Guarded rather than removed: the
+         baseline number has to stay reproducible. */
+      duplicateStrings: suspendCard
+        ? [...suspendCard.querySelectorAll('*')]
+            .filter((n) => n.children.length === 0)
+            .map((n) => n.textContent.trim())
+            .filter((s, i, a) => s !== '' && a.indexOf(s) !== i)
+        : null,
     }
   }
 
@@ -705,6 +710,369 @@ const probe = (vh) => {
   return out
 }
 
+
+/* ── the REBUILD probe (revision 2) ──────────────────────────────────────
+   The probe above measures the pre-rebuild DOM and several of its selectors
+   now return null. This one measures what revision 2 actually draws: D36's
+   unit rung, D35a's hairline, the district band's alignment, each band's
+   rule channel, and every off-scale gap (AC-RC-45). Same contract as the
+   probe above: it asserts nothing and prints numbers. */
+const probe2 = (vh) => {
+  const out = {}
+  try {
+  const R = window.__r
+  const D = window.__deepInk
+  const main = document.querySelector('main') ?? document.body
+  const scroller = window.__scroller()
+  const rail = document.querySelector('ol[aria-labelledby]')
+  const block = rail?.closest('[data-slot="card"]') ?? null
+  const pane = block?.querySelector('section[aria-labelledby]') ?? null
+  const table = pane?.querySelector('table') ?? null
+  const cards = [...main.querySelectorAll('[data-slot="card"]')]
+  const cardOf = (n) => n?.closest('[data-slot="card"]') ?? null
+  const cls = (n) => (n.className?.baseVal ?? n.className ?? '').toString().slice(0, 70)
+
+  /* ── the banner ─────────────────────────────────────────────────────── */
+  const banner = [...main.querySelectorAll('div,section,aside')].find((n) => {
+    const t = n.textContent ?? ''
+    return (
+      /read-only|للقراءة/.test(t) &&
+      t.length < 220 &&
+      getComputedStyle(n).backgroundColor !== 'rgba(0, 0, 0, 0)'
+    )
+  })
+  out.banner = banner
+    ? {
+        text: banner.textContent.trim(),
+        rect: R(banner),
+        ground: window.__hex(getComputedStyle(banner).backgroundColor),
+        runs: [...banner.querySelectorAll('*')]
+          .filter((n) => !n.children.length && n.textContent.trim())
+          .map((n) => ({
+            text: n.textContent.trim().slice(0, 70),
+            renderedLines: n.getClientRects().length,
+            px: parseFloat(getComputedStyle(n).fontSize),
+            weight: +getComputedStyle(n).fontWeight,
+            colour: window.__hex(getComputedStyle(n).color),
+            contrast: window.__step(getComputedStyle(n).color, window.__under(n)),
+          })),
+      }
+    : null
+
+  /* ── first price ink — the F2 number ────────────────────────────────── */
+  const firstMoney = table?.querySelector('tbody tr td:nth-child(2)') ?? null
+  const firstInk = firstMoney ? D(firstMoney) : null
+  out.firstPrice = {
+    text: firstMoney?.textContent.trim() ?? null,
+    inkTop: firstInk?.top ?? null,
+    shareOfScrollport: firstInk
+      ? +(((firstInk.top - 52) / (scroller.clientHeight || vh)) * 100).toFixed(1)
+      : null,
+    scrollHeight: scroller.scrollHeight,
+    clientHeight: scroller.clientHeight,
+    screensToRead: +(scroller.scrollHeight / scroller.clientHeight).toFixed(2),
+    blockTop: block ? R(block).top : null,
+  }
+
+  /* ── D36 — the unit rung ────────────────────────────────────────────── */
+  const heads = table ? [...table.querySelectorAll('thead tr')] : []
+  const labelRow = heads[0] ?? null
+  const unitRow = heads[1] ?? null
+  const unitCell = unitRow ? [...unitRow.children].find((c) => c.colSpan > 1) : null
+  const colRects = labelRow
+    ? [...labelRow.children].map((c) => ({ label: c.textContent.trim(), ...R(c) }))
+    : []
+  const unitInk = unitCell ? D(unitCell) : null
+  const moneyCols = colRects.slice(1)
+  const spanStart = moneyCols.length ? Math.min(...moneyCols.map((c) => c.left)) : null
+  const spanEnd = moneyCols.length ? Math.max(...moneyCols.map((c) => c.right)) : null
+  const spanMid = spanStart === null ? null : (spanStart + spanEnd) / 2
+  const unitMid = unitInk ? (unitInk.left + unitInk.right) / 2 : null
+  out.unitRung = {
+    text: unitCell?.textContent.trim() ?? null,
+    colSpan: unitCell?.colSpan ?? null,
+    ariaHidden: unitRow?.getAttribute('aria-hidden') ?? null,
+    hasBdi: !!unitCell?.querySelector('bdi'),
+    align: unitCell ? getComputedStyle(unitCell).textAlign : null,
+    px: unitCell ? parseFloat(getComputedStyle(unitCell).fontSize) : null,
+    weight: unitCell ? +getComputedStyle(unitCell).fontWeight : null,
+    colour: unitCell ? window.__hex(getComputedStyle(unitCell).color) : null,
+    ink: unitInk,
+    columns: colRects.map((c) => ({ label: c.label, left: c.left, right: c.right, w: c.w })),
+    moneySpan: { start: spanStart, end: spanEnd, mid: spanMid },
+    inkMid: unitMid,
+    offCentreBy: unitMid === null ? null : +(unitMid - spanMid).toFixed(1),
+    landsInColumn:
+      unitMid === null
+        ? null
+        : (colRects.find((c) => unitMid >= c.left && unitMid <= c.right)?.label ?? null),
+    headerInkOverlapping: labelRow
+      ? [...labelRow.children]
+          .map((c) => ({ label: c.textContent.trim(), ink: D(c) }))
+          .filter((c) => c.ink && unitInk && c.ink.right > unitInk.left && c.ink.left < unitInk.right)
+          .map((c) => ({
+            label: c.label,
+            inkLeft: c.ink.left,
+            inkRight: c.ink.right,
+            clearBelowPx: +(unitInk.top - c.ink.bottom).toFixed(1),
+          }))
+      : [],
+    sarRunsInHead: table ? (table.querySelector('thead').textContent.match(/SAR/g) ?? []).length : null,
+    sarRunsInTable: table ? (table.textContent.match(/SAR/g) ?? []).length : null,
+    caption: table?.querySelector('caption')?.textContent.trim() ?? null,
+  }
+
+  /* ── D35a — every disabled control, and whether its box survives ────── */
+  out.disabled = [...main.querySelectorAll('button')]
+    .filter((b) => b.disabled || b.getAttribute('aria-disabled') === 'true')
+    .map((b) => {
+      const cs = getComputedStyle(b)
+      const ground = window.__under(b.parentElement)
+      const box = R(b)
+      const ink = D(b)
+      return {
+        label: b.textContent.trim().slice(0, 40),
+        inCard: cardOf(b)?.textContent.trim().slice(0, 22) ?? null,
+        box,
+        px: parseFloat(cs.fontSize),
+        weight: +cs.fontWeight,
+        colour: window.__hex(cs.color),
+        background: cs.backgroundColor,
+        borderWidth: cs.borderTopWidth,
+        borderColour: window.__hex(cs.borderTopColor),
+        borderRaw: cs.borderTopColor,
+        radius: cs.borderRadius,
+        padInline: [cs.paddingLeft, cs.paddingRight],
+        ground: window.__hex(ground),
+        borderVsGround: window.__step(cs.borderTopColor, ground),
+        inkVsGround: window.__step(cs.color, ground),
+        labelInsetFromBox: ink && box ? +(ink.left - box.left).toFixed(1) : null,
+      }
+    })
+
+  /* ── the filled controls (R3 / AC-RC-42) ────────────────────────────── */
+  out.filled = [...main.querySelectorAll('button,a')]
+    .map((b) => ({ b, bg: getComputedStyle(b).backgroundColor }))
+    .filter(({ bg }) => bg !== 'rgba(0, 0, 0, 0)' && !/, 0\)$/.test(bg) && window.__lum(bg) < 0.35)
+    .map(({ b, bg }) => ({
+      label: b.textContent.trim().slice(0, 30),
+      bg: window.__hex(bg),
+      disabled: !!b.disabled,
+    }))
+
+  /* ── the district band, flush alignment ─────────────────────────────── */
+  const districtLabel = [...main.querySelectorAll('span,label')].find(
+    (n) => n.id && !n.children.length && n.textContent.trim().length < 20 && /District|المنطقة|الحي/.test(n.textContent.trim()),
+  )
+  const districtBand = districtLabel ? districtLabel.parentElement?.parentElement : null
+  const suspendBtn = [...main.querySelectorAll('button')].find((b) =>
+    /Suspend surge|إيقاف/.test(b.textContent.trim()),
+  )
+  const chips = districtBand
+    ? [...districtBand.querySelectorAll('[data-slot="toggle-group-item"],button[role="radio"]')]
+    : []
+  const refusal = suspendBtn?.parentElement?.querySelector('[id]')
+  out.district = {
+    bandRect: districtBand ? R(districtBand) : null,
+    bandClass: districtBand ? cls(districtBand) : null,
+    bandPadTop: districtBand ? getComputedStyle(districtBand).paddingTop : null,
+    bandBorderTop: districtBand ? getComputedStyle(districtBand).borderTopWidth : null,
+    bandGap: districtBand ? getComputedStyle(districtBand).rowGap : null,
+    gapAboveRule:
+      districtBand && districtBand.previousElementSibling
+        ? +(R(districtBand).top - R(districtBand.previousElementSibling).bottom).toFixed(1)
+        : null,
+    labelInk: districtLabel ? D(districtLabel) : null,
+    chipCount: chips.length,
+    chipFirstBox: chips.length ? R(chips[0]) : null,
+    chipsBottom: chips.length ? Math.max(...chips.map((c) => R(c).bottom)) : null,
+    buttonBox: suspendBtn ? R(suspendBtn) : null,
+    buttonLabelInk: suspendBtn ? D(suspendBtn) : null,
+    refusalInk: refusal ? D(refusal) : null,
+    refusalText: refusal?.textContent.trim() ?? null,
+    chipsToButton:
+      chips.length && suspendBtn
+        ? +(R(suspendBtn).top - Math.max(...chips.map((c) => R(c).bottom))).toFixed(1)
+        : null,
+    buttonToRefusal:
+      suspendBtn && refusal ? +(R(refusal).top - R(suspendBtn).bottom).toFixed(1) : null,
+  }
+
+  /* ── every band rule inside a card, and its channel ─────────────────── */
+  out.bandRules = [...main.querySelectorAll('*')]
+    .filter(
+      (n) =>
+        parseFloat(getComputedStyle(n).borderTopWidth) > 0 &&
+        n.previousElementSibling &&
+        cardOf(n) &&
+        n.tagName !== 'TR' &&
+        n.tagName !== 'TD' &&
+        n.tagName !== 'TH' &&
+        n.tagName !== 'LI',
+    )
+    .slice(0, 14)
+    .map((n) => {
+      const cs = getComputedStyle(n)
+      const prev = R(n.previousElementSibling)
+      const me = R(n)
+      const above = +(me.top - prev.bottom).toFixed(1)
+      return {
+        card: cardOf(n)?.textContent.trim().slice(0, 18),
+        label: n.textContent.trim().slice(0, 26),
+        gapAboveRule: above,
+        borderTop: cs.borderTopWidth,
+        padUnderRule: cs.paddingTop,
+        channel: +(above + parseFloat(cs.borderTopWidth) + parseFloat(cs.paddingTop)).toFixed(1),
+      }
+    })
+
+  /* ── the gaps between the top-level cards ───────────────────────────── */
+  const topCards = cards.filter((c) => !cardOf(c.parentElement))
+  out.cardGaps = topCards
+    .map((c, i) => (i === 0 ? null : +(R(c).top - R(topCards[i - 1]).bottom).toFixed(1)))
+    .filter((n) => n !== null)
+
+  /* ── AC-RC-45 — every off-scale gap and pad in the block + Surge ────── */
+  const scale = new Set([0, 4, 8, 12, 24])
+  const rowTokens = new Set([36, 40, 60, 64])
+  const region = [block, topCards.find((c) => /^Surge/.test(c.textContent.trim()))].filter(Boolean)
+  const offScale = []
+  for (const root of region) {
+    for (const n of [root, ...root.querySelectorAll('*')]) {
+      const s = getComputedStyle(n)
+      for (const prop of [
+        'rowGap',
+        'columnGap',
+        'paddingTop',
+        'paddingBottom',
+        'paddingLeft',
+        'paddingRight',
+      ]) {
+        const v = parseFloat(s[prop])
+        if (!v || Number.isNaN(v)) continue
+        if (scale.has(v) || rowTokens.has(v)) continue
+        offScale.push({
+          prop,
+          v,
+          tag: n.tagName.toLowerCase(),
+          cls: cls(n),
+          text: n.textContent.trim().slice(0, 26),
+        })
+      }
+    }
+  }
+  out.offScale = offScale
+
+  /* ── row pitch across every table on the view ───────────────────────── */
+  out.rowPitch = [...main.querySelectorAll('table')].map((tb) => ({
+    firstHead: tb.querySelector('th')?.textContent.trim().slice(0, 20) ?? null,
+    headRowH: tb.querySelector('thead tr') ? +R(tb.querySelector('thead tr')).h.toFixed(1) : null,
+    bodyRowH: tb.querySelector('tbody tr') ? +R(tb.querySelector('tbody tr')).h.toFixed(1) : null,
+    rows: tb.querySelectorAll('tbody tr').length,
+  }))
+
+  /* ── the pane's reading edges — F6 re-measured ──────────────────────── */
+  const edges = {}
+  const ends = {}
+  if (pane) {
+    for (const n of pane.querySelectorAll('*')) {
+      if (n.children.length) continue
+      const t = n.textContent.trim()
+      if (!t || n.closest('.sr-only')) continue
+      const ink = D(n)
+      if (!ink || ink.w < 2) continue
+      ;(edges[Math.round(ink.left)] ??= []).push(t.slice(0, 18))
+      ;(ends[Math.round(ink.right)] ??= []).push(t.slice(0, 18))
+    }
+  }
+  const hist = (o) =>
+    Object.entries(o)
+      .map(([x, v]) => ({ x: +x, n: v.length, sample: v.slice(0, 3) }))
+      .sort((a, b) => b.n - a.n)
+      .slice(0, 8)
+  out.paneStartEdges = hist(edges)
+  out.paneEndEdges = hist(ends)
+
+  /* ── every wrapped run on the view, so an Arabic-only wrap shows up ─── */
+  out.wrapped = [...main.querySelectorAll('*')]
+    .filter((n) => !n.children.length && n.textContent.trim() && !n.closest('.sr-only'))
+    .map((n) => ({
+      text: n.textContent.trim().slice(0, 34),
+      renderedLines: n.getClientRects().length,
+      px: parseFloat(getComputedStyle(n).fontSize),
+    }))
+    .filter((n) => n.renderedLines > 1)
+
+  /* ── rail geometry — F4 re-measured ─────────────────────────────────── */
+  const railCol = rail?.parentElement ?? null
+  const footer = railCol ? [...railCol.children].find((n) => n.tagName === 'P') : null
+  const lastRow = rail?.lastElementChild ?? null
+  out.rail = {
+    columnRect: railCol ? R(railCol) : null,
+    lastRowBottom: lastRow ? R(lastRow).bottom : null,
+    footerRect: footer ? R(footer) : null,
+    footerText: footer?.textContent.trim() ?? null,
+    footerTransform: footer ? getComputedStyle(footer).textTransform : null,
+    footerTracking: footer ? getComputedStyle(footer).letterSpacing : null,
+    footerPx: footer ? parseFloat(getComputedStyle(footer).fontSize) : null,
+    footerTruncated: footer ? footer.scrollWidth > footer.clientWidth + 1 : null,
+    runwayPx: footer && lastRow ? +(R(footer).top - R(lastRow).bottom).toFixed(1) : null,
+    rowHeights: rail ? [...rail.children].map((li) => +R(li).h.toFixed(1)) : [],
+    clipped: rail
+      ? [...rail.querySelectorAll('a')].map((a) => ({
+          h: +R(a).h.toFixed(1),
+          scrollH: a.scrollHeight,
+          clipped: a.scrollHeight > a.clientHeight + 1,
+        }))
+      : [],
+  }
+
+  /* ── AC-RC-40 — uppercase and tracking sweep ────────────────────────── */
+  out.uppercase = [...main.querySelectorAll('*')]
+    .filter((n) => !n.children.length && n.textContent.trim())
+    .map((n) => ({
+      t: n.textContent.trim().slice(0, 24),
+      transform: getComputedStyle(n).textTransform,
+      tracking: getComputedStyle(n).letterSpacing,
+    }))
+    .filter((n) => n.transform !== 'none' || (n.tracking !== 'normal' && parseFloat(n.tracking) !== 0))
+
+  /* ── surfaces — D33 / D33b / D33c / D34 ─────────────────────────────── */
+  const strip = block?.querySelector('h2') ?? null
+  const thead = table?.querySelector('thead th') ?? null
+  out.surfaces = {
+    page: window.__hex(window.__under(main)),
+    card: block ? window.__hex(getComputedStyle(block).backgroundColor) : null,
+    cardVsPage: block
+      ? window.__step(getComputedStyle(block).backgroundColor, window.__under(main))
+      : null,
+    railStrip: strip ? window.__hex(window.__under(strip)) : null,
+    railStripVsCard:
+      strip && block
+        ? window.__step(window.__under(strip), getComputedStyle(block).backgroundColor)
+        : null,
+    tableStrip: thead ? window.__hex(window.__under(thead)) : null,
+    tableStripVsCard:
+      thead && block
+        ? window.__step(window.__under(thead), getComputedStyle(block).backgroundColor)
+        : null,
+    theadInk: thead ? window.__hex(getComputedStyle(thead).color) : null,
+    theadContrast: thead ? window.__step(getComputedStyle(thead).color, window.__under(thead)) : null,
+    shadows: [...main.querySelectorAll('*')]
+      .filter((n) => {
+        const s = getComputedStyle(n).boxShadow
+        return s && s !== 'none'
+      })
+      .map((n) => ({ tag: n.tagName.toLowerCase(), cls: cls(n), shadow: getComputedStyle(n).boxShadow.slice(0, 60) })),
+  }
+
+  } catch (e) {
+    out.__error = String(e)
+    out.__stack = String(e && e.stack).slice(0, 700)
+  }
+  return out
+}
+
 /* ── drive ──────────────────────────────────────────────────────────────── */
 const browser = await chromium.launch()
 const ctx = await browser.newContext({ viewport: { width: WIDTH, height: HEIGHT } })
@@ -740,6 +1108,7 @@ out.themeInForce = await page.evaluate(() => ({
 }))
 
 out.live = await page.evaluate(probe, HEIGHT)
+out.rebuild = await page.evaluate(probe2, HEIGHT)
 out.shots.push(await shot('firstscreen'))
 out.shots.push(await shot('full', { fullPage: true }))
 
@@ -800,6 +1169,7 @@ await page.goto(`${BASE}${ROUTE}&card=RC-2026-08-01`, { waitUntil: 'networkidle'
 await page.waitForTimeout(1200)
 await page.evaluate(helpers)
 out.draft = await page.evaluate(probe, HEIGHT)
+out.draftRebuild = await page.evaluate(probe2, HEIGHT)
 out.shots.push(await shot('draft'))
 await element(page.locator('[data-slot="card"]').first(), 'draft-block')
 /* the draft's own refusal, which is the pane's only control */
