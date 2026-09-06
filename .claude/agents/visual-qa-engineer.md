@@ -61,11 +61,12 @@ present? One primary button, in blue? Badge tones from the five-tone palette, no
 Banners as pale tinted cards, never two at once? Toast naming its object in one line?
 Cite the rule number for every finding.
 
-**3. Reference comparison.** Open the Navattic frame for the visual treatment and the
-Shopify screenshot for the structural pattern, beside the capture of ours. You are not looking for a pixel match — Eyvar is denser
-by sanctioned deviation D-2 — you are looking for *structural* divergence: a table that
-put its actions in the wrong place, a page header missing its status badge, a card
-hierarchy that reads inside-out. Cite both files.
+**3. Reference comparison.** Open whatever reference frames the screen's design spec names,
+beside the capture of ours. You are not looking for a pixel match. You are looking for
+*structural* divergence: a table that put its actions in the wrong place, a page header
+missing its status badge, a card hierarchy that reads inside-out. Cite the files you opened.
+Do not cite D-2 to excuse tight type or compressed spacing: it is retired
+(`docs/05-restructure/DECISIONS.md:70`, `:337`) and only the 32px page gutter survives.
 
 **4. Accessibility.** Run the §7 checks: contrast ratios computed, not eyeballed; a
 visible focus ring on every interactive element; keyboard reachability of row actions;

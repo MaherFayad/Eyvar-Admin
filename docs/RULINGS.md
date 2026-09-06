@@ -24,7 +24,7 @@ The same digits mean different things with different prefixes. Write the exact f
 | Form | Means | Text lives in |
 |---|---|---|
 | `R1`…`R19`, `R5a` | `DESIGN.md` ruling | `_partials/00-header.md`, "Rulings on contested points" |
-| `D1`…`D34`, `D1a`, `D7a` | Project decision | `05-restructure/DECISIONS.md` |
+| `D1`…`D35`, `D1a`, `D7a`, `D35a`, `D35b` | Project decision | `05-restructure/DECISIONS.md` |
 | `D-1`…`D-13` (hyphen) | `DESIGN.md` §6.2 sanctioned deviation | `_partials/06-eyvar-mapping.md`; D-11a, D-12, D-13 in DECISIONS.md |
 | `D3`, `D11` written next to "§6.3" | Legacy defect number | `_partials/06-eyvar-mapping.md` §6.3 |
 | `R-1`…`R-4` | Round 3 ruling | `05-restructure/design/00-decisions-r3.md` |
@@ -91,6 +91,23 @@ and it is not a shadow. A focus ring survives: a ring is not a shadow.
 AC-CC-01 keeps its magnitude and loses its direction: a dark card is that far *below* its
 ground, not above. The 1.25:1 figure is not reachable downward from a pinned page, so the
 criterion is met at 1.113:1, the largest step the theme can physically produce.
+
+### A disabled control keeps its box, and a card never says a thing twice (2026-09-06)
+
+The owner reviewed the rate card and found "Suspend surge" printed twice in one panel: once as
+the card's heading and once as its disabled primary, which had dropped its fill and so painted
+as plain text. Two rulings follow, and both are product-wide.
+
+**D35a — a disabled control drops its FILL, not its BOX.** §8.6.3 stands: a disabled button
+never carries `--ev-brand`. But it keeps its height, radius, padding and a 1px `border-border`
+hairline, so it still reads as a control the operator cannot use rather than as a caption. A
+hairline is not weight, and this does not reopen D34: a border is not a shadow.
+`--ev-hairline-strong` is unavailable here, because R19 pins it to unchecked controls.
+
+**D35b — within one card, the title and a control never carry the same string.** The title is a
+noun phrase naming the object; the button is a verb phrase naming the act. Where that leaves no
+title worth writing, the control has none and the field label does the work. An instruction is
+stated once, on the line where it changes what the operator can do.
 
 ### Onboarding may welcome once and may float its progress (2026-09-05)
 
@@ -196,6 +213,8 @@ One line each. The text lives in `05-restructure/DECISIONS.md`; grep the ID.
 | D33b — the light recess is a whisper: a card ≤1.03:1 under the page, a tint ≤1.02:1 under the card |
 | D33c — in dark the in-card tint steps UP, deliberately: the band below the pinned page is too narrow for both |
 | D34 — no shadows and no glows; a surface is separated from its ground by the value step and a hairline, nothing else |
+| D35a — a disabled control drops its FILL, not its BOX: no brand fill, but height, radius, padding and a 1px hairline stay |
+| D35b — within one card, the title and a control never carry the same string; an instruction is stated once |
 | D-11a — who owns focus when a menu hands off to a layer: **the layer wins** |
 | D-12 — peek is the drawer, not a sixth surface |
 | D-13 — motion has no duration tokens, and the request for a duration scale is refused |

@@ -65,9 +65,11 @@ A design spec per screen at `docs/05-restructure/design/<module>-<feature>.md`:
 - **Respect the precedence ladder.** A MUST in §1–§5 describes Shopify, not Eyvar. What
   binds Eyvar is the Rulings table, §6.2's four sanctioned deviations, and §7–§9. Never
   cite a §1–§5 pixel figure in an argument — R13 voids those explicitly.
-- **Density is the brand.** Eyvar runs 13px body and ~30px rows by sanctioned deviation
-  D-2. Do not "fix" it toward Shopify's roomier spacing. But D-2 licences *smaller*, not
-  *off-grid*: values stay on the 4px grid.
+- **Density is a feature, and it is not a licence.** D-2, the old density deviation, is
+  RETIRED: `docs/05-restructure/DECISIONS.md:70` strikes the row and `:337` adds that its
+  type-ramp and spacing-scale suspensions "are void and may not be cited again." Only D-2',
+  the 32px page gutter, survives. Design to the ordinary type ramp and the 4px grid, and buy
+  density by cutting content rather than by shrinking type.
 - **Design the unhappy path first when it is the hard one.** A fraud queue is mostly edge
   cases. A wallet ledger is mostly reconciliation states. The happy path is the easy 10%.
 - **Write the copy yourself.** Never leave `TODO: copy` in a spec — placeholder strings

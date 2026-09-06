@@ -1,739 +1,1071 @@
-# Financials › Pricing and plans — the **Rate card** view, redesigned
+# Financials › Pricing and plans — the **Rate card** view
 
-Owner request, 2026-09-06: redesign the rate-card view to match a supplied reference. The
-reference is a dark capture at ~1280. I could not open it, and neither could anyone else in
-this tree — the frame sets `docs/06-design-reference/navattic-web/` and `shopify-admin-web/`
-were **deleted** in commit `0ff4148` *"docs: remove captured external product references and
-audit folder"*. What I designed against instead is the token layer, which **D7** makes the
-visual authority, and the six built surfaces that already solve the same problems, cited by
-file and line throughout.
+**Revision 2, 2026-09-06.** Revision 1 shipped and passes all 31 of its acceptance criteria
+and every rule it cites. The owner's verdict on the built result was *"this page needs
+massive redesign, in spacing, text hierarchy, and overall design."* That is not a
+conformance failure and it is not fixed by citing more rules. It is fixed by spending the
+type ramp and the spacing scale, both of which this view had left almost entirely unspent.
 
-Scope: the `Rate card` view of `/financials/pricing` only. The other three views are untouched.
+Revision 2 is written against the built screens, `scripts/harness/shots/rate-card-light-en-live.png`
+and `rate-card-dark-en-live.png`, and against the token layer, which **D7** makes the visual
+authority. Every constraint below cites a file and a line, or a ruling ID.
+
+Scope: the `Rate card` view of `/financials/pricing` only. The other three views are
+untouched except for one shared string (§6).
 
 ---
 
-## 0. What changes, and what survives
-
-`src/screens/financials/pricing/PricingScreen.tsx` — `RateCardView` at `:509`, `RateCardCard`
-at `:600`, `SurgeCard` at `:~745`.
+## 0. What revision 2 changes, and what survives
 
 **Survives, unchanged.**
 
-- Every acceptance criterion the view carries today: **AC-404**, **AC-405** (both `Approve`
-  refusals stated at render), **AC-409** (live countdown on the shared clock), **AC-410** (no
-  control raises a multiplier), **AC-411** (a suspension needs a reason; the confirm's primary
-  is disabled without one).
-- `ConfirmMoneyDialog` and `useMoneyActions`. The suspension **write path** is not redesigned.
-- `SURGE_SUSPENSION_MAX_HOURS` as the ceiling, read from the data layer.
-- The six `fin.pricing.rateCard.col.*` column labels and their `(SAR)` unit suffixes.
-- `MoneyCell` for every money figure.
-- The screen's one `info` banner (spec §4.5 / R10) and the view stadium.
+- Every acceptance criterion the *product* spec carries: **AC-404**, **AC-405** (both
+  `Approve` refusals stated at render), **AC-409** (live countdown on the shared clock),
+  **AC-410** (no control raises a multiplier), **AC-411** (a suspension needs a reason).
+- `ConfirmMoneyDialog`, `useMoneyActions`, `SURGE_SUSPENSION_MAX_HOURS`, the suspension
+  write path, `MoneyCell` for every money figure, `listRateCards` as the one read.
+- The master–detail geometry: a 300px rail at the inline-start, a detail pane at the
+  inline-end, in one `Card` (`--ev-detail-rail-w`, `globals.css:1705`).
+- The rulings **X-RC-1 … X-RC-13** in §11.2. None is reopened. Two are narrowed and both
+  are marked.
 - Stage B stays BLOCKED. Nothing here builds AC-402–408.
 
 **Changes.**
 
-| Today | After |
-|---|---|
-| A flat vertical stack: one `Card` per rate card, live first, then every non-live card | A **master–detail block**: a 300px record list at the inline-start, one detail pane at the inline-end |
-| Two reads with one cache key — `getLiveRateCard` and `listRateCards`, both keyed `pricing.rateCards`, distinguished by a constant dep (`:511–:540`) | **One read.** `listRateCards` only; the live card is `cards.find(c => c.status === 'live')`. The collision that comment manages stops existing |
-| Commission, VAT and the effective range as three muted sentences per card | A pane header: version + status badge, one effective line, and **three statistics** at the inline-end |
-| `simulation` as one composed sentence | A `Modelled impact` card: two labelled figures and a signed delta |
-| `floors` as one composed sentence of four numbers | A `Floors` card: a two-column key/value grid |
-| Surge windows as `FigureRow`s carrying a composed `{label} · {days} · {start} to {end}` string | A five-column table |
-| Zone names rendered as buttons that each open a money confirmation directly | A **single-select district group** plus one primary `Suspend surge` |
-| Suspensions as `FigureRow`s, no history, no filter, no empty state | A `DataTable` in **queue** mode: district, reason, raised by, started, state |
+| Revision 1 | Revision 2 | Why |
+|---|---|---|
+| Six levels of meaning carried by two rendered sizes (12 and 14) | A **seven-rung type scale**, §3, every rung a declared step with a declared role | globals.css H5's rank, `:3125–3143` |
+| Four heading treatments for one rank on one page — 12/500, 14/600, 14/600, 20/500 | **One card-title rung**, 16/600, and one field-label rung, 14/500 muted | measured, §3.0 |
+| Class table rendered as a key/value grid: 12px headers, no header strip, ~32px rows | The product's **real table chrome**: a `bg-muted` strip at `--ev-row-h-head`, 14/500 headers, `--ev-row-h` rows | `ui/table.tsx:225–268`; `--ev-bg2` names "the table header row" at `globals.css:471` |
+| Pane header carries three pseudo-KPI statistics at 14/600, louder than any price | Pane header is **identity only**; commission and VAT become key/value rows in a terms band | §5 |
+| `Modelled impact` and `Floors` side by side with different internal rhythms | `Commission and VAT` beside `Floors`, **one instrument**; `Modelled impact` gets its own full-width band | §5 |
+| An orphan sentence at the pane's foot restating the badge and the banner | **Deleted.** Both footer keys retired | R10 |
+| `Approve` orphaned 400px below the `Draft` badge that explains it | `Approve` sits at the identity band's inline-end, beside its badge | §5 |
+| Gaps of 2, 6, 12 and 12px with no scale behind them | A **four-value spacing scale** — 4 · 8 · 12 · 24 — and one rhythm law | §4 |
+| A two-line full-width `info` banner on every visit, ~88px before the first price | **One line** on this view; its body is dropped here and kept on the other three | §6 |
+| `4 RATE CARDS · 1 LIVE · 2 DRAFTS · 1 SUPERSEDED`, uppercase, on the view row | The **rail's footer**, sentence case. The view publishes no facts | §7 |
+| `Surge windows` (2/3) beside `Suspend surge` (1/3), whose heading and disabled primary read as the same string twice | **One `Surge` card**: the windows table, a rule, then the district lever | **D35**, §8 |
 
 ---
 
-## 1. Pattern, and a gap in `patterns.md`
+## 1. Pattern
 
-`docs/ref/patterns.md` gives Pricing & Plans exactly one row:
+`docs/ref/patterns.md` gives Pricing & Plans one row, and it describes the `Subscription
+plans` view. **F-RC-1** (still open, §11.4) asks product-owner to amend it to name all four.
+This view is governed by the second half of the `contacts` row — *"two-column detail for the
+pane"* (§8.4 · §2.2, §3.8) — and by nothing in §8.4's queue half: nothing is claimed, nothing
+has an SLA, nothing leaves.
 
-> **Index table (§3.1–3.3) → Sectioned form + save bar + derived values (§4.1, §2.3, §8.2)**
+**Page shape: single column.** The master–detail is a block inside the content region, as
+`InboxScreen.tsx:899`'s list + thread is. No fifth page shape, no new §6.4 row.
 
-That row describes the `Subscription plans` view and its editor. It describes **none** of the
-other three. `Rate card` is not an index table and has no form. `patterns.md` also says *"A page
-with no row here may not be designed until it gets one."*
+Sections that govern this screen: **§2.2, §3.8**; **§8.3.1 / §8.3.2** (money); **§7.1–§7.6**;
+**§9** (Arabic); **R3, R4, R5a, R6, R7, R8, R9, R10, R13, R14, R15, R17**; **§6.3 D18**;
+**D33 / D33a / D33b / D33c / D34**; **R4-5**; and the new **D35** (§8).
 
-**F-RC-1 — raised to product-owner, not fixed here.** The Pricing & Plans row needs amending to
-name its four views. `DESIGN.md` and its ref files are not mine to change. I am not blocked by
-it either, because the shape this view needs is already in the table under another page:
+**A correction that unblocks the whole redesign.** Revision 1 leaned on §6.2 **D-2** for its
+density. **D-2 is retired.** `docs/05-restructure/DECISIONS.md:70` — *"§6.2 D-2 (higher
+density) → D7 — retired; only D-2′, the 32px page gutter, survives"* — and
+`_partials/06-eyvar-mapping.md:67` strikes the row through and adds: *"Its type-ramp (§1.2)
+and spacing-scale (§1.3) suspensions are **void and may not be cited again**."* The same row
+records that Eyvar's rows are *rising* (32 → 40 text, 44 → 56 media) and that its spacing is
+*"on a 4px grid throughout"*. So:
 
-| The row I am governed by | Where it already exists |
-|---|---|
-| `contacts` — *"**Work queue** for the list; **two-column detail** for the pane"* (§8.4 · §2.2, §3.8) | `patterns.md`, "Pages" table |
-
-I take the **second half only**. The rail is a record list, not a work queue: nothing is
-claimed, nothing has an SLA, nothing leaves. So §8.4 does not apply and the R5a row-critical
-marker is not in play here (see §3, X-RC-3).
-
-**Page shape: single column** — unchanged. The master–detail is a *block inside the content
-region*, exactly as `InboxScreen.tsx:899`'s list + thread is. **No fifth page shape, no new §6.4
-row, nothing minted.**
-
-Sections that govern this screen: **§2.2, §3.8** (two-column detail); **§8.3.1 / §8.3.2**
-(money); **§7.1–§7.6** (accessibility); **§9** (Arabic); **R3, R4, R5a, R6, R7, R8, R9, R10,
-R13, R14, R15, R17**; **§6.3 D18** (uppercase labels); **D33 / D33a / D34** (surfaces);
-**R4-5** (the delta is neutral).
+- **Nobody may cite density against the type scale in §3.** The body step is 14px and the
+  ramp's upper rungs are available.
+- **The "smaller, never off-grid" clause is gone with the row it lived in**, and D15
+  (`06-eyvar-mapping.md:178`) states the surviving rule directly: *"An off-grid literal is a
+  defect on its own terms, independent of any deviation."* The 4px grid stands on its own.
 
 ---
 
 ## 2. Layout
 
-Content width is `--ev-page-max` 1120px at the **D2** 1280px floor. Page header and view row are
-`FinancialsPage`'s and do not change.
+Content width at the **D2** 1280px floor is 976px (D-2′, measured), of which the block spans
+912. Rail 300, divider 1, pane 611.
 
 ```
-┌ page header ─────────────────────────────────────────────────────────────────┐
-│ Pricing and plans                                       [ period control ]   │
-├──────────────────────────────────────────────────────────────────────────────┤
-│ [ Subscription plans │ Quick rides │(Rate card)│ Cancellation fees ]          │  ViewRow lead
-│ 4 RATE CARDS · 1 LIVE · 2 DRAFTS · 1 SUPERSEDED                              │  ViewRow caption rung
-├──────────────────────────────────────────────────────────────────────────────┤
-│ ┌ Card ────────────────────┬──────────────────────────────────────────────┐  │
-│ │ Rate cards           (h3)│ RC-2026-04-01  [Live]      Commission,  22%  │  │
-│ ├──────────────────────────┤ Effective from 1 April ·   on demand         │  │
-│ │▌RC-2026-04-01     [Live] │ no end set                 Commission,  20%  │  │
-│ │ From 1 Apr · no end set  │                            on a plan         │  │
-│ │ Bill +5.2%               │                            Consumer   VAT    │  │
-│ ├──────────────────────────┤                            prices    included│  │
-│ │ RC-2026-09-01    [Draft] │──────────────────────────────────────────────│  │
-│ │ From 1 Sept · no end set │ Class    Base  Per km  Per min   Min.  Canc. │  │
-│ │ Not modelled             │ Economy  4.50    1.20     0.40  12.00  8.00  │  │
-│ ├──────────────────────────┤ Comfort  7.50    1.75     0.55  18.00 12.00  │  │
-│ │ RC-2026-08-01    [Draft] │──────────────────────────────────────────────│  │
-│ │ From 1 Aug · no end set  │ ┌ Modelled impact ─────────┬ Floors ───────┐ │  │
-│ │ Bill +3.4%               │ │ Modelled on 4,186 trips  │ Target   12%  │ │  │
-│ ├──────────────────────────┤ │ Rider bill    Rider bill │ margin        │ │  │
-│ │ RC-2026-01-01 [Supersed.]│ │ before        after      │ Payment  2.2% │ │  │
-│ │ 1 Jan – 1 Apr            │ │ 21.80 SAR     22.94 SAR  │ fee           │ │  │
-│ │ Bill 0%                  │ │            +5.2%         │ Support  9.00 │ │  │
-│ │                          │ │ Measured against the     │ per sub.      │ │  │
-│ │                          │ │ card this one replaced.  │ Reserve  3.5% │ │  │
-│ │                          │ └──────────────────────────┴───────────────┘ │  │
-│ │                          │ This card prices every trip today. Editing   │  │
-│ │                          │ waits on the pricing owner decision.         │  │
-│ └──────────────────────────┴──────────────────────────────────────────────┘  │
-│                                                                              │
-│ ┌ Surge windows ───────────────────────────┐ ┌ Suspend surge ─────────────┐  │
-│ │ Windows are set by pricing. Operations   │ │ Choose a district, then    │  │
-│ │ may only suspend surge.                  │ │ confirm.                   │  │
-│ │ Window   Days      Hours  Mult.   State  │ │ ( Al Narjis )( Al Sahafa ) │  │
-│ │ Morning  Sun–Thu    7–9   1.3×  [Running]│ │ ( KAFD / Olaya )( Al Malaz)│  │
-│ │ Evening  Sun–Thu   16–19  1.4×  [Running]│ │ ( Qurtubah )( Al Yasmin )  │  │
-│ │ Weekend  Fri Sat   19–23  1.2×  [Off]    │ │                            │  │
-│ │                                          │ │ [Suspend surge] Al Narjis  │  │
-│ │                                          │ │                 selected   │  │
-│ └──────────────────────────────────────────┘ └────────────────────────────┘  │
-│                                                                              │
-│ ┌ Suspensions ─────────────────────────────────────────────────────────────┐ │
-│ │ 0 in force · 12 ended                                    [ toolbar ]     │ │
-│ │ District      Reason              Raised by     Started      State       │ │
-│ │ Al Sahafa     Stadium event …     Yousef …      3 Sept 09:14 [Ended]     │ │
-│ └──────────────────────────────────────────────────────────────────────────┘ │
-└──────────────────────────────────────────────────────────────────────────────┘
+┌ page header ──────────────────────────────────────────────────────────────────┐
+│ Pricing & Plans                                                     T0 24/600 │
+├───────────────────────────────────────────────────────────────────────────────┤
+│ [ Subscription plans │ Quick rides │(Rate card)│ Cancellation fees ]           │  no caption rung
+├───────────────────────────────────────────────────────────────────────────────┤
+│ ⓘ Prices are read-only until the rate card owner is decided.        one line  │  §6
+│                                                                               │
+│ ┌ Card ────────────────────┬───────────────────────────────────────────────┐  │
+│ │ Rate cards          T2   │ RC-2026-04-01  [Live]              [Approve]  │ A │  identity
+│ ├──────────────────────────┤ Effective from 1 April · no end set           │  │
+│ │▌RC-2026-04-01     [Live] │───────────────────────────────────────────────│  │
+│ │ From 1 Apr · no end set  │ Class    Base (SAR) Per km  Per minute  … T2  │ B │  header strip
+│ │ Bill +5.2%               │ Economy       5.00    1.20        0.40    …   │  │  --ev-row-h
+│ ├──────────────────────────┤ Comfort       8.00    1.75        0.55    …   │  │
+│ │ RC-2026-09-01    [Draft] │───────────────────────────────────────────────│  │
+│ │ From 1 Sept · no end set │ Commission and VAT       │ Floors        T2   │ C │
+│ │ Not modelled             │ Commission, on demand 22%│ Target margin  12% │  │
+│ ├──────────────────────────┤ Commission, on a plan 20%│ Payment fee   2.2% │  │
+│ │ RC-2026-08-01    [Draft] │ Consumer prices  VAT incl│ Support per s. 9.00│  │
+│ │ From 1 Aug · no end set  │                          │ Emergency res. 3.5%│  │
+│ │ Bill +3.4%               │ Guardrails a card is checked against. Nothing │  │
+│ ├──────────────────────────┤ enforces them yet.                            │  │
+│ │ RC-2026-01-01 [Supersed.]│───────────────────────────────────────────────│  │
+│ │ 1 Jan – 1 Apr            │ Modelled impact                          T2   │ D │
+│ │ Bill 0%                  │ Rider bill before  Rider bill after  Change   │  │
+│ │                          │ 21.80 SAR          22.94 SAR        +5.2%  T4 │  │
+│ │                          │ Modelled on 4,186 trips, run 21 March.        │  │
+│ │                          │ Measured against the card this one replaced.  │  │
+│ ├──────────────────────────┤                                               │  │
+│ │ 4 rate cards · 1 live ·  │                                               │  │
+│ │ 2 drafts · 1 superseded  │                                               │  │
+│ └──────────────────────────┴───────────────────────────────────────────────┘  │
+│                                                    ← G3, 24px →               │
+│ ┌ Card ─────────────────────────────────────────────────────────────────────┐ │
+│ │ Surge                                                              T1     │ │
+│ │ Windows are set by pricing. Operations may only suspend surge.     T6     │ │
+│ │ Window        Days          Hours  Multiplier      State           T2     │ │
+│ │ Morning rush  Sun Mon Tue …   7–9        1.3×   [Running]                 │ │
+│ │ Evening rush  Sun Mon Tue …  16–19       1.4×   [Running]                 │ │
+│ │ Weekend eve.  Fri Sat        19–23       1.2×   [Off]                     │ │
+│ │ ───────────────────────────────────────────────────────────────────────── │ │
+│ │ District                                                           T2     │ │
+│ │ (Al Narjis)(Al Sahafa)(Al Yasmin)(Al Malaz)(KAFD / Olaya)(Qurtubah)       │ │
+│ │ [ Suspend surge ]                                                         │ │
+│ │ Choose a district.                                                 T6     │ │
+│ └───────────────────────────────────────────────────────────────────────────┘ │
+│                                                    ← G3, 24px →               │
+│ ┌ Suspensions ──────────────────────────────────────────────────────────────┐ │
+│ │ 0 in force · 12 ended                                    [ toolbar ]      │ │
+│ │ District      Reason              Raised by     Started      State        │ │
+│ │ Al Sahafa     Stadium event …     Yousef …      3 Sept 09:14 [Ended]      │ │
+│ └───────────────────────────────────────────────────────────────────────────┘ │
+└───────────────────────────────────────────────────────────────────────────────┘
 ```
 
 **Card order, and why.** The master–detail first, because it answers *what does a trip cost*.
-Surge windows next, because a multiplier is applied to the card above it. `Suspend surge` beside
-the windows, because it is the one lever on the multipliers at its inline-start. Suspensions last
-and full width, because it is history, and history is never the first thing an operator reads.
+`Surge` next, because a multiplier is applied to the prices above it, and the one lever on
+those multipliers now sits inside the same card as the windows it suspends. `Suspensions`
+last and full width, because it is history, and history is never the first thing an operator
+reads.
 
-**Geometry — every value is a live token or a Tailwind step. No new token is required.**
+---
 
-| Slot | Class | Token behind it |
+## 3. The type scale for this view
+
+### 3.0 What is wrong today, measured on the built screens
+
+Four heading treatments for one rank, on one page:
+
+| Heading | Renders | Site |
 |---|---|---|
-| The block | one `Card`, `flex`, `compact:flex-col` | `--ev-radius-card`; `--card-spacing` 12px |
-| Rail column | `w-detail-rail shrink-0 border-e border-border` | `--ev-detail-rail-w` **300px** (`globals.css:1705`), exposed as `--spacing-detail-rail` (`:2865`) |
-| Detail pane | `min-w-0 flex-1` | — |
-| Rail row | `h-row-media px-3 py-1.5`, three 16px lines | `--ev-row-h-media` **60px** (`globals.css:1626`) |
-| Row separator | `border-b border-border-soft` | — |
-| Pane's two cards | `grid grid-cols-3 gap-3` — impact `col-span-2`, floors `col-span-1` | `SupportDesk.tsx:~132` precedent |
-| Surge row | `grid grid-cols-3 gap-3 compact:grid-cols-1` — windows `col-span-2` | same |
+| `Rate cards` (rail) | 12 / 500 / muted | `RateCardBlock.tsx:193` |
+| `RC-2026-04-01` (pane) | 14 / 600 / ink | `RateCardBlock.tsx:306` |
+| `Surge windows`, `Suspend surge` | 14 / 600 / ink | `SurgeCards.tsx:134`, `:249` |
+| `Suspensions` | **20 / 500** / ink | `IndexToolbar.tsx:271` |
 
-The reference says "roughly 290px" for the rail. **300px**, because it is the token the product
-already has for exactly this column, it is on the 4px grid, and **R13** voids the reference's
-figure as surely as it voids §1–§5's.
+And the loudest ink in the pane is not a price. The three header statistics render
+`text-sm font-semibold` (`RateCardBlock.tsx:388`), so **`VAT included` — a boolean — is set
+heavier than `5.00`**, which is the number the page exists to show. That single inversion is
+most of what the owner saw.
 
----
+Meanwhile `CardTitle` already renders 16/600 (`ui/card.tsx:89`) and no card on this view uses
+it, and `TableHead` already renders a 14/500 label on a `bg-muted` strip at `--ev-row-h-head`
+(`ui/table.tsx:240`, `:263`) and neither table on this view uses it.
 
-## 3. The rulings the reference forced
+### 3.1 The scale
 
-Each is a place the reference contradicts something live. Numbered `X-RC-n`, the convention
-`people-rider-profile.md` §11 established.
+Every rung is a step already declared in `globals.css` with a role already written for it in
+the **H5 rank** (`globals.css:3117–3126`). **No size is invented at a call site** — that is
+H2's standing ruling (`globals.css:2988`) and it is not suspended here.
 
-| # | The reference draws | Ruled | Rule it rests on |
-|---|---|---|---|
-| **X-RC-1** | **Small uppercase, letter-spaced labels** as the house signature — `4 RATE CARDS`, `CLASS`, `BASE`, `MODELLED IMPACT`, `FLOORS HELD BY EVERY CARD`, `WINDOW`, `DAYS`, `DISTRICT` | **Refused everywhere but one place.** Every section heading, card title and column header is **sentence case**, `text-xs font-medium text-muted-foreground` | **§6.3 D18** — uppercase + letter-spacing is banned for labels, nav section headings and **table headers**. The cheat sheet states it as Eyvar's own rule (`_partials/00-header.md:136`); the source text it points at is `_partials/01-foundations.md:200` (a MUST) and `:178` (*"sentence case (**never** uppercase, **never** letter-spaced)"*). `columns.ts:101` already renders every `DataTable` header this way. **X-4** in `people-rider-profile.md` refused twelve of these on another screen — refusing them again is consistency, not novelty |
-| **X-RC-1a** | — | The **one** surviving uppercase run: the **view-row caption rung**, `text-2xs leading-none font-medium uppercase tracking-wider tabular-nums text-muted-foreground`, carrying `4 rate cards · 1 live · 2 drafts · 1 superseded` | Already licensed and already on this screen: `ViewRow.tsx:~115`, **V-9.4 / V-3**, **AC-443**. It is the product's own home for the run the reference is reaching for |
-| **X-RC-2** | Money, percentages, deltas and multipliers in a **monospace face** | **Refused.** Money goes through `Money` / `MoneyCell` — Inter, `tabular-nums`, `<bdi>`, `(SAR)` in the header. Percentages, deltas and `1.3×` are Inter with `tabular-nums` | **A standing owner ruling already decided this against an earlier reference.** `MetricTile.tsx:~306`: *"The face is the console's own and NOT the reference's. The reference sets every eyebrow, delta and axis tick in JetBrains Mono. **The owner's ruling is to keep the dashboard's font** … the one thing [a monospaced face] uniquely gives is column-aligned digits, and every numeral run in the product already has that from `tabular-nums`."* Money has a house treatment (`Money.tsx:1–41`) and the reference does not get to override it silently |
-| **X-RC-2a** | — | `font-mono` **is** used, for one thing: the **version identifier** `RC-2026-04-01`, in the rail row and the pane heading | The product's existing rule for the face. `--font-mono` is declared (`globals.css:3565`) and every live consumer is an opaque machine identifier: `AdminActivityScreen.tsx:174` (`item.id`), `:251` (`subjectId`), `EmailLogCard.tsx:200` (`templateKey`), `MessagingTemplatesCard.tsx:96` (`code`), `TotpPanel.tsx:54` (the base32 secret — *"so `0`/`O` and `1`/`l` are distinguishable"*). A rate-card version is that kind of token. A rider's bill is not |
-| **X-RC-3** | A **brand-green marker** along the selected row's inline-start edge | **Refused as drawn; the marker itself is kept.** `w-marker bg-foreground`, on a **`bg-selected`** ground, with `aria-current="page"` | **Reuse, do not mint.** `ConversationListItem.tsx:60–71` is the shipped selected-record row and already does exactly this: `<span aria-hidden="true" className="pointer-events-none absolute inset-y-0 start-0 w-marker bg-foreground" />`. `--ev-marker` 3px (`globals.css:1752`) is the geometry both share. **R5a**'s edge marker is the *red* one and belongs to a breached row (`StatusBadge.tsx:57–105`); a green third stripe would give one instrument three meanings by hue alone, which is what R5 / R5a exist to stop. **The ground is `bg-selected`, not the inbox's `bg-muted`** — see §4 |
-| **X-RC-4** | A filled green `Suspend surge` **and** a quiet `Live card` button | **One filled button on this view: `Suspend surge`** (`variant="default"`). **`Live card` is deleted**; its footer sentence stays | **R3** — one primary per screen, and the four views never render together. `Live card` is a noun with no action: a control that does nothing is a badge wearing a control's clothes, and the `Live` badge in the pane header already says it. `copy.md` rule 2 (buttons are verbs) fails it independently |
-| **X-RC-5** | The chosen district chip **filled green** | **Refused.** The chosen chip takes **whatever the shipped `Toggle` on-state is** — today `data-[state=on]:bg-selected data-[state=on]:font-semibold` — inside a `ToggleGroup type="single" variant="outline"`. The screen names no fill of its own | `toggle.tsx:8` states it at the component: *"**R3 — THE ON STATE IS NOT `bg-primary`.**"* A green chip beside a green primary would also put two brand fills on one third-width card. The class is named here for the reader, not as a requirement: the requirement is *use the component untouched* |
-| **X-RC-6** | `21.80 → 22.94` as one monospace transition | **Refused.** Two labelled figures, `Rider bill before` / `Rider bill after`, side by side | **§9.5 / §9.6** and **X-17** (`people-rider-profile.md`): a direction glyph baked into a string *"cannot mirror, isolate or translate"*. U+2192 is `Bidi_Mirrored=No`, so in Arabic it points away from the reading direction and no CSS fixes it |
-| **X-RC-7** | `+5.2%` in a **pill** | **Refused as a pill.** The delta is text: `text-sm font-semibold tabular-nums text-foreground`, signed, **neutral** | **R4-5** — *"the delta chip is **neutral**. §3.7's colour MUST is void."* And `MetricTile.tsx:21`: a badge is *"never a status, never the delta"* — R7's five tones carry status; a delta is a quantity. **§8.3.2**: a negative uses **U+2212**, never a hyphen |
-| **X-RC-8** | `1 Apr — open`, `7 — 9` | **Refused.** `From 1 Apr · no end set`; `7–9` | `copy.md` rule 12: *"**No em dash.** `·` separates a qualifier … the en dash is for numeric ranges only."* `1 Jan – 1 Apr` keeps the en dash, because a date range is a range |
-| **X-RC-9** | In the class table's footer: `All figures in SAR. This is the live card, so nothing is compared.` | **Both halves deleted.** `(SAR)` is already in every column header; the comparison belongs to the impact card and is stated there | **§8.3.1** — *"inside a table the unit appears ONCE, in the column header as `(SAR)`, and never repeats in cells"* (`Money.tsx:29–31`). Restating it one row under the table is the same redundancy. The table gains a visually-hidden `<caption>` instead |
-| **X-RC-10** | `FLOORS HELD BY EVERY CARD` | `Floors`, with the caption `Guardrails a card is checked against. Nothing enforces them yet.` | The heading claims what the data does not carry. `floors` is a **per-card** field (`types/pricing.ts`, `RateCard.floors`) that happens to hold one constant in fixtures — and the type's own doc says these are *"the guardrails `planFloorCheck()` computes and **nothing enforces**"* (**D-F11**). A heading that says "held" of a number nothing holds is exactly the *broken vs unbuilt* conflation `states.md` names |
-| **X-RC-11** | A segmented filter `All districts │ Stadium │ School run │ Weather` under the subtitle *"grouped by district"* | **Refused twice.** (a) The segments the reference names are **reason** fragments, not districts — the control contradicts its own subtitle. (b) A per-card segmented filter is refused outright: district filtering is the **`DataTable` column filter** on `District` | (a) `fixtures/pricing.ts:494–500` — `reason` is free text from a five-item sample list, with no catalogue and no id. It cannot be segmented. (b) `patterns.md`, *"Table controls are not per-pattern"*: *"Sort, filter and column pinning belong to `DataTable`, not to the screen … **Do not build a per-page sort or filter control for any pattern.**"* Six districts today and more later; a seven-segment stadium is not a stadium |
-| **X-RC-12** | Multi-select districts with `1 selected` | **Single select.** The reference's own words are *"the **chosen one** is filled"* and *"1 selected"*, so single is what it draws | `suspendSurge({ zoneId, … })` takes **one** zone (`clients/pricing.ts`), and `fin.pricing.surge.suspend.title` names one zone. Multi-select means N writes, a partial-failure state nobody has specified, and a confirm title that cannot name its subject |
-| **X-RC-13** | A dark ground throughout | **Both themes are specified.** See §4 | **D33 / D33a / D34** |
+| Rung | Role on this view | Class | Latin | Arabic |
+|---|---|---|---|---|
+| **T0** page title | `Pricing & Plans`. `PageHeader`'s, untouched | `text-xl font-semibold text-foreground` | 24 / 600 / ink | 24 |
+| **T1** card title | One per card: the pane's selected version, `Surge`. `Suspensions` is `IndexToolbar`'s — see F-RC-7 | `CardTitle` → `text-base font-semibold text-foreground` | 16 / 600 / ink | 16 |
+| **T2** field label | A label that heads a **field**: the rail's strip, every table column header, every band label | `text-sm font-medium text-muted-foreground` | 14 / 500 / `--ev-text-2` | 14 |
+| **T3** identity | The rail row's version, the `Class` cell, the `District` cell | `text-sm font-medium text-foreground` | 14 / 500 / ink | 14 |
+| **T4** figure | The impact band's three values, and nothing else | `text-sm font-semibold tabular-nums text-foreground` | 14 / 600 / ink | 14 |
+| **T5** data — **money** | Every price, every table numeral | `text-sm tabular-nums text-foreground` (via `MoneyCell`) | 14 / 400 / ink | 14 |
+| **T6** meta | Every label paired with one value, every caption, the effective line, every refusal line, the rail footer, the banner body | `text-xs text-muted-foreground` | 12 / 400 / `--ev-text-2` | 13 |
+| **T7** badge | Every `StatusBadge` | set by `badge.tsx` | 11 / 600 / tone-fg | 12 |
 
-### 3.1 The type ramp, and the floor — answered explicitly
+**Nothing on this view sets a size class outside that table.** Seven rungs, six of which the
+owner named; the seventh is the badge, which H5 licenses as the ramp's one inversion.
 
-The product declares two ramps under one hook (`globals.css`: Arabic at `:2030` onward, Latin at
-`:3195` onward).
+### 3.2 The two rules that make T2 / T3 / T4 / T5 legal at one size
 
-| Step | Latin | Arabic | Licensed for |
-|---|---:|---:|---|
-| `--text-2xs` | **11px** (`:3207`) | **12px** (`:2056`) | *"The count numeral, the delivery word and table meta, **and nothing else** (H2, AC-CC-03). A badge label and every line an operator reads sit at `--text-xs` or above; **this step is not a size for prose**"* |
-| `--text-xs` | **12px** (`:3224`) | **13px** (`:2058`) | Secondary line, helper text, column header, meta |
-| `--text-sm` | **14px** (`:3246`) | 14px | Body, table cell, button, input, nav row |
+H5's law (`globals.css:3135`): *"size and weight move in the same direction; nothing larger is
+ever lighter than the thing above it in rank"*, and (`:3161`) *"do not reuse a one-step weight
+difference anywhere that position does not also separate the two tiers."*
 
-**The floor for anything an operator reads is 12px**, and `--text-2xs` at 11px is not under it by
-accident — it is a closed-list step for counts, badge labels and table meta. So:
+- **T2 against T3** — same size, same weight, separated by **colour** (`--ev-text-2` against
+  `--ev-ink`). Not a weight boundary at all.
+- **T3 against T5** — one weight step at the same size and colour. Legal only because
+  **position** separates them: the identity is always the first column of a row. H5 names this
+  the product's weakest legal boundary and it is used here exactly as the table already uses it.
+- **T4 against T5** — **two** weight steps (400 → 600, +44.4% stem density, measured at
+  `globals.css:3155–3162`). H5 calls two steps *"the one that is visible on its own"*. T4 also
+  sits in its own band, so position separates it too.
 
-| Label in this design | Token |
+**A label that heads a field takes T2. A label paired with one value takes T6.** That is the
+distinction the current build does not make, and it is why the pane reads flat: a label at
+14/500 above a value at 14/400 would make the label heavier than the thing it labels.
+
+### 3.3 The loudest thing on the page
+
+**The per-class price matrix, as a region.** Not a numeral.
+
+A rate card has no headline number. It is a matrix, and any single figure lifted out of it to
+be the page's KPI would be a summary set louder than the thing it summarises. So loudness is
+bought three ways, none of them a bigger glyph:
+
+1. **Chrome.** The matrix is the only block inside the master–detail card that carries a
+   filled header strip — `bg-muted` at `--ev-row-h-head`, which `--ev-bg2`'s own declaration
+   names as its first licensed use: *"THE ONE TINT INSIDE A CONTAINER: **the table header
+   row**, the filter-chip strip, a card's section-header strip"* (`globals.css:471`).
+2. **Ink at body size.** After §3.1 the matrix is the **only place in the pane where a numeral
+   is `--ev-ink` at 14px**. Commission, VAT and the floors drop to T6. The impact band's three
+   figures are T4, in their own band, below the fold of the matrix.
+3. **Row height.** `--ev-row-h` 40px against the rail's rows and the terms band's 8px rhythm.
+
+**No `--text-kpi` (28) and no `--text-lg` (20) is spent anywhere on this view.** That is a
+deliberate refusal, recorded in §11.1 so the owner can overrule it in one line if they want a
+display numeral. The two steps exist for a metric board, and this is not one.
+
+### 3.4 Money gets its own treatment, and here it is
+
+| | |
 |---|---|
-| Rail heading `Rate cards` | `text-xs font-medium text-muted-foreground` (`SupportDesk.tsx:~135` precedent) |
-| Rail row line 1, the version | `text-xs font-mono text-foreground` |
-| Rail row lines 2 and 3 | `text-xs text-muted-foreground` |
-| Pane heading, the version | `text-sm font-mono font-semibold text-foreground` |
-| Pane effective line | `text-xs text-muted-foreground` |
-| Statistic label | `text-xs text-muted-foreground` |
-| Statistic value | `text-sm font-semibold tabular-nums text-foreground` |
-| Every table column header | `KEY_VALUE_HEAD` = `py-1.5 text-xs font-medium text-muted-foreground` (`KeyValueGrid.tsx:16`), unchanged |
-| Every table cell | `text-sm`; money through `MoneyCell` |
-| Card title | `text-sm font-semibold text-foreground`, unchanged from today |
-| Card caption / footer sentence | `text-xs text-muted-foreground` |
-| Badge label | `--text-2xs`, set by `badge.tsx` — the only `--text-2xs` here besides X-RC-1a |
-| View-row caption rung | `text-2xs … uppercase tracking-wider` (X-RC-1a) |
-
-Nothing in this design sets a size class outside that table, and nothing sets an arbitrary size.
+| **Component** | `MoneyCell` in a table, `Money` outside one. Never a hand-formatted number |
+| **Size / weight / ink** | T5 — 14 / 400 / `--ev-ink` in a table cell; T4 — 14 / 600 / `--ev-ink` in the impact band |
+| **Figures** | `tabular-nums`, pinned on `table` in `@layer base` and on `data-slot="metric-value"` |
+| **Alignment** | `text-end`, never `text-right` (`Money.tsx:81`). The column mirrors in Arabic; the numeral run does not (**R4**, **AC-73**) |
+| **Decimal alignment** | **Free, and no mechanism may be added for it.** `formatMoney` emits exactly two decimals always (`Money.tsx:22`), so every value in a column has the same fractional width; `tabular-nums` plus `text-end` lines the decimal points up by construction. A decimal-aligned grid, a padded span or a split integer/fraction render is forbidden here |
+| **Unit** | `(SAR)` once, in the column header (§8.3.1); `unit="none"` on every cell. Outside a table the value carries `SAR` trailing, one space, as a T6 muted run on the numeral's baseline (`ViewRow.tsx:169–171`) |
+| **Negative** | U+2212, never a hyphen, never a colour, never inside a badge (§8.3.2) |
+| **Null** | `—` (U+2014) and never `0.00`. `null` is not zero |
 
 ---
 
-## 4. Surfaces — the light-theme answer, stated because the reference cannot give it
+## 4. The spacing scale for this view
 
-**D33 — a surface recesses, in both themes.** The block is **one** `Card`. Not two cards side by
-side, and not a card inside a card.
+### 4.0 What is wrong today
 
-- **Light.** Page `#ffffff`, pinned. The block is `bg-card`, one step **darker** than the page,
-  and reads as a grey panel on it. The rail is *not* a second ground — it is the same card,
-  divided by `border-e border-border`. Giving the rail its own darker fill would be a second
-  recess step and a second surface for one concern.
-- **Dark.** Page `--ev-bg` `#14181e`, pinned. `--ev-surface` `#080a0d`, **1.113 : 1 under the
-  page** (`globals.css:1816` ladder). The card still recesses; the hairline still draws the edge,
-  because **D34** deleted the inset highlight that used to.
-- **The selected row is `bg-selected`**, and this is the one place I correct a precedent rather
-  than copy it. `--ev-selected` (`globals.css:447–469`) is documented as *"**THE SELECTED
-  GROUND.** One ground meaning *this is the row, the tile or the zone you chose*, as distinct
-  from the one under the pointer … the D33 step applied to a STATE"* — light `#dce1e6`,
-  **1.270 under** the card; dark `#252d38`, **1.426 over** it. Both clear 1.25 without a second
-  carrier, and both are a larger step than hover, *"so the mouse never outranks the choice"*.
-  `--ev-text-2` is 4.605 : 1 on it in light and 6.221 in dark, so the row's second and third
-  lines still pass AA. **`bg-muted` would be wrong**: `--ev-bg2` is *"the table header row, the
-  filter-chip strip, a card's section-header strip, a promo band, an inner empty panel"* — a
-  tint, not a state. `ConversationListItem.tsx:60` still writes `bg-muted` because it predates
-  the token; a migration onto `bg-selected` was in flight in this tree while this spec was
-  written (`ui/tabs.tsx`, `ui/toggle.tsx`), and the rail is built on the new answer, not the old
-  one.
-- **Hover** is `bg-row-hover`, which is deliberately a *smaller* step than `bg-selected` in both
-  themes.
-- **D34 — nothing casts a shadow.** No card, no rail, no chip. Separation is the value step plus
-  the hairline. The focus ring survives; a ring is not a shadow.
-- **D33a does not apply.** Nothing on this view covers the page. The one covering surface is
-  `ConfirmMoneyDialog`, already governed, and it stays white in light.
+`globals.css:3191–3200` measured the same failure product-wide: *"within a tile, value to
+label is 6px; between tiles, 12px; between the metric board and the chart board, 16px …
+**between-group to between-SECTION is 12:16, a ratio of 1.33** — a whole change of subject is
+4px wider than the gap between two tiles."* On this view it is worse: the gap between two
+**bands inside a card** and the gap between two **cards** are both 12px
+(`Card`'s `gap-(--card-spacing)`, `ui/card.tsx:41`, and `PricingScreen.tsx:514`'s `gap-3`), so
+a change of subject costs exactly what a new line costs, and eight blocks read as one field.
 
-`docs/ref/tokens.md`'s *"Elevation — the closed set of three"* section is **stale under D34** and
-must not be cited against this. Reported as **F-RC-4**, not fixed: it is not my file.
+The same file states the fix and forbids the wrong one: *"the section gap wants the next real
+step up rather than a new `--ev-*` name … adding a spacing token here would be the drift, not
+the fix."*
+
+### 4.1 The scale — four values, and every gap on the view comes from this list
+
+| Rung | Role | Class | px | Ratio to the rung below |
+|---|---|---|---|---|
+| **G0** | A label to its value inside one cluster; two lines of one rail row | `gap-1` | 4 | — |
+| **G1** | Between rows inside a band; between a band label and its content | `gap-2` | 8 | 2.00 |
+| **G2** | Between bands inside a card; the card's inset on all four sides | `gap-(--card-spacing)` / `p-(--card-spacing)` | 12 | 1.50 |
+| **G3** | Between cards; and the channel a band rule sits in | `gap-6` | 24 | 2.00 |
+
+Fixed heights, all tokens: `--ev-row-h-head` **36** (a table header strip, and the rail's
+strip), `--ev-row-h` **40** (a table body row), `--ev-row-h-media` **60** (a rail row, as a
+**minimum** — see §9).
+
+### 4.2 The rhythm law
+
+> **A change of subject always costs 24px, whether it is drawn as a rule inside a card or as
+> the space between two cards.**
+
+A divided band inside a card is `border-t border-border-soft` with `pt-3` under the rule and
+the card's own `gap-(--card-spacing)` above it: 12 + rule + 12 = **24**, the rule centred in
+the channel. Two cards are `gap-6` = **24**. So the eye reads one interval for one meaning,
+and the hairline is the only thing that says "same card". That is the single sentence this
+view was missing.
+
+### 4.3 Forbidden here
+
+**2px (`gap-0.5`), 6px (`py-1.5`), 16px and 32px do not appear inside this view.** 2 and 6 are
+off the 4px grid (D15, `06-eyvar-mapping.md:178`); 16 and 32 are on it but are not on this
+view's scale, and a fifth value is how a scale stops being one. The current build uses
+`gap-0.5` at `RateCardBlock.tsx:215`, `:386`, `:532` and `py-1.5` at `:193`, `:422–:437` and
+throughout `SurgeCards.tsx`; all of them move onto G0/G1 or onto a row-height token.
 
 ---
 
-## 5. The four states, drawn
+## 5. The detail pane — four bands, regrouped, and the void
 
-The block's states are driven by `listRateCards` alone. The three cards below it keep their own
-reads (`listSurgeWindows`, `listSurgeSuspensions`, `listZones`) and their own states; one read
-failing never blanks another card.
+### 5.1 Why four blocks became four *bands*
 
-### 5.1 Content
+Revision 1's pane was four blocks in a stack with nothing saying which belonged together. The
+regrouping is by the operator's question, in the order they ask it:
 
-As drawn in §2. **Rail order is fixed and is never sorted by the operator:** `live`, then `draft`
-newest first by `effectiveFrom`, then `superseded` newest first. Against the shipped fixtures
-that is `RC-2026-04-01`, `RC-2026-09-01`, `RC-2026-08-01`, `RC-2026-01-01`, whose bill deltas
-read `+5.2%`, `Not modelled`, `+3.4%`, `0%` — matching the reference's own order exactly, which
-is the evidence that this is the ordering rule it used.
+| Band | The question it answers | Contents |
+|---|---|---|
+| **A · Identity** | *Which card is this, is it in force, and can I do anything about it?* | version (T1, mono) · `StatusBadge` · `Approve` at the inline-end (draft only) · effective line (T6) · refusal line (T6) |
+| **B · Prices** | *What does a trip cost on it?* — **this is the page** | the six-column class matrix, full-bleed, header strip + `--ev-row-h` rows |
+| **C · Terms** | *What does the business take, and what is this card checked against?* | `Commission and VAT` (3 rows) beside `Floors` (4 rows), then one caption |
+| **D · Impact** | *If this replaced the live card, what happens to bills?* | three T4 figures in a row, then one caption |
 
-### 5.2 Loading
+**A, B and C are what the card IS. D is what it would DO.** Facts before consequence, and
+that is also why D is last rather than second: on a live or superseded card D is history, and
+history never outranks the prices in force.
+
+**The header stat row is gone.** Commission and VAT are properties of the card, not
+performance indicators, and rendering them as pseudo-KPIs at 14/600 in the pane header is
+what made a boolean louder than a fare. They join `Floors` in band C, where the instrument is
+a key/value row and the label/value relationship is honest.
+
+**Band C's two columns are unequal in length and that is fine.** The rule this view enforces:
+*two columns inside one band must use the same instrument; unequal length is permitted,
+unequal rhythm is not.* Both halves are key/value rows at G1. Revision 1's failure was a
+label-over-figure cluster beside a key/value grid — two languages, side by side, in one band.
+
+**Band C's caption spans both columns**, at the band's foot: `Guardrails a card is checked
+against. Nothing enforces them yet.` (**D-F11**, X-RC-10). At full width it is one line; in
+revision 1 it was inside the 1/3 column and wrapped to three, which is most of the visible
+imbalance in the shipped screenshot.
+
+**Band D's caption spans the band**, one line, and absorbs what were two separate meta lines
+above and below the figures.
+
+### 5.2 The void, named and answered
+
+The block is `<Card className="flex-row …">` (`RateCardBlock.tsx:143`). `flex-row` stretches
+both children to the tallest, so **the taller column dictates the shorter one's height**.
+There are two voids in the shipped screenshot and both are that mechanism:
+
+1. **In the rail**, below the fourth row — the pane is taller than 4 × 60 + 36.
+2. **Inside band C's inline-start half** — `grid-cols-3` with `Modelled impact` at
+   `col-span-2` and `Floors` at `col-span-1` (`RateCardBlock.tsx:347`), and the 1/3 column is
+   the taller of the two.
+
+Nothing is stretched to fill either. The answer is three moves, in this order:
+
+1. **Void 2 stops existing.** The `col-span-2` / `col-span-1` pairing is replaced by band C
+   (two equal-instrument halves, `grid-cols-2`) and band D (full width). A grid whose two
+   cells hold different instruments cannot have equal heights; two cells holding the same
+   instrument have heights that differ by a row, not by a paragraph.
+2. **The pane loses roughly 64px of height**, which shrinks void 1 by the same amount: the
+   orphan footer sentence is deleted (§6), and `Approve` and its refusal move up into band A
+   instead of forming a fifth block at the pane's foot.
+3. **Void 1's remainder is terminated, not filled.** The rail gains a footer pinned with
+   `mt-auto` carrying the counts (§7), above a `border-t border-border-soft`. The space above
+   that footer is the list's **runway** — it is where the fifth rate card goes — and a runway
+   with a bottom edge reads as a list, while a runway without one reads as a hole.
+
+**No filler is permitted.** No illustration, no watermark, no stretched-to-fit table, no
+vertical centring of the rail's rows, and no `justify-between` in the pane. If the rail is
+short, it is short.
+
+---
+
+## 6. The banner
+
+**Ruling: the banner stays, at one line, and it stops being said twice.**
+
+`fin.pricing.stageA` is a genuine standing condition and **R10** sends a standing condition to
+a banner. It is true on all four views of the page, so it is page-level, and deleting it would
+leave three views with disabled controls and no stated reason. It earns its place by being the
+**single** carrier for a condition that would otherwise be repeated on every disabled control.
+
+It does **not** earn two lines here. Two findings:
+
+- **Its body is about a different view.** `fin.pricing.stageA.body` reads *"…A plan's
+  catalogue is editable; its rates, commission and discount are shown as they stand."* On the
+  Rate card view nothing is editable and there is no catalogue. The sentence is true of
+  `Subscription plans` and misleading here.
+- **Its title is stated twice on this view.** `fin.pricing.rateCard.footer.live` reads *"This
+  card prices every trip today. Editing waits on the pricing owner decision."* The second
+  clause is the banner's title in other words. **R10**: one condition, one surface.
+
+So:
+
+1. `PricingScreen.tsx`'s `banners` memo supplies `body` **only when `activeTab !== 'rate-card'`**.
+   The tone stays `info`, the title is unchanged, there is no dismiss (§11.4 — an operator may
+   not dismiss a standing condition), and the count of banners on the page stays exactly one.
+2. `fin.pricing.rateCard.footer.live` is **retired**. Its first clause (*"This card prices
+   every trip today"*) is what the `Live` badge and `Effective from 1 April · no end set`
+   already say; its second is the banner's.
+3. `fin.pricing.rateCard.footer.superseded` is **retired** for the same reason: *"This card
+   priced trips until 1 April"* is `Effective 1 January to 1 April` plus a `Superseded` badge,
+   and *"It is kept for the trips it priced"* is a rationale for the record's existence, not a
+   state of it.
+
+That is the owner's "orphan sentence at the bottom", removed by rule rather than by taste, and
+roughly 44px of banner recovered on every visit.
+
+---
+
+## 7. The counts caption
+
+**Ruling: it comes off the view row. The Rate card view publishes `facts = null`.**
+
+Three reasons, in descending weight:
+
+1. **The rung has no parent here.** `ViewRow.tsx:37–41` documents the caption as *"V-3's facts
+   rung, **directly under the figures it belongs to** and sharing their inline-start."* This
+   view publishes no figures (`RateCardBlock.tsx:78–98` returns `caption` only), so the rung
+   renders as a free-floating run beside the stadium, vertically centred against the tabs. It
+   is a caption under nothing.
+2. **It is the loudest treatment on the page carrying the least important content.** Uppercase
+   plus `tracking-wider` is the strongest attention signal in the whole product, spent on a
+   count of a four-item list, at 11px — the one step `globals.css:3206` says *"is not a size
+   for prose"*.
+3. **A count of a list belongs to the list.** The rail is the list.
+
+**X-RC-1a is narrowed, not revoked.** The view-row caption rung stays licensed (V-9.4, V-3,
+AC-443) for views that publish figures; `ViewRow.tsx` is **not** changed and no other Financials
+view is affected. What changes is what this view publishes.
+
+**The rail footer.** Pinned with `mt-auto`, above `border-t border-border-soft`, `px-3 py-2`,
+T6, sentence case, one line, truncating: `4 rate cards · 1 live · 2 drafts · 1 superseded`.
+Separators are drawn as `aria-hidden` spans between `<bdi>` fragments, never written into a
+string (AC-443's construction). Where no card is live the first entry is `No card is live`.
+With zero cards the footer is not rendered at all — the empty sentence above it already says
+the count.
+
+The existing plural keys (`…count.cards`, `…count.live`, `…count.drafts`,
+`…count.superseded`, `…noLive`) are reused verbatim. Only their carrier moves.
+
+---
+
+## 8. **D35** — the ruling on open owner question A-3
+
+### 8.1 The defect, confirmed
+
+`SurgeCards.tsx:249` renders `<h2 class="text-sm font-semibold">Suspend surge</h2>`.
+`SurgeCards.tsx:291` renders a `variant="default"` `Button`, disabled, whose label is
+`fin.pricing.surge.suspend.confirm` = **`Suspend surge`** (`copy.ts:913`). And
+`ui/button.tsx:49` sets `disabled:border-transparent disabled:bg-transparent
+disabled:text-muted-foreground`, so a disabled primary has **no fill, no border and no ink** —
+it is a line of 14/500 muted text. The panel therefore paints:
 
 ```
-┌ Card ────────────────────┬──────────────────────────────────────────────┐
-│ ▭▭▭▭▭▭ (heading bar)     │ ▭▭▭▭▭▭▭▭▭▭▭      ▭▭▭▭  ▭▭▭▭  ▭▭▭▭           │
-├──────────────────────────┤ ▭▭▭▭▭▭▭▭▭▭▭▭▭▭   ▭▭    ▭▭    ▭▭             │
-│ ▭▭▭▭▭▭▭▭▭      ▭▭▭▭      │──────────────────────────────────────────────│
-│ ▭▭▭▭▭▭▭▭▭▭▭▭             │ ▭▭▭▭  ▭▭▭  ▭▭▭  ▭▭▭  ▭▭▭  ▭▭▭   (head row)  │
-│ ▭▭▭▭▭▭                   │ ▭▭▭▭  ▭▭▭  ▭▭▭  ▭▭▭  ▭▭▭  ▭▭▭               │
-├──────────────────────────┤ ▭▭▭▭  ▭▭▭  ▭▭▭  ▭▭▭  ▭▭▭  ▭▭▭               │
-│  … four rows in total …  │──────────────────────────────────────────────│
-│                          │ ┌ card outline ───────────┬ card outline ──┐ │
-└──────────────────────────┴──────────────────────────────────────────────┘
+Suspend surge                     14/600 ink      ← heading
+Choose a district, then confirm.  12/400 muted    ← subtitle
+( chips )
+Suspend surge                     14/500 muted    ← the disabled primary, reading as a heading
+Choose a district.                12/400 muted    ← the refusal, echoing the subtitle
 ```
 
-- The **whole block** carries `aria-busy="true"`. Rail and pane skeleton render **together**. The
-  pane never shows *"select a card"* while the rail loads: there is nothing to select yet, and a
-  prompt that cannot be obeyed is a lie.
-- **Four** rail rows at `h-row-media`, three bars each, so nothing moves when the data lands
-  (§11.3).
-- **The block draws its own skeleton inline; no pattern is added to `LoadingSkeleton`.** `P4`
-  (what the view uses today) is the sectioned-form shape — a label column beside a five-field
-  form card — and has never described this view. `P2` is main + rail with the rail at the
-  inline-**end**. `SkeletonPattern` is typed as *"the ten §6.4 patterns"* (`LoadingSkeleton.tsx:37`),
-  so minting `P11` means minting a §6.4 row, which §1 has already established is product-owner's.
-  Inline `Skeleton` bars, as `ConversationList.tsx:53–66` and `SupportDesk.tsx:~97` both do.
+Two headings, two subtitles, one card. This is both a component defect and a copy defect, so
+the ruling has two clauses and the answer to the owner's "either/or" is **both**.
 
-### 5.3 Error
+### 8.2 The ruling
 
-The read failed. **The whole block collapses to one `ErrorState scope="card"` spanning both
-columns** — not an error in the rail with a live pane beside it, because a pane whose subject
+> ### D35 — a disabled control keeps its shape, and a panel never says the same words twice
+>
+> **D35a — a disabled control drops its fill, not its box.** §8.6.3's *"a disabled primary
+> drops its fill"* stands: a disabled control must never paint `--ev-brand`, because the one
+> live primary has to be the only full-weight control on a screen (`ui/button.tsx:45–48`). It
+> keeps everything else — its height, its radius, its inline padding, and a **1px
+> `border-border` hairline**. A hairline is not weight. A control whose only remaining carrier
+> is muted text is not a control, and where it sits under a heading of similar size it is read
+> as a second heading. Applies to every disabled `Button` in the product, in every variant.
+>
+> **D35b — within one card, the title and a control never carry the same string.** If the act
+> names the card, the card takes the object's name and the control keeps the verb. A card
+> title is a noun phrase for the object; a button is a verb phrase for the act. Where obeying
+> this would leave the card with no title worth writing, the control has no title above it at
+> all — the field label above the input does that job.
+
+**Why a hairline and not something louder.** `--ev-hairline-strong` is not available:
+**R19** licenses it *"only for the resting boundary of an unchecked control"*. `border-border`
+is the ordinary hairline and it is what `secondary` already carries, so a disabled primary and
+a disabled secondary converge on one shape — which is correct, because a disabled control's
+variant is information the operator cannot act on.
+
+**Belongs in `docs/RULINGS.md`.** Append to `05-restructure/DECISIONS.md` as **D35** with
+today's date and add one row to the rulings index. **I have not edited either file.**
+
+### 8.3 What D35 does to this view
+
+`Surge windows` and `Suspend surge` **merge into one card, `Surge`.**
+
+```
+Surge                                                             T1 16/600
+Windows are set by pricing. Operations may only suspend surge.    T6
+─ band 1 ─ the windows table (5 columns, header strip, --ev-row-h rows)
+──────────────────────────────────────────── rule, G3 channel ────────────
+─ band 2 ─ District                                               T2 14/500
+           ( Al Narjis )( Al Sahafa )( Al Yasmin )( Al Malaz ) …
+           [ Suspend surge ]
+           Choose a district.                                     T6
+```
+
+- **D35b is satisfied by construction**: the card is `Surge`, the button is `Suspend surge`,
+  and the district band has no heading — the `ToggleGroup`'s visible `District` label is the
+  field label and does the whole job. `fin.pricing.surge.suspend.heading` and
+  `fin.pricing.surge.suspend.subtitle` are **retired**; the card's one description line
+  already says who may do what.
+- **D35a is satisfied by the component**, once `ui/button.tsx:49` keeps `border-border` on
+  `:disabled`. That is a one-line change in a shared file and it is **frontend-engineer's
+  call to sequence**, not something this screen forks.
+- One concern per card (§10.1) holds: the concern is surge — what runs, and the one lever on
+  it. Revision 1's split put a table beside a chip field, two instruments at two widths with
+  two internal rhythms, which is the third rhythm the owner named.
+- `Suspensions` stays its own full-width card, because it is a different record set with its
+  own toolbar, sort and filters.
+
+**Above eight districts the `ToggleGroup` becomes a `Select`.** Six ship today
+(`fixtures/zones.ts:59–64`), and a wrapping chip field stops being scannable past eight. Stated
+now so the threshold is not discovered as a defect later.
+
+### 8.4 R3 — which primary wins
+
+**`Suspend surge` wins. It is the view's one `variant="default"`.**
+
+- `Approve` is `variant="secondary"` (`RateCardBlock.tsx:364`) and is **permanently** disabled
+  in Stage A — every branch of `approveBlockedReason` (`:285–:291`) is non-null for a draft. It
+  never claimed the primary and does not now. Under **D35a** it gains a hairline, which is
+  what makes its `RefusalLine` legible as an explanation of a control rather than as prose.
+- The view row publishes **no control** on this view (`PricingScreen.tsx:153–169` renders the
+  `Add plan` primary only on `subscription-plans` and `quick-rides`).
+- The banner carries no actions.
+
+So the rebuilt view renders exactly one filled button, and it is the only write an operator
+has here.
+
+---
+
+## 9. Surfaces — both themes, and the Arabic row height
+
+**D33** — the block is **one** `Card`. Not two cards side by side and not a card in a card.
+
+- **Light.** Page `#ffffff`, pinned. The card is `--ev-surface`, measured **1.036 : 1** under
+  the page (`globals.css:477`, which names the figure while explaining the tint that stacks on
+  it). This design does not move it and takes no position on the 0.006 between that and D33b's
+  stated 1.03 ceiling; the token is the token. The rail is **not** a second ground — it is the
+  same card, divided by `border-e border-border`.
+- **Dark.** Page `--ev-bg` `#14181e`, pinned. `--ev-surface` `#080a0d`, 1.113 : 1 under the
+  page (`globals.css:1816`). The hairline draws the edge because **D34** deleted the inset
+  highlight that used to.
+- **The header strips** — the class matrix's, the surge table's, and the rail's — are
+  `bg-muted` = `--ev-bg2`. In light that is 1.019 : 1 **under** the card, the smallest step in
+  the product and its declared ceiling (`globals.css:477`). In dark it is 1.066 **over** the
+  card, and **D33c rules that inversion deliberate and forbids "fixing" it**. `--ev-text-2` on
+  `--ev-bg2` is **4.538 : 1**, the tightest pair in the product, **pinned by R22**
+  (`ui/table.tsx:236`) — so T2's ink and the strip's ground are both frozen and neither moves
+  without re-deriving the pair.
+- **Three strips on the view is not a D33b violation, and visual QA should not file it as one.**
+  D33b's objection is to *stacking* — *"a grey header on a grey card on a white page is three
+  tones"*. Every strip here is a **direct child of its card**, so the deepest stack anywhere on
+  the view is page → card → strip, which is D33b's own two-step example and is why the token
+  carries a 1.019 ceiling. No strip sits inside another strip, and no card sits inside a card.
+- **The selected rail row** is `bg-selected` (`--ev-selected`): light `#dce1e6`, 1.270 under
+  the card; dark `#252d38`, 1.426 over it (`globals.css:447–469`). Plus the `w-marker
+  bg-foreground` inline-start marker and `aria-current="page"` (X-RC-3). `--ev-text-2` on it is
+  4.605 light / 6.221 dark, so the row's second and third lines still pass AA.
+- **Hover** is `bg-row-hover`, deliberately a smaller step than `bg-selected` in both themes,
+  *"so the mouse never outranks the choice"*.
+- **D34 — nothing casts a shadow.** No card, no strip, no chip, no disabled button's new
+  hairline. Separation is the value step plus the hairline, and nothing else. The focus ring
+  survives; a ring is not a shadow.
+- **D33a does not apply.** Nothing on this view covers the page. `ConfirmMoneyDialog` is
+  already governed and stays white in light.
+
+**The rail row height is `min-h-row-media`, not `h-row-media`, and Arabic is why.** Three lines
+at T3 + T6 + T6 measure 20 + 16 + 16 = **52px** in Latin, which fits `--ev-row-h-media` 60 with
+4px of block padding either side. In Arabic the same three lines measure 24 + 20 + 20 = **64px**
+(`globals.css:2065–2066`, `:2058–:2059`) against `--ev-row-h-media` 64 (`:2015`) — zero padding,
+and the current `h-row-media` (`RateCardBlock.tsx:215`) would clip rather than grow. A minimum
+grows; a fixed height lies.
+
+---
+
+## 10. The four states, drawn
+
+The block's states are driven by `listRateCards` alone (one read, AC-RC-06). `Surge` and
+`Suspensions` keep their own reads and their own states; one read failing never blanks another
+card.
+
+### 10.1 Content
+
+As drawn in §2. **Rail order is fixed and is never sorted by the operator:** `live`, then
+`draft` newest first by `effectiveFrom`, then `superseded` newest first.
+
+### 10.2 Loading
+
+```
+┌ Card ────────────────────┬───────────────────────────────────────────────┐
+│ ▭▭▭▭▭▭  (strip, 36px)    │ ▭▭▭▭▭▭▭▭▭▭▭  ▭▭▭▭            (band A)         │
+├──────────────────────────┤ ▭▭▭▭▭▭▭▭▭▭▭▭▭▭▭                               │
+│ ▭▭▭▭▭▭▭▭▭        ▭▭▭▭    │───────────────────────────────────────────────│
+│ ▭▭▭▭▭▭▭▭▭▭▭▭             │ ▭▭▭▭ ▭▭▭ ▭▭▭ ▭▭▭ ▭▭▭ ▭▭▭   (strip, 36px)     │
+│ ▭▭▭▭▭▭                   │ ▭▭▭▭ ▭▭▭ ▭▭▭ ▭▭▭ ▭▭▭ ▭▭▭   (row, 40px)       │
+├──────────────────────────┤ ▭▭▭▭ ▭▭▭ ▭▭▭ ▭▭▭ ▭▭▭ ▭▭▭   (row, 40px)       │
+│  … four rows in total …  │───────────────────────────────────────────────│
+├──────────────────────────┤ ▭▭▭▭▭▭  ▭▭▭   │ ▭▭▭▭▭▭  ▭▭▭  (band C)        │
+│ ▭▭▭▭▭▭▭▭▭▭▭▭  (footer)   │ ▭▭▭▭▭▭  ▭▭▭   │ ▭▭▭▭▭▭  ▭▭▭                  │
+└──────────────────────────┴───────────────────────────────────────────────┘
+```
+
+- The **whole block** carries `aria-busy="true"`. Rail and pane skeleton render together. The
+  pane never shows *"select a card"* while the rail loads: there is nothing to select yet, and
+  a prompt that cannot be obeyed is a lie.
+- **Four** rail rows at `min-h-row-media`, three bars each, plus the strip and the footer, so
+  nothing moves when the data lands.
+- The pane's skeleton draws **band A, band B and band C** and stops. Band D is omitted
+  deliberately: its height depends on `simulation`, and a skeleton that promises a band the
+  data may not fill is a layout shift with extra steps.
+- **The block draws its own skeleton inline; no `LoadingSkeleton` pattern is minted.**
+  `SkeletonPattern` is typed as *"the ten §6.4 patterns"* (`LoadingSkeleton.tsx:37`), so
+  minting `P11` means minting a §6.4 row, which is product-owner's.
+- **No spinner.**
+
+### 10.3 Error
+
+The read failed. The whole block collapses to one `ErrorState scope="card"` spanning both
+columns — not an error in the rail with a live pane beside it, because a pane whose subject
 cannot be listed has no subject.
 
 > Couldn't load rate cards. Try again.  ` [ Try again ] `
 
 Keys: `fin.error.read`, `fin.error.retry` — existing, unchanged.
 
-### 5.4 Empty — and there are three kinds
+### 10.4 Empty — three kinds
 
 | Kind | What renders | Copy |
 |---|---|---|
-| **Zero rate cards, ever** | The block keeps its **rail heading** and shows one grey sentence where the rows would be. The pane is not rendered; the block collapses to one column | `No rate card exists, so nothing can price a trip.` |
-| **Exactly one rate card** | The rail renders **normally**: one row, selected, marker and all. It does **not** collapse, and there is no "1 of 1" chrome | — |
-| **No card is live** (drafts and superseded only) | Everything renders. The view-row caption rung gains this as its **first** entry | `No card is live` |
+| **Zero rate cards, ever** | The block keeps its rail **strip** and shows one grey sentence where the rows would be. No pane, **no rail footer**, and the block collapses to one column | `No rate card exists, so nothing can price a trip.` |
+| **Exactly one rate card** | The rail renders **normally**: one row, selected, marker and all. It does not collapse and there is no "1 of 1" chrome | — |
+| **No card is live** | Everything renders. The rail footer's **first** entry is this | `No card is live` |
 
-**R8, applied.** None of these gets an illustration. This is an empty **block** inside a page that
-still renders a view row, two surge cards and a suspensions table — not a whole-page,
-zero-records-ever state. One grey sentence, and the block keeps its title so the operator can tell
-*what* is missing (`states.md`; R5-11).
+**R8, applied.** None of these gets an illustration. This is an empty **block** inside a page
+that still renders a view row, a `Surge` card and a suspensions table — not a whole-page,
+zero-records-ever state. One grey sentence, and the block keeps its strip label so the operator
+can tell *what* is missing (`states.md`; R5-11).
 
 **No second banner.** *"No card is live"* is a standing condition, and R10 sends a standing
-condition to a banner — but this screen's one banner is already spent on Q7 (spec §4.5), and
-R10's other half is *never two banners*. It is stated on the caption rung and in the pane instead.
+condition to a banner — but this screen's one banner is already spent on Q7, and R10's other
+half is *never two banners*.
 
-Retired: `fin.pricing.rateCard.empty.heading`, `fin.pricing.rateCard.empty.action`. `Read the
-plans` navigates to a view that answers a different question, and R8 permits an action *"only if
-one genuinely exists"* — under Stage B none does.
+### 10.5 Domain states, per selected card
 
-### 5.5 Domain states, per selected card
+| State | Band A | Band B | Band C | Band D |
+|---|---|---|---|---|
+| **Live** | `[Live]` success · `Effective from 1 April · no end set` · **no control** | 6 columns | as drawn | figures + `Change`, caption **past tense** |
+| **Draft, modelled** | `[Draft]` info · `Effective from 1 August · no end set` · `Approve` disabled + `RefusalLine` | 6 columns | as drawn | figures + `Change`, caption **conditional** |
+| **Draft, not modelled** | `[Draft]` info · `Approve` disabled + `RefusalLine` (AC-404) | 6 columns | as drawn | **band label kept**, one grey T6 sentence |
+| **Superseded** | `[Superseded]` neutral · `Effective 1 January to 1 April` · **no control** | 6 columns | as drawn | figures + `Change`, caption **past tense** |
 
-| State | Pane header | Class table | Modelled impact | Floors | Footer |
-|---|---|---|---|---|---|
-| **Live** | `[Live]` success · `Effective from 1 April · no end set` | 6 columns | figures + delta, caption **past tense** | as drawn | `This card prices every trip today. Editing waits on the pricing owner decision.` |
-| **Draft, modelled** | `[Draft]` info · `Effective from 1 August · no end set` | 6 columns | figures + delta, caption **conditional** | as drawn | `[Approve]` disabled + `RefusalLine` |
-| **Draft, not modelled** | `[Draft]` info | 6 columns | **title kept**, one grey sentence | as drawn | `[Approve]` disabled + `RefusalLine` (AC-404) |
-| **Superseded** | `[Superseded]` neutral · `Effective 1 January to 1 April` | 6 columns | figures + delta, caption **past tense** | as drawn | `This card priced trips until 1 April. It is kept for the trips it priced.` |
+**What a draft's pane offers that a live one does not:** exactly one thing — `Approve` and its
+refusal line. Nothing else differs by status except tense and the effective line. A draft is
+not editable (Stage B, BLOCKED on Q7), cannot be deleted, and has no "make live" path.
 
-**What a draft's pane offers that a live one does not** (asked): exactly one thing — the
-`Approve` control and its refusal line. Nothing else differs by status except tense and the
-effective line. A draft is not editable (Stage B, BLOCKED on Q7), cannot be deleted, and has no
-"make live" path. **A live card's pane carries no control at all.**
-
-**What `Not modelled` means** (asked): `simulation === null` — no replay against real trips has
-been run. Two consequences, both stated on screen: no bill change can be shown, and under
-**AC-404** the card cannot be approved. Copy:
+**What `Not modelled` means:** `simulation === null`. Copy, unchanged:
 
 > Not modelled against any trip. A card nobody modelled cannot be approved.
 
 Not an em dash, not `0%`, not blank. An em dash would claim the number exists somewhere
 (`states.md`; R5-1).
 
-**Do the three statistics change per selected card** (asked): **yes.** They are read off the
-selected card — `commission.onDemandPercent`, `commission.subscriptionPercent`, `vatIncluded` —
-and change when the selection does. The pane's whole job is to describe the selected card; a
-statistic in it that described a different one would be a lie, and a draft that raises commission
-to 24% is precisely what an operator opened it to see. They are **not** put on the view row,
-where `usePublishFacts` would make the page header jump on every arrow-key press.
+### 10.6 `Surge` and `Suspensions`
+
+| Card | Loading | Error | Empty |
+|---|---|---|---|
+| `Surge`, windows band | three `Skeleton` bars at `--ev-row-h` | `ErrorState scope="card" card={false}` with `Try again`; the district band still renders | `No surge window is configured.` (T6). The district band still renders — a window read failing does not stop a suspension |
+| `Surge`, district band | one `Skeleton` at `h-control`, full width | `ErrorState scope="card" card={false}`; the primary is not rendered | `No zone is tracked.` and the primary is not rendered |
+| `Suspensions` | `DataTable` `P1` | `DataTable` error slot, `fin.error.read` | first run: `No surge suspension has ever been raised.`, **no illustration** (R8). Filtered to nothing: `fin.empty.noMatch` |
 
 ---
 
-## 6. Components
+## 11. Components
 
 | Element | Component | Variant / tone | Note |
 |---|---|---|---|
-| The block | `Card` (`ui/card.tsx`) | default | One card. `overflow-hidden` is already on it, so the rail's hairline meets the radius cleanly |
-| Rail list | `<ol>` → `<li>` → `<a>` | — | `aria-labelledby` the rail heading |
-| Selected marker | `<span aria-hidden className="pointer-events-none absolute inset-y-0 start-0 w-marker bg-foreground" />` | — | Copied from `ConversationListItem.tsx:64` |
-| Card status badge | `StatusBadge` | `Live` → **success** · `Draft` → **info** · `Superseded` → **neutral** | Unchanged from today. `StatusBadge.tsx:19` names `Draft` as `info` by example |
-| Class table | `KeyValueTable` + `KEY_VALUE_HEAD/CELL/ROW` | — | Unchanged mechanism |
-| Money | `MoneyCell` | `unit="none"` | The header carries `(SAR)` |
-| Delta | plain `<span>` | neutral ink | R4-5; X-RC-7 |
-| Approve | `Button` | `secondary`, `size="xs"`, `disabled` | Unchanged (AC-403–406) |
-| Refusal line | `RefusalLine` | — | Unchanged |
-| Surge-windows table | `KeyValueTable` | — | Three immutable rows. A `DataTable` here is a toolbar with nothing to do |
-| Window state badge | `StatusBadge` | `Running` → **success** · `Off` → **neutral** | Existing keys `surge.enabled` / `surge.disabled` |
-| District chips | `ToggleGroup type="single" variant="outline"` + `ToggleGroupItem` | the component's own on-state, untouched | Already restyled. **No `shadcn add` is needed for this screen**, and the screen adds no class to the on-state |
-| Suspend surge | `Button` | **`variant="default"`**, `size="default"` | The view's one primary (R3). Disabled without a district, and disabled without the gate — with a `RefusalLine`, never a `title` tooltip (§11.2) |
-| Suspensions table | `DataTable` + `useIndexTable({ mode: 'queue', getRowId, urlKey: 'sus' })` | no `bulkClaim`, no `rowActions` | **Queue, not ledger.** A ledger is money and is unsortable by rule (AC-48); this is a non-money record list an operator wants sorted by `Started`. Queue mode gives sort and filters; without `bulkClaim` it has no checkbox column |
-| Suspension state badge | `StatusBadge` | `In force` → **warning** · `Ended` → **neutral** | **R14 check:** a suspension in force must **not** reuse the word `Running`, which the surge-window table already binds to `success` — the same label always takes the same tone, so the two states use different words. **R17:** one warning tone, and it is the right one — an active suppression is a standing condition someone must end |
+| The block | `Card` | default | One card. `overflow-hidden` already on it, so the rail's hairline and the matrix's full-bleed strip meet the radius cleanly |
+| Rail strip | `<h2>` styled **T2**, `h-(--ev-row-h-head) bg-muted px-3` | — | Visually the same instrument as a table header strip, because that is what it is: a label over a column of records. **Size is not heading level** — it is an `<h2>` at T2 and that is deliberate |
+| Rail list | `<ol>` → `<li>` → `<a>` | — | `aria-labelledby` the strip |
+| Rail row | `min-h-row-media`, three lines at G0 | T3 / T6 / T6 | §9 for the Arabic arithmetic |
+| Selected marker | `<span aria-hidden className="pointer-events-none absolute inset-y-0 start-0 w-marker bg-foreground" />` | — | `ConversationListItem.tsx:64` |
+| Rail footer | `<p>` at **T6**, `mt-auto border-t border-border-soft px-3 py-2` | — | §7 |
+| Pane title | `CardTitle` at **T1**, `font-mono` on the version | — | X-RC-2a: `font-mono` is for the machine identifier alone. The card's subject is the selected card, so the card's one title is its version |
+| Status badge | `StatusBadge` | `Live` → **success** · `Draft` → **info** · `Superseded` → **neutral** | Unchanged |
+| `Approve` | `Button` | `secondary`, `size="xs"`, `disabled` | Band A's inline-end. Gains a hairline under **D35a** |
+| Refusal line | `RefusalLine` | — | T6, at band A's inline-**start**, under the effective line. Never `title` |
+| Class matrix | `Table` / `TableHeader` / `TableHead` / `TableRow` / `TableCell` (`ui/table.tsx`) | — | **Changed from `KeyValueTable`.** A six-column matrix of records is a table, not a key/value list. Headers wrap and never truncate (`ui/table.tsx:241–262`), so `Cancellation (SAR)` takes a second header line and the strip grows uniformly — that is the product's measured answer and not a defect |
+| Money | `MoneyCell` | `unit="none"` | Header carries `(SAR)` |
+| Band label (`Commission and VAT`, `Floors`, `Modelled impact`, `District`) | `<h3>` / `<span>` at **T2** | — | A label that heads a field |
+| Key/value rows in band C | `KeyValueRow` | `numeric` on the four `Floors` values and the two commission values | One instrument, both halves |
+| Band D figures | label at **T6** over value at **T4**, `flex flex-wrap gap-6` | — | `Rider bill before` · `Rider bill after` · `Change` |
+| The delta | the third **labelled figure**, not a bare span | neutral ink, T4 | R4-5 — neutral. `MetricTile.tsx:21` — a badge is *"never a status, never the delta"*. Giving it a label also removes an unlabelled number from the layout and makes it mirror cleanly |
+| `Surge` card | `Card` + `CardHeader` + `CardTitle` + `CardDescription` | — | T1 / T6. Replaces the hand-rolled `h2 text-sm font-semibold` at `SurgeCards.tsx:134` and `:249` |
+| Surge windows table | same `ui/table.tsx` set as the class matrix | — | Three immutable rows. A `DataTable` here is a toolbar with nothing to do |
+| Window state badge | `StatusBadge` | `Running` → **success** · `Off` → **neutral** | Existing keys |
+| District chips | `ToggleGroup type="single" variant="outline"` + `ToggleGroupItem` | the component's own on-state, untouched | `toggle.tsx:8` — *"R3 — THE ON STATE IS NOT `bg-primary`."* Above eight districts this becomes a `Select` (§8.3) |
+| `Suspend surge` | `Button` | **`variant="default"`** | The view's one primary (R3, §8.4). Disabled without a district or without the gate, with a `RefusalLine`, never a `title` (§11.2) |
+| Suspensions table | `DataTable` + `useIndexTable({ mode: 'queue', getRowId, urlKey: 'sus' })` | no `bulkClaim`, no `rowActions` | Queue, not ledger: a ledger is money and is unsortable by rule (AC-48); this is a non-money record list an operator wants sorted by `Started` |
+| Suspension state badge | `StatusBadge` | `In force` → **warning** · `Ended` → **neutral** | **R14**: the same label always takes the same tone, so `In force` does not reuse `Running`. **R17**: one warning tone, and an active suppression someone must end is what it is for |
 | Confirm | `ConfirmMoneyDialog` | unchanged | AC-411 |
 
-**No red anywhere on this view.** No red badge (R7), no destructive button, no page banner in
-this view's own right, no row marker. R5a's four uses are all unclaimed here.
+**No red anywhere on this view.** No red badge (R7), no destructive button, no row marker.
+R5a's four uses are all unclaimed here.
 
 ---
 
-## 7. Interaction, keyboard, screen reader
+## 12. Interaction, keyboard, screen reader
 
-### 7.1 The rail is a list of selectable records
+Unchanged from revision 1 except where the structure moved. Restated in full so nothing has to
+be looked up in two places.
+
+### 12.1 The rail
 
 **ARIA.** An `<ol>` of `<li>`, each holding one `<a href>`. **Not** `role="listbox"` /
-`role="option"`: selection here changes the URL and is deep-linkable, and a listbox option is not
-a navigable thing. This mirrors `ConversationList.tsx:~92` and `ConversationListItem.tsx:66–71`,
-the product's shipped answer to the same problem.
+`role="option"`: selection changes the URL and is deep-linkable. Mirrors
+`ConversationList.tsx:~92` and `ConversationListItem.tsx:66–71`.
 
-- The `<ol>` is named by the rail heading via `aria-labelledby`.
-- The selected row's `<a>` carries **`aria-current="page"`** — the value
-  `ConversationListItem.tsx:71` uses for the same relationship. Consistency inside the product
-  beats the argument that `"true"` is technically more precise for a same-route param change.
-- The `<a>`'s accessible name is `Show rate card RC-2026-04-01`, because its visible content is
-  three fragments and a badge, none of which is a sentence.
-- `href` is `?view=rate-card&card=RC-2026-08-01`. `view` is `useScreenViews`'s and is untouched;
-  `card` is new and owned by this view. Deep-linkable, so an operator can send a colleague a draft.
+- The `<ol>` is named by the rail strip via `aria-labelledby`.
+- The selected row's `<a>` carries `aria-current="page"`.
+- Its accessible name is `Show rate card RC-2026-04-01` — its visible content is three
+  fragments and a badge, none of which is a sentence.
+- `href` is `?view=rate-card&card=RC-2026-08-01`. `card` is owned by this view.
 
-**Keyboard.** `useRovingFocus({ itemCount, orientation: 'vertical' })`
-(`src/hooks/useRovingFocus.ts`), with `initialIndex` set to the selected row's index.
+**Keyboard.** `useRovingFocus({ itemCount, orientation: 'vertical', initialIndex: selectedIndex })`.
 
 | Key | Does |
 |---|---|
-| `Tab` into the rail | Lands on the **selected** row, not the first — that is what the roving tabindex is for |
-| `ArrowDown` / `ArrowUp` | Move **focus** within the rail. **They do not select.** The pane does real work; selection-follows-focus would render four panes to reach the fourth card |
+| `Tab` into the rail | Lands on the **selected** row, not the first |
+| `ArrowDown` / `ArrowUp` | Move **focus** within the rail. **They do not select** — the pane does real work, and selection-follows-focus would render four panes to reach the fourth card |
 | `Home` / `End` | First / last row |
 | `Enter` | Selects. The pane updates. **Focus stays on the row** |
-| `Tab` out of the rail | Into the pane. On a live or superseded card the pane holds nothing focusable, so the next stop is the `Suspend surge` card's first chip |
+| `Tab` out of the rail | Into the pane. On a live or superseded card the pane holds nothing focusable, so the next stop is the `Surge` card's first chip |
 
-`ArrowDown` is down in every language, so a vertical list needs no RTL case — the hook says so
-itself (`useRovingFocus.ts:20–22`) and consults `direction` only for horizontal lists.
+`ArrowDown` is down in every language, so a vertical list needs no RTL case
+(`useRovingFocus.ts:20–22`).
 
-**What the pane announces when the selection changes.** Focus does not move, so nothing announces
-by itself. The pane therefore carries a permanently mounted polite live region whose text is
-swapped:
+**Announcement.** Focus does not move, so nothing announces by itself. The pane carries one
+permanently mounted polite region whose text is swapped:
 
 ```html
 <p className="sr-only" role="status">Showing rate card RC-2026-08-01, draft.</p>
 ```
 
-One announcement, not two: the pane's `<section aria-labelledby>` heading is not separately
-focused, and no `aria-live` sits on the table. The region is mounted at all times — a live region
-added to the DOM in the same frame as its text is not announced.
+Mounted at all times — a live region added to the DOM in the same frame as its text is not
+announced. Exactly one live region in the block.
 
-### 7.2 Everything else
+### 12.2 Everything else
 
 | Element | Opens / does |
 |---|---|
-| Rail row | Selects, in place. **No modal, no drawer, no route change.** §5.0's decision table sends a modal to an irreversible act and a drawer to a peek beside a list. This is neither: it is the view's primary content |
-| A class-table row | Nothing. Not clickable |
+| Rail row | Selects, in place. **No modal, no drawer, no route change.** §5.0's table sends a modal to an irreversible act and a drawer to a peek beside a list; this is neither — it is the view's primary content |
+| A matrix row | Nothing. Not clickable, no hover ground beyond the table's own |
 | A district chip | Toggles within the group. Choosing a second deselects the first |
-| `Suspend surge` | Opens `ConfirmMoneyDialog` — the existing money confirmation with the existing reason field (AC-411). An irreversible act confirms (§5.3) |
-| A suspensions row | Nothing. No row actions, no kebab (**D8-b**: the kebab begins at three) |
+| `Suspend surge` | Opens `ConfirmMoneyDialog` naming the chosen district. An irreversible act confirms (§5.3) |
+| A suspensions row | Nothing. No row actions, no kebab (**D8**: the kebab begins at three) |
 | `Escape` | Nothing on the view; closes the dialog when it is open |
 
-**Focus.** Every interactive element takes the global `:focus-visible` ring — 2px `--ring` at 2px
-offset, `globals.css` `@layer base`. Nothing here sets `outline-none` without one.
+**Focus.** Every interactive element takes the global `:focus-visible` ring — 2px `--ring` at
+2px offset. Nothing here sets `outline-none` without one. The rail rows use
+`focus-visible:ring-inset` so the ring is not clipped by the card's `overflow-hidden`.
 
 ---
 
-## 8. Arabic (§9)
+## 13. Arabic (§9)
 
 | Thing | Mirrors? |
 |---|---|
-| The whole block: rail at the inline-**start**, pane at the inline-**end** | **Yes.** In Arabic the rail renders on the physical right |
+| The block: rail at the inline-**start**, pane at the inline-**end** | **Yes** — in Arabic the rail renders on the physical right |
 | The rail's selection marker | **Yes** — `start-0`, never `left-0` |
 | The rail column's divider | **Yes** — `border-e`, never `border-r` |
-| The status badge inside a rail row | **Yes** — `ms-auto` pushes it to the row's inline-end |
-| Class-table and surge-table **columns** | **Yes.** `Class` is `text-start`; the five numeric columns are `text-end`. In Arabic `end` is the physical left, which is correct: `Money.tsx:~80` — *"`text-align: end` — **never** `text-align: right`, which in Arabic aligns on the side the eye leaves"* |
-| The **numeral runs** inside them | **No.** `1,234.00 SAR` keeps its character order (**AC-73**), because `Money` wraps every value in `<bdi>` and `globals.css` pins `tabular-nums` on `table` in `@layer base`. This is **R4**'s *"does not flip"*: the **rule** does not flip, so the column stays end-aligned — the column itself does move to the other side |
-| `1.3×` | **No.** `×` is U+00D7, bidi class ON, `Bidi_Mirrored=No`. Rendered as `{value}×` inside `<bdi>` so the numeral and the sign travel as one LTR run in both languages. The existing key `fin.pricing.surge.multiplier` is already `{value}×` and is correct as it stands |
-| `7–9` (hours) | **No** — one numeric run in `<bdi>` |
-| `1 Jan – 1 Apr` | **The pair mirrors; each date does not.** Two `<bdi>` spans with the en dash as a separate `aria-hidden` element between them, so the "from" date sits at the inline-start in both languages. `ViewRow.tsx:~120` draws its `·` this way for the same reason, and **AC-443** requires it |
-| `RC-2026-04-01` in `font-mono` | **No, and the face is safe.** It is an ASCII token in `<bdi>`. `--font-mono` (`ui-monospace, "Cascadia Mono", "Segoe UI Mono", monospace`) is never applied to a translated string, so no Arabic glyph ever resolves through it |
-| `uppercase` / `tracking-wider` on the view-row caption rung | **No-ops in Arabic**, by design. `globals.css:2137–2141` zeroes the whole tracking scale under `:root:lang(ar)` because letter-spacing breaks cursive joins, and Arabic has no case. The rung keeps its size, weight and colour, which is what carries it |
+| The badge in a rail row; `Approve` in band A | **Yes** — `ms-auto` pushes each to its row's inline-end |
+| Table **columns** | **Yes.** `Class`, `Window`, `District` are `text-start`; every numeric column is `text-end` |
+| The **numeral runs** inside them | **No.** `1,234.00` keeps its character order (**AC-73**) — `Money` wraps every value in `<bdi>` and `globals.css` pins `tabular-nums` on `table` in `@layer base`. **R4**: the *rule* does not flip; the column itself does move to the other side |
+| Band D's three figures | **Yes, as a group.** `Rider bill before` sits at the inline-start in both languages; the numerals inside each do not reorder |
+| `1.3×` | **No.** U+00D7, bidi class ON, `Bidi_Mirrored=No`. Rendered `{value}×` inside `<bdi>` |
+| `7–9`, `12%` | **No** — one numeric run each, in `<bdi>` |
+| `1 Jan – 1 Apr` | **The pair mirrors; each date does not.** Two `<bdi>` spans with the en dash as a separate `aria-hidden` element, so the "from" date sits at the inline-start in both languages |
+| The rail footer's `·` separators | **Same construction** — drawn, `aria-hidden`, never inside a string (AC-443) |
+| `RC-2026-04-01` in `font-mono` | **No, and the face is safe.** An ASCII token in `<bdi>`; `--font-mono` is never applied to a translated string |
+| Row height | **Grows.** `min-h-row-media` — §9 has the arithmetic |
+| Column-header wrapping | **Grows.** `h-(--ev-row-h-head)` is a minimum on a table cell (CSS 2.1 §17.5.3); the median Arabic header is 0.857× the English one (`ui/table.tsx:250`), so Arabic wraps less, not more |
 | Delta sign | `+5.2%` / `−3.4%` (U+2212, §8.3.2), inside `<bdi>` |
 
-**One live i18n defect this design surfaces (F-RC-3).** `SurgeWindow.days` holds `Sun`…`Sat` as
-raw English strings from legacy (`types/pricing.ts`, *"as legacy stores them (`:13884`)"*), and
-`PricingScreen.tsx` renders them with `window.days.join(' ')`. An Arabic operator reads English
-day abbreviations today. The `Days` column must map each value through
-`fin.pricing.surge.day.<sun…sat>`, seven new keys. The data layer does not change.
+**One live i18n defect (F-RC-3, still open).** `SurgeWindow.days` holds `Sun`…`Sat` as raw
+English from legacy; the `Days` column maps each value through `fin.pricing.surge.day.<sun…sat>`
+(`SurgeCards.tsx:30–38`, already built). The data layer does not change.
 
-**Prose check.** Nothing in this document says "left" or "right" about a layout. Every label was
-written to survive Arabic word order: `Commission, on demand` is a noun with a qualifier, not an
-English-order phrase.
+**Prose check.** Nothing in this document says "left" or "right" about a layout. Every label
+was written to survive Arabic word order: `Commission, on demand` is a noun with a qualifier,
+not an English-order phrase.
 
 ---
 
-## 9. Copy — every string, final
+## 14. Copy — every string, final
 
-Sentence case. Buttons are verbs. No exclamation marks. Full sentences take a period; fragments,
-labels and buttons do not (**R6**). No em dash (`copy.md` 12). **No toast changes**: this view
-raises exactly one, `fin.pricing.surge.toast.suspended` = `Surge suspended`, 15 characters, which
-already passes **R9**.
+Sentence case. Buttons are verbs. No exclamation marks. Full sentences take a period;
+fragments, labels and buttons do not (**R6**). No em dash (`copy.md` 12). **No uppercase and
+no letter-spacing anywhere on this view** (§6.3 D18). **No monospace figures** — `font-mono`
+is the version identifier only (X-RC-2a).
 
-### 9.1 New keys
+**No toast changes**: this view raises one, `fin.pricing.surge.toast.suspended` = `Surge
+suspended`, 15 characters, which passes **R9**.
 
-**Every key below needs an Arabic entry in `src/i18n/ar/financials.ts` in the same commit.** Run
+> A copy sheet is being written in parallel at
+> `docs/05-restructure/design/rate-card-copy-sheet.md`. **The keys and the English below are
+> what this design requires**; where the two documents differ on a string, the copy sheet's
+> wording wins provided the key set and the sentence count are the same. Where the copy sheet
+> would restore a retired key or add a line to a band, this document wins, because that is
+> layout and not wording.
+
+### 14.1 New keys
+
+Every key needs an Arabic entry in `src/i18n/ar/financials.ts` in the same commit. Run
 `npm run i18n:keys` afterwards.
 
 | Key | English |
 |---|---|
-| `fin.pricing.rateCard.rail.heading` | `Rate cards` |
-| `fin.pricing.rateCard.rail.select` | `Show rate card {version}` |
-| `fin.pricing.rateCard.rail.from` | `From {date} · no end set` |
-| `fin.pricing.rateCard.rail.range` | `{from} – {to}` |
-| `fin.pricing.rateCard.rail.delta` | `Bill {delta}` |
-| `fin.pricing.rateCard.rail.notModelled` | `Not modelled` |
-| `fin.pricing.rateCard.announce` | `Showing rate card {version}, {status}.` |
-| `fin.pricing.rateCard.effective.noEnd` | `Effective from {date} · no end set` |
-| `fin.pricing.rateCard.stat.onDemand` | `Commission, on demand` |
-| `fin.pricing.rateCard.stat.subscription` | `Commission, on a plan` |
-| `fin.pricing.rateCard.stat.consumerPrices` | `Consumer prices` |
-| `fin.pricing.rateCard.vat.included` | `VAT included` |
-| `fin.pricing.rateCard.vat.excluded` | `VAT not included` |
-| `fin.pricing.rateCard.table.caption` | `Per-class rates on rate card {version}` |
-| `fin.pricing.rateCard.impact.heading` | `Modelled impact` |
-| `fin.pricing.rateCard.impact.trips` | `Modelled on {trips} trips` |
-| `fin.pricing.rateCard.impact.ranAt` | `Run {date}` |
-| `fin.pricing.rateCard.impact.before` | `Rider bill before` |
-| `fin.pricing.rateCard.impact.after` | `Rider bill after` |
-| `fin.pricing.rateCard.impact.caption.past` | `Measured against the card this one replaced.` |
-| `fin.pricing.rateCard.impact.caption.future` | `Measured against the card this one would replace.` |
-| `fin.pricing.rateCard.impact.none` | `Not modelled against any trip. A card nobody modelled cannot be approved.` |
-| `fin.pricing.rateCard.floors.heading` | `Floors` |
-| `fin.pricing.rateCard.floors.caption` | `Guardrails a card is checked against. Nothing enforces them yet.` |
-| `fin.pricing.rateCard.floors.margin` | `Target margin` |
-| `fin.pricing.rateCard.floors.fee` | `Payment fee` |
-| `fin.pricing.rateCard.floors.support` | `Support per subscriber` |
-| `fin.pricing.rateCard.floors.reserve` | `Emergency reserve` |
-| `fin.pricing.rateCard.footer.live` | `This card prices every trip today. Editing waits on the pricing owner decision.` |
-| `fin.pricing.rateCard.footer.superseded` | `This card priced trips until {date}. It is kept for the trips it priced.` |
-| `fin.pricing.rateCard.noLive` | `No card is live` |
-| `fin.pricing.rateCard.count.cards.one` | `1 rate card` |
-| `fin.pricing.rateCard.count.cards.other` | `{count} rate cards` |
-| `fin.pricing.rateCard.count.live` | `{count} live` |
-| `fin.pricing.rateCard.count.drafts.one` | `1 draft` |
-| `fin.pricing.rateCard.count.drafts.other` | `{count} drafts` |
-| `fin.pricing.rateCard.count.superseded` | `{count} superseded` |
-| `fin.pricing.surge.col.window` | `Window` |
-| `fin.pricing.surge.col.days` | `Days` |
-| `fin.pricing.surge.col.hours` | `Hours` |
-| `fin.pricing.surge.col.multiplier` | `Multiplier` |
-| `fin.pricing.surge.col.state` | `State` |
-| `fin.pricing.surge.hours` | `{start}–{end}` |
-| `fin.pricing.surge.empty` | `No surge window is configured.` |
-| `fin.pricing.surge.day.sun` … `.mon` `.tue` `.wed` `.thu` `.fri` `.sat` | `Sun` `Mon` `Tue` `Wed` `Thu` `Fri` `Sat` — seven keys |
-| `fin.pricing.surge.suspend.heading` | `Suspend surge` |
-| `fin.pricing.surge.suspend.subtitle` | `Choose a district, then confirm.` |
-| `fin.pricing.surge.suspend.group.label` | `District` |
-| `fin.pricing.surge.suspend.chosen` | `{district} selected` |
-| `fin.pricing.surge.suspend.prompt` | `Choose a district.` |
-| `fin.pricing.surge.suspensions.heading` | `Suspensions` |
-| `fin.pricing.surge.suspensions.inForce.one` | `1 in force` |
-| `fin.pricing.surge.suspensions.inForce.other` | `{count} in force` |
-| `fin.pricing.surge.suspensions.ended.one` | `1 ended` |
-| `fin.pricing.surge.suspensions.ended.other` | `{count} ended` |
-| `fin.pricing.surge.suspensions.empty` | `No surge suspension has ever been raised.` |
-| `fin.pricing.surge.col.district` | `District` |
-| `fin.pricing.surge.col.reason` | `Reason` |
-| `fin.pricing.surge.col.raisedBy` | `Raised by` |
-| `fin.pricing.surge.col.started` | `Started` |
-| `fin.pricing.surge.col.suspensionState` | `State` |
-| `fin.pricing.surge.state.inForce` | `In force` |
-| `fin.pricing.surge.state.ended` | `Ended` |
+| `fin.pricing.rateCard.terms.heading` | `Commission and VAT` |
+| `fin.pricing.rateCard.impact.change` | `Change` |
+| `fin.pricing.rateCard.impact.caption.past` | `Modelled on {trips} trips, run {date}. Measured against the card this one replaced.` |
+| `fin.pricing.rateCard.impact.caption.future` | `Modelled on {trips} trips, run {date}. Measured against the card this one would replace.` |
 
-### 9.2 Changed keys
+### 14.2 Changed keys
 
-| Key | Was | Is |
-|---|---|---|
-| `fin.pricing.rateCard.empty.body` | `A rate card is what every fare is computed from.` | `No rate card exists, so nothing can price a trip.` |
+| Key | Was | Is | Why |
+|---|---|---|---|
+| `fin.pricing.surge.heading` | `Surge windows` | `Surge` | The card now holds the windows and the lever on them (§8.3) |
+| `fin.pricing.rateCard.floors.support` | `Support per subscriber` | `Support per subscriber` — unchanged, but it now sits in a key/value row and no longer wraps to two lines | — |
 
-### 9.3 Retired — delete from `copy.ts` **and** `src/i18n/ar/financials.ts`
+### 14.3 Retired — delete from `copy.ts` **and** `src/i18n/ar/financials.ts`
 
-`fin.pricing.rateCard.commission` · `fin.pricing.rateCard.vatIncluded` ·
-`fin.pricing.rateCard.simulation` · `fin.pricing.rateCard.noSimulation` ·
-`fin.pricing.rateCard.floors` · `fin.pricing.rateCard.empty.heading` ·
-`fin.pricing.rateCard.empty.action` · `fin.pricing.surge.window` ·
-`fin.pricing.surge.suspension` · `fin.pricing.surge.suspension.by` ·
-`fin.pricing.surge.suspension.none` · `fin.pricing.surge.suspend`
+| Key | Why |
+|---|---|
+| `fin.pricing.rateCard.footer.live` | R10 — its second clause is the banner's title; its first is the `Live` badge plus the effective line (§6) |
+| `fin.pricing.rateCard.footer.superseded` | Same, for `Superseded` (§6) |
+| `fin.pricing.surge.suspend.heading` | **D35b** — it was the button's label (§8) |
+| `fin.pricing.surge.suspend.subtitle` | The card description says it, and the refusal line says the rest (§8.3) |
+| `fin.pricing.rateCard.impact.trips` | Folded into `…impact.caption.past` / `.future` |
+| `fin.pricing.rateCard.impact.ranAt` | Folded into the same |
 
-(The bare `fin.pricing.surge.suspend` label is replaced by `…suspend.heading` and the existing
-`…suspend.confirm`, which already reads `Suspend surge`.)
+`fin.pricing.stageA.body` is **kept and still used** — on the other three views only (§6).
+`fin.pricing.rateCard.col.wait` and `…rateCard.wait` are kept and still unused (F-RC-2).
 
-`fin.pricing.rateCard.col.wait` and `fin.pricing.rateCard.wait` are **kept and still unused** —
-see F-RC-2.
+### 14.4 Unchanged and still correct
 
-### 9.4 Unchanged and still correct
+`…rateCard.heading` · `…status.live|draft|superseded` · `…effective.noEnd` · `…effectiveUntil` ·
+`…col.class|base|perKm|perMin|minFare|cancelFee` · `…table.caption` · `…rail.heading|select|from|range|delta|notModelled` ·
+`…announce` · `…stat.onDemand|subscription|consumerPrices` · `…vat.included|excluded` ·
+`…impact.heading|before|after|none` · `…floors.heading|caption|margin|fee|support|reserve` ·
+`…approve` · `…approve.blocked.proposer|simulation|stage` · `…noLive` ·
+`…count.cards|live|drafts|superseded` · `…empty.body` ·
+`…surge.readOnly|col.*|hours|multiplier|enabled|disabled|empty|day.*` ·
+`…surge.suspend.group.label|chosen|prompt|title|body|confirm|reason.*|zone.empty` ·
+`…surge.suspensions.*` · `…surge.state.inForce|ended` · `…surge.toast.suspended` ·
+`fin.error.read|retry|row` · `fin.empty.noMatch`.
 
-`…rateCard.heading` · `…status.live|draft|superseded` · `…effectiveUntil` ·
-`…col.class|base|perKm|perMin|minFare|cancelFee` · `…approve` ·
-`…approve.blocked.proposer|simulation|stage` · `…surge.readOnly` · `…surge.multiplier` ·
-`…surge.enabled` · `…surge.disabled` · `…surge.suspension.expires|expired` ·
-`…surge.suspend.title|body|confirm|reason.*|zone.empty` · `…surge.toast.suspended` ·
-`fin.error.read` · `fin.error.retry` · `fin.error.row` · `fin.empty.noMatch`.
+**Note on `…stat.onDemand` / `…stat.subscription` / `…stat.consumerPrices`.** The strings are
+right and are kept; only their carrier changes, from a pseudo-KPI cluster to a key/value row
+in band C.
 
 ---
 
-## 10. Acceptance criteria
+## 15. Acceptance criteria
 
-**The block**
+`AC-RC-01` … `AC-RC-31` are revision 1's. The table below says which stand, which are
+superseded and by what. **qa-engineer writes one test per live criterion.**
 
-1. **AC-RC-01** The `Rate card` view renders one `Card` containing a 300px rail at the
-   inline-start and a detail pane at the inline-end, divided by one hairline. Below the `compact`
-   breakpoint the two stack, rail first.
-2. **AC-RC-02** The rail lists **every** rate card — live, draft and superseded — in the order
-   live, draft newest first, superseded newest first. Against the shipped fixtures the four rows
-   read `RC-2026-04-01`, `RC-2026-09-01`, `RC-2026-08-01`, `RC-2026-01-01`.
-3. **AC-RC-03** Each rail row renders three lines: version, effective range, bill delta. A card
-   with no simulation renders `Not modelled` on the third line — never `0%`, never blank.
-4. **AC-RC-04** On arrival the live card is selected. With no live card the newest draft is
-   selected; with no draft, the newest superseded.
-5. **AC-RC-05** The selected row carries all three of: the `bg-selected` ground, the
-   `w-marker bg-foreground` inline-start marker, and `aria-current="page"`. No row anywhere on
-   this view carries a red or a green edge marker.
-6. **AC-RC-06** The view issues **one** rate-card read. `getLiveRateCard` is not called from this
-   screen, and no two `useAsync` calls share `cacheKey: 'pricing.rateCards'`.
+| Revision 1 | Status |
+|---|---|
+| AC-RC-01, 02, 03, 04, 05, 06 | **Stand**, with AC-RC-03's row height read as a minimum (AC-RC-44) |
+| AC-RC-07 | **Superseded by AC-RC-33 and AC-RC-36** — the header no longer carries statistics |
+| AC-RC-08 | **Superseded by AC-RC-34** — the matrix moves to `ui/table.tsx` chrome |
+| AC-RC-09 | **Superseded by AC-RC-40** — the last uppercase run goes too |
+| AC-RC-10, 11, 12 | **Stand**, amended by AC-RC-37 (the delta is a labelled figure) |
+| AC-RC-13 | **Superseded by AC-RC-36** — `Floors` is half of band C |
+| AC-RC-14 | **Superseded by AC-RC-35** — `Approve` moves into band A |
+| AC-RC-15 | **Stands** |
+| AC-RC-16 | **Superseded by AC-RC-43** — the skeleton follows the new bands |
+| AC-RC-17, 18, 19 | **Stand** |
+| AC-RC-20 | **Superseded by AC-RC-39** — `No card is live` moves to the rail footer |
+| AC-RC-21, 22, 23, 24 | **Stand** |
+| AC-RC-25 | **Stands** |
+| AC-RC-26 | **Superseded by AC-RC-46 and AC-RC-47** — the panel merges into the `Surge` card |
+| AC-RC-27, 28, 29, 30, 31 | **Stand** |
 
-**The detail pane**
+### New criteria
 
-7. **AC-RC-07** The pane header renders the version in `font-mono`, its status badge, one
-   effective line, and three statistics — commission on demand, commission on a plan, consumer
-   prices — read from the **selected** card. Selecting a different card changes all three.
-8. **AC-RC-08** The class table renders six columns. `Class` is `text-start`; the other five are
-   `text-end` with tabular figures, in both languages. Every money cell is a `MoneyCell` with
-   `unit="none"`, and `(SAR)` appears only in column headers.
-9. **AC-RC-09** No column header, section heading or card title on this view is uppercase or
-   letter-spaced. The only uppercase run on the screen is the view-row caption rung.
-10. **AC-RC-10** The `Modelled impact` card renders `Rider bill before`, `Rider bill after`, a
-    signed delta and a caption. **No `→` character appears anywhere in the rendered output.**
-11. **AC-RC-11** The delta is neutral ink in a plain span — not a badge, not a pill. A negative
-    delta uses U+2212.
-12. **AC-RC-12** A card with `simulation === null` renders the impact card with its **title kept**
-    and one grey sentence: `Not modelled against any trip. A card nobody modelled cannot be
-    approved.`
-13. **AC-RC-13** The `Floors` card renders four labelled values and the caption `Guardrails a card
-    is checked against. Nothing enforces them yet.`
-14. **AC-RC-14** A live card's pane carries **no** control; a superseded card's pane carries none.
-    Only a draft's pane carries `Approve`, disabled, with its `RefusalLine` (AC-403–406 unchanged).
-15. **AC-RC-15** There is no button labelled `Live card` anywhere on the view.
+**Type**
+
+32. **AC-RC-32** Every text node on the view renders at one of exactly **seven** computed sizes
+    — 24, 16, 14, 14, 14, 12, 11 — and each maps to a rung in §3.1. Measured in Chromium at
+    1280 in both languages. No text node on the view computes to 20px, 28px, or any size not in
+    the ramp.
+33. **AC-RC-33** No numeral on the view outside the class matrix, the surge table and the
+    suspensions table renders heavier than 400 **except** the three figures in band D, which
+    render 14/600. `VAT included` renders at 12/400 muted.
+34. **AC-RC-34** The class matrix renders `ui/table.tsx`'s chrome: a `bg-muted` header strip at
+    a computed height of at least `--ev-row-h-head`, column headers at 14/500 in
+    `--ev-text-2`, body rows at `--ev-row-h`. `Class` is `text-start`; the other five are
+    `text-end` with tabular figures, in both languages. Every money cell is a `MoneyCell` with
+    `unit="none"` and `(SAR)` appears only in column headers.
+
+**Structure**
+
+35. **AC-RC-35** The pane renders exactly **four** bands in the order identity, prices, terms,
+    impact, separated by three hairlines. `Approve` and its `RefusalLine` render inside band A
+    for a draft, and nothing renders below band D.
+36. **AC-RC-36** Band C renders two columns of the same instrument: `Commission and VAT` with
+    three key/value rows and `Floors` with four, and one caption spanning both — `Guardrails a
+    card is checked against. Nothing enforces them yet.` Neither column uses a
+    label-over-figure cluster.
+37. **AC-RC-37** Band D renders three labelled figures — `Rider bill before`, `Rider bill
+    after`, `Change` — and one caption on one line. The `Change` figure is neutral ink in a
+    plain span, not a badge and not a pill; a negative uses U+2212. **No `→` character appears
+    anywhere in the rendered output.**
+38. **AC-RC-38** No text node on the view repeats the sentence *"Editing waits on the pricing
+    owner decision"* or *"This card prices every trip today"*. The read-only condition appears
+    exactly once on the page, in the banner.
+
+**Banner, counts, primary**
+
+39. **AC-RC-39** The `Rate card` view publishes no view-row facts: the view row renders the
+    stadium and nothing else. The counts render in the rail's footer, sentence case, as
+    `4 rate cards · 1 live · 2 drafts · 1 superseded`, with the separators as `aria-hidden`
+    elements. With no live card the first entry is `No card is live`. With zero cards no footer
+    renders.
+40. **AC-RC-40** **No element on the view computes `text-transform: uppercase` or a non-zero
+    `letter-spacing`.**
+41. **AC-RC-41** On the `Rate card` view the page banner renders its title and **no body**, and
+    the page renders exactly one banner. On the other three views the banner renders both.
+42. **AC-RC-42** The view renders exactly one element with the `variant="default"` fill, and it
+    is `Suspend surge`. `Approve` renders `secondary` and disabled.
 
 **States**
 
-16. **AC-RC-16** While the read is in flight the block renders `aria-busy="true"` with four
-    three-bar rail skeletons at `h-row-media` and a pane skeleton whose table has one header row
-    and two body rows. **No spinner** is rendered.
-17. **AC-RC-17** A failed read renders one `ErrorState` across the whole block with a working
-    `Try again`. The three cards below still render their own data.
-18. **AC-RC-18** With zero rate cards the block keeps its rail heading, renders `No rate card
-    exists, so nothing can price a trip.`, renders **no illustration**, and renders no pane.
-19. **AC-RC-19** With exactly one rate card the rail renders normally with that row selected. It
-    does not collapse and no "1 of 1" text appears.
-20. **AC-RC-20** With no live card the view-row caption rung's first entry is `No card is live`,
-    and the screen still renders exactly one banner.
+43. **AC-RC-43** While the read is in flight the block renders `aria-busy="true"` with the rail
+    strip, four rail-row skeletons, a rail-footer bar, and a pane skeleton drawing bands A, B
+    and C only. **No spinner** is rendered, and no skeleton is drawn for band D.
+44. **AC-RC-44** A rail row's height is a **minimum**: with `lang="ar"` and three lines of
+    content the row's computed height is at least 64px and no line is clipped.
 
-**Keyboard and screen reader**
+**Spacing**
 
-21. **AC-RC-21** `Tab` into the rail lands on the selected row. `ArrowDown` / `ArrowUp` move focus
-    without changing the selection or the pane. `Home` / `End` reach the first and last rows.
-    `Enter` selects and leaves focus on the row.
-22. **AC-RC-22** The rail is an `<ol>` named by its heading, and each row is an `<a>` whose
-    accessible name is `Show rate card {version}`.
-23. **AC-RC-23** Changing the selection updates a permanently mounted `role="status"` region to
-    `Showing rate card {version}, {status}.` Exactly one live region exists in the block.
-24. **AC-RC-24** Selecting a card writes `card={version}` to the search params, and loading that
-    URL directly opens that card.
+45. **AC-RC-45** Every computed gap and padding inside the view is 4, 8, 12 or 24px, or a row
+    height token. No computed 2px or 6px gap exists anywhere on the view. The gap between the
+    three cards is 24px, and the channel around each band rule inside a card is 24px.
 
 **Surge**
 
-25. **AC-RC-25** `Surge windows` renders a five-column table. Day names render through
-    `fin.pricing.surge.day.*` and are translated in Arabic. Hours render `7–9` with an en dash.
-    Multipliers render `1.3×` with tabular figures and do not reorder in Arabic.
-26. **AC-RC-26** `Suspend surge` renders a single-select `ToggleGroup` of districts. The chosen
-    chip is **not** filled with the brand colour. `Suspend surge` is the **only**
-    `variant="default"` button on the view, and it is disabled until a district is chosen.
-27. **AC-RC-27** Without write permission the primary is disabled and the reason renders as
-    visible text in a `RefusalLine`, not as a `title` attribute.
-28. **AC-RC-28** Pressing `Suspend surge` opens `ConfirmMoneyDialog` naming the chosen district;
-    its primary stays disabled until a reason is entered (AC-411 unchanged).
-29. **AC-RC-29** `Suspensions` renders a `DataTable` in queue mode with no checkbox column and no
-    row actions, filterable by `District` through the standard column filter. **There is no
-    segmented control on the card.**
-30. **AC-RC-30** A suspension whose `expiresAt` has passed renders `Ended` in the **neutral** tone;
-    one still running renders `In force` in **warning**. No badge on this view is red, and the word
-    `Running` is used only by the surge-window table.
-31. **AC-RC-31** With no suspensions ever, the card renders `No surge suspension has ever been
-    raised.` with no illustration.
+46. **AC-RC-46** `Surge windows` and `Suspend surge` render as **one** card titled `Surge`, with
+    the windows table above a rule and the district field below it. No heading on the view
+    carries the string `Suspend surge`, and the string appears exactly once — on the button.
+47. **AC-RC-47** The disabled `Suspend surge` button renders a visible 1px `border-border`
+    hairline and its full box (**D35a**); it is distinguishable from a paragraph of muted text
+    by more than its ink.
+48. **AC-RC-48** The `Surge` card's district band renders no heading. The `ToggleGroup` is
+    labelled `District` by a visible T2 label, and choosing a chip does not fill it with the
+    brand colour.
+49. **AC-RC-49** A failed windows read renders an `ErrorState` inside the `Surge` card and the
+    district band still renders; a failed zones read renders an `ErrorState` and the windows
+    table still renders. Neither blanks the other.
 
 ---
 
-## 11. Deviations, findings and open questions
+## 16. Tokens this needs
 
-### 11.1 Deviations from `DESIGN.md`
+**None.** Every value in §3 and §4 is a declared token or a Tailwind step already in the build:
+`--text-xl`, `--text-base`, `--text-sm`, `--text-xs`, `--text-2xs`, `--ev-row-h-head`,
+`--ev-row-h`, `--ev-row-h-media`, `--ev-detail-rail-w`, `--ev-marker`, `--ev-radius-card`,
+`--card-spacing`, `--ev-surface`, `--ev-bg2`, `--ev-selected`, `--ev-row-hover`,
+`--ev-text-2`, `--ev-ink`, `border-border`, `border-border-soft`, and the spacing steps
+`gap-1`, `gap-2`, `gap-3`, `gap-6`.
 
-**None.** Every choice above resolves to an existing rule, an existing ruling, or an existing
-shipped component. Nothing suspends a rule and no §6.2 row is needed.
+**One token was considered and refused: a named "section gap".** `globals.css:3200` rules on it
+directly — *"Tailwind's scale IS the spacing token set … the section gap wants the next real
+step up rather than a new `--ev-*` name … adding a spacing token here would be the drift, not
+the fix."* G3 is `gap-6`.
 
-### 11.2 Deviations from the reference
-
-X-RC-1 through X-RC-13 in §3, each with the rule it rests on. Two more, which are additions
-rather than refusals:
-
-- **The class table gains a visually hidden `<caption>`** (`Per-class rates on rate card
-  {version}`). §7 wants a table named; the reference's visible footer sentence was doing a
-  different job badly.
-- **The suspensions card gains sortable columns, a district filter and an empty state**, none of
-  which the reference draws and all of which `DataTable` gives for free once the card stops being
-  a list of `FigureRow`s.
-
-### 11.3 Findings raised, not fixed
-
-- **F-RC-1** — `docs/ref/patterns.md`'s Pricing & Plans row describes one of four views. It needs
-  amending to name them. `DESIGN.md` and its ref files are not mine to change.
-- **F-RC-2** — several rate-card fields render **nowhere** in the product: `freeWaitMin`,
-  `waitPerMinHalalas`, `returnLegFactor`, `planDiscountPercent`, and `surge.capByCity` /
-  `minMultiplier` / `appliesToPlanLegs`. Spec `03-financials.md:664` requires the card to render
-  *"read-only **in full** … per-class rates, commission, ladder, floors, surge cap"*. Two dead copy
-  keys (`…col.wait`, `…wait`) are the residue. **Not designed here** — it is a card the owner did
-  not ask for, and inventing it is inventing scope. Recommended: one `Waiting and other rates`
-  card below the class table, in a follow-up.
-- **F-RC-3** — `SurgeWindow.days` ships raw English abbreviations to Arabic operators (§8). The fix
-  is seven copy keys plus a map at the render site; the data layer does not change.
-- **F-RC-4** — `docs/ref/tokens.md`'s *"Elevation — the closed set of three"* section survived
-  **D34**, which deleted all three tiers. It will be cited against a correct shadow-free component
-  sooner or later.
-- **F-RC-5** — **the tree changed under me while this was being written**, and the change is in
-  this design's path. Another agent is migrating selection states onto the `bg-selected` slot
-  (`ui/tabs.tsx` `data-active:bg-accent` → `bg-selected`; `ui/toggle.tsx` `data-[state=on]:bg-card`
-  → `bg-selected`). The token itself already existed (`globals.css:469`, `:1953`, `:2531`), so §4
-  is written against the new answer. **`ConversationListItem.tsx:60`'s `bg-muted` is the next
-  candidate in that migration** and is reported to whoever owns it — the rail here does not copy
-  it.
-- **F-RC-6** — `DataTable.tsx:~2420` asserts *"`.dark` is never applied anywhere in this product
-  and there is no dark palette"*. It is stale: `globals.css:1816` carries a full dark ladder and
-  `src/hooks/useTheme.ts` resolves and applies it. `ui/button.tsx:25` carries the same stale claim
-  (*"Eyvar ships one theme"*). Both matter here, because §4 specifies dark.
-
-### 11.4 Open questions — product-owner
-
-- **Q-RC-1** Should a **draft**'s class table mark which figures differ from the live card? The
-  data supports it (`classes[]` on both). It is the first thing a pricing owner would look for and
-  it is not in the reference. **Not designed here.**
-- **Q-RC-2** `surge.capByCity` is keyed by city code (`RUH`, `JED`) and the product has **no
-  city-code catalogue**, so anything that renders it shows a raw code. Related to F-RC-2.
+If a design-token-steward disagrees with the refusal, that is a ruling, not a screen decision.
 
 ---
 
-## 12. Handoff
+## 17. Refusals, deviations, findings, open questions
 
-- **frontend-engineer** — build. The whole of §2, §5, §6, §7 and §10.
-- **utilities-engineer** — three helpers this design implies, all small: (1) a `dayLabel` map for
-  F-RC-3; (2) a signed-percent formatter that emits U+2212 for X-RC-7 if `formatPercent` does not
-  already; (3) confirm `sr-only` is available as a utility for AC-RC-23.
-- **No `globals.css` change is required**, and none is requested. Every token this design uses is
-  already declared.
+### 17.1 Refusals — where the brief or the reference conflicts with a rule
+
+| # | Asked / drawn | Refused, and what happened instead | Rule |
+|---|---|---|---|
+| **X-RC-14** | *"Density is the brand — do not fix it toward roomier spacing"* (redesign brief) | **Partly refused.** The type scale raises card titles 14 → 16, column headers 12 → 14, and table rows ~32 → 40. The brief's premise — that Eyvar's density is a sanctioned deviation — is **stale**: **D-2 is retired** and its type-ramp and spacing-scale suspensions are *"void and may not be cited again"* (`06-eyvar-mapping.md:67`). What survives is D-2′, the page gutter, which this view does not touch. Everything raised here is raised **to** a declared step, not past one, and every value stays on the 4px grid | D-2 retired; D15 |
+| **X-RC-15** | Give the page a headline numeral so the eye has somewhere to land | **Refused.** No `--text-kpi` and no `--text-lg` is spent on this view. A rate card is a matrix; any single figure lifted out of it would be a summary set louder than what it summarises. The landing point is bought with region chrome, ink and contrast instead (§3.3). **The owner can overrule this in one line** — the sentence to change is §3.3's last paragraph, and band D's three figures are where a display step would go | H2 (`globals.css:2988`), H5's rank |
+| **X-RC-1** | Uppercase, letter-spaced labels | **Refused, now everywhere.** Revision 1 kept one instance on the view-row caption rung; revision 2 removes it (§7). Zero uppercase runs on the view | §6.3 D18 |
+| **X-RC-1a** | — | **Narrowed to nothing on this view.** The rung stays licensed product-wide; `ViewRow.tsx` is unchanged | V-9.4, AC-443 |
+| **X-RC-2** | Monospace figures | **Refused.** Money through `Money` / `MoneyCell` in Inter with `tabular-nums`. `font-mono` is the version identifier alone (X-RC-2a) | standing owner ruling, `MetricTile.tsx:~306` |
+| **X-RC-16** | Shorten `Cancellation (SAR)` so the header strip does not wrap | **Refused.** `ui/table.tsx:241–262` is a measured ruling: *"a header wraps; it does not truncate"*, and header height is the budget that gets spent. The strip grows uniformly and stays one band | `ui/table.tsx:241` |
+| **X-RC-17** | Drop `(SAR)` from four of the five money headers so it is said once | **Refused.** §8.3.1 puts the unit in **the column header**, per column, and `Money.tsx:24–25` is the built enforcement. Five money columns means five suffixes | §8.3.1 |
+| **X-RC-3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13** | — | **Unchanged from revision 1.** Ink marker on `bg-selected`, no `Live card` button, no filled chip, no `→`, no delta pill, no em dash, no restated unit, `Floors` not "held by every card", no per-card segmented filter, single select, both themes specified | as recorded in revision 1 |
+
+### 17.2 Deviations from `DESIGN.md`
+
+**One, and it is new.** **D35a** (§8.2) qualifies §8.6.3's disabled treatment as built at
+`ui/button.tsx:49`: a disabled control keeps a `border-border` hairline. It suspends nothing —
+§8.6.3's rule is that a disabled primary drops its **fill**, and that stands. It is written as
+a ruling rather than a screen deviation because it applies to every disabled button in the
+product, and it needs an owner's signature before it lands in a shared file.
+
+Everything else resolves to an existing rule, an existing ruling, or an existing shipped
+component.
+
+### 17.3 Findings raised, not fixed
+
+- **F-RC-1** — `docs/ref/patterns.md`'s Pricing & Plans row describes one of four views. Open.
+- **F-RC-2** — several rate-card fields render nowhere: `freeWaitMin`, `waitPerMinHalalas`,
+  `returnLegFactor`, `planDiscountPercent`, `surge.capByCity` / `minMultiplier` /
+  `appliesToPlanLegs`. Spec `03-financials.md:664` requires the card read-only *"in full"*.
+  **Not designed here** — it is scope the owner has not asked for. Recommended: one `Waiting and
+  other rates` band inside the pane, between B and C, in a follow-up.
+- **F-RC-3** — `SurgeWindow.days` ships raw English from legacy. Mapped at the render site;
+  the data layer still stores English.
+- **F-RC-4** — `docs/ref/tokens.md`'s *"Elevation — the closed set of three"* survived **D34**,
+  which deleted all three tiers. It will be cited against a correct shadow-free component.
+- **F-RC-6** — `DataTable.tsx:~2420` and `ui/button.tsx:25` both assert *"Eyvar ships one
+  theme"* / *"there is no dark palette"*. Both are stale: `globals.css:1816` carries a full dark
+  ladder and `src/hooks/useTheme.ts` applies it. Both matter here, because §9 specifies dark.
+- **F-RC-7 — new, and the last heading mismatch on this page.** `IndexToolbar.tsx:271` renders
+  every `DataTable` heading `text-lg font-medium` = **20/500**. There is no 20/500 rung in H5's
+  rank: 20 is the sub-display **figure** step, whose live consumers are all numbers
+  (`globals.css:3087`), and every TITLE rank in the ramp is 600, not 500
+  (`globals.css:3163`). So the `Suspensions` card's heading will still differ from the other
+  two cards' `CardTitle` after this rebuild. **The one-line fix is `text-lg font-medium` →
+  `text-base font-semibold` at `IndexToolbar.tsx:271`, and it moves every index screen in the
+  product** — it is the table owner's change, not this branch's. Recorded here so QA logs it
+  as a known residual and not as a new defect.
+
+### 17.4 Open questions — product-owner
+
+- **A-3 — answered here as D35** (§8). It needs the owner's signature before `ui/button.tsx`
+  changes.
+- **Q-RC-1** Should a draft's class matrix mark which figures differ from the live card? The
+  data supports it (`classes[]` on both). It is the first thing a pricing owner would look for.
+  **Not designed here.**
+- **Q-RC-2** `surge.capByCity` is keyed by city code (`RUH`, `JED`) and the product has no
+  city-code catalogue, so anything that renders it shows a raw code. Related to F-RC-2.
+- **Q-RC-3 — new.** §3.3 refuses a display numeral. If the owner wants one, band D's three
+  figures are the place and `--text-lg` (20/600) is the step. One sentence changes.
+
+---
+
+## 18. Handoff
+
+- **frontend-engineer** — build §2 through §12 and §15. Three decisions are yours to sequence,
+  not to make: (1) **D35a touches `ui/button.tsx`, a shared file** — land it separately and say
+  so, and do not fork a local disabled style for this screen; (2) `PricingScreen.tsx`'s banner
+  memo gains one conditional (§6) and its `facts` wiring for this view goes away (§7); (3) the
+  class matrix and the surge table move from `KeyValueTable` to `ui/table.tsx` — restyle
+  nothing on arrival, they are already the product's chrome. **F-RC-7 is not yours in this
+  branch.**
+- **utilities-engineer** — three small helpers this design implies: (1) confirm
+  `formatSignedPercent` emits **U+2212** for a negative, not a hyphen (X-RC-7 / AC-RC-37);
+  (2) a `joinWithDot(fragments)` helper that renders `<bdi>` fragments with drawn `aria-hidden`
+  separators, since the rail footer, the effective range and band D's caption all now need the
+  same construction and AC-443 forbids writing the separator into a string; (3) nothing for the
+  type or spacing scale — both are classes, and a helper that returned them would be a second
+  token set.
+- **design-token-steward** — **no tokens needed** (§16). One refusal is recorded there in case
+  it is challenged.
+- **product-owner** — **D35** needs a number and a home in `docs/RULINGS.md` and
+  `DECISIONS.md`; F-RC-7 needs a decision because it moves every index screen; Q-RC-3 is a
+  one-sentence overrule if the page wants a display numeral.
