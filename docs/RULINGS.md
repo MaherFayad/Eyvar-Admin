@@ -24,7 +24,7 @@ The same digits mean different things with different prefixes. Write the exact f
 | Form | Means | Text lives in |
 |---|---|---|
 | `R1`…`R19`, `R5a` | `DESIGN.md` ruling | `_partials/00-header.md`, "Rulings on contested points" |
-| `D1`…`D36`, `D1a`, `D7a`, `D35a`, `D35b` | Project decision | `05-restructure/DECISIONS.md` |
+| `D1`…`D37`, `D1a`, `D7a`, `D35a`, `D35b` | Project decision | `05-restructure/DECISIONS.md` |
 | `D-1`…`D-13` (hyphen) | `DESIGN.md` §6.2 sanctioned deviation | `_partials/06-eyvar-mapping.md`; D-11a, D-12, D-13 in DECISIONS.md |
 | `D3`, `D11` written next to "§6.3" | Legacy defect number | `_partials/06-eyvar-mapping.md` §6.3 |
 | `R-1`…`R-4` | Round 3 ruling | `05-restructure/design/00-decisions-r3.md` |
@@ -91,6 +91,28 @@ and it is not a shadow. A focus ring survives: a ring is not a shadow.
 AC-CC-01 keeps its magnitude and loses its direction: a dark card is that far *below* its
 ground, not above. The 1.25:1 figure is not reachable downward from a pinned page, so the
 criterion is met at 1.113:1, the largest step the theme can physically produce.
+
+### The red row marker is removed from every table (2026-09-06)
+
+**D37 — no table draws a red leading-edge marker on a row.** `RowCriticalMarker` is deleted and
+its 57 render sites with it. §8.4, which drew the marker at the row's leading edge, and the
+part of §9.3 that counted it as a red carrier, are superseded here: the owner looked at a
+critical row and ruled the line out of the product.
+
+**What survives.** A critical row is still DECLARED by the screen through `isRowCritical` (R5a),
+and it still reads as critical from two carriers that are not a line: the row's ground
+(`--ev-row-critical` and its emphasis and foreground tokens) and its words. AC-50 is the reason
+the words matter and it is unchanged — a breached row states its countdown in text, so the
+state survives colour being removed entirely. R18 still forbids a pulse or a loop, and nothing
+may start animating to replace the marker.
+
+**The 3px `--ev-marker` token is NOT retired.** It is one named figure used in several places,
+and three of them are not red and are untouched: the rate card rail's selected row
+(`bg-foreground`), Revenue's V-13 start-edge bar (`bg-primary`), and the composer's
+internal-note edge (`bg-note-bar`). D37 removes a red marker, not the marker lane.
+
+A screen that cannot distinguish a critical row without the line has a defect in its ground or
+its copy, and is fixed there. It does not get the line back.
 
 ### A money table states its unit once, over the span (2026-09-06)
 
@@ -234,6 +256,7 @@ One line each. The text lives in `05-restructure/DECISIONS.md`; grep the ID.
 | D35a — a disabled control drops its FILL, not its BOX: no brand fill, but height, radius, padding and a 1px hairline stay |
 | D35b — within one card, the title and a control never carry the same string; an instruction is stated once |
 | D36 — a table with three or more adjacent money columns states the currency ONCE, in a rung CENTRED over the span (deviates from §8.3.1) |
+| D37 — no red leading-edge row marker in any table; a critical row reads from its ground and its words (supersedes §8.4) |
 | D-11a — who owns focus when a menu hands off to a layer: **the layer wins** |
 | D-12 — peek is the drawer, not a sixth surface |
 | D-13 — motion has no duration tokens, and the request for a duration scale is refused |
