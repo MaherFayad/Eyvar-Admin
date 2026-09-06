@@ -203,8 +203,10 @@ function RateCardRail({
                 {...roving.itemProps(index)}
                 className={cn(
                   /* §9 — a MINIMUM, not a fixed height: three lines measure 52px
-                     in Latin and 64 in Arabic, and a fixed height would clip. */
-                  'flex min-h-row-media flex-col justify-center gap-1 px-3',
+                     in Latin and 64 in Arabic, and a fixed height would clip. `py-3` is
+                     the gutter: three lines already exceed the minimum, so with
+                     no vertical padding they press against the row's rules. */
+                  'flex min-h-row-media flex-col justify-center gap-1 px-3 py-3',
                   'focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset focus-visible:outline-none',
                   isSelected ? 'bg-selected' : 'hover:bg-row-hover',
                 )}
