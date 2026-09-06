@@ -677,6 +677,12 @@ is marked **BLOCKED**.
 All seven from foundation §3.4, cross-referenced to their `DESIGN.md` §6.4 pattern row. **Every
 one maps to an existing row.** No new page shape is invented here.
 
+> **The `Rate card` view has its own design spec:**
+> [`design/financials-pricing-rate-card.md`](../design/financials-pricing-rate-card.md) —
+> the master–detail block, the surge cards, **AC-RC-01…31**, and the thirteen places the
+> owner's 2026-09-06 reference was refused. It raises **F-RC-1**: the Pricing & Plans row
+> below describes the `Subscription plans` view and not the other three.
+
 | # | Sub-tab | Route | Contributing legacy | §6.4 pattern | Page shape (foundation §3.10) |
 |---:|---|---|---|---|---|
 | 1 | **Overview** | `/financials/overview` | `finance` (contribution margin) + `wallets` KPIs + `rwallets` KPIs + pane `ledger` (trial balance) | Metric tiles + chart cards (§3.7) | Single column, capped |
