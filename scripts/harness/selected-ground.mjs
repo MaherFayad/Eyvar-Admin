@@ -292,6 +292,84 @@ out.header = {
 if (!out.header.noShift) failures.push('the header moved between Map and Table')
 if (headerMap.order !== 'switcher after title') failures.push('the switcher is not below the title')
 
+/* ── the shared primitives that carry the same selection ────────────────
+      `table`, `tabs` and `toggle` all paint a chosen thing, and the bar D33
+      sets for all three is the same: selection is a bigger step than hover on
+      the ground the control sits on. Measured as a ladder rather than in situ
+      because the default tab variant and the toggle group render on no screen
+      this session can reach; the segmented pill IS measured, because five call
+      sites override the base and that drift is worth seeing. ────────────── */
+await page.goto(`${BASE}/financials/revenue`, { waitUntil: 'networkidle' })
+await page.waitForTimeout(1600)
+await page.evaluate(helpers)
+out.controls = await page.evaluate(() => {
+  const cs = getComputedStyle(document.documentElement)
+  const v = (n) => cs.getPropertyValue(n).trim()
+  const on = (ground) => ({
+    ground: v(ground),
+    selected: window.__step(v('--selected'), v(ground)),
+    hover: window.__step(v('--accent'), v(ground)),
+  })
+  const list = document.querySelector('[role="tablist"][data-variant="segmented"]')
+  const active = list ? list.querySelector('[role="tab"][aria-selected="true"]') : null
+  return {
+    onCard: on('--card'),
+    onMuted: on('--muted'),
+    segmentedInSitu: active
+      ? {
+          pill: window.__hex(getComputedStyle(active).backgroundColor),
+          track: window.__hex(getComputedStyle(list).backgroundColor),
+          step: window.__step(
+            getComputedStyle(active).backgroundColor,
+            getComputedStyle(list).backgroundColor,
+          ),
+          note: 'five call sites override the base with data-active:bg-card',
+        }
+      : null,
+  }
+})
+await page.screenshot({ path: `${OUT}/selected-tab-${TAG}.png`, clip: { x: 0, y: 0, width: 1280, height: 420 } })
+for (const g of ['onCard', 'onMuted']) {
+  if (out.controls[g].selected.ratio <= out.controls[g].hover.ratio) {
+    failures.push(`hover outranks selection ${g}`)
+  }
+}
+
+/* ── the trend chart's tooltip, which recesses too (D33) ───────────────
+      Hovered rather than asserted from the class: a floating layer that reads
+      LIGHTER than the card it covers is the inversion this whole round is
+      about, and only a rendered one can be measured. ────────────────────── */
+await page.goto(`${BASE}/management/performance`, { waitUntil: 'networkidle' })
+await page.waitForTimeout(1600)
+await page.evaluate(helpers)
+const plot = page.locator('.recharts-surface').first()
+if (await plot.count()) {
+  await plot.scrollIntoViewIfNeeded()
+  const box = await plot.boundingBox()
+  await page.mouse.move(box.x + box.width * 0.5, box.y + box.height * 0.5)
+  await page.waitForTimeout(700)
+  out.tooltip = await page.evaluate(() => {
+    const tip = document.querySelector('.recharts-tooltip-wrapper div[dir]')
+    if (!tip) return { rendered: false }
+    const ground = window.__hex(getComputedStyle(tip).backgroundColor)
+    /* On a board the chart has no card, so what the tooltip covers is the
+       page itself — read it rather than assumed. */
+    const over = window.__hex(window.__under(tip))
+    const token = getComputedStyle(document.documentElement).getPropertyValue('--popover').trim()
+    return { rendered: true, ground, over, token, step: window.__step(ground, over) }
+  })
+  if (out.tooltip.rendered) {
+    await page.screenshot({ path: `${OUT}/selected-tooltip-${TAG}.png`, clip: { x: 0, y: 0, width: 1280, height: 800 } })
+    /* What a COMPONENT owns is which token it asks for; which tier that token
+       sits on is the token layer's. So this fails on the wrong token, and only
+       reports the step — read it: in light `--popover` is D33a's covering
+       tier, so every popover, dropdown and this tooltip float LIGHTER there. */
+    if (out.tooltip.ground.toLowerCase() !== out.tooltip.token.toLowerCase()) {
+      failures.push(`the tooltip is ${out.tooltip.ground}, not --popover ${out.tooltip.token}`)
+    }
+  }
+}
+
 out.inForce = await themeInForce()
 if (out.inForce.dark !== (THEME === 'dark')) failures.push('the theme is not the one asked for')
 if ((out.inForce.dir === 'rtl') !== (LANG === 'ar')) failures.push('the direction is not the one asked for')

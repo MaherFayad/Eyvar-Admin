@@ -424,7 +424,10 @@ export function TrendTooltip({ active, payload, unit, t, language }: TrendToolti
        never on the axis group — see the note above. */
     <div
       dir={directionFor(language)}
-      className="grid min-w-32 items-start gap-1.5 rounded-lg border border-border/50 bg-background px-2.5 py-1.5 text-xs"
+      /* D33 — it recesses. A tooltip is anchored to what it describes and
+         reads against the card it floats over, so it takes the popover's
+         ground and edge rather than the page's. */
+      className="grid min-w-32 items-start gap-1.5 rounded-lg border border-popover-border bg-popover px-2.5 py-1.5 text-xs"
     >
       {/* The bucket, once, at the top. A day-month run in a card that may be
           Arabic — isolated for the reason `ChartCard`'s legend gives. */}
