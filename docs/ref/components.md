@@ -48,6 +48,27 @@ A freshly added component is **not** Eyvar-compliant. Before using it:
 
 Record the restyle in the component file header: which rules you applied.
 
+## A disabled button keeps its box (D35a)
+
+A disabled control drops its **fill**, never its **box**. §8.6.3 still bans `--ev-brand` on a
+disabled button, but height, radius, padding and a 1px `border-border` hairline stay, so it
+reads as a control the operator cannot use rather than as a caption. A border is not a shadow,
+so this does not reopen D34.
+
+| variant | disabled edge |
+|---|---|
+| `default`, `destructive` | gains `border-border`; no fill, no red |
+| `secondary` | steps DOWN from `border-border-control` to `border-border` — a dead control is quieter than a live one, never louder |
+| `ghost`, `link` | **no box.** Neither has an edge in any state, so disabled takes nothing away and there is nothing to keep |
+
+`ghost` is refused deliberately, not overlooked: every table pager is a ghost `Previous`/`Next`
+pair with one side disabled on the first and last page, so boxing it would draw a rectangle
+around the control that cannot be used and leave the usable one bare — R23 / N3's inversion, on
+forty screens. `link` is `h-auto p-0`, so there is no geometry to keep and an edge would make a
+chip of a word inside a sentence (§5.7).
+
+D35b travels with it: **within one card, the title and a control never carry the same string.**
+
 ## Do not import
 
 - **A second component library.** Radix directly, MUI, Ant, Astryx — one system.
