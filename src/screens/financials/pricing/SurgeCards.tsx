@@ -178,7 +178,7 @@ function SurgeWindowsCard({
           <tbody>
             {rows.map((window) => (
               <tr key={window.id} className={KEY_VALUE_ROW}>
-                <td className={cn('py-1.5 text-foreground', KEY_VALUE_CELL)}>{window.label}</td>
+                <td className={cn('py-1.5 text-foreground', KEY_VALUE_CELL)}>{t(window.labelKey)}</td>
                 <td className={cn('py-1.5 text-foreground', KEY_VALUE_CELL)}>
                   <span className="flex flex-wrap gap-1">
                     {window.days.map((day) => (

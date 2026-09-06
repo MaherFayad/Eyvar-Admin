@@ -439,7 +439,7 @@ export const cancellationRuleFixtures: CancellationRule[] = [
 export const surgeWindowFixtures: SurgeWindow[] = [
   {
     id: 'surge_1',
-    label: 'Morning rush',
+    labelKey: 'fin.pricing.surge.window.morningRush',
     startHour: 7,
     endHour: 9,
     days: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu'],
@@ -448,7 +448,7 @@ export const surgeWindowFixtures: SurgeWindow[] = [
   },
   {
     id: 'surge_2',
-    label: 'Evening rush',
+    labelKey: 'fin.pricing.surge.window.eveningRush',
     startHour: 17,
     endHour: 20,
     days: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu'],
@@ -457,7 +457,7 @@ export const surgeWindowFixtures: SurgeWindow[] = [
   },
   {
     id: 'surge_3',
-    label: 'Weekend evening',
+    labelKey: 'fin.pricing.surge.window.weekendEvening',
     startHour: 20,
     endHour: 23,
     days: ['Thu', 'Fri'],

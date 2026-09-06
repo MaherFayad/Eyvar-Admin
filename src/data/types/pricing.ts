@@ -229,7 +229,9 @@ export interface SubscriptionCancellationRule extends CancellationRuleBase {
 
 export interface SurgeWindow {
   id: string
-  label: string
+  /** `pricing.surge.window.*`. A window's name reaches an operator, so it is a
+      key, not stored English (CLAUDE.md, X14). */
+  labelKey: string
   /** 0–23. `endHour` must be **after** `startHour` (AC-412). */
   startHour: number
   endHour: number

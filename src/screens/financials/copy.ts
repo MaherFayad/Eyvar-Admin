@@ -859,6 +859,11 @@ export const FINANCIALS_EN: Dictionary = {
 
   /* Surge. **AC-410** — nothing here raises a multiplier. */
   'fin.pricing.surge.heading': 'Surge windows',
+  /* A window's name is a key, not stored English: the fixture value reached an
+     Arabic operator untranslated (CLAUDE.md rule 7). */
+  'fin.pricing.surge.window.morningRush': 'Morning rush',
+  'fin.pricing.surge.window.eveningRush': 'Evening rush',
+  'fin.pricing.surge.window.weekendEvening': 'Weekend evening',
   'fin.pricing.surge.readOnly': 'Windows are set by pricing. Operations may only suspend surge.',
   'fin.pricing.surge.col.window': 'Window',
   'fin.pricing.surge.col.days': 'Days',

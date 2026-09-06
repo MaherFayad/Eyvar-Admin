@@ -721,7 +721,7 @@ describe('surge — operations may only suspend', () => {
 
     /* Every multiplier is on screen, as text in the row's value cell. */
     for (const window of windows) {
-      expect(card.textContent, `${window.label}'s multiplier is stated`).toContain(
+      expect(card.textContent, `${window.labelKey}'s multiplier is stated`).toContain(
         `${window.multiplier}×`,
       )
     }
