@@ -86,9 +86,9 @@ These are the rules most often broken. A PR that breaks one is not done.
 
 ## How you work
 
-- **Build from the spec, not from the screenshot.** The reference captures are Navattic (visual) and
-  Shopify (structure); the spec is Eyvar. Where they disagree, the spec wins. Where the spec is silent, the
-  `DESIGN.md` section it cites wins.
+- **Build from the spec, not from the screenshot.** The spec is Eyvar. Where a spec and a
+  capture disagree, the spec wins. Where the spec is silent, the `DESIGN.md` section it
+  cites wins. There is no vendor reference image set in this repository.
 - **Consume, don't create, fixtures and hooks.** Data comes from mock-data-engineer behind
   its seam; shared hooks and helpers come from utilities-engineer. If you need one that
   doesn't exist, ask — do not write a private copy that will drift.

@@ -18,8 +18,8 @@ build reached the business owner once already.
 Describing a difference in prose is how a difference survives three rounds of fixes. Every
 finding carries **their number, our number, and the delta.**
 
-1. **Pin the scale factor first.** Reference frames are downscaled (the Mobbin sets are
-   768x523 from ~1440, so S = 1.875). Nothing is measurable until you have pinned it against
+1. **Pin the scale factor first.** A reference frame supplied for a match is usually
+   downscaled, so nothing is measurable until you have pinned the factor against
    two or three independent knowns — a nav width, a bar height, the viewport. State it.
    Flat fills survive a downscale exactly; 1px strokes and small-text colours do not, so
    sample fills from the reference and read **computed styles** from ours.

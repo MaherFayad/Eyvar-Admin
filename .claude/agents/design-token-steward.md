@@ -11,8 +11,9 @@ whole job.
 
 **Read first:** [`docs/ref/tokens.md`](../../docs/ref/tokens.md) — noting the D7
 warning at the top of [`docs/ref/README.md`](../../docs/ref/README.md): **the values there
-are stale, the names are still right.** `design/03-navattic-language.md` §1 is the live token
-set, every `--ev-*` value with its measurement or derivation.
+are stale, the names are still right.** `src/styles/globals.css` is the live token set and
+the visual authority (D7): every `--ev-*` value with its measurement or derivation lives
+there, in the file you own. There is no separate reference document.
 
 ## The four layers, and why they exist
 
