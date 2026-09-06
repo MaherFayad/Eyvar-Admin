@@ -1,8 +1,8 @@
 {
   "totals": {
-    "keys": 6890,
-    "en": 6524,
-    "ar": 6890,
+    "keys": 6887,
+    "en": 6521,
+    "ar": 6887,
     "arMissing": 0,
     "arExtra": 366,
     "copyFiles": 37,
@@ -10,9 +10,9 @@
     "pluralForms": 73,
     "defaultValue": 0,
     "defaultValueForwarded": 2,
-    "emDashEn": 84,
-    "emDashAr": 87,
-    "overBudget": 145
+    "emDashEn": 83,
+    "emDashAr": 86,
+    "overBudget": 144
   },
   "registered": [
     {
@@ -20,7 +20,7 @@
       "exports": [
         "FINANCIALS_EN"
       ],
-      "keys": 959,
+      "keys": 956,
       "notInEN": 0
     },
     {
@@ -985,12 +985,6 @@
     {
       "file": "src/i18n/ar/financials.ts",
       "lang": "ar",
-      "key": "fin.pricing.surge.suspend.body",
-      "value": "تعود الأجرة في المنطقة إلى السعر الأساسي حتى ينتهي الإيقاف. ولا يُمدَّد الإيقاف — بل يُرفع من جديد. ولا يتغيّر شيء سُعِّر بالفعل."
-    },
-    {
-      "file": "src/i18n/ar/financials.ts",
-      "lang": "ar",
       "key": "fin.audit.payoutPaid",
       "value": "صُرف {netHalalas} — {payableHalalas} مستحق، ناقص {cashDebtHalalas} من الدين النقدي."
     },
@@ -1161,12 +1155,6 @@
       "lang": "en",
       "key": "fin.debt.repay.body",
       "value": "{captain} owes {balance}. Enter what was handed over — a part payment leaves the rest outstanding and visible."
-    },
-    {
-      "file": "src/screens/financials/copy.ts",
-      "lang": "en",
-      "key": "fin.pricing.surge.suspend.body",
-      "value": "Fares in the zone return to the base rate until it ends. A suspension cannot be extended — it is raised again. Nothing already priced changes."
     },
     {
       "file": "src/screens/financials/copy.ts",
@@ -1913,14 +1901,6 @@
       "value": "This is the only time this signing secret is shown"
     },
     {
-      "file": "src/screens/financials/copy.ts",
-      "key": "fin.pricing.stageA.title",
-      "class": "title",
-      "words": 10,
-      "budget": 4,
-      "value": "Prices are read-only until the rate card owner is decided."
-    },
-    {
       "file": "src/screens/admin/data/copy.ts",
       "key": "integrity.check.ref.ledger-subject.title",
       "class": "title",
@@ -2532,7 +2512,7 @@
   "overBudgetByClass": [
     [
       "title",
-      79
+      78
     ],
     [
       "empty body",

@@ -158,6 +158,11 @@ export const FINANCIALS_EN: Dictionary = {
 
   /* **AC-429** — every one of these is an imperative naming the fix. */
   'fin.error.read': 'Change the period or the filters, then read again.',
+  /* A read with no period control and no filter cannot name that fix, so the
+     three on the Rate card view name the object that is missing instead. */
+  'fin.pricing.rateCard.error.read': 'Rate cards did not arrive. Read again.',
+  'fin.pricing.surge.error.windows': 'Surge windows did not arrive. Read again.',
+  'fin.pricing.surge.error.districts': 'Districts did not arrive. Read again.',
   'fin.error.retry': 'Read again',
   'fin.error.mutation': 'Try that again.',
   'fin.error.row': 'That did not go through. Try again.',
@@ -334,6 +339,17 @@ export const FINANCIALS_EN: Dictionary = {
   'fin.payout.blocked.noBank': 'Add a bank account before paying this captain.',
   'fin.payout.blocked.permission':
     'You cannot pay a captain. Ask an Owner for the “Captain payouts” permission.',
+  /* The refusal names the act the sub-tab refuses, not a payout: `useWriteGate`
+     handed every Financials screen the payout sentence, so a blocked operator
+     on Pricing was sent to ask for a permission this screen does not gate on.
+     Grammar matched to `state.forbidden.body` (D17). */
+  'fin.blocked.permission':
+    'You need the “{permission}” permission. An Owner can grant it in Admin › Team & Access.',
+  /* The row names no write permission, or the session is frozen: there is no
+     permission to ask for, so the refusal does not invent one. */
+  'fin.blocked.write': 'You cannot make changes here.',
+  'fin.pricing.blocked.permission':
+    'Changing prices needs the “{permission}” permission. An Owner can grant it in Admin › Team & Access.',
   'fin.payout.empty.heading': 'No captain has earnings this period',
   'fin.payout.empty.body': 'A captain appears here as soon as a trip accrues earnings to them.',
   'fin.payout.empty.action': 'Read the payable ledger',
@@ -719,9 +735,9 @@ export const FINANCIALS_EN: Dictionary = {
 
   /* §4.5 — ONE standing condition, ONE banner, and it must not read as an
      error. `info`, not `warning`: nothing is wrong, something is undecided. */
-  'fin.pricing.stageA.title': 'Prices are read-only until the rate card owner is decided.',
+  'fin.pricing.stageA.title': 'Prices are read-only',
   'fin.pricing.stageA.body':
-    'Four stores price this product and they disagree. A plan’s catalogue is editable; its rates, commission and discount are shown as they stand.',
+    'You can edit a plan’s catalogue. Rates, commission, discount and every rate card are read-only.',
 
   'fin.pricing.plan.col.name': 'Plan',
   'fin.pricing.plan.col.duration': 'Duration',
@@ -751,34 +767,42 @@ export const FINANCIALS_EN: Dictionary = {
   'fin.pricing.quick.yes': 'Offered',
   'fin.pricing.quick.no': 'Withdrawn',
 
-  'fin.pricing.rateCard.heading': 'Rate card {version}',
   'fin.pricing.rateCard.status.live': 'Live',
   'fin.pricing.rateCard.status.draft': 'Draft',
   'fin.pricing.rateCard.status.superseded': 'Superseded',
-  'fin.pricing.rateCard.effective': 'Effective from {date}',
   'fin.pricing.rateCard.effectiveUntil': 'Effective {from} to {to}',
   /* The master-detail block (design/financials-pricing-rate-card.md §9.1).
      The rail lists every card; the pane describes the selected one. */
   'fin.pricing.rateCard.rail.heading': 'Rate cards',
   'fin.pricing.rateCard.rail.select': 'Show rate card {version}',
-  'fin.pricing.rateCard.rail.from': 'From {date} · no end set',
+  'fin.pricing.rateCard.rail.from': 'From {date}',
   'fin.pricing.rateCard.rail.range': '{from} – {to}',
-  'fin.pricing.rateCard.rail.delta': 'Bill {delta}',
+  'fin.pricing.rateCard.rail.delta': 'Rider bill {delta}',
   'fin.pricing.rateCard.rail.notModelled': 'Not modelled',
   'fin.pricing.rateCard.announce': 'Showing rate card {version}, {status}.',
   'fin.pricing.rateCard.effective.noEnd': 'Effective from {date} · no end set',
   'fin.pricing.rateCard.stat.onDemand': 'Commission, on demand',
   'fin.pricing.rateCard.stat.subscription': 'Commission, on a plan',
-  'fin.pricing.rateCard.stat.consumerPrices': 'Consumer prices',
+  'fin.pricing.rateCard.stat.riderPrices': 'Rider prices',
+  /* Band C's heading. Commission and VAT are properties of the card, so they
+     are key/value rows beside `Floors`, not statistics in the pane header. */
+  'fin.pricing.rateCard.terms.heading': 'Commission and VAT',
   'fin.pricing.rateCard.vat.included': 'VAT included',
   'fin.pricing.rateCard.vat.excluded': 'VAT not included',
-  'fin.pricing.rateCard.table.caption': 'Per-class rates on rate card {version}',
+  'fin.pricing.rateCard.table.caption':
+    'Per-class rates on rate card {version}. All figures in SAR.',
   'fin.pricing.rateCard.col.class': 'Class',
-  'fin.pricing.rateCard.col.base': 'Base (SAR)',
-  'fin.pricing.rateCard.col.perKm': 'Per km (SAR)',
-  'fin.pricing.rateCard.col.perMin': 'Per minute (SAR)',
-  'fin.pricing.rateCard.col.minFare': 'Minimum (SAR)',
-  'fin.pricing.rateCard.col.cancelFee': 'Cancellation (SAR)',
+  'fin.pricing.rateCard.col.base': 'Base',
+  'fin.pricing.rateCard.col.perKm': 'Per km',
+  'fin.pricing.rateCard.col.perMin': 'Per minute',
+  'fin.pricing.rateCard.col.minFare': 'Minimum',
+  'fin.pricing.rateCard.col.cancelFee': 'Cancellation',
+  /* Five money columns in one currency state the unit once, in a rung spanning
+     them, instead of five times in five labels. */
+  'fin.pricing.rateCard.table.unit': 'SAR',
+  /* A class name reached an Arabic operator as stored English. */
+  'fin.pricing.rateCard.class.economy': 'Economy',
+  'fin.pricing.rateCard.class.comfort': 'Comfort',
   /* F-RC-2 — `wait` and `col.wait` render nowhere. Kept, not deleted: the
      fields exist on the card and spec §5 still asks for them. */
   'fin.pricing.rateCard.col.wait': 'Waiting',
@@ -786,18 +810,22 @@ export const FINANCIALS_EN: Dictionary = {
   /* X-RC-6 / X-RC-7 — two labelled figures and a neutral signed delta, never
      one arrow string and never a pill. */
   'fin.pricing.rateCard.impact.heading': 'Modelled impact',
-  'fin.pricing.rateCard.impact.trips': 'Modelled on {trips} trips',
-  'fin.pricing.rateCard.impact.ranAt': 'Run {date}',
   'fin.pricing.rateCard.impact.before': 'Rider bill before',
   'fin.pricing.rateCard.impact.after': 'Rider bill after',
-  'fin.pricing.rateCard.impact.caption.past': 'Measured against the card this one replaced.',
-  'fin.pricing.rateCard.impact.caption.future': 'Measured against the card this one would replace.',
-  'fin.pricing.rateCard.impact.none':
-    'Not modelled against any trip. A card nobody modelled cannot be approved.',
+  'fin.pricing.rateCard.impact.change': 'Change',
+  /* One caption under the three figures: what it was run on, and what it is
+     measured against. Two meta lines became one. */
+  'fin.pricing.rateCard.impact.caption.past':
+    'Modelled on {trips} trips, run {date}. Measured against the card this one replaced.',
+  'fin.pricing.rateCard.impact.caption.future':
+    'Modelled on {trips} trips, run {date}. Measured against the card this one would replace.',
+  /* The refusal that used to end this line sits on `Approve`, where it changes
+     what the operator does; this string also renders where approval is moot. */
+  'fin.pricing.rateCard.impact.none': 'Not modelled against any trip.',
   /* X-RC-10 — `floors` is per-card and nothing enforces it (D-F11), so the
      heading does not claim the numbers are held. */
   'fin.pricing.rateCard.floors.heading': 'Floors',
-  'fin.pricing.rateCard.floors.caption': 'Guardrails a card is checked against. Nothing enforces them yet.',
+  'fin.pricing.rateCard.floors.caption': 'Nothing enforces these yet.',
   'fin.pricing.rateCard.floors.margin': 'Target margin',
   'fin.pricing.rateCard.floors.fee': 'Payment fee',
   'fin.pricing.rateCard.floors.support': 'Support per subscriber',
@@ -807,13 +835,10 @@ export const FINANCIALS_EN: Dictionary = {
   'fin.pricing.rateCard.approve': 'Approve',
   'fin.pricing.rateCard.approve.blocked.proposer': 'You proposed this card. Another approver signs it off.',
   'fin.pricing.rateCard.approve.blocked.simulation': 'Model this card against real trips before approving it.',
-  'fin.pricing.rateCard.approve.blocked.stage': 'Approving a rate card waits on the pricing owner decision.',
-  'fin.pricing.rateCard.footer.live':
-    'This card prices every trip today. Editing waits on the pricing owner decision.',
-  'fin.pricing.rateCard.footer.superseded':
-    'This card priced trips until {date}. It is kept for the trips it priced.',
-  /* §5.4 — a standing condition stated on the caption rung, because R10's one
-     banner on this screen is already spent on Q7. */
+  'fin.pricing.rateCard.approve.blocked.stage':
+    'Nobody can approve a rate card yet, whatever their permissions.',
+  /* The counts sit in the rail's footer: a count of a list belongs to the list,
+     and on the view row it was a caption under nothing. */
   'fin.pricing.rateCard.noLive': 'No card is live',
   'fin.pricing.rateCard.count.cards#one': '1 rate card',
   'fin.pricing.rateCard.count.cards#other': '{count} rate cards',
@@ -858,20 +883,21 @@ export const FINANCIALS_EN: Dictionary = {
   'pricing.cancel.note.unusedPortion': 'Charged against the unused portion of the plan.',
 
   /* Surge. **AC-410** — nothing here raises a multiplier. */
-  'fin.pricing.surge.heading': 'Surge windows',
+  'fin.pricing.surge.heading': 'Surge',
   /* A window's name is a key, not stored English: the fixture value reached an
      Arabic operator untranslated (CLAUDE.md rule 7). */
   'fin.pricing.surge.window.morningRush': 'Morning rush',
   'fin.pricing.surge.window.eveningRush': 'Evening rush',
   'fin.pricing.surge.window.weekendEvening': 'Weekend evening',
-  'fin.pricing.surge.readOnly': 'Windows are set by pricing. Operations may only suspend surge.',
+  'fin.pricing.surge.readOnly':
+    'Pricing sets these windows. You can only suspend surge in a district.',
   'fin.pricing.surge.col.window': 'Window',
   'fin.pricing.surge.col.days': 'Days',
   'fin.pricing.surge.col.hours': 'Hours',
   'fin.pricing.surge.col.multiplier': 'Multiplier',
   'fin.pricing.surge.col.state': 'State',
   'fin.pricing.surge.hours': '{start}–{end}',
-  'fin.pricing.surge.empty': 'No surge window is configured.',
+  'fin.pricing.surge.empty': 'No surge window is set.',
   /* F-RC-3 — `SurgeWindow.days` ships raw English from legacy; the column maps
      each value through these seven keys so an Arabic operator reads Arabic. */
   'fin.pricing.surge.day.sun': 'Sun',
@@ -887,11 +913,9 @@ export const FINANCIALS_EN: Dictionary = {
   /* R14 — a suspension in force does NOT reuse `Running`, which the window
      table already binds to `success`. Different state, different word. */
   'fin.pricing.surge.suspension.expires': 'Ends in {duration}',
-  'fin.pricing.surge.suspension.expired': 'Ended',
-  'fin.pricing.surge.suspend.heading': 'Suspend surge',
-  'fin.pricing.surge.suspend.subtitle': 'Choose a district, then confirm.',
+  /* D35b - the card is `Surge` and the button is `Suspend surge`, so the panel
+     no longer carries the button's own label as a heading above it. */
   'fin.pricing.surge.suspend.group.label': 'District',
-  'fin.pricing.surge.suspend.chosen': '{district} selected',
   'fin.pricing.surge.suspend.prompt': 'Choose a district.',
   'fin.pricing.surge.suspensions.heading': 'Suspensions',
   'fin.pricing.surge.suspensions.search': 'Search suspensions',
@@ -909,16 +933,12 @@ export const FINANCIALS_EN: Dictionary = {
   'fin.pricing.surge.state.ended': 'Ended',
   'fin.pricing.surge.suspend.title': 'Suspend surge in {zone}?',
   'fin.pricing.surge.suspend.body':
-    'Fares in the zone return to the base rate until it ends. A suspension cannot be extended — it is raised again. Nothing already priced changes.',
+    'Fares in the district return to the base rate for {hours} hours. Nothing already priced changes.',
   'fin.pricing.surge.suspend.confirm': 'Suspend surge',
   'fin.pricing.surge.suspend.reason.label': 'Reason',
-  'fin.pricing.surge.suspend.reason.help': 'Why surge is coming off. Up to {hours} hours.',
-  'fin.pricing.surge.suspend.reason.message': 'Enter why surge is being suspended.',
-  'fin.pricing.surge.suspend.zone.label': 'Zone',
-  'fin.pricing.surge.suspend.zone.help': 'Where the suspension applies.',
-  'fin.pricing.surge.suspend.zone.message': 'Choose a zone.',
-  'fin.pricing.surge.suspend.zone.placeholder': 'Choose a zone',
-  'fin.pricing.surge.suspend.zone.empty': 'No zone is tracked.',
+  'fin.pricing.surge.suspend.reason.help': 'Why surge is coming off.',
+  'fin.pricing.surge.suspend.reason.message': 'Enter why you are suspending surge.',
+  'fin.pricing.surge.suspend.district.empty': 'No district is tracked.',
   'fin.pricing.surge.toast.suspended': 'Surge suspended',
 
   /* ═════════════════════════ the plan editor ════════════════════════════ */

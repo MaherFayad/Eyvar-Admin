@@ -492,8 +492,8 @@ const SURGE_ZONES: ReadonlyArray<{ readonly id: string; readonly name: string }>
 ]
 
 const SURGE_SUSPENSION_REASONS: readonly string[] = [
-  'Stadium event — surge would price out the evening commute',
-  'School run window — capped by the operations policy for the term',
+  'Stadium event. Surge would price out the evening commute.',
+  'School run window · capped by the operations policy for the term',
   'Ministry inspection announced for the district',
   'Weather advisory: surge suppressed while the alert stands',
   'Complaint cluster on evening pricing, held pending review',
@@ -516,7 +516,7 @@ export const surgeSuspensionFixtures: SurgeSuspension[] = [
     id: 'SUS-0001',
     zoneId: 'al-narjis',
     zoneName: 'Al Narjis',
-    reason: 'Stadium event — surge would price out the evening commute',
+    reason: 'Stadium event. Surge would price out the evening commute.',
     setByUserId: 'USR-5',
     setByUserName: 'Yousef Al-Balawi',
     startedAt: '2026-06-25T07:14:00+03:00',

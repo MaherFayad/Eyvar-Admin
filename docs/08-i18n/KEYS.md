@@ -9,9 +9,9 @@ this file is stale or when the `defaultValue` ratchet slips.
 
 | | |
 |---|---:|
-| **Translatable keys, all dictionaries** | **6890** |
-| Reachable from `EN` (what the shell renders) | 6524 |
-| Keys in `AR` | 6890 |
+| **Translatable keys, all dictionaries** | **6887** |
+| Reachable from `EN` (what the shell renders) | 6521 |
+| Keys in `AR` | 6887 |
 | **Keys Arabic is missing** | **0** |
 | Keys in `AR` and not in `EN` (plural forms, unregistered screens) | 366 |
 | Plural forms (`key#category`) inside `EN` | 73 |
@@ -19,9 +19,9 @@ this file is stale or when the `defaultValue` ratchet slips.
 | Keys in a `copy.ts` the shell has NOT registered | 194 |
 | **`defaultValue` call sites (the ratchet)** | **0** |
 | `defaultValue` forwarding a Dictionary (exempt) | 2 |
-| **English values carrying an em dash (the ratchet)** | **84** |
-| **Arabic values carrying an em dash (the ratchet)** | **87** |
-| **English values over their word budget (the ratchet)** | **145** |
+| **English values carrying an em dash (the ratchet)** | **83** |
+| **Arabic values carrying an em dash (the ratchet)** | **86** |
+| **English values over their word budget (the ratchet)** | **144** |
 
 `AR` is **complete**: every key reachable from `EN` resolves in Arabic, so no
 screen mixes the two languages. `arExtra` is not drift -- Arabic declares six CLDR
@@ -39,7 +39,7 @@ None left. Add the lint rule and delete this section.
 
 ## The em-dash ratchet
 
-Ceilings **84** English and **87** Arabic, measured **84** and **87**. **X14**:
+Ceilings **83** English and **86** Arabic, measured **83** and **86**. **X14**:
 no em dash in a string an operator reads. `·` separates a qualifier, two clauses
 become two sentences, and a numeric range keeps the en dash in *Showing 1-7 of 7*.
 Both ceilings only ever fall.
@@ -53,7 +53,7 @@ Both ceilings only ever fall.
 | ar | `src/i18n/ar/conversations.ts` | 2 |
 | ar | `src/i18n/ar/disputes.ts` | 2 |
 | ar | `src/i18n/ar/fairness.ts` | 1 |
-| ar | `src/i18n/ar/financials.ts` | 30 |
+| ar | `src/i18n/ar/financials.ts` | 29 |
 | ar | `src/i18n/ar/onboarding.ts` | 5 |
 | ar | `src/i18n/ar/policy.ts` | 5 |
 | ar | `src/i18n/ar/pwa.ts` | 1 |
@@ -69,7 +69,7 @@ Both ceilings only ever fall.
 | en | `src/screens/admin/team/copy.ts` | 3 |
 | en | `src/screens/admin/workspace/copy.ts` | 18 |
 | en | `src/screens/auth/copy.ts` | 1 |
-| en | `src/screens/financials/copy.ts` | 30 |
+| en | `src/screens/financials/copy.ts` | 29 |
 | en | `src/screens/onboarding/copy.ts` | 2 |
 | en | `src/screens/support/disputes/copy.ts` | 2 |
 | en | `src/screens/support/fairness/copy.ts` | 1 |
@@ -188,7 +188,6 @@ Both ceilings only ever fall.
 | ar | `fin.bulk.claim.heldByOther.other` | {count} من التقارير المحدَّدة لا يمكن استلامها — فمشغّل آخر يحملها. |
 | ar | `fin.bulk.claim.heldByOther.all` | كل التقارير المحدَّدة ({count}) لا يمكن استلامها — فمشغّل آخر يحملها. |
 | ar | `fin.debt.repay.body` | {captain} مدين بـ{balance}. أدخل ما سُلِّم — والسداد الجزئي يبقي الباقي قائمًا وظاهرًا. |
-| ar | `fin.pricing.surge.suspend.body` | تعود الأجرة في المنطقة إلى السعر الأساسي حتى ينتهي الإيقاف. ولا يُمدَّد الإيقاف — بل يُرفع من جديد. ولا يتغيّر شيء سُعِّر بالفعل. |
 | ar | `fin.audit.payoutPaid` | صُرف {netHalalas} — {payableHalalas} مستحق، ناقص {cashDebtHalalas} من الدين النقدي. |
 | ar | `fin.audit.walletAdjusted` | عُدِّلت محفظة — {direction} {reference}. |
 | en | `fin.payment.escalation.unsettledPastCycle` | Unsettled {days} days past its cycle — escalate to the gateway. |
@@ -218,7 +217,6 @@ Both ceilings only ever fall.
 | en | `fin.bulk.claim.heldByOther.other` | {count} of the selected reports cannot be claimed — another operator holds them. |
 | en | `fin.bulk.claim.heldByOther.all` | All {count} selected reports cannot be claimed — another operator holds them. |
 | en | `fin.debt.repay.body` | {captain} owes {balance}. Enter what was handed over — a part payment leaves the rest outstanding and visible. |
-| en | `fin.pricing.surge.suspend.body` | Fares in the zone return to the base rate until it ends. A suspension cannot be extended — it is raised again. Nothing already priced changes. |
 | en | `fin.audit.payoutPaid` | Paid {netHalalas} — {payableHalalas} payable, less {cashDebtHalalas} of cash debt. |
 | en | `fin.audit.walletAdjusted` | Adjusted a wallet — {direction} {reference}. |
 | ar | `onboarding.intro.owner` | أنت مسؤول عن اللوحة كاملة — السياسة والأشخاص والمال والقرارات التي لا يستطيع غيرك اتخاذها. |
@@ -257,14 +255,14 @@ Both ceilings only ever fall.
 
 ## The word budget
 
-Ceiling **145**, measured **145**. **X18**: a slot an operator scans holds a
+Ceiling **144**, measured **144**. **X18**: a slot an operator scans holds a
 fixed number of words. A key is put in a class by its name; the mapping is in
 the generator header. Anything longer moves to `InfoHint` or the detail surface.
 Measured on English only, and a placeholder counts as one word.
 
 | Class | Budget, in words | Over |
 |---|---:|---:|
-| title | 4 | 79 |
+| title | 4 | 78 |
 | empty body | 12 | 31 |
 | button | 3 | 16 |
 | empty title | 5 | 11 |
@@ -343,7 +341,6 @@ Measured on English only, and a placeholder counts as one word.
 | meta | 7 | `profile.trip.band.meta` | {id} · {date} · {rider} · {captain} |
 | title | 13 | `onboarding.step.support.profile.title` | Open a 360° profile, and know what you may not do with it |
 | title | 10 | `admin.integrations.reveal.warning.webhook.title` | This is the only time this signing secret is shown |
-| title | 10 | `fin.pricing.stageA.title` | Prices are read-only until the rate card owner is decided. |
 | title | 10 | `integrity.check.ref.ledger-subject.title` | Ledger postings name a subject and an entry that exist |
 | title | 10 | `onboarding.step.owner.team.title` | Read the role matrix, and decide if it still holds |
 | title | 10 | `state.saveInvalid.title` | To save this {entity}, {count} changes need to be made: |
@@ -427,7 +424,7 @@ Measured on English only, and a placeholder counts as one word.
 
 | File | Exports | Keys |
 |---|---|---:|
-| `src/screens/financials/copy.ts` | `FINANCIALS_EN` | 959 |
+| `src/screens/financials/copy.ts` | `FINANCIALS_EN` | 956 |
 | `src/screens/reports/copy.ts` | `REPORTS_EN` | 570 |
 | `src/commands/copy.ts` | `COMMANDS_EN` | 390 |
 | `src/screens/operations/people/copy.ts` | `PEOPLE_EN` | 338 |
