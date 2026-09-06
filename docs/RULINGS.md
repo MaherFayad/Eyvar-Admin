@@ -24,7 +24,7 @@ The same digits mean different things with different prefixes. Write the exact f
 | Form | Means | Text lives in |
 |---|---|---|
 | `R1`…`R19`, `R5a` | `DESIGN.md` ruling | `_partials/00-header.md`, "Rulings on contested points" |
-| `D1`…`D35`, `D1a`, `D7a`, `D35a`, `D35b` | Project decision | `05-restructure/DECISIONS.md` |
+| `D1`…`D36`, `D1a`, `D7a`, `D35a`, `D35b` | Project decision | `05-restructure/DECISIONS.md` |
 | `D-1`…`D-13` (hyphen) | `DESIGN.md` §6.2 sanctioned deviation | `_partials/06-eyvar-mapping.md`; D-11a, D-12, D-13 in DECISIONS.md |
 | `D3`, `D11` written next to "§6.3" | Legacy defect number | `_partials/06-eyvar-mapping.md` §6.3 |
 | `R-1`…`R-4` | Round 3 ruling | `05-restructure/design/00-decisions-r3.md` |
@@ -91,6 +91,24 @@ and it is not a shadow. A focus ring survives: a ring is not a shadow.
 AC-CC-01 keeps its magnitude and loses its direction: a dark card is that far *below* its
 ground, not above. The 1.25:1 figure is not reachable downward from a pinned page, so the
 criterion is met at 1.113:1, the largest step the theme can physically produce.
+
+### A money table states its unit once, over the span (2026-09-06)
+
+**D36 — where a table has three or more adjacent money columns, the currency is stated ONCE in
+a unit rung spanning them, not repeated in every column header.** This is a sanctioned
+deviation from §8.3.1, which is a MUST and says the unit belongs in the column header. §8.3.1
+is written for a table with one or two money columns, where repeating the unit costs nothing.
+The rate card has five, and repetition was measured at 167px — **26.3% of the table's width,
+30.4% in Arabic** — while two headers wrapped for lack of the room it consumed.
+
+The rung is **centred over the money span, never end-aligned.** End-aligned it lands under the
+last column and reads as that column's unit rather than the table's, which is the misreading
+that produced this ruling. It is `aria-hidden`, because a `colspan` announces poorly, and the
+table's `<caption>` states `All figures in SAR.` for the same operator. The unit token is
+`<bdi>`-isolated, per glossary R4, so a Latin currency code inside an RTL header does not
+reorder its neighbours.
+
+Below three money columns, §8.3.1 stands unchanged.
 
 ### A disabled control keeps its box, and a card never says a thing twice (2026-09-06)
 
@@ -215,6 +233,7 @@ One line each. The text lives in `05-restructure/DECISIONS.md`; grep the ID.
 | D34 — no shadows and no glows; a surface is separated from its ground by the value step and a hairline, nothing else |
 | D35a — a disabled control drops its FILL, not its BOX: no brand fill, but height, radius, padding and a 1px hairline stay |
 | D35b — within one card, the title and a control never carry the same string; an instruction is stated once |
+| D36 — a table with three or more adjacent money columns states the currency ONCE, in a rung CENTRED over the span (deviates from §8.3.1) |
 | D-11a — who owns focus when a menu hands off to a layer: **the layer wins** |
 | D-12 — peek is the drawer, not a sixth surface |
 | D-13 — motion has no duration tokens, and the request for a duration scale is refused |

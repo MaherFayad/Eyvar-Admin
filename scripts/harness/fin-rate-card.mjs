@@ -436,10 +436,10 @@ if (!band) {
     failures.push('button to refusal is ' + band.buttonToRefusal + 'px, not 4')
   }
   /* §4.2 — the rule is CENTRED in a 24px channel: 12 above, 12 under it. */
-  if (band.tableToBand !== 12 || band.bandRuleChannel.paddingTop !== '12px') {
+  if (band.tableToBand !== 12 || band.bandRuleChannel?.paddingTop !== '12px') {
     failures.push(
       'the band rule channel is ' + band.tableToBand + ' + rule + ' +
-        band.bandRuleChannel.paddingTop + ', not 12 + rule + 12',
+        (band.bandRuleChannel?.paddingTop ?? 'NO RULE FOUND') + ', not 12 + rule + 12',
     )
   }
 }

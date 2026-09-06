@@ -498,13 +498,15 @@ function ClassTable({ card, t }: { card: RateCard; t: Translator }) {
             </TableHead>
           ))}
         </TableRow>
-        {/* The unit rung. `aria-hidden` because a `colspan` announces poorly and
-            the `<caption>` states `All figures in SAR.` for the same operator. */}
+        {/* The unit rung (D36). Centred over the money span, never end-aligned:
+            end-aligned it sits under the last column and reads as that column's
+            unit. `aria-hidden` because a `colspan` announces poorly and the
+            `<caption>` states `All figures in SAR.` for the same operator. */}
         <TableRow aria-hidden="true">
           <TableHead className="h-auto pt-0 pb-2" />
           <TableHead
             colSpan={money.length}
-            className="h-auto pt-0 pb-2 text-end text-xs font-normal"
+            className="h-auto pt-0 pb-2 text-center text-xs font-normal"
           >
             <bdi>{t('fin.pricing.rateCard.table.unit')}</bdi>
           </TableHead>
