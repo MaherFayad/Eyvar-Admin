@@ -1,9 +1,10 @@
 /**
- * Rate card — surge windows, suspend surge, suspensions. **AC-RC-25…31**.
+ * Rate card — the `Surge` card and the suspensions log. **AC-RC-25…31, 46…49**.
  *
  * AC-410 no control here raises a multiplier; the one write is a suspension.
+ * D35b one card, `Surge`: the windows it runs and the one lever on them, so the
+ * card title and its button no longer carry the same string.
  * X-RC-5 the chosen chip takes `ToggleGroup`'s own on-state, never a fill.
- * X-RC-11 district narrowing is the `DataTable` column filter, not a segment.
  */
 
 import { useCallback, useId, useMemo, useState } from 'react'
@@ -14,14 +15,20 @@ import { useAsync, useIndexTable, useNow } from '@/hooks'
 import { formatCount, formatDate, formatDuration, type Language, type Translator } from '@/lib'
 import { DataTable, type DataColumn } from '@/components/DataTable'
 import { ErrorState } from '@/components/ErrorState'
-import { KEY_VALUE_CELL, KEY_VALUE_HEAD, KEY_VALUE_ROW, KeyValueTable } from '@/components/KeyValueGrid'
 import { StatusBadge } from '@/components/StatusBadge'
 import { RefusalLine } from '@/components/table/rowActions'
 import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
+import { Card, CardDescription, CardHeader } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
-import { cn } from '@/lib/utils'
 import { useShell } from '@/shell/ShellContext'
 import { ConfirmMoneyDialog, type MoneyConfirmRequest } from '../shared/ConfirmMoneyDialog'
 import { useMoneyActions } from '../shared/actions'
@@ -60,14 +67,14 @@ export function SurgeCards({ gate }: { gate: { canWrite: boolean; reason: string
     (zone: Zone) => {
       setRequest({
         title: t('fin.pricing.surge.suspend.title', { zone: zone.name }),
-        body: t('fin.pricing.surge.suspend.body'),
+        body: t('fin.pricing.surge.suspend.body', {
+          hours: String(SURGE_SUSPENSION_MAX_HOURS),
+        }),
         confirmLabel: t('fin.pricing.surge.suspend.confirm'),
         /* **AC-411** — the primary is disabled until a reason is entered. */
         reason: {
           label: t('fin.pricing.surge.suspend.reason.label'),
-          help: t('fin.pricing.surge.suspend.reason.help', {
-            hours: String(SURGE_SUSPENSION_MAX_HOURS),
-          }),
+          help: t('fin.pricing.surge.suspend.reason.help'),
           message: t('fin.pricing.surge.suspend.reason.message'),
         },
         onConfirm: ({ reason }) => {
@@ -97,10 +104,14 @@ export function SurgeCards({ gate }: { gate: { canWrite: boolean; reason: string
 
   return (
     <>
-      <div className="grid grid-cols-3 gap-3 compact:grid-cols-1">
-        <SurgeWindowsCard windows={windows} t={t} language={language} />
-        <SuspendSurgeCard zones={zones} gate={gate} onSuspend={suspend} t={t} />
-      </div>
+      <SurgeCard
+        windows={windows}
+        zones={zones}
+        gate={gate}
+        onSuspend={suspend}
+        t={t}
+        language={language}
+      />
       <SuspensionsCard suspensions={suspensions} t={t} language={language} />
       <ConfirmMoneyDialog
         request={request}
@@ -112,11 +123,46 @@ export function SurgeCards({ gate }: { gate: { canWrite: boolean; reason: string
   )
 }
 
+/* ──────────────────────────────── the surge card ───────────────────────── */
+
+/* One concern: what surge runs, and the one lever on it. §4.2 — the band rule
+   sits in a 24px channel, 12 from the card's own gap and 12 from `pt-3`. */
+function SurgeCard({
+  windows,
+  zones,
+  gate,
+  onSuspend,
+  t,
+  language,
+}: {
+  windows: ReturnType<typeof useAsync<SurgeWindow[]>>
+  zones: ReturnType<typeof useAsync<Paginated<Zone>>>
+  gate: { canWrite: boolean; reason: string }
+  onSuspend: (zone: Zone) => void
+  t: Translator
+  language: Language
+}) {
+  return (
+    <Card>
+      <CardHeader>
+        <h2 data-slot="card-title" className="text-base font-semibold text-foreground">
+          {t('fin.pricing.surge.heading')}
+        </h2>
+        {/* **AC-410** — stated, and true: no control on this card raises one. */}
+        <CardDescription>{t('fin.pricing.surge.readOnly')}</CardDescription>
+      </CardHeader>
+      <SurgeWindowsBand windows={windows} t={t} language={language} />
+      <DistrictBand zones={zones} gate={gate} onSuspend={onSuspend} t={t} />
+    </Card>
+  )
+}
+
 /* ───────────────────────────── surge windows ───────────────────────────── */
 
-/* AC-RC-25 — five columns. Hours and Multiplier are numeric and end-align (R4);
-   the rule does not flip in Arabic, only the column does. */
-function SurgeWindowsCard({
+/* AC-RC-25 — five columns on the product's own table chrome. Hours and
+   Multiplier are numeric and end-align (R4); the rule does not flip in Arabic,
+   only the column does. */
+function SurgeWindowsBand({
   windows,
   t,
   language,
@@ -125,89 +171,83 @@ function SurgeWindowsCard({
   t: Translator
   language: Language
 }) {
-  const columns = ['window', 'days', 'hours', 'multiplier', 'state'] as const
   const rows = windows.data ?? []
 
-  return (
-    <Card className="col-span-2 gap-2 compact:col-span-1">
-      <div className="flex flex-col gap-1 px-(--card-spacing)">
-        <h2 className="text-sm font-semibold text-foreground">{t('fin.pricing.surge.heading')}</h2>
-        {/* **AC-410** — stated, and true: no control on this card raises one. */}
-        <p className="text-xs text-muted-foreground">{t('fin.pricing.surge.readOnly')}</p>
+  if (windows.status === 'loading') {
+    return (
+      <div className="flex flex-col gap-2 px-(--card-spacing)" aria-busy="true">
+        {[0, 1, 2].map((row) => (
+          <Skeleton key={row} className="h-row w-full" />
+        ))}
       </div>
+    )
+  }
+  if (windows.status === 'error') {
+    return (
+      <ErrorState
+        scope="card"
+        card={false}
+        message={t('fin.pricing.surge.error.windows')}
+        action={{ label: t('fin.error.retry'), onClick: windows.refetch }}
+      />
+    )
+  }
+  if (rows.length === 0) {
+    return (
+      <p className="px-(--card-spacing) text-sm text-muted-foreground">
+        {t('fin.pricing.surge.empty')}
+      </p>
+    )
+  }
 
-      {windows.status === 'loading' && (
-        <div className="flex flex-col gap-2 px-(--card-spacing)" aria-busy="true">
-          {[0, 1, 2].map((row) => (
-            <Skeleton key={row} className="h-4 w-full" />
-          ))}
-        </div>
-      )}
-      {windows.status === 'error' && (
-        <ErrorState
-          scope="card"
-          card={false}
-          message={t('fin.error.read')}
-          action={{ label: t('fin.error.retry'), onClick: windows.refetch }}
-        />
-      )}
-      {windows.status !== 'loading' && windows.status !== 'error' && rows.length === 0 && (
-        <p className="px-(--card-spacing) text-sm text-muted-foreground">
-          {t('fin.pricing.surge.empty')}
-        </p>
-      )}
-      {rows.length > 0 && (
-        <KeyValueTable className="text-sm">
-          <thead>
-            <tr className="border-b border-border-soft">
-              {columns.map((column) => (
-                <th
-                  key={column}
-                  scope="col"
-                  className={cn(
-                    KEY_VALUE_HEAD,
-                    KEY_VALUE_CELL,
-                    column === 'hours' || column === 'multiplier' ? 'text-end' : 'text-start',
-                  )}
-                >
-                  {t(`fin.pricing.surge.col.${column}`)}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((window) => (
-              <tr key={window.id} className={KEY_VALUE_ROW}>
-                <td className={cn('py-1.5 text-foreground', KEY_VALUE_CELL)}>{t(window.labelKey)}</td>
-                <td className={cn('py-1.5 text-foreground', KEY_VALUE_CELL)}>
-                  <span className="flex flex-wrap gap-1">
-                    {window.days.map((day) => (
-                      <span key={day}>{dayLabel(day, t)}</span>
-                    ))}
-                  </span>
-                </td>
-                <td className={cn('py-1.5 text-end tabular-nums text-foreground', KEY_VALUE_CELL)}>
-                  <bdi>
-                    {t('fin.pricing.surge.hours', {
-                      start: formatCount(window.startHour, language),
-                      end: formatCount(window.endHour, language),
-                    })}
-                  </bdi>
-                </td>
-                <td className={cn('py-1.5 text-end tabular-nums text-foreground', KEY_VALUE_CELL)}>
-                  <bdi>{t('fin.pricing.surge.multiplier', { value: String(window.multiplier) })}</bdi>
-                </td>
-                <td className={cn('py-1.5', KEY_VALUE_CELL)}>
-                  <StatusBadge tone={window.enabled ? 'success' : 'neutral'}>
-                    {window.enabled ? t('fin.pricing.surge.enabled') : t('fin.pricing.surge.disabled')}
-                  </StatusBadge>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </KeyValueTable>
-      )}
-    </Card>
+  return (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead scope="col">{t('fin.pricing.surge.col.window')}</TableHead>
+          <TableHead scope="col">{t('fin.pricing.surge.col.days')}</TableHead>
+          <TableHead scope="col" className="w-28 text-end">
+            {t('fin.pricing.surge.col.hours')}
+          </TableHead>
+          <TableHead scope="col" className="w-28 text-end">
+            {t('fin.pricing.surge.col.multiplier')}
+          </TableHead>
+          <TableHead scope="col" className="w-32">
+            {t('fin.pricing.surge.col.state')}
+          </TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {rows.map((window) => (
+          <TableRow key={window.id}>
+            <TableCell className="font-medium text-foreground">{t(window.labelKey)}</TableCell>
+            <TableCell className="text-foreground">
+              <span className="flex flex-wrap gap-1">
+                {window.days.map((day) => (
+                  <span key={day}>{dayLabel(day, t)}</span>
+                ))}
+              </span>
+            </TableCell>
+            <TableCell className="text-end tabular-nums text-foreground">
+              <bdi>
+                {t('fin.pricing.surge.hours', {
+                  start: formatCount(window.startHour, language),
+                  end: formatCount(window.endHour, language),
+                })}
+              </bdi>
+            </TableCell>
+            <TableCell className="text-end tabular-nums text-foreground">
+              <bdi>{t('fin.pricing.surge.multiplier', { value: String(window.multiplier) })}</bdi>
+            </TableCell>
+            <TableCell>
+              <StatusBadge tone={window.enabled ? 'success' : 'neutral'}>
+                {window.enabled ? t('fin.pricing.surge.enabled') : t('fin.pricing.surge.disabled')}
+              </StatusBadge>
+            </TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
   )
 }
 
@@ -216,11 +256,13 @@ function dayLabel(day: string, t: Translator): string {
   return key === undefined ? day : t(key)
 }
 
-/* ───────────────────────────── suspend surge ───────────────────────────── */
+/* ───────────────────────────── the district band ───────────────────────── */
 
-/* AC-RC-26 / AC-RC-27 — one single-select group, one `variant="default"` button
-   on the whole view (R3), and the refusal is visible text, never a `title`. */
-function SuspendSurgeCard({
+/* AC-RC-26 / AC-RC-27 / AC-RC-48 — one single-select group, one
+   `variant="default"` button on the whole view (R3), the refusal is visible
+   text and never a `title`, and the band carries a field label, not a heading:
+   D35b, since the button already names the act. */
+function DistrictBand({
   zones,
   gate,
   onSuspend,
@@ -233,6 +275,7 @@ function SuspendSurgeCard({
 }) {
   const [chosenId, setChosenId] = useState<string | null>(null)
   const refusalId = useId()
+  const labelId = useId()
   const items = zones.data?.items ?? []
   const chosen = items.find((zone) => zone.id === chosenId) ?? null
 
@@ -242,30 +285,30 @@ function SuspendSurgeCard({
       ? t('fin.pricing.surge.suspend.prompt')
       : null
 
+  /* §4.2 — the field and its chips are one subject at G1; the control is the
+     next subject and costs G3; its refusal belongs to it and stays at G0. The
+     column adds no inset of its own: a disabled button's inline padding is the
+     button's own box under D35a, and compensating for it here would
+     double-correct once that lands. */
   return (
-    <Card className="gap-2">
-      <div className="flex flex-col gap-2 px-(--card-spacing)">
-        <div className="flex flex-col gap-1">
-          <h2 className="text-sm font-semibold text-foreground">
-            {t('fin.pricing.surge.suspend.heading')}
-          </h2>
-          <p className="text-xs text-muted-foreground">
-            {t('fin.pricing.surge.suspend.subtitle')}
-          </p>
-        </div>
+    <div className="flex flex-col gap-6 border-t border-border-soft px-(--card-spacing) pt-3">
+      <div className="flex flex-col gap-2">
+        <span id={labelId} className="text-sm font-medium text-muted-foreground">
+          {t('fin.pricing.surge.suspend.group.label')}
+        </span>
 
         {zones.status === 'loading' && <Skeleton className="h-control w-full" />}
         {zones.status === 'error' && (
           <ErrorState
             scope="card"
             card={false}
-            message={t('fin.error.read')}
+            message={t('fin.pricing.surge.error.districts')}
             action={{ label: t('fin.error.retry'), onClick: zones.refetch }}
           />
         )}
         {zones.status !== 'loading' && zones.status !== 'error' && items.length === 0 && (
           <p className="text-sm text-muted-foreground">
-            {t('fin.pricing.surge.suspend.zone.empty')}
+            {t('fin.pricing.surge.suspend.district.empty')}
           </p>
         )}
         {items.length > 0 && (
@@ -275,7 +318,7 @@ function SuspendSurgeCard({
             size="sm"
             value={chosenId ?? ''}
             onValueChange={(value) => setChosenId(value === '' ? null : value)}
-            aria-label={t('fin.pricing.surge.suspend.group.label')}
+            aria-labelledby={labelId}
             className="flex-wrap"
           >
             {items.map((zone) => (
@@ -285,7 +328,9 @@ function SuspendSurgeCard({
             ))}
           </ToggleGroup>
         )}
+      </div>
 
+      {items.length > 0 && (
         <div className="flex flex-col items-start gap-1">
           <Button
             variant="default"
@@ -296,14 +341,9 @@ function SuspendSurgeCard({
             {t('fin.pricing.surge.suspend.confirm')}
           </Button>
           {refusal !== null && <RefusalLine id={refusalId}>{refusal}</RefusalLine>}
-          {refusal === null && chosen !== null && (
-            <span className="text-xs text-muted-foreground">
-              {t('fin.pricing.surge.suspend.chosen', { district: chosen.name })}
-            </span>
-          )}
         </div>
-      </div>
-    </Card>
+      )}
+    </div>
   )
 }
 

@@ -33,7 +33,7 @@
  *              with no simulation. Legacy refuses at commit (`:21586`).
  */
 
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   listCancellationRules,
@@ -61,7 +61,7 @@ import { Card } from '@/components/ui/card'
 import { useShell } from '@/shell/ShellContext'
 import { FinancialsPage, usePeriod, useWriteGate } from '../shared/FinancialsPage'
 import { PeriodControl } from '../shared/PeriodControl'
-import { ViewRow, type ViewFacts } from '../shared/ViewRow'
+import { ViewRow } from '../shared/ViewRow'
 import { localisedText } from '../shared/text'
 import { RateCardBlock } from './RateCardBlock'
 import { SurgeCards } from './SurgeCards'
@@ -97,21 +97,20 @@ export function PricingScreen({ row }: { row: SubTabRoute }) {
     [row.views],
   )
   const { tabs, activeTab, selectTab } = useScreenViews(views, DEFAULT_VIEW, t)
-  /* §10.4 / X-RC-1a — the rate-card counts ride the view row's caption rung,
-     published by the view that reads them and cleared when it unmounts. */
-  const [facts, setFacts] = useState<ViewFacts | null>(null)
 
-  /* §4.5 — ONE standing condition, and `info` rather than `warning`. */
+  /* §4.5 — ONE standing condition, and `info` rather than `warning`. R10 — the
+     body is about a plan's catalogue, which the Rate card view does not have,
+     and its second half is the pane footer this view deleted. */
   const banners = useMemo<BannerModel[]>(
     () => [
       {
         id: 'fin.pricing.stageA',
         tone: 'info',
         title: t('fin.pricing.stageA.title'),
-        body: t('fin.pricing.stageA.body'),
+        body: activeTab === 'rate-card' ? undefined : t('fin.pricing.stageA.body'),
       },
     ],
-    [t],
+    [t, activeTab],
   )
 
   /**
@@ -145,7 +144,6 @@ export function PricingScreen({ row }: { row: SubTabRoute }) {
       viewRow={
         <ViewRow
           label={tabs.find((tab) => tab.id === activeTab)?.label ?? ''}
-          facts={activeTab === 'rate-card' ? facts : null}
           lead={<ViewSwitcher tabs={tabs} activeTab={activeTab} onSelectTab={selectTab} />}
           /* §12 — the screen's one primary, on the two catalogue views. It
              opens the editor blank; the gate is `manage_plans`, stated on the
@@ -186,9 +184,7 @@ export function PricingScreen({ row }: { row: SubTabRoute }) {
         {activeTab === 'quick-rides' && (
           <QuickRidesView key="quick" activeTab={activeTab} onSelectTab={selectTab} />
         )}
-        {activeTab === 'rate-card' && (
-          <RateCardView key="rate" gate={gate} onFacts={setFacts} />
-        )}
+        {activeTab === 'rate-card' && <RateCardView key="rate" gate={gate} />}
         {activeTab === 'cancellation-fees' && (
           <CancellationView key="cancel" activeTab={activeTab} onSelectTab={selectTab} />
         )}
@@ -500,19 +496,15 @@ function QuickRidesView({ activeTab, onSelectTab }: ViewProps) {
  * The view composes and does not read: the block owns the one rate-card read
  * and the surge cards own theirs, so one failing read never blanks another.
  */
-function RateCardView({
-  gate,
-  onFacts,
-}: {
-  gate: { canWrite: boolean; reason: string }
-  onFacts: (facts: ViewFacts | null) => void
-}) {
+function RateCardView({ gate }: { gate: { canWrite: boolean; reason: string } }) {
   /* Its own column, and `shrink-0`: the screen's content region is a
      constrained flex column, so a bare card here is shrunk below its content
-     and `Card`'s `overflow-hidden` then clips the pane. */
+     and `Card`'s `overflow-hidden` then clips the pane. §4.2 — a change of
+     subject costs 24px, whether it is a rule inside a card or a gap between
+     two of them. */
   return (
-    <div className="flex shrink-0 flex-col gap-3">
-      <RateCardBlock gate={gate} onFacts={onFacts} />
+    <div className="flex shrink-0 flex-col gap-6">
+      <RateCardBlock gate={gate} />
       <SurgeCards gate={gate} />
     </div>
   )
