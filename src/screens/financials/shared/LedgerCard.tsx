@@ -267,47 +267,53 @@ export interface LedgerHeaderProps {
    * against it, so the two are adjacent clusters at the same size.
    */
   figures?: readonly ViewFigure[]
+  /**
+   * **AC-RW-07** — `false` drops the subject `<h2>`. A party drill-in already
+   * names its record in the page title (O11); a platform ledger has nothing
+   * else naming its book, so it keeps the heading.
+   */
+  showSubject?: boolean
 }
 
 /**
- * **AC-308** — the subject account in words, plus the sub-line stating which
- * direction increases the balance, read from `CHART_OF_ACCOUNTS[k].normalSide`
- * so no screen writes the accounting convention twice.
- *
- * **AC-312** — the `Pending` line is a separate labelled line beneath the
- * balance and is excluded from it. It renders only when something is pending:
- * a permanent `Pending 0.00 SAR` on every ledger in the product is noise, and
- * §10's *"a count of zero renders no badge"* is the same instinct.
+ * One column: the subject heading where a platform ledger needs one (AC-308),
+ * the balance and the pending amount as peer figures (AC-312), and one line
+ * stating which direction increases the balance and what pending excludes.
  */
-export function LedgerHeader({ ledger, t, maxInlineSize, figures = [] }: LedgerHeaderProps) {
+export function LedgerHeader({
+  ledger,
+  t,
+  maxInlineSize,
+  figures = [],
+  showSubject = true,
+}: LedgerHeaderProps) {
   const definition = accountDefinition(ledger.subjectAccount)
   const subject =
     ledger.subjectName === null
       ? t('fin.ledger.subject.platform', { account: definition.label })
       : t('fin.ledger.subject.party', { account: definition.label, name: ledger.subjectName })
+  const pending = ledger.pendingHalalas !== 0
 
   return (
-    /* **One start-aligned group, never `justify-between`.** The subject and its
-       balance sat ~900px apart at 1280 with the figure at the far edge; a
-       balance is a fact about the account named beside it, so it follows the
-       heading block after 32px and the clusters keep that gap between them.
-       `maxInlineSize` still caps the group to the table's own width. */
-    <div className="flex flex-wrap items-start gap-x-8 gap-y-2 pb-3" style={{ maxInlineSize }}>
-      <div className="flex min-w-0 flex-col gap-0.5">
-        <h2 className="truncate text-sm font-semibold text-foreground">
+    /* **One inline-start column, never `justify-between`.** A balance is a fact
+       about the account named above it, so the heading, the figures and the
+       line that explains them share one edge and sit one row apart (AC-RW-08 /
+       AC-RW-10). `maxInlineSize` caps the block to the table's own width. */
+    <div
+      data-slot="ledger-header"
+      className="flex flex-col items-start gap-2 pb-3"
+      style={{ maxInlineSize }}
+    >
+      {showSubject && (
+        <h2 className="max-w-full truncate text-sm font-semibold text-foreground">
           <bdi>{subject}</bdi>
         </h2>
-        <p className="text-xs text-muted-foreground">
-          {t(`fin.ledger.normalSide.${definition.normalSide}`)}
-        </p>
-      </div>
+      )}
 
       {/* Each figure is one cluster — label directly over its numeral, unit
-         inline. §8.3.2: the sign is typographic, and no tone goes near it. */}
-      {figures.map((figure) => (
-        <ViewFigureBlock key={figure.label} figure={figure} size="lg" />
-      ))}
-      <div className="flex flex-col items-start gap-0.5 text-start">
+          inline. §8.3.2: the sign is typographic, and no tone goes near it.
+          Balance, then Pending, then whatever the caller ranks beside them. */}
+      <div className="flex flex-wrap items-start gap-x-8 gap-y-2">
         <ViewFigureBlock
           figure={{
             label: t('fin.ledger.balance'),
@@ -315,15 +321,33 @@ export function LedgerHeader({ ledger, t, maxInlineSize, figures = [] }: LedgerH
           }}
           size="lg"
         />
-        {ledger.pendingHalalas !== 0 && (
-          <span className="text-xs text-muted-foreground">
-            {t('fin.ledger.pending')} <Money amount={ledger.pendingHalalas} />
-          </span>
+        {/* **AC-312** — the pending amount is a peer figure, excluded from the
+            balance, and absent at zero: a permanent `Pending 0.00 SAR` on every
+            ledger in the product is noise. */}
+        {pending && (
+          <ViewFigureBlock
+            figure={{ label: t('fin.ledger.pending'), amountHalalas: ledger.pendingHalalas }}
+            size="lg"
+          />
         )}
-        {ledger.pendingHalalas !== 0 && (
-          <span className="text-xs text-muted-foreground">{t('fin.ledger.pending.help')}</span>
-        )}
+        {figures.map((figure) => (
+          <ViewFigureBlock key={figure.label} figure={figure} size="lg" />
+        ))}
       </div>
+
+      {/* **AC-308** — which direction increases the balance, read from
+          `CHART_OF_ACCOUNTS[k].normalSide`. The pending caveat rides the same
+          line as a second sentence; the separator is drawn, never written into
+          a string (AC-443). */}
+      <p className="text-sm text-muted-foreground">
+        <span>{t(`fin.ledger.normalSide.${definition.normalSide}`)}</span>
+        {pending && (
+          <>
+            {' '}
+            <span>{t('fin.ledger.pending.help')}</span>
+          </>
+        )}
+      </p>
     </div>
   )
 }
@@ -361,6 +385,14 @@ export interface LedgerCardProps {
   firstRun: { heading: string; body: string; action: { label: string; onClick: () => void } }
   /** **R2-2** — passed to `LedgerHeader`; figures beside the balance. */
   figures?: readonly ViewFigure[]
+  /** **AC-RW-07** — forwarded to `LedgerHeader`. */
+  showSubject?: boolean
+  /**
+   * **AC-429 / F-3** — the read failure's own sentence. `fin.error.read` names
+   * the period and the filters, which a screen carrying neither cannot offer,
+   * so such a screen states what did not arrive instead.
+   */
+  errorMessage?: string
   /** Rendered above the table — the R5a page banner a screen raises for its own rows. */
   banner?: ReactNode
 }
@@ -381,6 +413,8 @@ export function LedgerCard({
   firstRun,
   banner,
   figures,
+  showSubject,
+  errorMessage,
 }: LedgerCardProps) {
   const columns = useMemo(() => ledgerColumns(t, language), [t, language])
   /* One derivation, two consumers: `DataTable` caps the table and its band with
@@ -406,7 +440,13 @@ export function LedgerCard({
     return (
       <div className="flex flex-col">
         {ledger && (
-          <LedgerHeader ledger={ledger} t={t} maxInlineSize={ceiling} figures={figures} />
+          <LedgerHeader
+            ledger={ledger}
+            t={t}
+            maxInlineSize={ceiling}
+            figures={figures}
+            showSubject={showSubject}
+          />
         )}
         {banner}
         <EmptyState
@@ -433,7 +473,15 @@ export function LedgerCard({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      {ledger && <LedgerHeader ledger={ledger} t={t} maxInlineSize={ceiling} figures={figures} />}
+      {ledger && (
+        <LedgerHeader
+          ledger={ledger}
+          t={t}
+          maxInlineSize={ceiling}
+          figures={figures}
+          showSubject={showSubject}
+        />
+      )}
       {banner}
       <DataTable
         table={table}
@@ -543,7 +591,7 @@ export function LedgerCard({
          */
         emptyKind="no-match"
         noMatch={{ message: t('fin.empty.noMatch') }}
-        error={{ message: t('fin.error.read'), onRetry }}
+        error={{ message: errorMessage ?? t('fin.error.read'), onRetry }}
       />
     </div>
   )

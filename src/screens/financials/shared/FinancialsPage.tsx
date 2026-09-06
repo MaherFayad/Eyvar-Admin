@@ -3,7 +3,9 @@
  * seven share: the reporting period and the write gate.
  *
  * Rules applied
- *   §8 slot 1  **no back arrow** — these are index routes (§2.2).
+ *   §8 slot 1  **no back arrow on the seven sub-tab INDEX routes** (§2.2).
+ *              The three party drill-ins are detail views (O11) and pass
+ *              one; the discriminator is `Ledger.subjectId`, not the route.
  *   §8 / V4    the `meta` line is DERIVED FROM THE DATA ON SCREEN. On six of
  *              the seven it is the period, which changes when the period
  *              changes; a line that cannot move when the data moves does not
@@ -148,6 +150,15 @@ export function useWriteGate(row: SubTabRoute, t: Translate): WriteGate {
 
 export interface FinancialsPageProps {
   row: SubTabRoute
+  /**
+   * §8 slot 2. Defaults to the sub-tab's own title, which is what the seven
+   * index routes want. A party drill-in passes the RECORD (O11).
+   */
+  title?: string
+  /** §8 slot 1 — passed only by a drill-in, whose index has left the screen. */
+  onBack?: () => void
+  /** §8 slot 1 — the arrow's accessible name; it names the destination. */
+  backLabel?: string
   /** V4 — record-derived. The period, or a count of what is on screen. */
   meta?: string | null
   /**
@@ -172,6 +183,9 @@ export interface FinancialsPageProps {
 
 export function FinancialsPage({
   row,
+  title,
+  onBack,
+  backLabel,
   meta = null,
   banners = [],
   periodControl,
@@ -193,8 +207,10 @@ export function FinancialsPage({
       header={
         <>
           <PageHeader
-            title={t(row.titleKey)}
+            title={title ?? t(row.titleKey)}
             meta={meta}
+            onBack={onBack}
+            backLabel={backLabel}
             control={periodControl}
             t={t}
             dir={dir}

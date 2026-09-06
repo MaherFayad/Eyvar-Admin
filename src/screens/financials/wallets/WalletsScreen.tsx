@@ -184,10 +184,36 @@ export function WalletsScreen({ row }: { row: SubTabRoute }) {
   /* **§10.4** — the view's figures ride the stadium's row, published by the
      index that reads them. */
   const [facts, setFacts] = useState<ViewFacts | null>(null)
+  /* **O11** — the drill-in's title is the rider, and only the ledger read knows
+     the name. Lifted the way `PayoutsScreen` lifts its captain's, and cleared on
+     unmount so the index cannot inherit a record. */
+  const [subject, setSubject] = useState<string | null>(null)
+  /* **R5a / F-2** — postings that never reached the wallet. Lifted so the one
+     page banner the drill-in raises lives where `mergeBanners` can see it. */
+  const [failedCount, setFailedCount] = useState(0)
   const parentView = tabs.find((tab) => tab.id === activeTab)?.label ?? ''
 
   const banners = useMemo<BannerModel[]>(() => {
-    if (negativeCount === 0 || riderId !== null || activeTab === 'negative-balances') return []
+    /* **R5a** — money that did not move is the condition the operator must act
+       on. No action: this product has no retry, and a dead control is worse
+       than none (§11.2). */
+    if (riderId !== null) {
+      if (failedCount === 0) return []
+      return [
+        {
+          id: 'fin.wallet.ledger.banner.failed',
+          tone: 'critical',
+          title:
+            failedCount === 1
+              ? t('fin.wallet.ledger.banner.failed.title')
+              : t('fin.wallet.ledger.banner.failed.titleMany', {
+                  count: formatCount(failedCount, language),
+                }),
+          body: t('fin.wallet.ledger.banner.failed.body'),
+        },
+      ]
+    }
+    if (negativeCount === 0 || activeTab === 'negative-balances') return []
     return [
       {
         id: 'fin.wallet.negative',
@@ -209,40 +235,42 @@ export function WalletsScreen({ row }: { row: SubTabRoute }) {
         ],
       },
     ]
-  }, [negativeCount, riderId, activeTab, t, language, selectTab])
+  }, [negativeCount, failedCount, riderId, activeTab, t, language, selectTab])
 
   return (
     <FinancialsPage
       row={row}
       banners={banners}
-      /* **ONE view row, in one place, on all three views** (D12) — the stadium
-         was the `DataTable` toolbar's. The drill-in has no views, so the row
-         carries the way back instead: **R2-2**'s breadcrumb slot. */
+      /* **O11** — a ledger whose `subjectId` is non-null is a party's DETAIL
+         view, so the record is the title and the way back is §8 slot 1's arrow.
+         The id waits for the name, so it never appears in both rows at once. */
+      title={riderId === null ? undefined : (subject ?? riderId)}
+      meta={riderId !== null && subject !== null ? riderId : null}
+      onBack={riderId === null ? undefined : () => openRider(null)}
+      backLabel={t('fin.wallet.back')}
+      /* **ONE view row, in one place, on all three views** (D12). The drill-in
+         has no views and no breadcrumb, so it renders no row at all rather than
+         an empty band. */
       viewRow={
-        <ViewRow
-          label={parentView}
-          facts={riderId === null ? facts : null}
-          lead={
-            riderId === null ? (
-              <ViewSwitcher tabs={tabs} activeTab={activeTab} onSelectTab={selectTab} />
-            ) : (
-              <Button
-                variant="link"
-                onClick={() => openRider(null)}
-                className="h-auto p-0 text-sm"
-              >
-                {t('fin.wallet.back')}
-              </Button>
-            )
-          }
-        />
+        riderId === null ? (
+          <ViewRow
+            label={parentView}
+            facts={facts}
+            lead={<ViewSwitcher tabs={tabs} activeTab={activeTab} onSelectTab={selectTab} />}
+          />
+        ) : undefined
       }
       t={t}
       dir={dir}
     >
       <div className="flex min-h-0 flex-1 flex-col gap-3">
         {riderId !== null ? (
-          <RiderWalletLedger riderId={riderId} onBack={() => openRider(null)} />
+          <RiderWalletLedger
+            riderId={riderId}
+            onBack={() => openRider(null)}
+            onSubject={setSubject}
+            onFailedCount={setFailedCount}
+          />
         ) : (
           <WalletIndex
             key={activeTab}
@@ -658,7 +686,19 @@ function WalletIndex({
 
 /* ─────────────────────── one rider's wallet ledger ─────────────────────── */
 
-function RiderWalletLedger({ riderId, onBack }: { riderId: string; onBack: () => void }) {
+function RiderWalletLedger({
+  riderId,
+  onBack,
+  onSubject,
+  onFailedCount,
+}: {
+  riderId: string
+  onBack: () => void
+  /** O11 — the page title is the record, and only this read knows its name. */
+  onSubject: (name: string | null) => void
+  /** R5a — the count the one page banner carries. */
+  onFailedCount: (count: number) => void
+}) {
   const shell = useShell()
   const { t, language } = shell.language
   const table = useIndexTable({ mode: 'ledger' })
@@ -684,8 +724,29 @@ function RiderWalletLedger({ riderId, onBack }: { riderId: string; onBack: () =>
 
   const status = ledger.status === 'content' && rows.length === 0 ? 'empty' : ledger.status
 
-  /* **R2-2** — the way back is a link on the page's view row, not a chip on a
-     row of its own. */
+  const subjectName = ledger.data?.subjectName ?? null
+  /* R5a's two critical settlements, counted off the whole ledger rather than
+     the narrowed rows: a search that hides the failed posting does not make the
+     money arrive. */
+  const failedCount = useMemo(
+    () =>
+      (ledger.data?.postings ?? []).filter(
+        (posting) => posting.settlement === 'failed' || posting.settlement === 'escalated',
+      ).length,
+    [ledger.data],
+  )
+
+  /* Published to the screen, which owns the header and the banner strip; both
+     clear on unmount so the index cannot inherit this rider's. */
+  useEffect(() => {
+    onSubject(subjectName)
+    return () => onSubject(null)
+  }, [onSubject, subjectName])
+  useEffect(() => {
+    onFailedCount(failedCount)
+    return () => onFailedCount(0)
+  }, [onFailedCount, failedCount])
+
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
       <LedgerCard
@@ -697,6 +758,13 @@ function RiderWalletLedger({ riderId, onBack }: { riderId: string; onBack: () =>
         language={language}
         tableId="financials-wallet-ledger"
         onRetry={ledger.refetch}
+        /* **AC-RW-07** — the rider is the page title, so the subject heading
+           would say the record twice; and `AccountDefinition.label` is an
+           untranslated English literal it would ship into an Arabic page (F-1). */
+        showSubject={false}
+        /* **F-3** — no period control and no filter here (Q-F13), so the read
+           failure names the object that did not arrive. */
+        errorMessage={t('fin.wallet.ledger.error.read')}
         /* §7.1's two empties: a wallet with **no history at all** is first-run;
            a wallet with history narrowed to nothing is filtered-to-zero. The
            lifetime count is the only field that can tell those apart — the

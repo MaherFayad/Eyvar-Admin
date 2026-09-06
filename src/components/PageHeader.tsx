@@ -9,7 +9,8 @@
  * Rules applied
  *   §8 slot 1   back arrow on detail / create / edit only, **absent on index
  *               routes**. A single `←`, never a trail (§2.6). Mirrors in Arabic
- *               at string-construction time (§9.5).
+ *               at string-construction time (§9.5). The caller may name the
+ *               destination through `backLabel` (F-5).
  *   §8 slot 2/D7 title **22px/600 (`text-xl`)**, up from 17. This is the one
  *               real change to the type ramp under D7 and it REDEFINES an
  *               existing Tailwind name rather than adding a token: `Visitors`
@@ -121,6 +122,11 @@ export interface PageHeaderProps {
   badges?: ReactNode
   /** §8 slot 1. Derived from the route's shape by the caller, never a stack depth. */
   onBack?: () => void
+  /**
+   * §8 slot 1 — the arrow's accessible name. Names the DESTINATION (`Back to
+   * rider wallets`), not the direction. Defaults to `Back` (F-5).
+   */
+  backLabel?: string
   /** §8 slot 4a — the first two render as buttons; the rest fall into overflow. */
   secondaryActions?: PageAction[]
   /** §8 slot 4b — always in the overflow menu, after any spilled secondaries. */
@@ -149,6 +155,7 @@ export function PageHeader({
   aside,
   control,
   onBack,
+  backLabel,
   secondaryActions = [],
   overflowActions = [],
   overflow = 'auto',
@@ -194,7 +201,7 @@ export function PageHeader({
             variant="ghost"
             size="icon"
             onClick={onBack}
-            aria-label={t('shell.topbar.back')}
+            aria-label={backLabel ?? t('shell.topbar.back')}
             className="-ms-1.5 shrink-0"
           >
             <BackArrow aria-hidden="true" className="size-4" />
