@@ -1,13 +1,13 @@
 {
   "totals": {
-    "keys": 6814,
-    "en": 6464,
-    "ar": 6814,
+    "keys": 6887,
+    "en": 6521,
+    "ar": 6887,
     "arMissing": 0,
-    "arExtra": 350,
+    "arExtra": 366,
     "copyFiles": 37,
     "unregisteredKeys": 194,
-    "pluralForms": 65,
+    "pluralForms": 73,
     "defaultValue": 0,
     "defaultValueForwarded": 2,
     "emDashEn": 84,
@@ -20,7 +20,7 @@
       "exports": [
         "FINANCIALS_EN"
       ],
-      "keys": 899,
+      "keys": 956,
       "notInEN": 0
     },
     {

@@ -23,6 +23,8 @@
  *   AC-410     **no control here raises a surge multiplier.** Operations may
  *              only suspend, and the suspension control is the only write on
  *              the surge card.
+ *   AC-RC-*    the `Rate card` view is `design/financials-pricing-rate-card.md`
+ *              and lives in `RateCardBlock.tsx` and `SurgeCards.tsx`.
  *   AC-414     a cancellation rule with no enforcement path renders a visible
  *              `Stored, never applied` state. Five of the eight have none
  *              (**D-F7**) and they never render as though they were live.
@@ -31,56 +33,38 @@
  *              with no simulation. Legacy refuses at commit (`:21586`).
  */
 
-import { useCallback, useId, useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  getLiveRateCard,
   listCancellationRules,
   listPlans,
   listQuickRideTypes,
-  listRateCards,
   listRevenueByPlan,
-  listSurgeSuspensions,
-  listSurgeWindows,
-  listZones,
-  suspendSurge,
 } from '@/data/clients'
-import { SURGE_SUSPENSION_MAX_HOURS } from '@/data/types'
 import type {
   CancellationRule,
   FinancialsPeriod,
-  Paginated,
   QuickRideType,
-  RateCard,
   RevenueByPlanRow,
   SubTabRoute,
   SubscriptionPlan,
-  SurgeSuspension,
-  SurgeWindow,
-  Zone,
 } from '@/data/types'
-import { useAsync, useIndexTable, useNow } from '@/hooks'
-import { formatCount, formatDate, formatDuration, formatMoney, formatPercent } from '@/lib'
+import { useAsync, useIndexTable } from '@/hooks'
+import { formatCount, formatPercent } from '@/lib'
 import type { BannerModel } from '@/components/Banner'
 import { DataTable, type DataColumn, type RowAction } from '@/components/DataTable'
 import { ViewSwitcher } from '@/components/table/ViewSwitcher'
-import { ErrorState } from '@/components/ErrorState'
-import { LoadingSkeleton } from '@/components/LoadingSkeleton'
-import { KEY_VALUE_CELL, KEY_VALUE_HEAD, KEY_VALUE_ROW, KeyValueTable } from '@/components/KeyValueGrid'
 import { MoneyCell } from '@/components/Money'
 import { StatusBadge } from '@/components/StatusBadge'
-import { RefusalLine } from '@/components/table/rowActions'
-import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { useShell } from '@/shell/ShellContext'
-import { ConfirmMoneyDialog, type MoneyConfirmRequest } from '../shared/ConfirmMoneyDialog'
-import { FigureRow } from '../shared/Figures'
 import { FinancialsPage, usePeriod, useWriteGate } from '../shared/FinancialsPage'
 import { PeriodControl } from '../shared/PeriodControl'
-import { ViewRow } from '../shared/ViewRow'
+import { ViewRow, type ViewFacts } from '../shared/ViewRow'
 import { localisedText } from '../shared/text'
-import { useMoneyActions } from '../shared/actions'
+import { RateCardBlock } from './RateCardBlock'
+import { SurgeCards } from './SurgeCards'
 import { useScreenViews, type ScreenView } from '@/hooks'
 
 /** **AC-389** — the four views the route table declares, read from it. */
@@ -113,6 +97,9 @@ export function PricingScreen({ row }: { row: SubTabRoute }) {
     [row.views],
   )
   const { tabs, activeTab, selectTab } = useScreenViews(views, DEFAULT_VIEW, t)
+  /* §10.4 / X-RC-1a — the rate-card counts ride the view row's caption rung,
+     published by the view that reads them and cleared when it unmounts. */
+  const [facts, setFacts] = useState<ViewFacts | null>(null)
 
   /* §4.5 — ONE standing condition, and `info` rather than `warning`. */
   const banners = useMemo<BannerModel[]>(
@@ -158,6 +145,7 @@ export function PricingScreen({ row }: { row: SubTabRoute }) {
       viewRow={
         <ViewRow
           label={tabs.find((tab) => tab.id === activeTab)?.label ?? ''}
+          facts={activeTab === 'rate-card' ? facts : null}
           lead={<ViewSwitcher tabs={tabs} activeTab={activeTab} onSelectTab={selectTab} />}
           /* §12 — the screen's one primary, on the two catalogue views. It
              opens the editor blank; the gate is `manage_plans`, stated on the
@@ -198,7 +186,9 @@ export function PricingScreen({ row }: { row: SubTabRoute }) {
         {activeTab === 'quick-rides' && (
           <QuickRidesView key="quick" activeTab={activeTab} onSelectTab={selectTab} />
         )}
-        {activeTab === 'rate-card' && <RateCardView key="rate" gate={gate} />}
+        {activeTab === 'rate-card' && (
+          <RateCardView key="rate" gate={gate} onFacts={setFacts} />
+        )}
         {activeTab === 'cancellation-fees' && (
           <CancellationView key="cancel" activeTab={activeTab} onSelectTab={selectTab} />
         )}
@@ -506,380 +496,25 @@ function QuickRidesView({ activeTab, onSelectTab }: ViewProps) {
 
 /* ────────────────────────────── the rate card ──────────────────────────── */
 
-function RateCardView({ gate }: { gate: { canWrite: boolean; reason: string } }) {
-  const shell = useShell()
-  const { t, language } = shell.language
-  const currentUserId = shell.session?.userId ?? ''
-
-  /**
-   * **Two reads, one operation id.** `clients/pricing.ts` gives BOTH
-   * `getLiveRateCard` (`:249`) and `listRateCards` (`:236`) the id
-   * `pricing.rateCards`, and both run here with no parameters. Keyed on the
-   * operation id alone they would collide on `pricing.rateCards::[]` while
-   * returning different shapes - a `RateCard` served where a `RateCard[]` is
-   * expected, which is a `.map is not a function` and not merely stale rows.
-   *
-   * So the dep says WHICH rate card is being asked for. It is a constant, and
-   * that is the point: it is the thing that distinguishes the two requests, and
-   * `useAsync.ts:66-72` requires it to be in `deps` for the key to be honest.
-   * `invalidate('pricing.rateCards')` still clears both.
-   */
-  const live = useAsync<RateCard>((signal) => getLiveRateCard(signal), {
-    deps: ['live'],
-    cacheKey: 'pricing.rateCards',
-  })
-  const cards = useAsync<RateCard[]>((signal) => listRateCards(signal), {
-    deps: [],
-    cacheKey: 'pricing.rateCards',
-  })
-
-  return (
-    <div className="flex flex-col gap-3">
-      {live.status === 'loading' && <LoadingSkeleton pattern="P4" />}
-      {live.status === 'error' && (
-        <ErrorState
-          scope="card"
-          message={t('fin.error.read')}
-          action={{ label: t('fin.error.retry'), onClick: live.refetch }}
-        />
-      )}
-      {live.status === 'empty' && (
-        <Card className="gap-1">
-          <div className="px-(--card-spacing) text-sm text-muted-foreground">
-            {t('fin.pricing.rateCard.empty.body')}
-          </div>
-        </Card>
-      )}
-
-      {live.data && <RateCardCard card={live.data} t={t} language={language} />}
-
-      {(cards.data ?? [])
-        .filter((card) => card.status !== 'live')
-        .map((card) => (
-          <RateCardCard
-            key={card.version}
-            card={card}
-            t={t}
-            language={language}
-            approve={{
-              canWrite: gate.canWrite,
-              currentUserId,
-            }}
-          />
-        ))}
-
-      <SurgeCard gate={gate} />
-    </div>
-  )
-}
-
-function RateCardCard({
-  card,
-  t,
-  language,
-  approve,
+/**
+ * The view composes and does not read: the block owns the one rate-card read
+ * and the surge cards own theirs, so one failing read never blanks another.
+ */
+function RateCardView({
+  gate,
+  onFacts,
 }: {
-  card: RateCard
-  t: ReturnType<typeof useShell>['language']['t']
-  language: ReturnType<typeof useShell>['language']['language']
-  approve?: { canWrite: boolean; currentUserId: string }
+  gate: { canWrite: boolean; reason: string }
+  onFacts: (facts: ViewFacts | null) => void
 }) {
-  /* **AC-404 / AC-405** — both refusals are properties of the draft, read at
-     render. A proposer cannot approve their own card, and a card nobody
-     modelled cannot be approved at all. */
-  const approveReasonId = useId()
-  const proposedByMe = approve !== undefined && card.proposedByUserId === approve.currentUserId
-  const noSimulation = card.simulation === null
-  const approveBlockedReason = !approve
-    ? null
-    : proposedByMe
-      ? t('fin.pricing.rateCard.approve.blocked.proposer')
-      : noSimulation
-        ? t('fin.pricing.rateCard.approve.blocked.simulation')
-        : t('fin.pricing.rateCard.approve.blocked.stage')
-
+  /* Its own column, and `shrink-0`: the screen's content region is a
+     constrained flex column, so a bare card here is shrunk below its content
+     and `Card`'s `overflow-hidden` then clips the pane. */
   return (
-    <Card className="gap-2">
-      <div className="flex flex-col gap-2 px-(--card-spacing)">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-sm font-semibold text-foreground">
-            {t('fin.pricing.rateCard.heading', { version: card.version })}
-          </h2>
-          <StatusBadge tone={card.status === 'live' ? 'success' : card.status === 'draft' ? 'info' : 'neutral'}>
-            {t(`fin.pricing.rateCard.status.${card.status}`)}
-          </StatusBadge>
-        </div>
-
-        <p className="text-xs text-muted-foreground">
-          {card.effectiveTo === null
-            ? t('fin.pricing.rateCard.effective', {
-                date: formatDate(`${card.effectiveFrom}T00:00:00+03:00`, {
-                  style: 'day-month',
-                  language,
-                }),
-              })
-            : t('fin.pricing.rateCard.effectiveUntil', {
-                from: formatDate(`${card.effectiveFrom}T00:00:00+03:00`, {
-                  style: 'day-month',
-                  language,
-                }),
-                to: formatDate(`${card.effectiveTo}T00:00:00+03:00`, {
-                  style: 'day-month',
-                  language,
-                }),
-              })}
-        </p>
-        <p className="text-xs text-muted-foreground">
-          {t('fin.pricing.rateCard.commission', {
-            onDemand: String(card.commission.onDemandPercent),
-            subscription: String(card.commission.subscriptionPercent),
-          })}
-        </p>
-        {card.vatIncluded && (
-          <p className="text-xs text-muted-foreground">{t('fin.pricing.rateCard.vatIncluded')}</p>
-        )}
-
-        {/* Rows rule and lift like every in-card key/value grid (plan §3 item 4). */}
-        <KeyValueTable className="text-sm">
-          <thead>
-            <tr className="border-b border-border-soft">
-              <th scope="col" className={cn(KEY_VALUE_HEAD, KEY_VALUE_CELL, 'text-start')}>
-                {t('fin.pricing.rateCard.col.class')}
-              </th>
-              <th scope="col" className={cn(KEY_VALUE_HEAD, KEY_VALUE_CELL, 'text-end')}>
-                {t('fin.pricing.rateCard.col.base')}
-              </th>
-              <th scope="col" className={cn(KEY_VALUE_HEAD, KEY_VALUE_CELL, 'text-end')}>
-                {t('fin.pricing.rateCard.col.perKm')}
-              </th>
-              <th scope="col" className={cn(KEY_VALUE_HEAD, KEY_VALUE_CELL, 'text-end')}>
-                {t('fin.pricing.rateCard.col.perMin')}
-              </th>
-              <th scope="col" className={cn(KEY_VALUE_HEAD, KEY_VALUE_CELL, 'text-end')}>
-                {t('fin.pricing.rateCard.col.minFare')}
-              </th>
-              <th scope="col" className={cn(KEY_VALUE_HEAD, KEY_VALUE_CELL, 'text-end')}>
-                {t('fin.pricing.rateCard.col.cancelFee')}
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {card.classes.map((vehicleClass) => (
-              <tr key={vehicleClass.id} className={KEY_VALUE_ROW}>
-                <td className={cn('py-1.5 text-foreground', KEY_VALUE_CELL)}>{vehicleClass.label}</td>
-                <td className={cn('py-1.5', KEY_VALUE_CELL)}>
-                  <MoneyCell amount={vehicleClass.baseHalalas} />
-                </td>
-                <td className={cn('py-1.5', KEY_VALUE_CELL)}>
-                  <MoneyCell amount={vehicleClass.perKmHalalas} />
-                </td>
-                <td className={cn('py-1.5', KEY_VALUE_CELL)}>
-                  <MoneyCell amount={vehicleClass.perMinHalalas} />
-                </td>
-                <td className={cn('py-1.5', KEY_VALUE_CELL)}>
-                  <MoneyCell amount={vehicleClass.minFareHalalas} />
-                </td>
-                <td className={cn('py-1.5', KEY_VALUE_CELL)}>
-                  <MoneyCell amount={vehicleClass.cancelFeeHalalas} />
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </KeyValueTable>
-
-        <p className="text-xs text-muted-foreground">
-          {card.simulation === null
-            ? t('fin.pricing.rateCard.noSimulation')
-            : t('fin.pricing.rateCard.simulation', {
-                trips: formatCount(card.simulation.trips, language),
-                before: formatMoney(card.simulation.riderBeforeHalalas),
-                after: formatMoney(card.simulation.riderAfterHalalas),
-                delta: String(card.simulation.deltaPercent),
-              })}
-        </p>
-        <p className="text-xs text-muted-foreground">
-          {t('fin.pricing.rateCard.floors', {
-            margin: String(card.floors.targetMarginPercent),
-            support: formatMoney(card.floors.supportCostPerSubscriberHalalas),
-            fee: String(card.floors.paymentFeePercent),
-            reserve: String(card.floors.emergencyReservePercent),
-          })}
-        </p>
-
-        {approve && (
-          <div className="flex flex-col items-start gap-1">
-            {/* Stage B is BLOCKED (AC-403–406): disabled in place, the reason as
-                real text the control describes itself by (§11.2). */}
-            <Button
-              variant="secondary"
-              size="xs"
-              disabled
-              aria-describedby={approveBlockedReason === null ? undefined : approveReasonId}
-            >
-              {t('fin.pricing.rateCard.approve')}
-            </Button>
-            {approveBlockedReason !== null && (
-              <RefusalLine id={approveReasonId}>{approveBlockedReason}</RefusalLine>
-            )}
-          </div>
-        )}
-      </div>
-    </Card>
-  )
-}
-
-/* ──────────────────────────────── surge ────────────────────────────────── */
-
-function SurgeCard({ gate }: { gate: { canWrite: boolean; reason: string } }) {
-  const shell = useShell()
-  const { t } = shell.language
-  const actions = useMoneyActions<SurgeSuspension>({ keyOf: (suspension) => suspension.id })
-  const [request, setRequest] = useState<MoneyConfirmRequest | null>(null)
-
-  const windows = useAsync<SurgeWindow[]>((signal) => listSurgeWindows(signal), {
-    deps: [],
-    cacheKey: 'pricing.surgeWindows',
-  })
-  const suspensions = useAsync<SurgeSuspension[]>((signal) => listSurgeSuspensions(signal), {
-    deps: [],
-    cacheKey: 'pricing.surgeSuspensions',
-  })
-  /* **Deliberately NOT cached (P3-13).** `zones.list` is the Zones surface's
-     operation and this is a parameterless read of it, so a `deps: []` key here
-     would be claimed by whichever of the two screens mounts first. Zones is
-     owned elsewhere; keying against a surface I cannot read is how two agents
-     ship incompatible answers to one key. */
-  const zones = useAsync<Paginated<Zone>>((signal) => listZones({ signal }), { deps: [] })
-
-  /* **AC-409** — a live countdown, against the shared clock. One interval for
-     the whole app; never a `setInterval` per row. */
-  const now = useNow(30, true)
-
-  const suspend = useCallback(
-    (zone: Zone) => {
-      setRequest({
-        title: t('fin.pricing.surge.suspend.title', { zone: zone.name }),
-        body: t('fin.pricing.surge.suspend.body'),
-        confirmLabel: t('fin.pricing.surge.suspend.confirm'),
-        /* **AC-411** — the primary is disabled until a reason is entered. */
-        reason: {
-          label: t('fin.pricing.surge.suspend.reason.label'),
-          help: t('fin.pricing.surge.suspend.reason.help', {
-            hours: String(SURGE_SUSPENSION_MAX_HOURS),
-          }),
-          message: t('fin.pricing.surge.suspend.reason.message'),
-        },
-        onConfirm: ({ reason }) => {
-          void actions
-            .run({
-              key: zone.id,
-              errorMessage: t('fin.error.row'),
-              toastMessage: t('fin.pricing.surge.toast.suspended'),
-              action: () =>
-                suspendSurge({
-                  zoneId: zone.id,
-                  zoneName: zone.name,
-                  reason,
-                  /* **AC-409** — it cannot be created for more than 12 hours,
-                     and the ceiling is the data layer's constant rather than a
-                     number typed here. */
-                  hours: SURGE_SUSPENSION_MAX_HOURS,
-                }),
-            })
-            .then(() => {
-              setRequest(null)
-              suspensions.refetch()
-            })
-        },
-      })
-    },
-    [actions, t, suspensions],
-  )
-
-  const live = suspensions.data ?? []
-
-  return (
-    <>
-      <Card className="gap-2">
-        <div className="flex flex-col gap-2 px-(--card-spacing)">
-          <h2 className="text-sm font-semibold text-foreground">
-            {t('fin.pricing.surge.heading')}
-          </h2>
-          {/* **AC-410** — stated, and true: there is no control on this card
-              that raises a multiplier. */}
-          <p className="text-xs text-muted-foreground">{t('fin.pricing.surge.readOnly')}</p>
-
-          {(windows.data ?? []).map((window) => (
-            <FigureRow
-              key={window.id}
-              label={t('fin.pricing.surge.window', {
-                label: window.label,
-                days: window.days.join(' '),
-                start: String(window.startHour),
-                end: String(window.endHour),
-              })}
-              value={
-                <span>
-                  {t('fin.pricing.surge.multiplier', { value: String(window.multiplier) })}
-                  {' · '}
-                  {window.enabled ? t('fin.pricing.surge.enabled') : t('fin.pricing.surge.disabled')}
-                </span>
-              }
-            />
-          ))}
-
-          <h3 className="pt-2 text-sm font-semibold text-foreground">
-            {t('fin.pricing.surge.suspensions')}
-          </h3>
-          {live.length === 0 && (
-            <p className="text-xs text-muted-foreground">{t('fin.pricing.surge.suspension.none')}</p>
-          )}
-          {live.map((suspension) => {
-            const remainingMs = Date.parse(suspension.expiresAt) - Date.parse(now)
-            return (
-              <FigureRow
-                key={suspension.id}
-                label={t('fin.pricing.surge.suspension', {
-                  zone: suspension.zoneName,
-                  reason: suspension.reason,
-                })}
-                value={
-                  <span>
-                    {remainingMs <= 0
-                      ? t('fin.pricing.surge.suspension.expired')
-                      : t('fin.pricing.surge.suspension.expires', {
-                          duration: formatDuration(remainingMs),
-                        })}
-                  </span>
-                }
-              />
-            )
-          })}
-
-          <div className="flex flex-wrap gap-1 pt-2">
-            {(zones.data?.items ?? []).map((zone) => (
-              <Button
-                key={zone.id}
-                variant="secondary"
-                size="xs"
-                disabled={!gate.canWrite}
-                title={gate.canWrite ? undefined : gate.reason}
-                onClick={() => suspend(zone)}
-              >
-                {zone.name}
-              </Button>
-            ))}
-          </div>
-          <p className="text-xs text-muted-foreground">{t('fin.pricing.surge.suspend')}</p>
-        </div>
-      </Card>
-      <ConfirmMoneyDialog
-        request={request}
-        onClose={() => setRequest(null)}
-        busy={actions.busy}
-        t={t}
-      />
-    </>
+    <div className="flex shrink-0 flex-col gap-3">
+      <RateCardBlock gate={gate} onFacts={onFacts} />
+      <SurgeCards gate={gate} />
+    </div>
   )
 }
 

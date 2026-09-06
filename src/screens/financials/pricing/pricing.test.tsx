@@ -690,6 +690,12 @@ describe('§11 — the plan editor is two columns and two views', () => {
   })
 })
 
+/** The `Surge windows` card, by the heading an operator reads on it. */
+function surgeWindowsCard(): HTMLElement {
+  const heading = screen.getByText(EN['fin.pricing.surge.heading'] as string)
+  return heading.closest('[data-slot="card"]') as HTMLElement
+}
+
 /* ═══════════════════ AC-410 / AC-411 — surge, one way ═══════════════════ */
 
 describe('surge — operations may only suspend', () => {
@@ -711,9 +717,7 @@ describe('surge — operations may only suspend', () => {
     const windows = await listSurgeWindows()
     expect(windows.length).toBeGreaterThan(0)
 
-    const card = screen
-      .getByText(EN['fin.pricing.surge.heading'] as string)
-      .closest('div[class*="flex-col"]') as HTMLElement
+    const card = surgeWindowsCard()
 
     /* Every multiplier is on screen, as text in the row's value cell. */
     for (const window of windows) {
@@ -722,14 +726,18 @@ describe('surge — operations may only suspend', () => {
       )
     }
 
-    /* No control anywhere on the card can set one. */
+    /* No control anywhere on the card can set one — not even a button. */
     expect(card.querySelectorAll('input')).toHaveLength(0)
     expect(within(card).queryAllByRole('spinbutton')).toHaveLength(0)
     expect(within(card).queryAllByRole('combobox')).toHaveLength(0)
     expect(within(card).queryAllByRole('slider')).toHaveLength(0)
+    expect(within(card).queryAllByRole('button')).toHaveLength(0)
 
-    /* And the card is not simply empty: it carries a live control per zone. */
-    expect(within(card).getAllByRole('button').length).toBeGreaterThan(0)
+    /* And surge is not simply uncontrollable: the one write it offers is a
+       suspension, on the card beside it. */
+    expect(
+      screen.getByRole('button', { name: EN['fin.pricing.surge.suspend.confirm'] as string }),
+    ).toBeTruthy()
     expect(screen.getByText(EN['fin.pricing.surge.readOnly'] as string)).toBeTruthy()
   })
 
@@ -748,11 +756,14 @@ describe('surge — operations may only suspend', () => {
     )
 
     const before = await listSurgeSuspensions()
-    const card = screen
-      .getByText(EN['fin.pricing.surge.heading'] as string)
-      .closest('div[class*="flex-col"]') as HTMLElement
-    const zoneButtons = within(card).getAllByRole('button')
-    await user.click(zoneButtons[zoneButtons.length - 1] as HTMLElement)
+    const districts = await screen.findByRole('radiogroup', {
+      name: EN['fin.pricing.surge.suspend.group.label'] as string,
+    })
+    const chips = within(districts).getAllByRole('radio')
+    await user.click(chips[chips.length - 1] as HTMLElement)
+    await user.click(
+      screen.getByRole('button', { name: EN['fin.pricing.surge.suspend.confirm'] as string }),
+    )
 
     const dialog = await screen.findByRole('dialog')
     const confirm = within(dialog).getByRole('button', {

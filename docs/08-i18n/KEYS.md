@@ -9,12 +9,12 @@ this file is stale or when the `defaultValue` ratchet slips.
 
 | | |
 |---|---:|
-| **Translatable keys, all dictionaries** | **6814** |
-| Reachable from `EN` (what the shell renders) | 6464 |
-| Keys in `AR` | 6814 |
+| **Translatable keys, all dictionaries** | **6887** |
+| Reachable from `EN` (what the shell renders) | 6521 |
+| Keys in `AR` | 6887 |
 | **Keys Arabic is missing** | **0** |
-| Keys in `AR` and not in `EN` (plural forms, unregistered screens) | 350 |
-| Plural forms (`key#category`) inside `EN` | 65 |
+| Keys in `AR` and not in `EN` (plural forms, unregistered screens) | 366 |
+| Plural forms (`key#category`) inside `EN` | 73 |
 | `copy.ts` files | 37 |
 | Keys in a `copy.ts` the shell has NOT registered | 194 |
 | **`defaultValue` call sites (the ratchet)** | **0** |
@@ -427,7 +427,7 @@ Measured on English only, and a placeholder counts as one word.
 
 | File | Exports | Keys |
 |---|---|---:|
-| `src/screens/financials/copy.ts` | `FINANCIALS_EN` | 899 |
+| `src/screens/financials/copy.ts` | `FINANCIALS_EN` | 956 |
 | `src/screens/reports/copy.ts` | `REPORTS_EN` | 570 |
 | `src/commands/copy.ts` | `COMMANDS_EN` | 390 |
 | `src/screens/operations/people/copy.ts` | `PEOPLE_EN` | 338 |
