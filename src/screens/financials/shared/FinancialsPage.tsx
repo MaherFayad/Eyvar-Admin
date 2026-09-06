@@ -27,7 +27,7 @@ import { Banner, mergeBanners, type BannerModel } from '@/components/Banner'
 import { PageHeader } from '@/components/PageHeader'
 import { SingleColumnPage } from '@/components/PageShell'
 import { formatDate, type Direction, type Language, type Translate } from '@/lib'
-import { canWriteSubTab, permissionContext } from '@/shell/permissions'
+import { canWriteSubTab, permissionContext, writeRefusalPermission } from '@/shell/permissions'
 import { useShell } from '@/shell/ShellContext'
 
 /* ────────────────────────────── the period ──────────────────────────────── */
@@ -115,10 +115,33 @@ export interface WriteGate {
  *     the example that spec uses: *"a session can expire while a Finance lead
  *     is halfway through a payout adjustment."*
  */
+/**
+ * The refusal a blocked control states, per sub-tab. It was one hardcoded
+ * sentence about paying a captain, handed to all five: Pricing gates on
+ * `manage_plans` and has neither a captain nor a payout, so a blocked operator
+ * was sent to ask for a permission they had not been denied. The default names
+ * the permission the row itself declares (D17 clause 1).
+ */
+const BLOCKED_REASON: Record<string, string> = {
+  'financials-payouts': 'fin.payout.blocked.permission',
+  'financials-pricing': 'fin.pricing.blocked.permission',
+}
+
 export function useWriteGate(row: SubTabRoute, t: Translate): WriteGate {
   const shell = useShell()
-  const allowed = canWriteSubTab(permissionContext(shell.session), row) && !shell.isFrozen
-  return { canWrite: allowed, reason: t('fin.payout.blocked.permission') }
+  const context = permissionContext(shell.session)
+  const allowed = canWriteSubTab(context, row) && !shell.isFrozen
+  /* `null` where the row declares no write key, and where the block is the
+     session freeze rather than a permission: neither has a permission to ask
+     for, so the refusal does not name one. */
+  const missing = writeRefusalPermission(context, row)
+  const reason =
+    missing === null
+      ? t('fin.blocked.write')
+      : t(BLOCKED_REASON[row.subTabId] ?? 'fin.blocked.permission', {
+          permission: t(`account.permission.${missing}`),
+        })
+  return { canWrite: allowed, reason }
 }
 
 /* ─────────────────────────────── the page ───────────────────────────────── */
