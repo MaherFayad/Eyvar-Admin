@@ -96,8 +96,8 @@
  *               not.
  *   R5a         no red anywhere on a trip row: no badge, no row tint, no
  *               leading edge. The `Status` word carries the row.
- *               **`flagged` has no carrier on this table** — reported to the
- *               owner with the marker's removal.
+ *               A flagged trip adds the `Flagged` warning badge beside it,
+ *               which is `TripsScreen`'s own carrier reused, not a new one (D37).
  *   §8.3.1      **the unit is in the CELL here, not the header, and that is
  *               `TripsScreen`'s construction reused rather than re-decided.**
  *               The `Fare` column is `trips.col.fare` and is the same column
@@ -299,14 +299,21 @@ export function DriverTripsTable({
         id: 'status',
         header: t('trips.col.status'),
         emphasis: 'data',
-        width: 112,
+        width: 168,
         dataType: 'enum',
         sortField: 'status',
         cell: (trip) => (
           <Cell>
-            <StatusBadge tone={STATUS_TONE[trip.status]}>
-              {t(`trips.status.${trip.status}`)}
-            </StatusBadge>
+            <span className="flex flex-wrap items-center gap-1">
+              <StatusBadge tone={STATUS_TONE[trip.status]}>
+                {t(`trips.status.${trip.status}`)}
+              </StatusBadge>
+              {/* D37 — the removed marker was this row's only flag carrier.
+                  `warning`, never red: R5a bans red on a trip row. */}
+              {trip.flagged && (
+                <StatusBadge tone="warning">{t('trips.flagged')}</StatusBadge>
+              )}
+            </span>
           </Cell>
         ),
       },
