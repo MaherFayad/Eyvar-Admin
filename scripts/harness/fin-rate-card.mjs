@@ -62,7 +62,15 @@ const blockProbe = () => {
   const pageBg = window.__under(card)
   const rows = [...rail.querySelectorAll('li')].map((li) => li.getBoundingClientRect().height)
   const table = pane?.querySelector('table')
-  const headers = table ? [...table.querySelectorAll('th')] : []
+  const headers = table ? [...table.querySelectorAll('thead tr:first-child th')] : []
+  /* Ink, not box: a `<th>` box starts at the table's edge and its INK starts a
+     cell padding in, which is what has to line up with the pane's other runs. */
+  const inkStart = (node) => {
+    const range = document.createRange()
+    range.selectNodeContents(node)
+    const box = range.getBoundingClientRect()
+    return Math.round(document.dir === 'rtl' ? box.right : box.left)
+  }
   return {
     cardsInsideTheCard: card.querySelectorAll('[data-slot="card"]').length,
     railWidth: +column.getBoundingClientRect().width.toFixed(1),
@@ -116,6 +124,94 @@ const blockProbe = () => {
         .filter((n) => n.children.length === 0 && n.textContent.trim() !== '')
         .map((n) => parseFloat(getComputedStyle(n).fontSize)),
     ),
+    /* AC-RC-32 — the type ramp as rendered, in (px, weight, colour) triples.
+       Revision 1 spent two sizes on seven levels of meaning (F1). */
+    typeRamp: (() => {
+      const runs = [...card.querySelectorAll('*')]
+        .filter((n) => n.children.length === 0 && n.textContent.trim() !== '')
+        .filter((n) => !n.closest('.sr-only'))
+        .map((n) => {
+          const cs = getComputedStyle(n)
+          return parseFloat(cs.fontSize) + '/' + cs.fontWeight + '/' + window.__hex(cs.color)
+        })
+      const tally = {}
+      for (const run of runs) tally[run] = (tally[run] ?? 0) + 1
+      return {
+        triples: tally,
+        sizes: [...new Set(runs.map((r) => +r.split('/')[0]))].sort((a, b) => a - b),
+        elements: runs.length,
+      }
+    })(),
+    /* F2 — what is spent before the first price, and the whole view's height. */
+    firstPriceY: (() => {
+      const cell = table?.querySelector('tbody tr td:nth-child(2)')
+      return cell ? Math.round(cell.getBoundingClientRect().top + window.scrollY) : null
+    })(),
+    viewScrollHeight: document.querySelector('main')?.scrollHeight ?? null,
+    /* F5 / F8 — the header strip: widths, wrapped labels, and one unit run. */
+    matrix: table
+      ? {
+          width: +table.getBoundingClientRect().width.toFixed(1),
+          headRungs: table.querySelectorAll('thead tr').length,
+          headHeight: +table.querySelector('thead').getBoundingClientRect().height.toFixed(1),
+          labelRungHeight: +table
+            .querySelector('thead tr')
+            .getBoundingClientRect()
+            .height.toFixed(1),
+          bodyRowHeight: +table.querySelector('tbody tr').getBoundingClientRect().height.toFixed(1),
+          sarRuns: (table.querySelector('thead').textContent.match(/SAR/g) ?? []).length,
+          columns: [...table.querySelectorAll('thead tr:first-child th')].map((th) => {
+            const line = parseFloat(getComputedStyle(th).lineHeight)
+            const range = document.createRange()
+            range.selectNodeContents(th)
+            return {
+              label: th.textContent.trim(),
+              width: +th.getBoundingClientRect().width.toFixed(1),
+              ink: +range.getBoundingClientRect().width.toFixed(1),
+              lines: Math.max(1, Math.round(range.getBoundingClientRect().height / line)),
+            }
+          }),
+        }
+      : null,
+    /* F6 — the pane's reading edge: the first ink run of each band, which the
+       table used to hang 12px outside on both edges. */
+    paneInkStarts: pane
+      ? [...pane.children]
+          .filter((band) => !band.classList.contains('sr-only'))
+          .map((band) => {
+            const first = [...band.querySelectorAll('*')].find(
+              (n) =>
+                n.children.length === 0 &&
+                n.textContent.trim() !== '' &&
+                !n.closest('.sr-only'),
+            )
+            return first ? inkStart(first) : null
+          })
+          .filter((x) => x !== null)
+      : null,
+    /* F4 — the rail is the stretched side; the footer terminates the runway. */
+    railFooter: (() => {
+      const footer = rail.nextElementSibling
+      if (!footer) return null
+      const box = footer.getBoundingClientRect()
+      const last = rail.lastElementChild?.getBoundingClientRect()
+      return {
+        text: footer.textContent.trim(),
+        runway: last ? Math.round(box.top - last.bottom) : null,
+        borderTop: getComputedStyle(footer).borderTopWidth,
+        uppercase: getComputedStyle(footer).textTransform,
+      }
+    })(),
+    /* AC-RC-45 — every gap and block inset inside the block is 4, 8, 12 or 24. */
+    offScaleSpacing: [...card.querySelectorAll('*')]
+      .flatMap((n) => {
+        const cs = getComputedStyle(n)
+        return [cs.rowGap, cs.columnGap, cs.paddingTop, cs.paddingBottom]
+          .map((v) => parseFloat(v))
+          .filter((v) => v > 0 && ![4, 8, 12, 24].includes(v))
+          .map((v) => v + 'px on ' + n.tagName.toLowerCase() + ' ' + String(n.className).slice(0, 46))
+      })
+      .slice(0, 12),
   }
 }
 
@@ -131,6 +227,59 @@ const surgeProbe = () => {
     filledButtons: filled.map((b) => b.textContent.trim()),
     suspensionRows: document.querySelectorAll('table tbody tr').length,
     badgeTones: [...new Set([...document.querySelectorAll('[data-slot="badge"]')].map((b) => b.dataset.tone))],
+    /* D35b / D35a — one card, one `Suspend surge`, and the band's alignment
+       and rhythm, which are the two things jsdom cannot see. */
+    surgeCard: (() => {
+      const host = cards.find((c) => c.querySelector('[role="radiogroup"]'))
+      if (!host) return null
+      const title = host.querySelector('[data-slot="card-title"]')
+      const button = [...host.querySelectorAll('button')].find(
+        (b) => !b.closest('[role="radiogroup"]'),
+      )
+      const described = button?.getAttribute('aria-describedby')
+      const refusal = described ? document.getElementById(described) : null
+      const box = button?.getBoundingClientRect()
+      const chips = host.querySelector('[role="radiogroup"]')?.getBoundingClientRect()
+      const label = [...host.querySelectorAll('span[id]')].find(
+        (n) => n.id === host.querySelector('[role="radiogroup"]')?.getAttribute('aria-labelledby'),
+      )
+      const edge = (b) => (b ? Math.round(document.dir === 'rtl' ? b.right : b.left) : null)
+      const table = host.querySelector('table')
+      const bandRule = host.querySelector('[role="radiogroup"]')?.closest('.border-t')
+      return {
+        title: title?.textContent.trim() ?? null,
+        titleSize: title ? parseFloat(getComputedStyle(title).fontSize) : null,
+        headings: [...host.querySelectorAll('h1,h2,h3,h4')].map((h) => h.textContent.trim()),
+        /* Whole runs, not substrings: the card's description legitimately names
+           the act in prose. D35b is about a TITLE and a CONTROL. */
+        suspendRuns: [...host.querySelectorAll('*')].filter(
+          (n) =>
+            n.children.length === 0 &&
+            /^(Suspend surge|إيقاف تسعير الذروة)$/.test(n.textContent.trim()),
+        ).length,
+        labelSize: label ? parseFloat(getComputedStyle(label).fontSize) : null,
+        chipsEdge: edge(chips),
+        buttonBoxEdge: edge(box),
+        labelEdge: edge(label?.getBoundingClientRect()),
+        refusalEdge: edge(refusal?.getBoundingClientRect()),
+        buttonBorder: button ? getComputedStyle(button).borderTopWidth : null,
+        buttonBorderColour: button ? window.__hex(getComputedStyle(button).borderTopColor) : null,
+        buttonHeight: box ? Math.round(box.height) : null,
+        chipsToButton: box && chips ? Math.round(box.top - chips.bottom) : null,
+        buttonToRefusal:
+          refusal && box ? Math.round(refusal.getBoundingClientRect().top - box.bottom) : null,
+        tableToBand:
+          table && bandRule
+            ? Math.round(bandRule.getBoundingClientRect().top - table.getBoundingClientRect().bottom)
+            : null,
+        bandRuleChannel: bandRule
+          ? {
+              borderTop: getComputedStyle(bandRule).borderTopWidth,
+              paddingTop: getComputedStyle(bandRule).paddingTop,
+            }
+          : null,
+      }
+    })(),
   }
 }
 
@@ -200,6 +349,7 @@ out.error = await page.evaluate(() => ({
   railGone: document.querySelector('ol[aria-labelledby]') === null,
   alerts: [...document.querySelectorAll('[role="alert"]')].map((n) => n.textContent.trim().slice(0, 80)),
   surgeStillRendered: [...document.querySelectorAll('h2')].map((h) => h.textContent.trim()),
+  message: document.querySelector('[role="alert"]')?.textContent.trim().slice(0, 80) ?? null,
 }))
 out.shots.push(await shot('error'))
 
@@ -223,7 +373,75 @@ for (const [state, probe] of [['live', out.live], ['draft', out.draft]]) {
   if (probe.monoRuns.some((run) => /\d+\.\d{2}/.test(run))) {
     failures.push(`${state}: money in a monospace face (X-RC-2)`)
   }
-  if (probe.uppercase.length > 1) failures.push(`${state}: ${probe.uppercase.length} uppercase runs (D18)`)
+  if (probe.uppercase.length > 0) {
+    failures.push(state + ': ' + probe.uppercase.length + ' uppercase run(s) (D18, AC-RC-40)')
+  }
+  /* AC-RC-32 — the ramp is spent. Two sizes for seven meanings is F1, and the
+     one that was missing is the card-title rung. */
+  if (!probe.typeRamp.sizes.includes(16)) {
+    failures.push(state + ': no 16px rung — the pane has no typographic top (F1)')
+  }
+  if (probe.typeRamp.sizes.length < 3) {
+    failures.push(state + ': only ' + probe.typeRamp.sizes.length + ' type sizes (AC-RC-32)')
+  }
+  if (probe.typeRamp.sizes.some((px) => px === 20 || px === 28)) {
+    failures.push(state + ': a ' + probe.typeRamp.sizes.join('/') + ' run — no rung is 20 or 28')
+  }
+  /* AC-RC-45 — 4 / 8 / 12 / 24, and nothing else. */
+  if (probe.offScaleSpacing.length > 0) {
+    failures.push(state + ': off-scale spacing — ' + probe.offScaleSpacing[0] + ' (AC-RC-45)')
+  }
+  /* F6 — the table hung 12px outside every other run in the pane. */
+  if (probe.paneInkStarts && new Set(probe.paneInkStarts).size !== 1) {
+    failures.push(state + ': the pane bands start at ' + probe.paneInkStarts.join(',') + ' (F6)')
+  }
+  /* The unit rung: `SAR` once in the head, never in a cell (F8). */
+  if (probe.matrix && probe.matrix.sarRuns !== 1) {
+    failures.push(state + ': ' + probe.matrix.sarRuns + ' SAR runs in the table head')
+  }
+  if (probe.matrix && probe.matrix.bodyRowHeight < 36) {
+    failures.push(state + ': body row is ' + probe.matrix.bodyRowHeight + 'px, under --ev-row-h')
+  }
+  /* AC-RC-39 — the counts are the rail's footer, terminated by a hairline. */
+  if (!probe.railFooter || probe.railFooter.borderTop === '0px') {
+    failures.push(state + ': the rail has no terminated footer (AC-RC-39)')
+  }
+}
+/* AC-RC-46 / 47 / 48 — one `Surge` card, and the band's alignment and rhythm. */
+const band = out.surge.surgeCard
+if (!band) {
+  failures.push('no Surge card found')
+} else {
+  if (band.suspendRuns !== 1) {
+    failures.push('"Suspend surge" appears ' + band.suspendRuns + ' times in one card (D35b)')
+  }
+  if (band.headings.length !== 1) {
+    failures.push('the Surge card carries ' + band.headings.length + ' headings (AC-RC-48)')
+  }
+  if (band.titleSize !== 16) failures.push('the Surge title is ' + band.titleSize + 'px, not 16')
+  if (band.labelSize !== 14) failures.push('the District label is ' + band.labelSize + 'px, not 14')
+  for (const [what, edge] of [
+    ['the label', band.labelEdge],
+    ['the button box', band.buttonBoxEdge],
+    ['the refusal', band.refusalEdge],
+  ]) {
+    if (edge !== null && edge !== band.chipsEdge) {
+      failures.push(what + ' starts at ' + edge + ', the chips at ' + band.chipsEdge)
+    }
+  }
+  if (band.chipsToButton !== 24) {
+    failures.push('chips to button is ' + band.chipsToButton + 'px, not the 24 a subject costs')
+  }
+  if (band.buttonToRefusal !== null && band.buttonToRefusal !== 4) {
+    failures.push('button to refusal is ' + band.buttonToRefusal + 'px, not 4')
+  }
+  /* §4.2 — the rule is CENTRED in a 24px channel: 12 above, 12 under it. */
+  if (band.tableToBand !== 12 || band.bandRuleChannel.paddingTop !== '12px') {
+    failures.push(
+      'the band rule channel is ' + band.tableToBand + ' + rule + ' +
+        band.bandRuleChannel.paddingTop + ', not 12 + rule + 12',
+    )
+  }
 }
 if (out.surge.filledButtons.length !== 1) {
   failures.push(`${out.surge.filledButtons.length} filled buttons on the view (R3)`)

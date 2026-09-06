@@ -690,10 +690,15 @@ describe('§11 — the plan editor is two columns and two views', () => {
   })
 })
 
-/** The `Surge windows` card, by the heading an operator reads on it. */
-function surgeWindowsCard(): HTMLElement {
+/** The `Surge` card, by the heading an operator reads on it. */
+function surgeCard(): HTMLElement {
   const heading = screen.getByText(EN['fin.pricing.surge.heading'] as string)
   return heading.closest('[data-slot="card"]') as HTMLElement
+}
+
+/** Its windows band: the table, which is the half that must carry no control. */
+function surgeWindowsBand(): HTMLElement {
+  return surgeCard().querySelector('table') as HTMLElement
 }
 
 /* ═══════════════════ AC-410 / AC-411 — surge, one way ═══════════════════ */
@@ -717,27 +722,28 @@ describe('surge — operations may only suspend', () => {
     const windows = await listSurgeWindows()
     expect(windows.length).toBeGreaterThan(0)
 
-    const card = surgeWindowsCard()
+    const band = surgeWindowsBand()
 
     /* Every multiplier is on screen, as text in the row's value cell. */
     for (const window of windows) {
-      expect(card.textContent, `${window.labelKey}'s multiplier is stated`).toContain(
+      expect(band.textContent, `${window.labelKey}'s multiplier is stated`).toContain(
         `${window.multiplier}×`,
       )
     }
 
-    /* No control anywhere on the card can set one — not even a button. */
-    expect(card.querySelectorAll('input')).toHaveLength(0)
-    expect(within(card).queryAllByRole('spinbutton')).toHaveLength(0)
-    expect(within(card).queryAllByRole('combobox')).toHaveLength(0)
-    expect(within(card).queryAllByRole('slider')).toHaveLength(0)
-    expect(within(card).queryAllByRole('button')).toHaveLength(0)
+    /* No control anywhere in the windows band can set one — not even a button. */
+    expect(band.querySelectorAll('input')).toHaveLength(0)
+    expect(within(band).queryAllByRole('spinbutton')).toHaveLength(0)
+    expect(within(band).queryAllByRole('combobox')).toHaveLength(0)
+    expect(within(band).queryAllByRole('slider')).toHaveLength(0)
+    expect(within(band).queryAllByRole('button')).toHaveLength(0)
 
-    /* And surge is not simply uncontrollable: the one write it offers is a
-       suspension, on the card beside it. */
-    expect(
-      screen.getByRole('button', { name: EN['fin.pricing.surge.suspend.confirm'] as string }),
-    ).toBeTruthy()
+    /* And surge is not simply uncontrollable: the one write the card offers is
+       a suspension, in the district band under the same title. */
+    const buttons = within(surgeCard()).getAllByRole('button')
+    expect(buttons.map((each) => each.textContent)).toEqual([
+      EN['fin.pricing.surge.suspend.confirm'] as string,
+    ])
     expect(screen.getByText(EN['fin.pricing.surge.readOnly'] as string)).toBeTruthy()
   })
 

@@ -20,6 +20,7 @@ import {
   listSurgeWindows,
   mockFailures,
   resetDataLayer,
+  switchMockUser,
 } from '@/data/clients'
 import type { RateCard, SubTabRoute, SurgeSuspension } from '@/data/types'
 import { fixedClock } from '@/data/mock/clock'
@@ -117,6 +118,10 @@ function mount(path = '/financials/pricing?view=rate-card', row = pricingRow()) 
 const copy = (key: string) => EN[key] as string
 const fill = (key: string, values: Record<string, string>) =>
   Object.entries(values).reduce((out, [name, value]) => out.replace(`{${name}}`, value), copy(key))
+
+/** The one `Surge` card: the windows table and the district lever (D35b). */
+const surgeCard = () =>
+  screen.getByText(copy('fin.pricing.surge.heading')).closest('[data-slot="card"]') as HTMLElement
 
 /** The rail, named by its heading. An `<ol>` is a list. */
 const rail = () => screen.getByRole('list', { name: copy('fin.pricing.rateCard.rail.heading') })
@@ -229,20 +234,28 @@ describe('the master-detail block', () => {
 /* ═════════════════════════════ the detail pane ══════════════════════════ */
 
 describe('the detail pane', () => {
-  it('AC-RC-07 — the header states the selected card and its three statistics', async () => {
+  it('AC-RC-36 — band C states commission, VAT and the floors as key/value rows', async () => {
     const user = userEvent.setup()
     await mounted()
 
-    const header = pane()
-    expect(within(header).getAllByText(LIVE).length).toBeGreaterThan(0)
-    expect(within(header).getAllByText(copy('fin.pricing.rateCard.status.live')).length).toBe(1)
-    expect(header.textContent).toContain(
+    const body = pane()
+    expect(within(body).getAllByText(LIVE).length).toBeGreaterThan(0)
+    expect(within(body).getAllByText(copy('fin.pricing.rateCard.status.live')).length).toBe(1)
+    expect(body.textContent).toContain(
       fill('fin.pricing.rateCard.effective.noEnd', { date: '1 Apr' }),
     )
-    /* Live: 22 / 20, VAT included. */
-    expect(header.textContent).toContain('22%')
-    expect(header.textContent).toContain('20%')
-    expect(header.textContent).toContain(copy('fin.pricing.rateCard.vat.included'))
+    /* Two headings, one instrument. Live: 22 / 20, VAT included. */
+    expect(within(body).getByText(copy('fin.pricing.rateCard.terms.heading'))).toBeTruthy()
+    expect(within(body).getByText(copy('fin.pricing.rateCard.floors.heading'))).toBeTruthy()
+    expect(body.textContent).toContain('22%')
+    expect(body.textContent).toContain('20%')
+    expect(body.textContent).toContain(copy('fin.pricing.rateCard.vat.included'))
+
+    /* AC-RC-33 — a boolean is not set louder than a fare: the terms band's
+       values are the 12px rung, and only the matrix's numerals are 14px ink. */
+    const vat = within(body).getByText(copy('fin.pricing.rateCard.vat.included'))
+    expect(vat.className).toContain('text-xs')
+    expect(vat.className).not.toContain('font-semibold')
 
     /* Selecting a different card changes all three. The unmodelled draft is
        24 / 21, so a pane that kept the live figures would fail here. */
@@ -253,7 +266,7 @@ describe('the detail pane', () => {
     expect(pane().textContent).not.toContain('22%')
   })
 
-  it('AC-RC-08 — the class table has six columns, class first and five money columns end-aligned', async () => {
+  it('AC-RC-34 — the class matrix is six columns of table chrome with one unit rung', async () => {
     await mounted()
     const table = within(pane()).getAllByRole('table')[0] as HTMLTableElement
     const headers = within(table).getAllByRole('columnheader')
@@ -267,23 +280,38 @@ describe('the detail pane', () => {
     ])
     expect(headers[0]?.className).toContain('text-start')
     for (const header of headers.slice(1)) expect(header.className).toContain('text-end')
+    /* The header strip is `ui/table.tsx`'s, at 14/500 on `bg-muted`. */
+    expect(headers[0]?.getAttribute('data-slot')).toBe('table-head')
+    expect(headers[0]?.className).toContain('bg-muted')
+    expect(headers[0]?.className).toContain('text-sm')
 
-    /* §8.3.1 — `(SAR)` is in five headers and in no cell. */
-    expect(headers.filter((cell) => cell.textContent?.includes('(SAR)'))).toHaveLength(5)
+    /* The unit is stated once, in the head, and never in a cell (§8.3.1). */
+    const head = table.querySelector('thead') as HTMLElement
+    expect(head.textContent?.match(/SAR/g) ?? []).toHaveLength(1)
     for (const cell of within(table).getAllByRole('cell')) {
       expect(cell.textContent).not.toContain('SAR')
     }
+    /* A class name is translated, not the stored English. */
+    expect(within(table).getByText(copy('fin.pricing.rateCard.class.economy'))).toBeTruthy()
     expect(within(table).getAllByRole('row').length).toBe(3)
   })
 
-  it('AC-RC-09 — nothing on the view is uppercase or letter-spaced but the caption rung', async () => {
+  it('AC-RC-40 — nothing on the view is uppercase or letter-spaced', async () => {
     await mounted()
-    const shouted = [...document.querySelectorAll('[class*="uppercase"], [class*="tracking-"]')]
-    /* The one licensed run is `ViewRow`'s caption rung (X-RC-1a), which carries
-       both classes on one element. */
-    expect(shouted).toHaveLength(1)
-    expect(shouted[0]?.className).toContain('text-2xs')
-    expect(shouted[0]?.textContent).toContain(copy('fin.pricing.rateCard.count.live').replace('{count}', '1'))
+    expect([...document.querySelectorAll('[class*="uppercase"], [class*="tracking-"]')]).toHaveLength(0)
+  })
+
+  it('AC-RC-39 — the counts sit in the rail footer, in sentence case, with drawn separators', async () => {
+    await mounted()
+    const footer = rail().nextElementSibling as HTMLElement
+    expect(footer.tagName).toBe('P')
+    expect(footer.textContent).toBe('4 rate cards · 1 live · 2 drafts · 1 superseded')
+    /* AC-443 — the separator is drawn, never written into a string. */
+    for (const drawn of footer.querySelectorAll('[aria-hidden="true"]')) {
+      expect(drawn.textContent?.trim()).toBe('·')
+    }
+    /* §7 — the view row publishes nothing, so no caption rung renders. */
+    expect(document.querySelector('[data-slot="view-row"]')?.textContent).not.toContain('rate cards')
   })
 
   it('AC-RC-10 — the impact card names both bills, a signed delta and a caption, with no arrow', async () => {
@@ -295,7 +323,13 @@ describe('the detail pane', () => {
     expect(impact.textContent).toContain('21.80')
     expect(impact.textContent).toContain('22.94')
     expect(impact.textContent).toContain('+5.2%')
-    expect(impact.textContent).toContain(copy('fin.pricing.rateCard.impact.caption.past'))
+    expect(impact.textContent).toContain(copy('fin.pricing.rateCard.impact.change'))
+    /* AC-RC-37 — one caption, absorbing the two meta lines that flanked it. */
+    expect(
+      within(impact).getByText(
+        fill('fin.pricing.rateCard.impact.caption.past', { trips: '4,186', date: '21 Mar' }),
+      ),
+    ).toBeTruthy()
     /* X-RC-6 — a direction glyph cannot mirror, so none is rendered anywhere. */
     expect(document.body.textContent).not.toContain('→')
   })
@@ -334,6 +368,11 @@ describe('the detail pane', () => {
       expect(within(body).getByText(copy(`fin.pricing.rateCard.floors.${key}`))).toBeTruthy()
     }
     expect(within(body).getByText(copy('fin.pricing.rateCard.floors.caption'))).toBeTruthy()
+    /* AC-RC-35 — four bands, three hairlines, and nothing under band D. */
+    expect(body.querySelectorAll(':scope > .border-t')).toHaveLength(3)
+    expect(body.lastElementChild?.textContent).toContain(
+      copy('fin.pricing.rateCard.impact.heading'),
+    )
     expect(body.textContent).toContain('12%')
     expect(body.textContent).toContain('2.2%')
     expect(body.textContent).toContain('3.5%')
@@ -350,9 +389,6 @@ describe('the detail pane', () => {
     await user.click(rowFor(SUPERSEDED))
     await waitFor(() => expect(pane().textContent).toContain(SUPERSEDED))
     expect(within(pane()).queryAllByRole('button')).toHaveLength(0)
-    expect(pane().textContent).toContain(
-      fill('fin.pricing.rateCard.footer.superseded', { date: '1 Apr' }),
-    )
 
     await user.click(rowFor(DRAFT_UNMODELLED))
     await waitFor(() => expect(pane().textContent).toContain(DRAFT_UNMODELLED))
@@ -380,37 +416,77 @@ describe('the detail pane', () => {
   it('AC-RC-15 — there is no button labelled Live card', async () => {
     await mounted()
     expect(screen.queryByRole('button', { name: /live card/i })).toBeNull()
-    expect(pane().textContent).toContain(copy('fin.pricing.rateCard.footer.live'))
+  })
+
+  it('AC-RC-35 — Approve renders inside band A, beside the badge that explains it', async () => {
+    const user = userEvent.setup()
+    await mounted()
+    await user.click(rowFor(DRAFT_UNMODELLED))
+    await waitFor(() => expect(pane().textContent).toContain(DRAFT_UNMODELLED))
+    const approve = within(pane()).getByRole('button', {
+      name: copy('fin.pricing.rateCard.approve'),
+    })
+    const bandA = pane().querySelector(':scope > div') as HTMLElement
+    expect(bandA.contains(approve), 'the control is in the identity band').toBe(true)
+    expect(bandA.textContent).toContain(copy('fin.pricing.rateCard.status.draft'))
+    /* AC-RC-42 — it is secondary, and the view's one fill is elsewhere. */
+    expect(approve.className).not.toContain('bg-primary')
+  })
+
+  it('AC-RC-38 — the read-only condition is stated once, in the banner', async () => {
+    await mounted()
+    expect(document.body.textContent).not.toContain('This card prices every trip today')
+    expect(document.body.textContent).not.toContain('Editing waits on the pricing owner decision')
+    expect(document.querySelectorAll('[data-slot="alert"]')).toHaveLength(1)
+  })
+
+  it('AC-RC-41 — on this view the banner carries its title and no body', async () => {
+    await mounted()
+    const banner = document.querySelector('[data-slot="alert"]') as HTMLElement
+    expect(banner.textContent).toContain(copy('fin.pricing.stageA.title'))
+    expect(banner.textContent).not.toContain(copy('fin.pricing.stageA.body'))
+
+    /* Non-vacuity: the body is kept, and rendered, on the other three views. */
+    cleanup()
+    mount('/financials/pricing?view=cancellation-fees')
+    await waitFor(() =>
+      expect(
+        (document.querySelector('[data-slot="alert"]') as HTMLElement).textContent,
+      ).toContain(copy('fin.pricing.stageA.body')),
+    )
   })
 })
 
 /* ══════════════════════════════ the four states ═════════════════════════ */
 
 describe('the block states', () => {
-  it('AC-RC-16 — while the read is in flight the block is busy, with four rail rows and no spinner', () => {
+  it('AC-RC-43 — while the read is in flight the block is busy, with four rail rows and no spinner', () => {
     mount()
     const block = document.querySelector('[data-slot="card"][aria-busy="true"]') as HTMLElement
     expect(block, 'the whole block carries aria-busy').toBeTruthy()
-    expect(block.querySelectorAll('.h-row-media'), 'four rail rows').toHaveLength(4)
+    expect(block.querySelectorAll('.min-h-row-media'), 'four rail rows').toHaveLength(4)
     expect(block.querySelectorAll('[data-slot="skeleton"]').length).toBeGreaterThan(4)
     expect(block.querySelector('[data-slot="spinner"]')).toBeNull()
-    /* The pane never prompts for a selection there is nothing to make. */
-    expect(block.textContent).toBe('')
+    /* The pane never prompts for a selection there is nothing to make: the only
+       text in the block is the rail's own strip label. */
+    expect(block.textContent).toBe(copy('fin.pricing.rateCard.rail.heading'))
   })
 
   it('AC-RC-17 — a failed read collapses the block to one retry, and the surge cards still render', async () => {
     mockFailures.once('pricing.rateCards')
     const user = userEvent.setup()
     mount()
-    await waitFor(() => expect(screen.getByText(copy('fin.error.read'))).toBeTruthy())
+    await waitFor(() =>
+      expect(screen.getByText(copy('fin.pricing.rateCard.error.read'))).toBeTruthy(),
+    )
     expect(screen.queryByRole('list', { name: copy('fin.pricing.rateCard.rail.heading') })).toBeNull()
 
-    /* The three cards below keep their own reads. */
+    /* The two cards below keep their own reads. */
     expect(
       screen.getByRole('heading', { name: copy('fin.pricing.surge.heading') }),
     ).toBeTruthy()
     expect(
-      screen.getByRole('heading', { name: copy('fin.pricing.surge.suspend.heading') }),
+      screen.getByRole('button', { name: copy('fin.pricing.surge.suspend.confirm') }),
     ).toBeTruthy()
 
     await user.click(screen.getByRole('button', { name: copy('fin.error.retry') }))
@@ -425,6 +501,9 @@ describe('the block states', () => {
     )
     expect(screen.getByText(copy('fin.pricing.rateCard.rail.heading'))).toBeTruthy()
     expect(screen.queryByRole('region', { name: /RC-/ })).toBeNull()
+    /* AC-RC-39 — with zero cards the footer's sentence would restate the one
+       above it, so no footer renders. */
+    expect(document.body.textContent).not.toContain('rate cards ·')
     const block = screen
       .getByText(copy('fin.pricing.rateCard.empty.body'))
       .closest('[data-slot="card"]') as HTMLElement
@@ -440,11 +519,11 @@ describe('the block states', () => {
     expect(document.body.textContent).not.toMatch(/1 of 1/)
   })
 
-  it('AC-RC-20 — with no live card the caption rung leads with it, and the screen keeps one banner', async () => {
+  it('AC-RC-39 — with no live card the rail footer leads with it, and one banner stands', async () => {
     cardsOverride = (await listRateCards()).filter((card) => card.status !== 'live')
     await mounted()
-    const rung = document.querySelector('[class*="uppercase"]') as HTMLElement
-    expect(rung.textContent?.startsWith(copy('fin.pricing.rateCard.noLive'))).toBe(true)
+    const footer = rail().nextElementSibling as HTMLElement
+    expect(footer.textContent?.startsWith(copy('fin.pricing.rateCard.noLive'))).toBe(true)
     expect(document.querySelectorAll('[data-slot="alert"]'), 'R10 — never two banners').toHaveLength(1)
   })
 })
@@ -531,9 +610,7 @@ describe('surge windows, suspend and suspensions', () => {
   it('AC-RC-25 — the windows table is five columns, with day names, an en dash and a multiplier', async () => {
     await mounted()
     const windows = await listSurgeWindows()
-    const card = screen
-      .getByText(copy('fin.pricing.surge.heading'))
-      .closest('[data-slot="card"]') as HTMLElement
+    const card = surgeCard()
     const headers = within(card).getAllByRole('columnheader')
     expect(headers.map((cell) => cell.textContent?.trim())).toEqual([
       copy('fin.pricing.surge.col.window'),
@@ -550,6 +627,28 @@ describe('surge windows, suspend and suspensions', () => {
     expect(card.textContent).toContain(`${windows[0]?.multiplier}×`)
     expect(headers[2]?.className).toContain('text-end')
     expect(headers[3]?.className).toContain('text-end')
+  })
+
+  it('AC-RC-46 — the windows and the district lever are one card titled Surge', async () => {
+    await mounted()
+    const card = surgeCard()
+    expect(
+      screen.getByRole('heading', { name: copy('fin.pricing.surge.heading') }),
+    ).toBeTruthy()
+    /* D35b — the button's label is not also a heading, and it is said once. */
+    expect(
+      screen.queryByRole('heading', { name: copy('fin.pricing.surge.suspend.confirm') }),
+    ).toBeNull()
+    const said = card.textContent?.match(/Suspend surge/g) ?? []
+    expect(said).toHaveLength(1)
+    /* AC-RC-48 — the group is labelled by a visible label, not a heading. */
+    const group = within(card).getByRole('radiogroup', {
+      name: copy('fin.pricing.surge.suspend.group.label'),
+    })
+    expect(within(card).getByText(copy('fin.pricing.surge.suspend.group.label')).tagName).toBe(
+      'SPAN',
+    )
+    expect(card.contains(group), 'one card holds both bands').toBe(true)
   })
 
   it('AC-RC-26 — one single-select district group, and one filled button on the view', async () => {
@@ -588,7 +687,33 @@ describe('surge windows, suspend and suspensions', () => {
     expect(primary).toBeDisabled()
     expect(primary.getAttribute('title'), 'never a tooltip').toBeNull()
     const reason = document.getElementById(primary.getAttribute('aria-describedby') ?? '')
-    expect(reason?.textContent).toBe(copy('fin.payout.blocked.permission'))
+    /* A row that declares no write key has no permission to ask for, so the
+       refusal does not invent one — and it is not about paying a captain. */
+    expect(reason?.textContent).toBe(copy('fin.blocked.write'))
+    expect(reason?.textContent).not.toContain('captain')
+  })
+
+  it('AC-RC-27 — a permission refusal on Pricing names the permission Pricing gates on', async () => {
+    /* Non-vacuity: the shipped row names `manage_plans` and the default Owner
+       session holds it, so the refusal is unreachable until an operator who
+       does not hold it is signed in. */
+    expect(pricingRow().writePermission).toBe('manage_plans')
+    const owner = await getSession()
+    expect(owner.permissions).toContain('manage_plans')
+
+    const support = await switchMockUser('USR-4')
+    expect(support.permissions).not.toContain('manage_plans')
+    await mounted()
+    const primary = screen.getByRole('button', { name: copy('fin.pricing.surge.suspend.confirm') })
+    expect(primary).toBeDisabled()
+    const reason = document.getElementById(primary.getAttribute('aria-describedby') ?? '')
+    expect(reason?.textContent).toBe(
+      fill('fin.pricing.blocked.permission', {
+        permission: EN['account.permission.manage_plans'] as string,
+      }),
+    )
+    /* The defect this replaces: there is no captain and no payout here. */
+    expect(reason?.textContent).not.toBe(copy('fin.payout.blocked.permission'))
   })
 
   it('AC-RC-28 — the confirmation names the chosen district and waits for a reason', async () => {
@@ -600,7 +725,8 @@ describe('surge windows, suspend and suspensions', () => {
     const chip = within(group).getAllByRole('radio')[0] as HTMLElement
     const district = chip.textContent as string
     await user.click(chip)
-    expect(screen.getByText(fill('fin.pricing.surge.suspend.chosen', { district }))).toBeTruthy()
+    /* The chosen chip is pressed; the screen does not read its own UI back. */
+    expect(chip.getAttribute('data-state')).toBe('on')
 
     await user.click(screen.getByRole('button', { name: copy('fin.pricing.surge.suspend.confirm') }))
     const dialog = await screen.findByRole('dialog')
@@ -647,9 +773,7 @@ describe('surge windows, suspend and suspensions', () => {
     expect(ended[0]?.getAttribute('data-tone')).toBe('neutral')
 
     /* R14 — `Running` belongs to the surge-window table and to nothing else. */
-    const windowsCard = screen
-      .getByText(copy('fin.pricing.surge.heading'))
-      .closest('[data-slot="card"]') as HTMLElement
+    const windowsCard = surgeCard()
     for (const badge of document.querySelectorAll('[data-slot="badge"]')) {
       expect(badge.getAttribute('data-tone')).not.toBe('critical')
       if (badge.textContent === copy('fin.pricing.surge.enabled')) {
