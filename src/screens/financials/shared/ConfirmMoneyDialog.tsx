@@ -44,7 +44,7 @@
  *              mutated** at that point.
  */
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -138,28 +138,59 @@ export function ConfirmMoneyDialog({
 
   const amountHalalas = useMemo(() => (raw.trim() === '' ? null : parseMoneyInput(raw)), [raw])
 
-  if (request === null) return null
+  /* The request on screen, which outlives `request` by one close: the dialog
+     keeps its title and its buttons while Radix animates out and hands focus
+     back. RC-D1, and the same shape `ConfirmDialog` already carries. */
+  const [shown, setShown] = useState<MoneyConfirmRequest | null>(request)
+  useEffect(() => {
+    if (request !== null) setShown(request)
+  }, [request])
 
-  const amountRequired = request.amount !== undefined
+  /* §7.2 — the control this was opened from, so `Escape` gives focus back to
+     it. A LAYOUT effect: Radix moves focus into the content in an ordinary one
+     and would otherwise have taken it before this reads. */
+  const opener = useRef<HTMLElement | null>(null)
+  useLayoutEffect(() => {
+    if (request !== null) opener.current = document.activeElement as HTMLElement | null
+  }, [request])
+
+  if (shown === null) return null
+
+  const amountRequired = shown.amount !== undefined
   const amountBad =
     amountRequired &&
     (amountHalalas === null ||
       amountHalalas <= 0 ||
-      amountHalalas > (request.amount?.maxHalalas ?? 0))
-  const reasonMissing = request.reason !== undefined && reason.trim() === ''
+      amountHalalas > (shown.amount?.maxHalalas ?? 0))
+  const reasonMissing = shown.reason !== undefined && reason.trim() === ''
   const invalid = amountBad || reasonMissing
 
   return (
-    <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent size="sm">
+    /* **`open` is DRIVEN and the dialog is not unmounted** (§7.2 / RC-D1).
+       Returning `null` on close meant Radix never ran its close-time focus
+       restore, so `Escape` dropped focus to `<body>` on every money act. */
+    <Dialog open={request !== null} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent
+        size="sm"
+        /* Radix restores focus to a TRIGGER, and this dialog has none: every
+           caller opens it from state. So the opener is restored by hand, and
+           only while it is still on the page. */
+        onCloseAutoFocus={(event) => {
+          const node = opener.current
+          opener.current = null
+          if (node === null || !node.isConnected) return
+          event.preventDefault()
+          node.focus()
+        }}
+      >
         <DialogHeader>
-          <DialogTitle>{request.title}</DialogTitle>
-          <DialogDescription>{request.body}</DialogDescription>
+          <DialogTitle>{shown.title}</DialogTitle>
+          <DialogDescription>{shown.body}</DialogDescription>
         </DialogHeader>
 
-        {request.lines && request.lines.length > 0 && (
+        {shown.lines && shown.lines.length > 0 && (
           <dl className="flex flex-col gap-1">
-            {request.lines.map((line) => (
+            {shown.lines.map((line) => (
               <div
                 key={line.label}
                 className={
@@ -177,11 +208,11 @@ export function ConfirmMoneyDialog({
           </dl>
         )}
 
-        {request.note && <p className="text-sm text-muted-foreground">{request.note}</p>}
+        {shown.note && <p className="text-sm text-muted-foreground">{shown.note}</p>}
 
-        {request.amount && (
+        {shown.amount && (
           <div className="flex flex-col gap-1">
-            <Label htmlFor="fin-confirm-amount">{request.amount.label}</Label>
+            <Label htmlFor="fin-confirm-amount">{shown.amount.label}</Label>
             <div className="flex items-center gap-2">
               {/* §4.2 — the currency PREFIX rule governs a money input. The code
                   sits at the field's inline start, outside the value, so the
@@ -200,15 +231,15 @@ export function ConfirmMoneyDialog({
               />
             </div>
             <p id="fin-confirm-amount-help" className="text-xs text-muted-foreground">
-              {touched && amountBad ? request.amount.message : request.amount.help}
+              {touched && amountBad ? shown.amount.message : shown.amount.help}
             </p>
           </div>
         )}
 
-        {request.reason && (
+        {shown.reason && (
           <div className="flex flex-col gap-1">
-            <Label htmlFor="fin-confirm-reason">{request.reason.label}</Label>
-            {request.reason.options ? (
+            <Label htmlFor="fin-confirm-reason">{shown.reason.label}</Label>
+            {shown.reason.options ? (
               <Select value={reason} onValueChange={setReason}>
                 <SelectTrigger
                   id="fin-confirm-reason"
@@ -216,10 +247,10 @@ export function ConfirmMoneyDialog({
                   aria-describedby="fin-confirm-reason-help"
                   className="w-full"
                 >
-                  <SelectValue placeholder={request.reason.placeholder ?? request.reason.label} />
+                  <SelectValue placeholder={shown.reason.placeholder ?? shown.reason.label} />
                 </SelectTrigger>
                 <SelectContent>
-                  {request.reason.options.map((option) => (
+                  {shown.reason.options.map((option) => (
                     <SelectItem key={option.value} value={option.value}>
                       {option.label}
                     </SelectItem>
@@ -238,7 +269,7 @@ export function ConfirmMoneyDialog({
               />
             )}
             <p id="fin-confirm-reason-help" className="text-xs text-muted-foreground">
-              {touched && reasonMissing ? request.reason.message : request.reason.help}
+              {touched && reasonMissing ? shown.reason.message : shown.reason.help}
             </p>
           </div>
         )}
@@ -252,9 +283,9 @@ export function ConfirmMoneyDialog({
           <Button
             variant="default"
             disabled={invalid || busy}
-            onClick={() => request.onConfirm({ amountHalalas, reason: reason.trim() })}
+            onClick={() => shown.onConfirm({ amountHalalas, reason: reason.trim() })}
           >
-            {request.confirmLabel}
+            {shown.confirmLabel}
           </Button>
         </DialogFooter>
       </DialogContent>
