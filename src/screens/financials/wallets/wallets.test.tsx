@@ -20,7 +20,9 @@ import {
   getFinancialsOverview,
   getRouteTable,
   listWallets,
+  mockFailures,
   resetDataLayer,
+  WALLET_OPERATIONS,
 } from '@/data/clients'
 import type { SubTabRoute } from '@/data/types'
 import { formatMoney } from '@/lib'
@@ -517,5 +519,257 @@ describe('R2-4 — one inline action per row, and the row opens the ledger', () 
     await waitFor(() =>
       expect(screen.getByText(EN['fin.ledger.opening'] as string)).toBeTruthy(),
     )
+  })
+})
+
+/* ═══════ AC-RW — the drill-in is a detail route and wears detail chrome ═══ */
+
+/**
+ * `docs/05-restructure/design/financials-rider-wallet-ledger.md`. The rule the
+ * criteria come from is a data fact rather than a per-screen judgement: a
+ * ledger whose `Ledger.subjectId` is non-null is a party's DETAIL view (O11),
+ * and the index behind it has left the screen.
+ */
+describe('AC-RW-01/02/03 — one back control, in slot 1, naming where it goes', () => {
+  const BACK = EN['fin.wallet.back'] as string
+
+  it('AC-RW-01 — the drill-in renders exactly one back control and the index none', async () => {
+    const { unmount } = mount('/financials/rider-wallets?rider=RDR-1041')
+    await waitFor(() => expect(screen.getByText(EN['fin.ledger.opening'] as string)).toBeTruthy())
+
+    const back = screen.getAllByRole('button', { name: BACK })
+    expect(back).toHaveLength(1)
+    expect(back[0]?.tagName).toBe('BUTTON')
+
+    unmount()
+
+    mount('/financials/rider-wallets?view=all-wallets')
+    await waitFor(() => expect(screen.getByText('Nora Al-Harbi')).toBeTruthy())
+    expect(screen.queryByRole('button', { name: BACK })).toBeNull()
+  })
+
+  it('AC-RW-02 — its accessible name is the destination, not the bare word Back', async () => {
+    mount('/financials/rider-wallets?rider=RDR-1041')
+    await waitFor(() => expect(screen.getByText(EN['fin.ledger.opening'] as string)).toBeTruthy())
+
+    expect(BACK).toBe('Back to rider wallets')
+    expect(screen.getByRole('button', { name: BACK })).toBeTruthy()
+    expect(
+      screen.queryByRole('button', { name: EN['shell.topbar.back'] as string }),
+      'the arrow no longer answers to the bare word',
+    ).toBeNull()
+  })
+
+  it('AC-RW-03 — activating it drops ?rider= and keeps every other param', async () => {
+    const user = userEvent.setup()
+    mount('/financials/rider-wallets?view=goodwill&rider=RDR-1041&from=2026-06-01')
+    await waitFor(() => expect(screen.getByText(EN['fin.ledger.opening'] as string)).toBeTruthy())
+
+    await user.click(screen.getByRole('button', { name: BACK }))
+
+    /* The view the operator came from is restored, which is only possible
+       because `?view=` survived the click. */
+    await waitFor(() =>
+      expect(
+        screen
+          .getByRole('tab', { name: EN['fin.wallets.view.goodwill'] as string })
+          .getAttribute('aria-selected'),
+      ).toBe('true'),
+    )
+  })
+
+  it('AC-RW-19 — the back arrow is the first focusable thing and takes a ring', async () => {
+    const user = userEvent.setup()
+    mount('/financials/rider-wallets?rider=RDR-1041')
+    await waitFor(() => expect(screen.getByText(EN['fin.ledger.opening'] as string)).toBeTruthy())
+
+    const back = screen.getByRole('button', { name: BACK })
+    const region = back.closest('[data-slot="page"]') ?? document.body
+    const focusable = [
+      ...region.querySelectorAll<HTMLElement>(
+        'a[href],button:not([disabled]),input,select,textarea,[tabindex]:not([tabindex="-1"])',
+      ),
+    ].filter((node) => !node.closest('.sr-only'))
+    expect(focusable[0]).toBe(back)
+
+    await user.tab()
+    expect(document.activeElement).toBe(back)
+    expect(back.className).toContain('focus-visible:ring')
+  })
+})
+
+describe('AC-RW-04/05/06/07 — the title is the record and the chrome above it goes', () => {
+  it('AC-RW-04/05 — the h1 is the name and the meta is the id, once the read resolves', async () => {
+    mount('/financials/rider-wallets?rider=RDR-1041')
+    await waitFor(() => expect(screen.getByText(EN['fin.ledger.opening'] as string)).toBeTruthy())
+
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Nora Al-Harbi')
+    /* §8's second row: the record's own identifier. */
+    expect(screen.getByText('RDR-1041')).toBeTruthy()
+  })
+
+  it('AC-RW-04 — the h1 falls back to the id while the read is in flight', () => {
+    mount('/financials/rider-wallets?rider=RDR-1041')
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('RDR-1041')
+    /* AC-RW-05's other half: no meta while the title is the id, so the id
+       never appears in both rows at once. */
+    expect(screen.getAllByText('RDR-1041')).toHaveLength(1)
+  })
+
+  it('AC-RW-06 — no visible back link and no view row on the drill-in', async () => {
+    mount('/financials/rider-wallets?rider=RDR-1041')
+    await waitFor(() => expect(screen.getByText(EN['fin.ledger.opening'] as string)).toBeTruthy())
+
+    expect(screen.queryByText('Back to wallets')).toBeNull()
+    expect(document.querySelector('[data-slot="view-row"]')).toBeNull()
+  })
+
+  it('AC-RW-06 — the index keeps its view row', async () => {
+    mount('/financials/rider-wallets?view=all-wallets')
+    await waitFor(() => expect(screen.getByText('Nora Al-Harbi')).toBeTruthy())
+    expect(document.querySelector('[data-slot="view-row"]')).toBeTruthy()
+  })
+
+  it('AC-RW-07 — no h2 names the subject account', async () => {
+    mount('/financials/rider-wallets?rider=RDR-1041')
+    await waitFor(() => expect(screen.getByText(EN['fin.ledger.opening'] as string)).toBeTruthy())
+
+    expect(screen.queryAllByRole('heading', { level: 2 })).toHaveLength(0)
+    /* F-1 — `AccountDefinition.label` is an untranslated English literal, and
+       this is the run that would have shipped it into an Arabic page. */
+    expect(screen.queryByText(/Rider wallet balances/)).toBeNull()
+  })
+})
+
+describe('AC-RW-08/10 — two peer figures and one explanatory line', () => {
+  it('AC-RW-08 — Balance and Pending are siblings of the same rank, in that order', async () => {
+    mount('/financials/rider-wallets?rider=RDR-1041')
+    await waitFor(() => expect(screen.getByText(EN['fin.ledger.opening'] as string)).toBeTruthy())
+
+    const balance = screen.getByText(EN['fin.ledger.balance'] as string)
+    const pending = screen.getByText(EN['fin.ledger.pending'] as string)
+    /* Same rank: identically-shaped label runs in two blocks under one row. */
+    expect(balance.className).toBe(pending.className)
+    expect(balance.parentElement?.parentElement).toBe(pending.parentElement?.parentElement)
+    expect(
+      (balance.parentElement as Node).compareDocumentPosition(pending.parentElement as Node) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy()
+  })
+
+  it('AC-RW-08 — Pending is absent when nothing is pending', async () => {
+    mount('/financials/rider-wallets?rider=RDR-4001')
+    await waitFor(() => expect(screen.getByText(EN['fin.ledger.opening'] as string)).toBeTruthy())
+
+    expect(screen.getByText(EN['fin.ledger.balance'] as string)).toBeTruthy()
+    expect(screen.queryByText(EN['fin.ledger.pending'] as string)).toBeNull()
+  })
+
+  it('AC-RW-10 — one line, two sentences, neither concatenated into the other', async () => {
+    mount('/financials/rider-wallets?rider=RDR-1041')
+    await waitFor(() => expect(screen.getByText(EN['fin.ledger.opening'] as string)).toBeTruthy())
+
+    const normal = screen.getByText(EN['fin.ledger.normalSide.credit'] as string)
+    const caveat = screen.getByText(EN['fin.ledger.pending.help'] as string)
+    /* AC-443 — two runs sharing one paragraph; the space between them is
+       drawn rather than written into either string. */
+    expect(normal.tagName).toBe('SPAN')
+    expect(caveat.tagName).toBe('SPAN')
+    expect(normal.parentElement).toBe(caveat.parentElement)
+    expect(normal.parentElement?.tagName).toBe('P')
+  })
+
+  it('AC-RW-10 — the caveat is absent when nothing is pending', async () => {
+    mount('/financials/rider-wallets?rider=RDR-4001')
+    await waitFor(() => expect(screen.getByText(EN['fin.ledger.opening'] as string)).toBeTruthy())
+
+    expect(screen.getByText(EN['fin.ledger.normalSide.credit'] as string)).toBeTruthy()
+    expect(screen.queryByText(EN['fin.ledger.pending.help'] as string)).toBeNull()
+  })
+})
+
+describe('AC-RW-11 — a negative balance is typographic, and raises nothing', () => {
+  it('renders U+2212 in ordinary ink with no badge and no banner', async () => {
+    mount('/financials/rider-wallets?rider=RDR-4001')
+    await waitFor(() => expect(screen.getByText(EN['fin.ledger.opening'] as string)).toBeTruthy())
+
+    const figure = screen.getByText(EN['fin.ledger.balance'] as string)
+      .nextElementSibling as HTMLElement
+    expect(figure.textContent).toContain('−')
+    expect(figure.textContent).not.toContain('(')
+    expect(figure.querySelector('[data-slot="badge"]')).toBeNull()
+    /* R10 — a banner about one rider, on that rider's own page, directly above
+       the figure that states it, is a duplicate surface. */
+    expect(screen.queryByText(EN['fin.wallet.negative.title'] as string)).toBeNull()
+  })
+})
+
+describe('AC-RW-12/13/14/15 — the four states, with the arrow surviving all of them', () => {
+  const BACK = EN['fin.wallet.back'] as string
+
+  it('AC-RW-12 — loading renders the arrow and no figure block', () => {
+    mount('/financials/rider-wallets?rider=RDR-1041')
+
+    expect(screen.getByRole('button', { name: BACK })).toBeTruthy()
+    expect(screen.queryByText(EN['fin.ledger.balance'] as string)).toBeNull()
+    expect(screen.queryByRole('progressbar')).toBeNull()
+  })
+
+  it('AC-RW-13 — the read failure names the object, not a fix this screen lacks', async () => {
+    mockFailures.always(WALLET_OPERATIONS.ledger)
+    mount('/financials/rider-wallets?rider=RDR-1041')
+
+    await waitFor(() =>
+      expect(screen.getByText(EN['fin.wallet.ledger.error.read'] as string)).toBeTruthy(),
+    )
+    /* F-3 — the shared string names a period control this screen does not have. */
+    expect(screen.queryByText(EN['fin.error.read'] as string)).toBeNull()
+    /* `DataTable` labels its own retry (`state.pageError.action`); `LedgerCard`
+       supplies the handler and cannot supply the word. Reported, not asserted
+       as `Read again`, because the screen does not decide it. */
+    expect(
+      screen.getByRole('button', { name: EN['state.pageError.action'] as string }),
+    ).toBeTruthy()
+    /* The point of moving the arrow into the header: it no longer depends on
+       anything the read returns. */
+    expect(screen.getByRole('button', { name: BACK })).toBeTruthy()
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('RDR-1041')
+  })
+
+  it('AC-RW-14 — first run keeps the figure block above it and offers one action', async () => {
+    mount('/financials/rider-wallets?rider=RDR-2055')
+    await waitFor(() =>
+      expect(screen.getByText(EN['fin.empty.firstRun.heading'] as string)).toBeTruthy(),
+    )
+
+    /* A wallet with no history still has a real balance of 0.00, and hiding it
+       would be hiding a fact. */
+    const figure = screen.getByText(EN['fin.ledger.balance'] as string)
+      .nextElementSibling as HTMLElement
+    expect(figure.textContent).toContain('0.00')
+    expect(screen.queryByText(EN['fin.ledger.pending'] as string)).toBeNull()
+    /* AC-427's action and the arrow share one string and one destination, so
+       the two controls cannot disagree. */
+    expect(screen.getAllByRole('button', { name: BACK })).toHaveLength(2)
+  })
+
+  it('AC-RW-15 — a search that matches nothing keeps the toolbar it was typed in', async () => {
+    const user = userEvent.setup()
+    mount('/financials/rider-wallets?rider=RDR-1041')
+    await waitFor(() => expect(screen.getByText(EN['fin.ledger.opening'] as string)).toBeTruthy())
+
+    await user.type(
+      screen.getByRole('textbox', { name: EN['fin.ledger.search'] as string }),
+      'zzzznothing',
+    )
+    await waitFor(() => expect(screen.getByText(EN['fin.empty.noMatch'] as string)).toBeTruthy())
+
+    /* The control that narrowed it survives, so the operator can widen it. The
+       column header row does NOT: `DataTable` mounts its `<table>` only at
+       `status === 'content'`, which is the shared table's decision and is
+       reported rather than asserted here as though this screen made it. */
+    expect(screen.getByRole('textbox', { name: EN['fin.ledger.search'] as string })).toBeTruthy()
+    /* Not the first-run state: the two are different sentences. */
+    expect(screen.queryByText(EN['fin.empty.firstRun.heading'] as string)).toBeNull()
   })
 })

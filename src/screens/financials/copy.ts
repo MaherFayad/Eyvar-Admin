@@ -57,11 +57,11 @@ export const FINANCIALS_EN: Dictionary = {
   'fin.ledger.normalSide.debit': 'A debit increases this balance.',
   'fin.ledger.normalSide.credit': 'A credit increases this balance.',
 
-  /* **AC-312** — one line, one label, beneath the balance, and it must not read
-     as part of it. */
+  /* **AC-312** — a peer figure beside the balance, and a full sentence that can
+     stand beside the normal-side one on the line under both (AC-443). */
   'fin.ledger.balance': 'Balance',
   'fin.ledger.pending': 'Pending',
-  'fin.ledger.pending.help': 'Not in the balance until it settles.',
+  'fin.ledger.pending.help': 'Pending amounts are not in the balance until they settle.',
 
   /* **AC-320** — a truncated ledger says so in words. No ledger caps silently. */
   'fin.ledger.truncated': 'Showing {shown} of {total} postings',
@@ -699,12 +699,25 @@ export const FINANCIALS_EN: Dictionary = {
   'fin.wallet.empty.heading': 'No rider holds a wallet balance',
   'fin.wallet.empty.body': 'A top-up, a goodwill credit or a refund to the wallet opens one.',
   'fin.wallet.empty.action': 'Read refunds',
-  'fin.wallet.back': 'Back to wallets',
+  /* The arrow's accessible name and the first-run action's label: one string,
+     so the two controls that share a destination cannot disagree. It names the
+     sub-tab exactly as level 2 spells it (O11). */
+  'fin.wallet.back': 'Back to rider wallets',
   'fin.wallet.negative.title': 'One rider wallet is below zero.',
   'fin.wallet.negative.titleMany': '{count} rider wallets are below zero.',
   'fin.wallet.negative.body':
     'Whether a negative balance blocks a booking is not decided. The balance is stated and nothing is enforced here.',
   'fin.wallet.negative.action': 'Show only negative',
+
+  /* **F-3** — this drill-in has no period control and no filter (Q-F13), so it
+     names the object that did not arrive rather than a fix nobody can perform. */
+  'fin.wallet.ledger.error.read': 'This wallet’s postings did not arrive. Read again.',
+  /* **R5a** — money that did not move is the one condition this ledger raises a
+     red banner for. No action: there is no retry in this product (§11.2). */
+  'fin.wallet.ledger.banner.failed.title': 'One posting failed to settle.',
+  'fin.wallet.ledger.banner.failed.titleMany': '{count} postings failed to settle.',
+  'fin.wallet.ledger.banner.failed.body':
+    'The amount never reached this wallet. Open the source document to see what happened.',
 
   /* **AC-387** — the primary is disabled until a reason is chosen.
      **AC-388** — there is no field naming another posting, and there is no key

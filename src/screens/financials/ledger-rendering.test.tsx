@@ -219,10 +219,11 @@ describe('AC-308 — every ledger names its subject account and its normal side'
     )
     await waitFor(() => expect(screen.getByText(EN['fin.ledger.opening'] as string)).toBeTruthy())
 
-    /* `liability.wallet` is credit-normal, and the subject is named in words. */
-    const walletHeading = screen.getAllByRole('heading', { level: 2 })[0] as HTMLElement
-    expect(walletHeading.textContent).toContain('Rider wallet')
-    expect(walletHeading.textContent).toContain('Nora Al-Harbi')
+    /* `liability.wallet` is credit-normal. **AC-RW-07** — on a party drill-in
+       the record is the `<h1>` and the subject heading is retired, so the words
+       naming the account are gone and only the normal side survives. */
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Nora Al-Harbi')
+    expect(screen.queryAllByRole('heading', { level: 2 })).toHaveLength(0)
     expect(screen.getByText(EN['fin.ledger.normalSide.credit'] as string)).toBeTruthy()
     expect(screen.queryByText(EN['fin.ledger.normalSide.debit'] as string)).toBeNull()
 
@@ -269,9 +270,10 @@ describe('AC-312 — a pending posting has no balance and is not in the card bal
     /* Its amount is still in a money column: it is a real posting. */
     expect(authorised.credit).toBe(12_000)
 
-    /* Clause 3 — a separate labelled line, beneath the balance. */
+    /* Clause 3 — a separate labelled figure beside the balance, at its rank,
+       and the caveat on the line under both. */
     const pendingLabel = screen.getByText(EN['fin.ledger.pending'] as string)
-    expect(pendingLabel.textContent).toContain('120.00')
+    expect(pendingLabel.nextElementSibling?.textContent).toContain('120.00')
     expect(screen.getByText(EN['fin.ledger.pending.help'] as string)).toBeTruthy()
 
     /* Clause 2 — the card balance is the last SETTLED row's balance, so the
