@@ -8,7 +8,7 @@
  *               these five.
  *   R5a         THERE IS NO RED BADGE. The stock `destructive` variant is
  *               DELETED, not restyled. Per-row criticality is carried by
- *               `RowCriticalMarker` (V-05, a 3px inset leading edge) plus the
+ *               the critical row's own GROUND plus the
  *               countdown pill's own words — never by a badge.
  *   R15         rounded rectangle, `rounded-sm` (4px): a badge is never a
  *               stadium and never shares the 8px control radius, so a chip

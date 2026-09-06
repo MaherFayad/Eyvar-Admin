@@ -82,7 +82,7 @@ import { type Language, type Translate, type Translator } from '@/lib'
 import { toast } from 'sonner'
 import { setRefusal } from '../bulkRefusal'
 import { ErrorState } from '@/components/ErrorState'
-import { RowCriticalMarker, StatusBadge } from '@/components/StatusBadge'
+import { StatusBadge } from '@/components/StatusBadge'
 import type { DataColumn, ExtraFilterSpec, RowAction } from '@/components/DataTable'
 import { useShell } from '@/shell/ShellContext'
 import {
@@ -724,21 +724,18 @@ export function workColumns(deps: WorkDeps): ReadonlyArray<DataColumn<WorkItem>>
       dataType: 'text',
       sortField: 'title',
       cell: (item) => (
-        <>
-          {clockFor(item).breached && <RowCriticalMarker />}
-          {/* **AC-200 / AC-281** — the identity NAVIGATES. It does not claim, and
-              it does not decide; `item.route` is the queue that owns the record. */}
-          <SubjectIdentity
-            to={item.route}
-            title={titleOf(item)}
-            secondary={
-              item.subtitleKey === null
-                ? null
-                : workText(t, item.subtitleKey, item.subtitleParams)
-            }
-            label={t('myWork.a11y.open', { title: titleOf(item) })}
-          />
-        </>
+        /* **AC-200 / AC-281** — the identity NAVIGATES. It does not claim, and
+           it does not decide; `item.route` is the queue that owns the record. */
+        <SubjectIdentity
+          to={item.route}
+          title={titleOf(item)}
+          secondary={
+            item.subtitleKey === null
+              ? null
+              : workText(t, item.subtitleKey, item.subtitleParams)
+          }
+          label={t('myWork.a11y.open', { title: titleOf(item) })}
+        />
       ),
     },
     {

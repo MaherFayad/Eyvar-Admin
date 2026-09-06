@@ -89,7 +89,7 @@ import {
 import { useAsync, useIndexTable } from '@/hooks'
 import { formatCount, formatDate, type Language, type Translate, type Translator } from '@/lib'
 import { ErrorState } from '@/components/ErrorState'
-import { RowCriticalMarker, StatusBadge } from '@/components/StatusBadge'
+import { StatusBadge } from '@/components/StatusBadge'
 import type { DataColumn, ExtraFilterSpec } from '@/components/DataTable'
 import { useShell } from '@/shell/ShellContext'
 import { withOverlay } from '@/shell/routeState'
@@ -464,7 +464,6 @@ export function incidentColumns(deps: SafetyDeps): ReadonlyArray<DataColumn<Safe
       dataType: 'text',
       sortField: 'openedAt',
       cell: (incident) => {
-        const clock = activeClock(incident, now)
         const type = t(TYPE_LABEL[incident.type])
         /* **AC-323** — three shapes, three keys, no concatenation. */
         const secondary =
@@ -474,19 +473,13 @@ export function incidentColumns(deps: SafetyDeps): ReadonlyArray<DataColumn<Safe
               ? t('safety.line.withTrip', { type, trip: incident.tripId })
               : t('safety.line.unresolvableTrip', { type, trip: incident.tripId })
         return (
-          <>
-            {/* R5a (b). **AC-319** — a `critical` incident INSIDE its
-                acknowledgement window gets no marker: severity is carried by
-                its badge, and this edge is spent on breach alone (Q-22). */}
-            {clock.breached && <RowCriticalMarker />}
-            <SubjectIdentity
-              /* §12.1: the identity opens the record, at F-2's route (S-8). */
-              to={deps.detailHref(incident.id)}
-              title={incident.summary}
-              secondary={secondary}
-              label={t('safety.a11y.open', { id: incident.id })}
-            />
-          </>
+          <SubjectIdentity
+            /* §12.1: the identity opens the record, at F-2's route (S-8). */
+            to={deps.detailHref(incident.id)}
+            title={incident.summary}
+            secondary={secondary}
+            label={t('safety.a11y.open', { id: incident.id })}
+          />
         )
       },
     },

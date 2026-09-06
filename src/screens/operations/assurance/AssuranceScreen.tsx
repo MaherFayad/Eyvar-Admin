@@ -87,7 +87,7 @@ import { EntityLink, useEntityLinks } from '../EntityLink'
 import { formatCount, formatDate, type Language, type Translate, type Translator } from '@/lib'
 import { ErrorState } from '@/components/ErrorState'
 import { Money } from '@/components/Money'
-import { RowCriticalMarker, StatusBadge } from '@/components/StatusBadge'
+import { StatusBadge } from '@/components/StatusBadge'
 import { Button } from '@/components/ui/button'
 import { RefusalLine } from '@/components/table/rowActions'
 import type { DataColumn, ExtraFilterSpec } from '@/components/DataTable'
@@ -806,26 +806,23 @@ export function legColumns(view: string, deps: LegDeps): ReadonlyArray<DataColum
     dataType: 'text',
     sortField: 'departsAt',
     cell: (trip) => (
-      <>
-        {clockFor(trip).breached && <RowCriticalMarker />}
-        <SubjectIdentity
-          to={deps.profileHref(trip.subscriptionId)}
-          title={trip.route}
-          /* §7.7 — the two facts an operator reads next: when it leaves, and
-             who is driving it. ONE key with two named placeholders. */
-          secondary={
-            trip.driverName === null
-              ? t('assurance.leg.noCaptain', {
-                  time: formatDate(trip.departsAt, { style: 'day-month-time', language }),
-                })
-              : t('assurance.leg.line', {
-                  time: formatDate(trip.departsAt, { style: 'day-month-time', language }),
-                  captain: trip.driverName,
-                })
-          }
-          label={t('assurance.a11y.open', { name: trip.route })}
-        />
-      </>
+      <SubjectIdentity
+        to={deps.profileHref(trip.subscriptionId)}
+        title={trip.route}
+        /* §7.7 — the two facts an operator reads next: when it leaves, and
+           who is driving it. ONE key with two named placeholders. */
+        secondary={
+          trip.driverName === null
+            ? t('assurance.leg.noCaptain', {
+                time: formatDate(trip.departsAt, { style: 'day-month-time', language }),
+              })
+            : t('assurance.leg.line', {
+                time: formatDate(trip.departsAt, { style: 'day-month-time', language }),
+                captain: trip.driverName,
+              })
+        }
+        label={t('assurance.a11y.open', { name: trip.route })}
+      />
     ),
   }
 
@@ -1215,10 +1212,10 @@ export function absenceColumns(deps: AbsenceDeps): ReadonlyArray<DataColumn<Abse
       minWidth: 184,
       dataType: 'text',
       sortField: 'driverName',
-      /* **No `RowCriticalMarker` anywhere in this view.** An absence has no
-         deadline, so it can never be breached (Q-20), and Q-19 is explicit that
-         age is not breach: *"a queue that marks its oldest row teaches
-         operators to ignore the marker."* */
+      /* **No critical row anywhere in this view.** An absence has no deadline,
+         so it can never be breached (Q-20), and Q-19 is explicit that age is
+         not breach: *"a queue that marks its oldest row teaches operators to
+         ignore the marker."* */
       cell: (event) => (
         <Identity
           to={deps.profileHref(event.driverId)}

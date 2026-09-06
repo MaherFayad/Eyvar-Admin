@@ -95,7 +95,7 @@ export interface SlaQueueTier {
  * declared here so the policy screen is editing the thing that actually runs
  * rather than a description of it:
  *
- *   `marksRow`        R5a (b) — the row-critical marker `RowCriticalMarker`
+ *   `marksRow`        R5a (b) — the row-critical GROUND
  *                     draws, and one of the four places red is permitted.
  *   `reordersQueue`   §9.3 / `lib/sla.ts` rule 2 — breached first, most overdue
  *                     first, `No clock` last. `compareBySla` implements it.

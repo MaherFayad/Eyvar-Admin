@@ -20,7 +20,7 @@ import type { IsoDateTime, Paginated, SubTabRoute, Ticket } from '@/data/types'
 import { useAsync, useIndexTable } from '@/hooks'
 import { formatCount, formatDate, type Language, type Translator } from '@/lib'
 import type { DataColumn } from '@/components/DataTable'
-import { RowCriticalMarker, StatusBadge } from '@/components/StatusBadge'
+import { StatusBadge } from '@/components/StatusBadge'
 import { ConfirmDialog, type ConfirmRequest } from '@/components/ConfirmDialog'
 import { reasonLabel } from '@/i18n/vocabulary/copy'
 import { useShell } from '@/shell/ShellContext'
@@ -376,24 +376,18 @@ export function ticketColumns(deps: TicketDeps): ReadonlyArray<DataColumn<Ticket
       minWidth: 200,
       dataType: 'text',
       sortField: 'subject',
-      cell: (ticket) => {
-        const clock = runningTicketClock(ticket, now)
-        return (
-          <>
-            {clock.result.breached && <RowCriticalMarker />}
-            <SubjectIdentity
-              to={deps.detailHref(ticket.id)}
-              title={ticket.subject}
-              /* §7.7: who is asking, and the reason as a sentence. One key. */
-              secondary={t('ticket.line', {
-                requester: ticket.entityName,
-                reason: reasonLabel(t, ticket.reasonCode),
-              })}
-              label={t('ticket.a11y.open', { id: ticket.id })}
-            />
-          </>
-        )
-      },
+      cell: (ticket) => (
+        <SubjectIdentity
+          to={deps.detailHref(ticket.id)}
+          title={ticket.subject}
+          /* §7.7: who is asking, and the reason as a sentence. One key. */
+          secondary={t('ticket.line', {
+            requester: ticket.entityName,
+            reason: reasonLabel(t, ticket.reasonCode),
+          })}
+          label={t('ticket.a11y.open', { id: ticket.id })}
+        />
+      ),
     },
     {
       id: 'priority',

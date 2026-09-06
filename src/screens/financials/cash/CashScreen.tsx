@@ -96,7 +96,7 @@ import type { BannerModel } from '@/components/Banner'
 import { DataTable, type BulkAction, type DataColumn } from '@/components/DataTable'
 import { ErrorState } from '@/components/ErrorState'
 import { MoneyCell } from '@/components/Money'
-import { RowCriticalMarker, StatusBadge } from '@/components/StatusBadge'
+import { StatusBadge } from '@/components/StatusBadge'
 import { ViewSwitcher } from '@/components/table/ViewSwitcher'
 import { Button } from '@/components/ui/button'
 import { DecisionBadge, OwnerChip, useNowIso } from '@/screens/queues'
@@ -434,9 +434,7 @@ function ReconciliationQueue({
         minWidth: 150,
         sortField: 'id',
         cell: (report) => (
-          <span className="relative block font-medium tabular-nums">
-            {/* R5a use #3 — escalated, in the leading edge. Never a red badge. */}
-            {report.status === 'escalated' && <RowCriticalMarker />}
+          <span className="block font-medium tabular-nums">
             <bdi>{report.id}</bdi>
           </span>
         ),
@@ -883,10 +881,10 @@ function CaptainDebtIndex({
         minWidth: 200,
         sortField: 'captainName',
         cell: (debt) => (
-          <span className="relative block font-medium">
-            {/* **AC-380** — over the cap, from the same source value the 360°
-                profile reads. R5a's leading edge, and the words below. */}
-            {debt.balanceHalalas >= debt.capHalalas && <RowCriticalMarker />}
+          <span className="block font-medium">
+            {/* **AC-380** — over the cap carries the critical row ground, from
+                the same source value the 360° profile reads, and the words
+                below. */}
             <EntityName href={hrefFor(debt.captainId)} name={debt.captainName} t={t} />
           </span>
         ),

@@ -85,7 +85,7 @@ import { toast } from 'sonner'
 import { setRefusal } from '../bulkRefusal'
 import { EntityLink, useEntityLinks } from '../EntityLink'
 import { ErrorState } from '@/components/ErrorState'
-import { RowCriticalMarker, StatusBadge } from '@/components/StatusBadge'
+import { StatusBadge } from '@/components/StatusBadge'
 import { Button } from '@/components/ui/button'
 import type { DataColumn, ExtraFilterSpec } from '@/components/DataTable'
 import { useShell } from '@/shell/ShellContext'
@@ -658,10 +658,6 @@ export function requestColumns(deps: ColumnDeps): ReadonlyArray<DataColumn<RideR
       sortField: 'pickup',
       cell: (row) => (
         <>
-          {/* **R5a (b)** — 3px `--ev-red` on the row's leading edge, and only
-              when the promise is broken and still owed (Q-17). At most ONE red
-              carrier per row, and this is it. */}
-          {clockFor(row).breached && <RowCriticalMarker />}
           {/**
            * **The row's subject is the RIDE, and this is where that changed.**
            *

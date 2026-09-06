@@ -1,8 +1,10 @@
 /**
  * One list row (design 12 §3.1, §3.2): a 60px `<a>` to the conversation.
- * R5a edge on a first-response breach, unread dot plus weight 600, channel
- * glyph on the avatar, one pill at most, preview tinted by author, the holder
- * as a 20px mark. The checkbox is a sibling, never hover-only (§7.3).
+ * A first-response breach is carried by the SLA pill's words and by the row's
+ * place at the top of the queue — there is no red edge. Unread dot plus
+ * weight 600, channel glyph on the avatar, one pill at most, preview tinted by
+ * author, the holder as a 20px mark. The checkbox is a sibling, never
+ * hover-only (§7.3).
  */
 
 import { Link } from 'react-router-dom'
@@ -10,7 +12,6 @@ import type { IsoDateTime } from '@/data/types'
 import { formatDate, type Language, type Translate } from '@/lib'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Avatar } from '@/components/Avatar'
-import { RowCriticalMarker } from '@/components/StatusBadge'
 import { SlaCell } from '@/screens/queues'
 import { cn } from '@/lib/utils'
 import { conversationAssignee } from '@/data/clients'
@@ -58,11 +59,9 @@ export function ConversationListItem({
 
   return (
     <li className={cn('group/row relative', (selected || checked) && 'bg-muted', 'hover:bg-muted')}>
-      {sla.firstResponseBreached ? (
-        <RowCriticalMarker className="start-0" />
-      ) : selected ? (
+      {selected && (
         <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 start-0 w-marker bg-foreground" />
-      ) : null}
+      )}
       <Link
         to={href}
         data-inbox-row=""

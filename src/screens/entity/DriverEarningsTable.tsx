@@ -88,8 +88,8 @@
  *                  `null`, which is every unsettled row.
  *   R4             money columns are `align: 'end'`, and that does NOT flip in
  *                  Arabic (§9.2).
- *   R5a            `failed` / `escalated` take `RowCriticalMarker` on the
- *                  leading edge plus the word in the description. Never a badge.
+ *   R5a            `failed` / `escalated` take the critical row GROUND plus
+ *                  the word in the description. Never a badge.
  *   §11.3          the ledger skeleton, `P7`. No spinner.
  *   §7.1           the section title is `DataTable`'s `heading`, so it shares a
  *                  row with the toolbar's control cluster and the count reads

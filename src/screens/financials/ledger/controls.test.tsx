@@ -182,8 +182,9 @@ describe('AC-419 — a refused posting is kept, with its reason in words', () =>
 
     for (const posting of refused) {
       const row = rowFor(posting.reference)
-      /* Kept, with the R5a marker: a refusal is a standing condition. */
-      expect(row.querySelectorAll('.bg-destructive').length).toBeGreaterThan(0)
+      /* No per-row red signal is asserted: every row in this view is a refusal,
+         so a signal on all of them distinguishes none of them. The reason
+         sentence below is what carries the state. */
       /* Its lines are shown, so the operator can see what was attempted. */
       for (const line of posting.lines) {
         expect(row.textContent).toContain(money(line.amountHalalas))

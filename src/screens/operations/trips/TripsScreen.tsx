@@ -48,7 +48,8 @@
  *   §9.1 / R4     fare and rating are inline-END with `tabular-nums`.
  *   §8.3.1        `—` is not-applicable only. An unrated trip is *Not rated*,
  *                 because "nobody rated it" is a known fact, not an absent one.
- *   R5a           **no red badge and no red row.** A flagged trip is `warning`;
+ *   R5a           **no red badge, no red row, no red edge.** A flagged trip
+ *                 is `warning`;
  *                 `no-show` and `cancelled` are neutral and the WORD carries
  *                 them.
  *   R3            one primary per screen, and Trips has none — nobody creates a
@@ -90,7 +91,7 @@ import { ErrorState } from '@/components/ErrorState'
 import { Money } from '@/components/Money'
 import { PageHeader } from '@/components/PageHeader'
 import { SingleColumnPage } from '@/components/PageShell'
-import { RowCriticalMarker, StatusBadge } from '@/components/StatusBadge'
+import { StatusBadge } from '@/components/StatusBadge'
 import { useShell } from '@/shell/ShellContext'
 import { useRouteState, withOverlay, withView } from '@/shell/routeState'
 import { Absent, Cell, DateCell, Identity, MutedCell, NumCell } from '@/screens/queues/cells'
@@ -390,11 +391,6 @@ export function TripsScreen({ row }: { row: SubTabRoute }) {
             )
           }
           return (
-          <>
-            {/* R5a — the ONE red carrier a row may have, and only while the
-                trip is under investigation. A flagged trip is a standing
-                condition an operator is meant to find. */}
-            {trip.flagged && <RowCriticalMarker />}
             <Identity
               to={href}
               name={trip.id}
@@ -404,7 +400,6 @@ export function TripsScreen({ row }: { row: SubTabRoute }) {
               secondary={secondary}
               label={t('trips.open.trip', { id: trip.id })}
             />
-          </>
           )
         },
       },
@@ -831,12 +826,11 @@ export function TripsScreen({ row }: { row: SubTabRoute }) {
         searchPlaceholder={t('trips.search')}
         /* **NO `isRowCritical`, and that is this screen's own ruling** — see
            the header: *R5a — no red badge and **no red row**. A flagged trip
-           is `warning`.* The single red carrier a trip row may have is the 3px
-           leading-edge marker in the identity cell (§8.4.6: *a row MUST carry
-           at most one red carrier*), and the `Flagged` column says it in words.
-           `DataTable` used to tint anyway, off a bare `r.flagged` duck-type:
-           audit C read `TRP-8001` tinted and `TRP-9003` not, both `Cancelled`,
-           with nothing in either row to explain the difference. */
+           is `warning`.* Nothing on a trip row is red at all now, and the
+           `Flagged` column plus its view tab say it in words. `DataTable` used
+           to tint anyway, off a bare `r.flagged` duck-type: audit C read
+           `TRP-8001` tinted and `TRP-9003` not, both `Cancelled`, with nothing
+           in either row to explain the difference. */
         rowActions={rowActions}
         bulkActions={bulkActions}
         /* §9.1 — the identity link is the click target and the row is not. The

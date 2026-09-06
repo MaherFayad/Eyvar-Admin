@@ -94,10 +94,10 @@
  *   §7.3 r5     the trailing visible column is a DATE. A truncated `id` or
  *               `money` reads as a different valid value; a truncated date does
  *               not.
- *   R5a         the ONE red carrier a trip row may have is the leading-edge
- *               marker on a flagged trip, and the `Status` word carries the
- *               rest. **No red badge and no red row** — `TripsScreen`'s own
- *               ruling, reused rather than re-decided.
+ *   R5a         no red anywhere on a trip row: no badge, no row tint, no
+ *               leading edge. The `Status` word carries the row.
+ *               **`flagged` has no carrier on this table** — reported to the
+ *               owner with the marker's removal.
  *   §8.3.1      **the unit is in the CELL here, not the header, and that is
  *               `TripsScreen`'s construction reused rather than re-decided.**
  *               The `Fare` column is `trips.col.fare` and is the same column
@@ -116,7 +116,7 @@
 import { useMemo } from 'react'
 import { DataTable, type DataColumn } from '@/components/DataTable'
 import { Money } from '@/components/Money'
-import { RowCriticalMarker, StatusBadge } from '@/components/StatusBadge'
+import { StatusBadge } from '@/components/StatusBadge'
 import { listTrips } from '@/data/clients'
 import type { Paginated, Trip, TripStatus } from '@/data/types'
 import { useAsync, useIndexTable } from '@/hooks'
@@ -229,8 +229,7 @@ export function DriverTripsTable({
         emphasis: 'primary',
         header: t('trips.col.id'),
         csv: (trip) => trip.id,
-        /* AC-104 / AC-106 — the identity is implicitly pinned, so a flagged
-           row's marker stays visible at every horizontal scroll offset. */
+        /* AC-104 — the record's identity is never hideable. */
         alwaysVisible: true,
         minWidth: 168,
         dataType: 'id',
@@ -262,18 +261,13 @@ export function DriverTripsTable({
             )
           }
           return (
-            <>
-              {/* R5a — the ONE red carrier a row may have, and only while the
-                  trip is under investigation. */}
-              {trip.flagged && <RowCriticalMarker />}
-              <Identity
-                to={href}
-                name={trip.id}
-                code
-                secondary={secondary}
-                label={t('trips.open.trip', { id: trip.id })}
-              />
-            </>
+            <Identity
+              to={href}
+              name={trip.id}
+              code
+              secondary={secondary}
+              label={t('trips.open.trip', { id: trip.id })}
+            />
           )
         },
       },

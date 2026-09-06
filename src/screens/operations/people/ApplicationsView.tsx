@@ -69,7 +69,7 @@ import { useAsync, useIndexTable } from '@/hooks'
 import { formatCount, formatDate, slaClock, type Language, type Translate } from '@/lib'
 import { Banner } from '@/components/Banner'
 import { ErrorState } from '@/components/ErrorState'
-import { RowCriticalMarker, StatusBadge } from '@/components/StatusBadge'
+import { StatusBadge } from '@/components/StatusBadge'
 import { Button } from '@/components/ui/button'
 import { RefusalLine } from '@/components/table/rowActions'
 import { Absent, Cell, DateCell, Identity, MutedCell, NumCell } from './cells'
@@ -457,24 +457,16 @@ export function applicationColumns(deps: ColumnDeps): ReadonlyArray<PeopleColumn
       dataType: 'text',
       sortField: 'name',
       cell: (row) => (
-        <>
-          {/* R5a (b) — a 3px full-height `--ev-red` marker on the row's
-              LEADING edge, positioned against the row (`DataTable` makes the
-              `<tr>` relative). Not a badge: no pill, no fill-plus-text, no
-              label, outside the row's content box. At most ONE red carrier per
-              row, and this is it. */}
-          {isBreached(row, now) && <RowCriticalMarker />}
-          {/* §7.7 — line 2 is `Applied 24 Jun`, which is what retires the
-              `Applied` COLUMN to the hidden set below. */}
-          <Identity
-            to={deps.detailHref(row.id)}
-            name={row.name}
-            secondary={t('people.applied', {
-              date: formatDate(row.appliedAt, { style: 'day-month', language }),
-            })}
-            t={t}
-          />
-        </>
+        /* §7.7 — line 2 is `Applied 24 Jun`, which is what retires the
+           `Applied` COLUMN to the hidden set below. */
+        <Identity
+          to={deps.detailHref(row.id)}
+          name={row.name}
+          secondary={t('people.applied', {
+            date: formatDate(row.appliedAt, { style: 'day-month', language }),
+          })}
+          t={t}
+        />
       ),
     },
     {

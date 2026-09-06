@@ -169,7 +169,7 @@ describe('AC-356 — a credit note with no matched invoice', () => {
    * on screen: a fabricated link would be one of them, and the unlinked row's
    * cell holds none of them.
    */
-  it('says so in words, carries the marker and the banner, and names no invoice', async () => {
+  it('says so in words, carries the critical ground and the banner, and names no invoice', async () => {
     mount('/financials/revenue?view=credit-notes')
     await waitFor(() => expect(screen.getByText('EYV-CN-2026-000043')).toBeTruthy())
 
@@ -184,8 +184,10 @@ describe('AC-356 — a credit note with no matched invoice', () => {
     /* 1 — the words. */
     expect(within(row).getByText(EN['fin.creditNote.unlinked'] as string)).toBeTruthy()
 
-    /* 2 — R5a's row marker, not a badge. */
-    expect(row.querySelectorAll('.bg-destructive').length).toBeGreaterThan(0)
+    /* 2 — R5a's row GROUND, not a badge and not a marker: the leading edge
+       was removed product-wide (D37). */
+    expect(row.className).toMatch(/bg-row-critical/)
+    expect(row.querySelectorAll('.bg-destructive')).toHaveLength(0)
     expect(row.querySelectorAll('[data-slot="badge"]')).toHaveLength(0)
 
     /* 3 — one page banner, with the count. */

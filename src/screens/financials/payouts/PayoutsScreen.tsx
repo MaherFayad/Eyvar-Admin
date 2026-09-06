@@ -127,7 +127,7 @@ import type { BannerModel } from '@/components/Banner'
 import { DataTable, type BulkAction, type DataColumn, type RowAction } from '@/components/DataTable'
 import { ErrorState } from '@/components/ErrorState'
 import { MoneyCell } from '@/components/Money'
-import { RowCriticalMarker, StatusBadge } from '@/components/StatusBadge'
+import { StatusBadge } from '@/components/StatusBadge'
 import { ViewSwitcher } from '@/components/table/ViewSwitcher'
 import { reasonLabel } from '@/i18n/vocabulary/copy'
 import { Button } from '@/components/ui/button'
@@ -516,9 +516,7 @@ function PayoutsView({
         minWidth: 190,
         sortField: 'captainName',
         cell: (payout) => (
-          <span className="relative block font-medium">
-            {/* R5a use #3 — a returned payout, in the leading edge. */}
-            {payout.state === 'failed' && <RowCriticalMarker />}
+          <span className="block font-medium">
             {/* **P8-T1** — the identity opens the 360° profile. The captain
                 **payable ledger** keeps its own labelled `View ledger` control
                 in the action lane: this sub-tab is an index of ledgers and the

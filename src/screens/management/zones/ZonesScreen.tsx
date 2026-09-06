@@ -77,7 +77,7 @@ import { DataTable, type DataColumn } from '@/components/DataTable'
 import { ErrorState } from '@/components/ErrorState'
 import { LoadingSkeleton } from '@/components/LoadingSkeleton'
 import { SingleColumnPage } from '@/components/PageShell'
-import { RowCriticalMarker, StatusBadge } from '@/components/StatusBadge'
+import { StatusBadge } from '@/components/StatusBadge'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { cn } from '@/lib/utils'
@@ -355,10 +355,9 @@ export function ZonesScreen({ row }: { row: SubTabRoute }) {
         sortField: 'name',
         alwaysVisible: true,
         cell: (zone) => (
-          <span className="relative block font-medium">
-            {/* R5a use #3 - a starved zone carries the leading edge, and the
+          <span className="block font-medium">
+            {/* R5a - a starved zone carries the critical row ground, and the
                 priority label beside it carries the words. */}
-            {zone.starved && <RowCriticalMarker />}
             {zone.name}
           </span>
         ),

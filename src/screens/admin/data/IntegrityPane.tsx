@@ -63,8 +63,8 @@
  * Rules applied
  *   R7 / R17   `critical` and `warning` share ONE warning tone and are told
  *              apart by the LABEL. There is no red badge and no sixth tone.
- *   R5a        the only red is `RowCriticalMarker` on a critical finding's
- *              leading edge — a marker, not a badge, outside the content box.
+ *   R5a        there is no red on a finding row. `critical` is told from
+ *              `warning` by its LABEL alone (R17).
  *   §11.2      `Run` is disabled in place with its reason, never hidden.
  *   §11.1/R8   three empties, and the `cleared` one reads as success.
  *   §9.1       logical utilities only; nothing here has a physical direction.
@@ -102,7 +102,7 @@ import { useAnnounce, useAsync } from '@/hooks'
 import { EmptyState } from '@/components/EmptyState'
 import { ErrorState } from '@/components/ErrorState'
 import { LoadingSkeleton } from '@/components/LoadingSkeleton'
-import { RowCriticalMarker, StatusBadge } from '@/components/StatusBadge'
+import { StatusBadge } from '@/components/StatusBadge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -600,14 +600,10 @@ function FindingRow({
 }) {
   const { t } = useShell().language
   const linkable = INTEGRITY_LINKABLE_ENTITY_TYPES.includes(finding.entityType)
-  const critical = finding.severity === 'critical'
 
   return (
-    <TableRow className={critical ? 'relative' : undefined}>
+    <TableRow>
       <TableCell className="align-top">
-        {/* R5a use #3 — a marker on the leading edge, not a badge and not a
-            fill. At most one red carrier per row. */}
-        {critical && <RowCriticalMarker />}
         <span className="flex flex-col gap-0.5">
           <span className="text-xs font-medium text-foreground">
             <bdi>{finding.entityLabel}</bdi>

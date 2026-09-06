@@ -87,7 +87,7 @@ import {
 } from '@/components/metrics'
 import { ErrorState } from '@/components/ErrorState'
 import { LoadingSkeleton } from '@/components/LoadingSkeleton'
-import { RowCriticalMarker, StatusBadge } from '@/components/StatusBadge'
+import { StatusBadge } from '@/components/StatusBadge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -833,20 +833,17 @@ export function caseColumns(view: string, deps: CaseDeps): ReadonlyArray<DataCol
       dataType: 'text',
       sortField: 'driverName',
       cell: (row) => (
-        <>
-          {clockFor(row).breached && <RowCriticalMarker />}
-          <Identity
-            /* §12.1: the identity opens the record (S-8); the captain's profile is in its rail. */
-            to={deps.detailHref(row.id)}
-            name={row.driverName}
-            /* §7.7 — what they are contesting, and the case id. ONE key. */
-            secondary={t('fairness.line', {
-              reason: t(`fairness.reason.${row.reasonCode}`),
-              id: row.id,
-            })}
-            label={t('fairness.a11y.open', { name: row.driverName })}
-          />
-        </>
+        <Identity
+          /* §12.1: the identity opens the record (S-8); the captain's profile is in its rail. */
+          to={deps.detailHref(row.id)}
+          name={row.driverName}
+          /* §7.7 — what they are contesting, and the case id. ONE key. */
+          secondary={t('fairness.line', {
+            reason: t(`fairness.reason.${row.reasonCode}`),
+            id: row.id,
+          })}
+          label={t('fairness.a11y.open', { name: row.driverName })}
+        />
       ),
     },
     middle,

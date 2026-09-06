@@ -20,14 +20,14 @@
  *              hardcoded `90` (`:11652`) has no way in, in any queue, for any
  *              reason.
  *   §4.4 Q-21 / AC-220
- *              R5a's three parts, none substituting for another: the page
- *              banner (the screen renders it), the 3px leading-edge marker
- *              (`RowCriticalMarker`), and the pill reading **`overdue 14m` in
+ *              R5a's parts, none substituting for another: the page banner
+ *              (the screen renders it) and the pill reading **`overdue 14m` in
  *              words** — so the queue in greyscale still identifies which rows
- *              are breached.
+ *              are breached. The leading-edge marker is gone product-wide by
+ *              D37; the row's critical GROUND remains.
  *   §4.4 Q-23 / AC-221 / AC-224
  *              **at most one red carrier per row**, and nothing pulses. The
- *              breached pill is `warning` tone; red is spent on the marker.
+ *              breached pill is `warning` tone; red is spent on the ground.
  *   §4.2 / AC-201 / AC-202
  *              `Claim` and `Open` are separate controls, and an item held by
  *              someone else shows **that operator's name and `Take over`** —

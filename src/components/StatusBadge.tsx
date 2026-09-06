@@ -5,9 +5,8 @@
  * make two rules unrepresentable rather than merely documented:
  *
  *   **There is no red badge** (R5a). `badge.tsx` already deletes the stock
- *   `destructive` variant; this adds no way back. Per-row criticality is
- *   `RowCriticalMarker` (V-05, a 3px inset leading edge) plus the countdown
- *   pill's own words — never a badge.
+ *   `destructive` variant; this adds no way back. Per-row criticality is the
+ *   row's own ground plus the countdown pill's words — never a badge.
  *
  *   **Badges are never interactive** (§12.1). There is no `onClick`, no
  *   `href`, no focus ring. An editable status uses a select or a card action.
@@ -33,7 +32,6 @@
  */
 
 import { Badge } from '@/components/ui/badge'
-import { cn } from '@/lib/utils'
 import type { BadgeTone } from '@/data/types'
 
 export interface StatusBadgeProps {
@@ -48,63 +46,5 @@ export function StatusBadge({ tone, children, className }: StatusBadgeProps) {
     <Badge tone={tone} className={className}>
       {children}
     </Badge>
-  )
-}
-
-/**
- * `RowCriticalMarker` (V-05) — **R5a use #3**, design spec §9.3 (b).
- *
- * A 3px full-height `--ev-red` marker on a breached row's **leading edge**.
- * Legal because it is not a badge: no pill geometry, no fill-plus-text pairing,
- * no label, and it sits outside the row's content box.
- *
- * Implemented as an absolutely positioned span at `start-0`, **not** as
- * `box-shadow: inset 3px 0 0`. Two reasons, and both are rules:
- *   - `box-shadow` is one property and §7.2's focus ring already occupies it
- *     (the R-3 elevation ruling), so a row carrying both would drop one;
- *   - a physical `inset 3px 0 0` does not mirror in Arabic, and §9.1 admits no
- *     physical direction anywhere.
- *
- * **At most ONE red carrier per row** (§9.3): this marker **or** an icon tile,
- * never both, or red stops meaning "this one". And a breached row **must not
- * pulse, blink or loop** — R18: a loop may only signal "this feed is live" and
- * may never encode severity.
- *
- * The row must also carry the countdown reading `overdue 14m` **in words**, so
- * the state survives colour being removed (**AC-50**): rendering the queue in
- * greyscale still shows which rows are breached.
- */
-export function RowCriticalMarker({ className }: { className?: string } = {}) {
-  return (
-    <span
-      aria-hidden="true"
-      className={cn(
-        /* `w-marker`, not an arbitrary value. `--ev-marker: 3px` is a figure the
-           design spec NAMES — the SLA countdown track, §2.3's active nav bar and
-           this lane are one token used three times rather than three literals —
-           and it is published as `--spacing-marker`. This lane had drifted to a
-           hand-written `3.5px`, which is both off the named figure and a bypass
-           of a live token: the marker no longer matched the two rules it is
-           supposed to be the same width as. */
-        "pointer-events-none absolute inset-y-0 w-marker bg-destructive z-10",
-        /* **The inset is declared by the ROW, not fixed here.**
-         *
-         * This span is absolutely positioned, so it resolves against the
-         * nearest positioned ancestor — and every screen renders it inside the
-         * identity cell, which is pinned, and a pinned cell is positioned. So
-         * the inset reaches the identity cell's edge, and that is the row's
-         * leading edge only while nothing sits ahead of it.
-         *
-         * A selection lane sits ahead of it on six screens, and there the
-         * marker drew a red rule down the middle of the row instead of its
-         * edge. `DataTable` sets the custom property below on rows where that
-         * lane exists, because the lane's width is a number only it holds.
-         *
-         * The fallback is the value this had before, so a marker rendered
-         * outside a table — or in a table with no selection — is unchanged. */
-        "[inset-inline-start:var(--ev-row-marker-start,-0.75rem)]",
-        className
-      )}
-    />
   )
 }

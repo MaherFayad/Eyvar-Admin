@@ -85,7 +85,6 @@ import { LoadingSkeleton } from '@/components/LoadingSkeleton'
 import { Money, MoneyCell } from '@/components/Money'
 import { MetricTile, Sparkline } from '@/components/metrics'
 import { MasterDetailPage } from '@/components/PageShell'
-import { RowCriticalMarker } from '@/components/StatusBadge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -824,9 +823,9 @@ function PlanListRow({
           selected ? 'bg-accent' : 'hover:bg-muted/60',
         )}
       >
-        {/* V-13 — the 3px start-edge bar, `w-marker` and a logical inset, the
-            geometry `RowCriticalMarker` uses. `bg-primary`, never the
-            destructive hue: a selected row is not a critical one (R5a). */}
+        {/* V-13 — the 3px start-edge bar, `w-marker` and a logical inset.
+            `bg-primary`, never the destructive hue: a selected row is not a
+            critical one (R5a). */}
         {selected && (
           <span
             aria-hidden="true"
@@ -1205,10 +1204,10 @@ function RefundsView({ activeTab, onSelectTab, onFacts }: ViewProps) {
         minWidth: 160,
         sortField: 'id',
         cell: (refund) => (
-          <span className="relative block font-medium tabular-nums">
-            {/* R5a — a refund with no traceable payment is a warning row, not a
-                fabricated link (§6.3). It carries the marker and says so. */}
-            {refund.sourcePaymentId === null && <RowCriticalMarker />}
+          <span className="block font-medium tabular-nums">
+            {/* R5a — a refund with no traceable payment is a critical row, not
+                a fabricated link (§6.3). The ground carries it and the second
+                line says so. */}
             <bdi>{refund.id}</bdi>
           </span>
         ),
@@ -1396,10 +1395,9 @@ function CreditNotesView({
         minWidth: 210,
         sortField: 'noteNumber',
         cell: (note) => (
-          <span className="relative block font-medium tabular-nums">
-            {/* **AC-356** — the row-level critical signal, plus the words in the
+          <span className="block font-medium tabular-nums">
+            {/* **AC-356** — the row's critical ground, plus the words in the
                 cell below, plus the page banner. Three parts, no badge. */}
-            {note.unlinked && <RowCriticalMarker />}
             <bdi>{note.noteNumber}</bdi>
           </span>
         ),

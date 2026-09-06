@@ -85,7 +85,7 @@ import { DataTable, type DataColumn } from '@/components/DataTable'
 import { tableCeiling } from '@/components/table/columns'
 import { EmptyState } from '@/components/EmptyState'
 import { Money, MoneyCell } from '@/components/Money'
-import { RowCriticalMarker, StatusBadge } from '@/components/StatusBadge'
+import { StatusBadge } from '@/components/StatusBadge'
 import type { LedgerTable } from '@/hooks'
 import { ABSENT, formatCount, formatDate, formatMoney, type Language, type Translate } from '@/lib'
 import { localisedText } from './text'
@@ -130,16 +130,11 @@ export function ledgerColumns(t: Translate, language: Language): DataColumn<Ledg
       dataType: 'date',
       width: 104,
       cell: (row) => (
-        <span className="relative block">
-          {/* R5a use #3 — `failed` and `escalated` carry the marker, and the
-              words are in the description beside it, so greyscale still shows
-              which row it is (**AC-310**). The marker rides the first cell,
-              which is the implicitly pinned one, so it survives a horizontal
-              scroll. */}
-          {isCritical(row) && <RowCriticalMarker />}
-          <span className="tabular-nums">
-            {formatDate(row.postedAt, { style: 'day-month', language })}
-          </span>
+        /* R5a — `failed` and `escalated` carry the critical row ground, and
+           the words are in the description, so greyscale still shows which
+           row it is (**AC-310**). */
+        <span className="tabular-nums">
+          {formatDate(row.postedAt, { style: 'day-month', language })}
         </span>
       ),
     },

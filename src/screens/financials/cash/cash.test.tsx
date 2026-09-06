@@ -284,12 +284,15 @@ describe('a decided report, and an escalated one', () => {
    * escalated word, while the classification badge beside it exists — so the
    * absence is a decision about this state rather than a table with no badges.
    */
-  it('AC-378 — an escalated report takes the marker and the banner, never a badge', async () => {
+  it('AC-378 — an escalated report takes the critical ground and the banner, never a badge', async () => {
     mount('/financials/cash?view=reconciliation-queue')
     await waitFor(() => expect(screen.getByText('CASH-0002')).toBeTruthy())
 
     const escalated = rowFor('CASH-0002')
-    expect(escalated.querySelectorAll('.bg-destructive').length).toBeGreaterThan(0)
+    /* R5a's per-row signal is the row's GROUND — the leading-edge marker was
+       removed product-wide (D37), so nothing red sits in the row. */
+    expect(escalated.className).toMatch(/bg-row-critical/)
+    expect(escalated.querySelectorAll('.bg-destructive')).toHaveLength(0)
 
     /* The escalated state IS carried in a badge — the §4 decision badge — and
        the criterion's word is *red*, not *badge*. R7 closes the tone set at

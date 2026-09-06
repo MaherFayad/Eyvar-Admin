@@ -12,13 +12,13 @@
  * them is a file move.
  *
  * Rules applied
- *   §9.3 (a)(b)(c) / AC-50
- *              all three parts of R5a, and none substitutes for another: the
- *              page banner with a count (the screen renders it), the 3px
- *              `--ev-red` leading-edge marker per breached row
- *              (`RowCriticalMarker`, already built in `StatusBadge.tsx`), and
- *              the countdown reading **`overdue 14m` in words**, so the state
- *              survives colour being removed.
+ *   §9.3 (a)(c) / AC-50
+ *              two parts of R5a, and neither substitutes for the other: the
+ *              page banner with a count (the screen renders it), and the
+ *              countdown reading **`overdue 14m` in words**, so the state
+ *              survives colour being removed. There is no leading-edge marker
+ *              — D37 removed it product-wide; the row's critical GROUND
+ *              is the only per-row colour.
  *   R17 / R5a  the breached pill is **warning tone, not red**. There is no red
  *              badge; the WORD `overdue` is what separates it from `12m left`,
  *              exactly as R17 separates "waiting on them" from "waiting on

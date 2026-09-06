@@ -82,8 +82,8 @@
  *                  `null`, which is every row that did not move the wallet.
  *   R4             money columns are `align: 'end'`, and that does NOT flip in
  *                  Arabic (§9.2, AC-RP-53).
- *   R5a            `failed` / `escalated` take `RowCriticalMarker` on the
- *                  leading edge plus the word in the description. Never a badge.
+ *   R5a            `failed` / `escalated` take the critical row GROUND plus
+ *                  the word in the description. Never a badge.
  *   §11.3          the ledger skeleton, `P7`. No spinner (AC-RP-79).
  */
 
@@ -91,7 +91,7 @@ import { useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { DataTable, type DataColumn } from '@/components/DataTable'
 import { MoneyCell, Money } from '@/components/Money'
-import { RowCriticalMarker, StatusBadge } from '@/components/StatusBadge'
+import { StatusBadge } from '@/components/StatusBadge'
 import {
   SETTLEMENT_BADGE_TONE,
   type RiderMoneyMovement,
@@ -331,15 +331,8 @@ function movementColumns(t: Translator, language: Language): DataColumn<RiderMon
       dataType: 'date',
       width: 104,
       cell: (row) => (
-        <span className="relative block">
-          {/* R5a use #3 — the marker rides the first cell, which is the
-              implicitly pinned one, so it survives a horizontal scroll. The
-              WORDS are in the description beside it, so greyscale still shows
-              which row it is (AC-310, AC-RP-61). */}
-          {isCritical(row) && <RowCriticalMarker />}
-          <span className="tabular-nums">
-            {formatDate(row.at, { style: 'day-month', language })}
-          </span>
+        <span className="tabular-nums">
+          {formatDate(row.at, { style: 'day-month', language })}
         </span>
       ),
     },

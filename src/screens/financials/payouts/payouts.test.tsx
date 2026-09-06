@@ -347,14 +347,14 @@ describe('AC-364 — releasing escrow', () => {
 
 describe('a returned payout, and one the role may not perform', () => {
   /**
-   * **AC-367** — the row marker, the word `failed` in the row, and ONE page
-   * banner with a count. *"It is not a red badge."*
+   * **AC-367** — the row's critical ground, the word `failed` in the row, and
+   * ONE page banner with a count. *"It is not a red badge."*
    *
    * The absence is asserted structurally: the state cell holds no
    * `data-slot="badge"` at all on a failed row, while a `due` row does. A test
    * that only looked for the words would pass with a red badge beside them.
    */
-  it('AC-367 — a returned payout takes the marker, the words and a banner, never a badge', async () => {
+  it('AC-367 — a returned payout takes the critical ground, the words and a banner, never a badge', async () => {
     mount(payoutsRow(), '/financials/payouts?view=payouts')
     await waitFor(() => expect(screen.getByText('Youssef Nouri')).toBeTruthy())
 
@@ -364,8 +364,10 @@ describe('a returned payout, and one the role may not perform', () => {
     expect(within(failed).getByText(EN['fin.payout.state.failed'] as string)).toBeTruthy()
     expect(within(failed).getByText(EN['fin.payout.failure.noBankAccount'] as string)).toBeTruthy()
 
-    /* R5a use #3 — the leading-edge marker, not a badge. */
-    expect(failed.querySelectorAll('.bg-destructive').length).toBeGreaterThan(0)
+    /* R5a's per-row signal is the row's GROUND, not a badge and not a marker:
+       the leading edge was removed product-wide (D37). */
+    expect(failed.className).toMatch(/bg-row-critical/)
+    expect(failed.querySelectorAll('.bg-destructive')).toHaveLength(0)
 
     /* No badge anywhere on the failed row… */
     const failedBadges = [...failed.querySelectorAll('[data-slot="badge"]')]

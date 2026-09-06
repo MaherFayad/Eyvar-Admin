@@ -69,7 +69,7 @@ import { DataTable, type DataColumn, type RowAction } from '@/components/DataTab
 import { MoneyCell } from '@/components/Money'
 import { PageHeader } from '@/components/PageHeader'
 import { SingleColumnPage } from '@/components/PageShell'
-import { RowCriticalMarker, StatusBadge } from '@/components/StatusBadge'
+import { StatusBadge } from '@/components/StatusBadge'
 import { ConfirmDialog, type ConfirmRequest } from '@/components/ConfirmDialog'
 import { BreachBanner, OwnerChip } from '@/screens/queues'
 import { useShell } from '@/shell/ShellContext'
@@ -329,7 +329,6 @@ export function DisputesScreen({ row }: { row: SubTabRoute }) {
         alwaysVisible: true,
         cell: (d) => (
           <span className="flex items-center gap-2">
-            {d.status !== 'resolved' && d.slaBreachedAt !== null && <RowCriticalMarker />}
             <Link
               to={`/support/disputes/${d.id}${location.search}`}
               className="rounded-sm font-mono text-xs font-semibold text-foreground hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"

@@ -15,7 +15,7 @@
  *               refuses to guess: `max` is the caller's, always.
  *   §8.4.2      three bands, and the BAND is the caller's (`SlaCountdown`
  *               computes it from the item's target): >= 50% neutral · < 50%
- *               warning · breached hands over to `RowCriticalMarker` (V-05).
+ *               warning · breached hands over to the critical row's ground.
  *               So the fill takes a `tone`, and there is no `default` blue —
  *               blue would read as "primary action" under R3.
  *   §7.5 / AC-50

@@ -70,7 +70,6 @@ import { DataTable, type DataColumn } from '@/components/DataTable'
 import { ErrorState } from '@/components/ErrorState'
 import { LoadingSkeleton } from '@/components/LoadingSkeleton'
 import { MoneyCell } from '@/components/Money'
-import { RowCriticalMarker } from '@/components/StatusBadge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Switch } from '@/components/ui/switch'
@@ -744,9 +743,9 @@ function RefusedView({
         dataType: 'id',
         minWidth: 220,
         cell: (each) => (
-          <span className="relative block font-medium tabular-nums">
-            {/* R5a — a refusal is a standing critical condition on the row. */}
-            <RowCriticalMarker />
+          /* R5a — every row here is a refusal, so no row-level signal tells
+             one from another. The `Reason` column says it in words. */
+          <span className="block font-medium tabular-nums">
             <bdi>{each.reference}</bdi>
           </span>
         ),

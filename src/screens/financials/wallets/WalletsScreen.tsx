@@ -96,7 +96,6 @@ import type { BannerModel } from '@/components/Banner'
 import { DataTable, type DataColumn, type ExtraFilterSpec } from '@/components/DataTable'
 import { ErrorState } from '@/components/ErrorState'
 import { MoneyCell } from '@/components/Money'
-import { RowCriticalMarker } from '@/components/StatusBadge'
 import { Button } from '@/components/ui/button'
 import { useShell } from '@/shell/ShellContext'
 import { ConfirmMoneyDialog, type MoneyConfirmRequest } from '../shared/ConfirmMoneyDialog'
@@ -508,10 +507,9 @@ function WalletIndex({
            `No wallets match`, which is the worst of the three outcomes. */
         filter: { kind: 'text', field: 'riderName' },
         cell: (wallet) => (
-          <span className="relative block">
-            {/* **AC-383** — a negative wallet carries the row's structural
-                signal; the balance itself is U+2212 in ink, never a red pill. */}
-            {wallet.balanceHalalas < 0 && <RowCriticalMarker />}
+          <span className="block">
+            {/* **AC-383** — a negative wallet carries the row's critical
+                ground; the balance itself is U+2212 in ink, never a red pill. */}
             {/* **A LINK, not a button** — §9.1 / AC-43. The ledger is a view of
                 this route (`?rider=<id>`), so it has an address, and an
                 identity with an address must be openable in a new tab,
