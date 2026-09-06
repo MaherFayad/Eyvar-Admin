@@ -160,6 +160,18 @@ const blockProbe = () => {
             .height.toFixed(1),
           bodyRowHeight: +table.querySelector('tbody tr').getBoundingClientRect().height.toFixed(1),
           sarRuns: (table.querySelector('thead').textContent.match(/SAR/g) ?? []).length,
+          /* D36 — the unit moved OUT of the head and into the band's heading:
+             a rung inside the head has no column rules to span, so it reads as
+             the unit of whichever column it lands on. */
+          bandHeadingUnit: (() => {
+            /* `Table` wraps itself in a scroll container, so walk up until an
+               ancestor actually carries the band's heading. */
+            for (let n = table.parentElement; n; n = n.parentElement) {
+              const h = n.querySelector(':scope > h4')
+              if (h) return h.textContent.trim()
+            }
+            return null
+          })(),
           columns: [...table.querySelectorAll('thead tr:first-child th')].map((th) => {
             const line = parseFloat(getComputedStyle(th).lineHeight)
             const range = document.createRange()
@@ -396,8 +408,11 @@ for (const [state, probe] of [['live', out.live], ['draft', out.draft]]) {
     failures.push(state + ': the pane bands start at ' + probe.paneInkStarts.join(',') + ' (F6)')
   }
   /* The unit rung: `SAR` once in the head, never in a cell (F8). */
-  if (probe.matrix && probe.matrix.sarRuns !== 1) {
-    failures.push(state + ': ' + probe.matrix.sarRuns + ' SAR runs in the table head')
+  if (probe.matrix && probe.matrix.sarRuns !== 0) {
+    failures.push(state + ': ' + probe.matrix.sarRuns + ' SAR runs in the table head (D36)')
+  }
+  if (probe.matrix && !/SAR|ريال/.test(probe.matrix.bandHeadingUnit ?? '')) {
+    failures.push(state + ": band B's heading does not state the unit: " + probe.matrix.bandHeadingUnit)
   }
   if (probe.matrix && probe.matrix.bodyRowHeight < 36) {
     failures.push(state + ': body row is ' + probe.matrix.bodyRowHeight + 'px, under --ev-row-h')

@@ -114,21 +114,25 @@ internal-note edge (`bg-note-bar`). D37 removes a red marker, not the marker lan
 A screen that cannot distinguish a critical row without the line has a defect in its ground or
 its copy, and is fixed there. It does not get the line back.
 
-### A money table states its unit once, over the span (2026-09-06)
+### A money table states its unit once, in the band's heading (2026-09-06)
 
 **D36 — where a table has three or more adjacent money columns, the currency is stated ONCE in
-a unit rung spanning them, not repeated in every column header.** This is a sanctioned
+the band's heading, not repeated in every column header.** This is a sanctioned
 deviation from §8.3.1, which is a MUST and says the unit belongs in the column header. §8.3.1
 is written for a table with one or two money columns, where repeating the unit costs nothing.
 The rate card has five, and repetition was measured at 167px — **26.3% of the table's width,
 30.4% in Arabic** — while two headers wrapped for lack of the room it consumed.
 
-The rung is **centred over the money span, never end-aligned.** End-aligned it lands under the
-last column and reads as that column's unit rather than the table's, which is the misreading
-that produced this ruling. It is `aria-hidden`, because a `colspan` announces poorly, and the
-table's `<caption>` states `All figures in SAR.` for the same operator. The unit token is
-`<bdi>`-isolated, per glossary R4, so a Latin currency code inside an RTL header does not
-reorder its neighbours.
+**The unit goes in the band's heading, not in a rung inside the table head.** A rung was tried
+twice and failed twice, for one reason: the table head draws no column rules, so a word placed
+in it belongs to whichever column it sits over. End-aligned it read as `Cancellation`'s unit;
+centred it overlapped `Per minute` by 20px and read as that one. There is no position inside
+the head that reads as "all of these", so the unit leaves the head entirely: the band is titled
+`Prices (SAR)`, matching the heading its three sibling bands already carry.
+
+The table's `<caption>` still states `All figures in SAR.` for a screen-reader operator, and no
+column label repeats the unit. In Arabic the heading keeps the Latin currency token, `<bdi>`-
+isolated per glossary R4 so it does not reorder its neighbours.
 
 Below three money columns, §8.3.1 stands unchanged.
 
@@ -255,7 +259,7 @@ One line each. The text lives in `05-restructure/DECISIONS.md`; grep the ID.
 | D34 — no shadows and no glows; a surface is separated from its ground by the value step and a hairline, nothing else |
 | D35a — a disabled control drops its FILL, not its BOX: no brand fill, but height, radius, padding and a 1px hairline stay |
 | D35b — within one card, the title and a control never carry the same string; an instruction is stated once |
-| D36 — a table with three or more adjacent money columns states the currency ONCE, in a rung CENTRED over the span (deviates from §8.3.1) |
+| D36 — a table with three or more adjacent money columns states the currency ONCE, in the BAND'S HEADING, never inside the table head (deviates from §8.3.1) |
 | D37 — no red leading-edge row marker in any table; a critical row reads from its ground and its words (supersedes §8.4) |
 | D-11a — who owns focus when a menu hands off to a layer: **the layer wins** |
 | D-12 — peek is the drawer, not a sixth surface |

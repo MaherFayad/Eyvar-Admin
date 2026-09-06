@@ -396,6 +396,7 @@ function RateCardPane({
 
       {/* ── band B · prices ───────────────────────────────────────────────── */}
       <div className={BAND}>
+        <h4 className={cn(T2, 'px-3')}>{t('fin.pricing.rateCard.prices.heading')}</h4>
         <ClassTable card={card} t={t} />
       </div>
 
@@ -468,9 +469,9 @@ function TermRow({ label, children }: { label: string; children: ReactNode }) {
 
 /**
  * Band B — the loudest region on the view (§3.3), bought with the product's own
- * table chrome rather than a bigger glyph. `SAR` is stated once, in a unit rung
- * spanning the five money columns, never in a cell: §8.3.1's purpose kept and
- * its letter deviated from, which needs the owner's line in `docs/RULINGS.md`.
+ * table chrome rather than a bigger glyph. `SAR` is stated once, in the BAND'S
+ * HEADING (D36): a rung inside the head has no column rules to span, so it sits
+ * inside whichever column it lands on and reads as that column's unit.
  */
 function ClassTable({ card, t }: { card: RateCard; t: Translator }) {
   /* Sized to the widest LABEL each column carries in either language, on the
@@ -499,19 +500,6 @@ function ClassTable({ card, t }: { card: RateCard; t: Translator }) {
               {t(`fin.pricing.rateCard.col.${column}`)}
             </TableHead>
           ))}
-        </TableRow>
-        {/* The unit rung (D36). Centred over the money span, never end-aligned:
-            end-aligned it sits under the last column and reads as that column's
-            unit. `aria-hidden` because a `colspan` announces poorly and the
-            `<caption>` states `All figures in SAR.` for the same operator. */}
-        <TableRow aria-hidden="true">
-          <TableHead className="h-auto pt-0 pb-2" />
-          <TableHead
-            colSpan={money.length}
-            className="h-auto pt-0 pb-2 text-center text-xs font-normal"
-          >
-            <bdi>{t('fin.pricing.rateCard.table.unit')}</bdi>
-          </TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>

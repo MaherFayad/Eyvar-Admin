@@ -529,7 +529,7 @@ export const FINANCIALS_AR: Dictionary = {
   'fin.pricing.rateCard.col.perMin': 'لكل دقيقة',
   'fin.pricing.rateCard.col.minFare': 'الحد الأدنى',
   'fin.pricing.rateCard.col.cancelFee': 'الإلغاء',
-  'fin.pricing.rateCard.table.unit': 'SAR',
+  'fin.pricing.rateCard.prices.heading': 'الأسعار (SAR)',
   'fin.pricing.rateCard.class.economy': 'اقتصادية',
   'fin.pricing.rateCard.class.comfort': 'مريحة',
   'fin.pricing.rateCard.col.wait': 'الانتظار',

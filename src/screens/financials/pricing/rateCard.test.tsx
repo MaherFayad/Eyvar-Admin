@@ -288,7 +288,7 @@ describe('the detail pane', () => {
     expect(pane().textContent).not.toContain('22%')
   })
 
-  it('AC-RC-34 — the class matrix is six columns of table chrome with one unit rung', async () => {
+  it('AC-RC-34 — the class matrix is six columns of table chrome, and no unit inside it', async () => {
     await mounted()
     const table = within(pane()).getAllByRole('table')[0] as HTMLTableElement
     const headers = within(table).getAllByRole('columnheader')
@@ -307,9 +307,10 @@ describe('the detail pane', () => {
     expect(headers[0]?.className).toContain('bg-muted')
     expect(headers[0]?.className).toContain('text-sm')
 
-    /* The unit is stated once, in the head, and never in a cell (§8.3.1). */
+    /* D36 — the unit is in the BAND HEADING now, so the table itself states
+       it nowhere: not in the head, not in a cell. */
     const head = table.querySelector('thead') as HTMLElement
-    expect(head.textContent?.match(/SAR/g) ?? []).toHaveLength(1)
+    expect(head.textContent).not.toContain('SAR')
     for (const cell of within(table).getAllByRole('cell')) {
       expect(cell.textContent).not.toContain('SAR')
     }
@@ -1190,18 +1191,21 @@ describe('the applied copy sheet', () => {
     expect(dialog.textContent).not.toContain('Up to 12 hours')
   })
 
-  it('D36 — five money columns state SAR once, and no column label repeats the unit', async () => {
+  it('D36 — the unit is stated once, in the band heading, and nowhere in the table', async () => {
     await mounted()
     const table = within(pane()).getAllByRole('table')[0] as HTMLElement
     const head = table.querySelector('thead') as HTMLElement
     for (const header of within(table).getAllByRole('columnheader')) {
       expect(header.textContent, 'the unit is not repeated per label').not.toContain('SAR')
     }
-    expect(head.textContent?.match(/SAR/g) ?? []).toHaveLength(1)
-    /* The rung is `aria-hidden`, so the caption is where a screen-reader
-       operator is told the unit instead. */
-    const rung = within(head).getByText('SAR').closest('[aria-hidden="true"]')
-    expect(rung, 'a colspan rung announces poorly, so it is hidden').toBeTruthy()
+    /* A rung inside the head has no column rules to span, so it reads as the
+       unit of whichever column it lands on. It lives in the heading instead. */
+    expect(head.textContent, 'the head states no unit at all').not.toContain('SAR')
+    const heading = within(pane()).getByRole('heading', {
+      name: copy('fin.pricing.rateCard.prices.heading'),
+    })
+    expect(heading.textContent).toContain('SAR')
+    /* The caption is where a screen-reader operator is told the same thing. */
     const caption = table.querySelector('caption') as HTMLElement
     expect(caption.textContent).toContain('All figures in SAR.')
   })

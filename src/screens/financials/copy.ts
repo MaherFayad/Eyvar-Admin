@@ -810,9 +810,10 @@ export const FINANCIALS_EN: Dictionary = {
   'fin.pricing.rateCard.col.perMin': 'Per minute',
   'fin.pricing.rateCard.col.minFare': 'Minimum',
   'fin.pricing.rateCard.col.cancelFee': 'Cancellation',
-  /* Five money columns in one currency state the unit once, in a rung spanning
-     them, instead of five times in five labels. */
-  'fin.pricing.rateCard.table.unit': 'SAR',
+  /* D36 — five money columns state the unit ONCE, and in the band's heading
+     rather than a rung inside the head: with no column rules, a rung sits
+     inside whichever column it lands on and reads as that column's unit. */
+  'fin.pricing.rateCard.prices.heading': 'Prices (SAR)',
   /* A class name reached an Arabic operator as stored English. */
   'fin.pricing.rateCard.class.economy': 'Economy',
   'fin.pricing.rateCard.class.comfort': 'Comfort',
