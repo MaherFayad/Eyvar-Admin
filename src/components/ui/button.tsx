@@ -18,9 +18,10 @@
  *   §7.2 / D20 `outline-hidden` is paired with a 2px `--ev-blue` ring at 2px
  *              offset. Never removed.
  *   §9.1       logical utilities only; the CLI converted on add (`rtl: true`).
- *   D-2 / D15  every size is on the 4px grid. The stock
- *              the stock min() radius clamp and an 0.8rem arbitrary font size
- *              arbitrary values are gone.
+ *   D-2 / D15  every size is on the 4px grid; the stock min() radius clamp and
+ *              the 0.8rem font size are gone.
+ *   D35a       disabled drops the FILL, not the BOX. Boxed variants keep a 1px
+ *              `border-border`; `ghost` and `link` have no box to keep.
  *
  * Removed on arrival: `dark:` variants (Eyvar ships one theme), the
  * `color-mix` hover literal, the stock 3px focus ring.
@@ -42,11 +43,12 @@ const buttonVariants = cva(
     "text-sm font-medium whitespace-nowrap select-none",
     "transition-colors outline-hidden",
     "focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-    // §4.6 / §11.2 — disabled renders IN PLACE, never hidden. It drops fill,
-    // border and shadow and keeps its label in --ev-text-2, so it stays legible
-    // in dark and the one live primary is the only full-weight control
-    // (CONTACT-CENTRE-REDESIGN-PLAN §3 item 5). Never opacity.
-    "disabled:pointer-events-none disabled:border-transparent disabled:bg-transparent disabled:text-muted-foreground disabled:shadow-none",
+    // §4.6 / §11.2 — disabled renders IN PLACE, never hidden, never opacity.
+    // D35a — it drops its FILL, not its BOX: height, radius, padding and a
+    // hairline stay, so it reads as a control rather than as a caption. The
+    // hairline is declared per variant below, because a variant that never had
+    // a box does not grow one.
+    "disabled:pointer-events-none disabled:bg-transparent disabled:text-muted-foreground disabled:shadow-none",
     "aria-invalid:border-destructive",
     "[&_svg]:pointer-events-none [&_svg]:shrink-0",
     "[&_svg:not([class*='size-'])]:size-4",
@@ -55,7 +57,8 @@ const buttonVariants = cva(
     variants: {
       variant: {
         // R3 / D-1 — the one primary.
-        default: "bg-primary text-primary-foreground hover:bg-primary/90",
+        default:
+          "bg-primary text-primary-foreground hover:bg-primary/90 disabled:border-border",
         // The everyday secondary: white surface, hairline, ink label.
         //
         // **`border-border-control`, not `border-border` — R23, match audit
@@ -68,17 +71,31 @@ const buttonVariants = cva(
         // affordance exactly inverted. The interactive element is now at least
         // as defined as the static one. Not a §7 contrast requirement either
         // way: the boundary is never the sole indicator, the label is.
+        //
+        // D35a — disabled steps the edge DOWN from the control weight to the
+        // structural one, so a control the operator cannot use is quieter than
+        // one they can. The affordance is not inverted.
         secondary:
-          "border-border-control bg-secondary text-secondary-foreground hover:bg-accent aria-expanded:bg-accent",
+          "border-border-control bg-secondary text-secondary-foreground hover:bg-accent aria-expanded:bg-accent disabled:border-border",
         // Same geometry, no surface — toolbar icons, kebabs, nav rows.
+        //
+        // D35a DOES NOT APPLY: `ghost` has no edge in any state, so disabled
+        // takes none away. Every table's pager is a ghost pair with one end
+        // disabled; boxing that one would outline the control that cannot be
+        // used and leave the one that can bare — R23 / N3's inversion exactly.
         ghost:
           "text-foreground hover:bg-accent hover:text-accent-foreground aria-expanded:bg-accent",
         // R3 consequence — blue no longer carries links, so a link takes
         // --ev-blue-dk plus an underline. `text-info-foreground` IS --ev-blue-dk.
+        //
+        // D35a DOES NOT APPLY, and cannot: `h-auto p-0` means there is no
+        // height, padding or radius to keep. An edge here would make a chip of
+        // a word inside a sentence (§5.7) and reflow the line it sits on.
         link: "h-auto p-0 text-info-foreground underline underline-offset-4 hover:no-underline",
-        // R5a use #1 only. See the header.
+        // R5a use #1 only. See the header. D35a — disabled keeps the box and
+        // loses the red with the fill; there is no disabled red edge.
         destructive:
-          "bg-destructive text-destructive-foreground hover:bg-destructive/90 focus-visible:ring-destructive",
+          "bg-destructive text-destructive-foreground hover:bg-destructive/90 focus-visible:ring-destructive disabled:border-border",
       },
       size: {
         // 28px — the compact button. --ev-control-h, 32px in Arabic.
