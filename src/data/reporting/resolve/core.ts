@@ -104,7 +104,7 @@ function rankLevel(rows: readonly CoreRow[], level: number): LevelRank {
   const totals = new Map<string, number>()
   for (const row of rows) {
     const key = row.groupKeys[level]
-    if (key === null || key === '') continue
+    if (key === null || key === undefined || key === '') continue
     totals.set(key, (totals.get(key) ?? 0) + row.value)
   }
   const ranked = [...totals.entries()]
@@ -292,10 +292,10 @@ export function resolveTrendLeg(input: ResolveTrendLegInput): CoreLegResult {
   const transformedCurrent = applyTransform(currentByGroup, transform, partials)
 
   let comparisonByGroup: (number | null)[][] | null = null
-  let comparisonBuckets: IsoDate[] = []
   if (comparisonWindow) {
     const cPlan = planBuckets(comparisonWindow, grain)
-    comparisonBuckets = cPlan.buckets.slice(0, plan.buckets.length)
+    /* Aligned by index to `plan.buckets`, never by date — a comparison series
+       is drawn against the current period's positions (R7's dashed overlay). */
     const cSpans = cPlan.spans.slice(0, plan.buckets.length)
     const raw = paths.map((path) => {
       const rows = measure.rows.filter(path.matches)
@@ -424,14 +424,14 @@ export function resolveFormulaLeg(input: ResolveFormulaLegInput): CoreLegResult 
     const totalA = sumAcrossGroups(aByGroup, length)
     const totalB = bByGroup ? sumAcrossGroups(bByGroup, length) : null
     return paths.map((_, i) => {
-      const input: FormulaSeriesInput = {
+      const seriesInput: FormulaSeriesInput = {
         length,
         A: aByGroup[i],
         B: bByGroup?.[i],
         totalA,
         ...(totalB ? { totalB } : {}),
       }
-      return evaluateFormula(input, formula.expression)
+      return evaluateFormula(seriesInput, formula.expression)
     })
   }
 
@@ -439,10 +439,7 @@ export function resolveFormulaLeg(input: ResolveFormulaLegInput): CoreLegResult 
   const transformedCurrent = applyTransform(currentByGroup, transform, partials)
 
   let comparisonByGroup: (number | null)[][] | null = null
-  let comparisonBuckets: IsoDate[] = []
   if (comparisonWindow) {
-    const cPlan = planBuckets(comparisonWindow, grain)
-    comparisonBuckets = cPlan.buckets.slice(0, plan.buckets.length)
     const raw = evalOverWindow(comparisonWindow, plan.buckets.length)
     comparisonByGroup = applyTransform(raw, transform, [])
   }

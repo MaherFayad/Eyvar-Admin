@@ -27,7 +27,8 @@ Everything else in the plan stands, including every gate.
 | WP-1.2 Formula | utilities-engineer | done — parser, units, evaluator, 95 tests; CUMSUM reconciled with transforms |
 | WP-1.6b Stats, anomaly | utilities-engineer | done — describe/correlate/contribution, MAD band, 27 tests |
 | WP-1.6d Pages, case study | mock-data-engineer | done — validator, migration, caseStudyToBlocks, 45 tests; provenance follow-up in flight |
-| WP-1.4 Planner | mock-data-engineer | running |
+| WP-1.4 Planner | mock-data-engineer | done — v2 legality, NEAREST, formula violations, 33 new tests |
+| WP-1.8 Fixtures | mock-data-engineer | running |
 | WP-1.5 Serialiser | mock-data-engineer | done — v:2 wire, every v1 URL still decodes, 56 tests |
 | WP-1.6a Resolver core | mock-data-engineer | running |
 | WP-1.6c Alert evaluator | mock-data-engineer | running |
@@ -43,6 +44,8 @@ Everything else in the plan stands, including every gate.
 |---|---|---|---|
 | F-V2-1 | D33 … D37 exist only as prose in `RULINGS.md`'s "Standing owner overrides", never as headed entries in `DECISIONS.md`, though the ID-namespace table says their text lives there | WP-0.1 | Backlog; not fixed in this build. The owner decides whether they get retroactive entries |
 | F-V2-2 | Q-RB-3 (week start) and Q-RB-7 (alert cadence) are not in `docs/07-api/OPEN-QUESTIONS.md`; they live in `specs/06-report-builder.md`. D45 and D41 answer them but the spec still poses them | WP-0.1 | Fixed in WP-8.5 |
+| F-V2-12 | The log-axis refusal ("a series that crosses zero") cannot live in `planQuery`: it needs resolved values, which do not exist before a query runs, and `Measure` has no static "can go negative" field | WP-1.4 | Correctly deferred to WP-2.3, which owns the chart view controls |
+| F-V2-13 | `TableSpec` column and row bound-checking has no violation code named in the plan, so the planner did not invent one | WP-1.4 | WP-3.3 owns the data table; it mints the code if one is needed |
 | F-V2-10 | `05-backend.md` §3's `users` table has no columns for the team surface the frontend clients already declare — invite, resend, revoke, suspend, reinstate, offboard, permission overrides, the F-016 last-holder guard — nor for the richer `SignInOutcome` union (2FA, TOTP enrolment, device trust, reset, invite activation). WP-6.2 correctly built only what the doc specified | WP-6.2 | **WP-6.2b opened** to finish the surface against the client docblocks, with its own migration |
 | F-V2-11 | Passwords hash with scrypt from `node:crypto`, not argon2id, to avoid a native dependency. Swapping is a two-function change in `api/_lib/password.ts`, not a schema change | WP-6.2 | Accepted |
 | F-V2-9 | `reports.ts` holds only 10 distinct saved queries, so WP-1.5's 20 v1-URL compatibility fixtures are 10 captured and 10 recombined from field values that each appear somewhere real. Whether the product should seed more genuine saved reports is a product question | WP-1.5 | Logged; WP-1.8 may add fixtures, and the file labels which is which |

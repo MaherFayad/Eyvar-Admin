@@ -38,6 +38,7 @@ import { DATA_SOURCE, registerOperations } from '../config'
 import { EYVAR_NOW, EYVAR_TODAY } from '../mock/clock'
 import { mock, mockMutation, notFound } from '../mock/delay'
 import { paginate } from '../mock/query'
+import { evaluate } from '../reporting/alerts/evaluate'
 import type { IsoDate, Paginated, QueryParams, Single } from '../types/common'
 import {
   REPORT_NAME_MAX,
@@ -288,29 +289,42 @@ export async function evaluateAlertRule(
   if (!series) return evaluation(rule, today, 'series-missing')
   if (series.blocked) return evaluation(rule, today, 'series-blocked')
 
-  /* The last bucket that is neither partial nor a gap. Walking backwards is the
-     definition of "most recent complete" and it is one loop, not a heuristic. */
-  let index = -1
-  for (let i = run.result.buckets.length - 1; i >= 0; i -= 1) {
-    if (series.partialBucketIndexes.includes(i)) continue
-    if (series.points[i] === null || series.points[i] === undefined) continue
-    index = i
-    break
-  }
-  if (index === -1) return evaluation(rule, today, 'no-complete-bucket')
+  /* The report's own aligned comparison series, if the query has one
+     (`resolveReport.ts:342`) — `relative`'s `against: 'previous-period'`
+     reads this rather than issuing a second query (`evaluate.ts`). */
+  const comparison = run.result.series.find(
+    (s) => s.role === 'comparison' && s.measureKey === series.measureKey && s.groupValue === series.groupValue,
+  )
 
-  const value = series.points[index] as number
-  const wouldFire = compare(value, rule.comparator, rule.threshold)
+  /* All four condition kinds, the partial-bucket rule and the gap rule live in
+     `reporting/alerts/evaluate.ts` now — shared with the future server cron
+     (`04-alerting-v2.md` §3). `no-baseline` and `invalid-condition` fold into
+     `no-complete-bucket` below because `AlertEvaluation.outcome` (types/alert.ts)
+     has no slot for them yet; widening that type is WP-1.7's. */
+  const result = evaluate(
+    rule,
+    {
+      buckets: run.result.buckets,
+      points: series.points,
+      partialBucketIndexes: series.partialBucketIndexes,
+      previousPeriodPoints: comparison?.points ?? null,
+    },
+    EYVAR_NOW,
+  )
+  const outcome = result.outcome
+  if (outcome !== 'would-fire' && outcome !== 'would-not-fire') {
+    return evaluation(rule, today, 'no-complete-bucket')
+  }
 
   return mock(ALERT_OPERATIONS.evaluate, signal, () => ({
     ruleId: rule.id,
     evaluatedAt: EYVAR_NOW,
-    bucketStart: run.result.buckets[index] ?? null,
-    value,
+    bucketStart: result.bucketStart,
+    value: result.value,
     unit: series.unit,
     currency: series.currency,
-    wouldFire,
-    outcome: wouldFire ? ('would-fire' as const) : ('would-not-fire' as const),
+    wouldFire: outcome === 'would-fire',
+    outcome,
     stateChanged: false as const,
   }))
 }
@@ -392,19 +406,6 @@ export function resetAlerts(): void {
  */
 function measureForSeries(seriesId: string) {
   return measuresByKey[seriesId.split('#')[0] ?? ''] ?? null
-}
-
-function compare(value: number, comparator: AlertRule['comparator'], threshold: number): boolean {
-  switch (comparator) {
-    case 'gt':
-      return value > threshold
-    case 'gte':
-      return value >= threshold
-    case 'lt':
-      return value < threshold
-    case 'lte':
-      return value <= threshold
-  }
 }
 
 function evaluation(

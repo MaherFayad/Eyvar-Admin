@@ -19,6 +19,7 @@ import { savedReportFixtures } from '../fixtures/reports'
 import { EYVAR_TODAY } from '../mock/clock'
 import {
   MAX_COHORT_HORIZON,
+  MAX_CURRENT_SERIES,
   MAX_FUNNEL_STEPS,
   MAX_JOURNEY_DEPTH,
   MIN_FUNNEL_STEPS,
@@ -26,6 +27,7 @@ import {
   planQuery,
   type Catalogue,
 } from './plan'
+import type { Measure } from '../types/measure'
 import type { FunnelStep, QueryViolation, ReportQuery } from '../types/report'
 
 const CATALOGUE: Catalogue = { measures: measureFixtures, dimensions: dimensionFixtures }
@@ -34,6 +36,20 @@ const plan = (query: ReportQuery) => planQuery(query, CATALOGUE, EYVAR_TODAY)
 const codes = (query: ReportQuery) => plan(query).violations.map((v) => v.code)
 const violation = (query: ReportQuery, code: QueryViolation['code']) =>
   plan(query).violations.find((v) => v.code === code)
+
+/** v2 (WP-1.4) tests below plan against a catalogue extended with one synthetic measure —
+    for the units and capabilities no fixture measure happens to combine with `additive`. */
+const planIn = (query: ReportQuery, catalogue: Catalogue) => planQuery(query, catalogue, EYVAR_TODAY)
+const catalogueWith = (...extra: Measure[]): Catalogue => ({
+  measures: [...measureFixtures, ...extra],
+  dimensions: dimensionFixtures,
+})
+const syntheticMeasure = (overrides: Partial<Measure>): Measure => ({
+  ...measureFixtures.find((m) => m.key === 'trips.completed')!,
+  key: 'test.synthetic',
+  dimensions: [{ key: 'trip.pickup', cardinalityHint: 12 }],
+  ...overrides,
+})
 
 /** Everything common to the four non-trend modes. Each block varies one thing. */
 const base: ReportQuery = {
@@ -322,8 +338,19 @@ describe('4 — the mode fixes the chart and, where there is no calendar, the gr
   it('fixes a funnel to bars, and disables the rest in place with the reason', () => {
     const p = plan(funnelQuery)
     expect(p.effectiveChartType).toBe('bar')
-    /* Present, not removed. AC-836. */
-    expect(p.chartTypes.map((c) => c.value)).toEqual(['line', 'bar', 'pie', 'table'])
+    /* Present, not removed. AC-836. v2 (WP-1.4) widens `CHART_TYPES` to all
+       nine (02 §2.8); the count changed, not the rule this asserts. */
+    expect(p.chartTypes.map((c) => c.value)).toEqual([
+      'line',
+      'area',
+      'bar',
+      'stacked-bar',
+      'stacked-100',
+      'horizontal-bar',
+      'pie',
+      'kpi',
+      'table',
+    ])
     expect(p.chartTypes.find((c) => c.value === 'pie')).toMatchObject({
       legal: false,
       reasonKey: 'rb.chart.modeFixed',
@@ -429,5 +456,364 @@ describe('5 — `trend` and `table` keep today’s rules', () => {
         violations: [],
       })
     }
+  })
+})
+
+/* ═══════════════════ v2, WP-1.4 (`02-report-builder-v2.md` §2, §3) ═══════════ */
+
+/** A trend query with sane defaults, `chartType: 'table'` so a chart gate never fires uninvited. */
+const trend = (overrides: Partial<ReportQuery> = {}): ReportQuery => ({
+  measures: [{ key: 'trips.completed' }],
+  groupBy: [],
+  filters: [],
+  window: { kind: 'preset', preset: 'last-90d' },
+  grain: 'day',
+  periodComparison: 'none',
+  chartType: 'table',
+  mode: 'trend',
+  ...overrides,
+})
+
+/* ─────────────── 6 — chart legality v2 (AC-1113 … AC-1120) ─────────────── */
+
+describe('6 — the series ceiling (AC-1113)', () => {
+  it('refuses measures × segments × groups above 12 current series, carrying the count', () => {
+    const query = trend({
+      measures: [{ key: 'trips.completed' }],
+      groupBy: ['trip.pickup'], // 12 parts, folded to 9 at MAX_GROUPS + 1
+      segments: [0, 1, 2, 3].map((i) => ({ kind: 'inline' as const, label: `seg${i}`, filters: [] })),
+    })
+    const v = violation(query, 'too-many-series')
+    expect(v).toMatchObject({
+      field: 'segments',
+      reasonKey: 'rb.violation.tooManySeries',
+      reasonParams: { count: 36, max: MAX_CURRENT_SERIES },
+    })
+  })
+
+  it('is silent exactly at the ceiling', () => {
+    // 1 measure × 2 segments × 6 parts (`subscription.status`) = 12, not > 12.
+    const query = trend({
+      measures: [{ key: 'subscriptions.started' }],
+      groupBy: ['subscription.status'],
+      segments: [
+        { kind: 'inline', label: 'a', filters: [] },
+        { kind: 'inline', label: 'b', filters: [] },
+      ],
+    })
+    expect(codes(query)).not.toContain('too-many-series')
+  })
+})
+
+describe('7 — a second split level (AC-1114)', () => {
+  it('makes `line` and `bar` illegal and leaves `stacked-bar`, `stacked-100`, `table` legal', () => {
+    const p = plan(trend({ groupBy: ['trip.kind', 'trip.pickup'] }))
+    expect(p.chartTypes.find((c) => c.value === 'line')).toMatchObject({
+      legal: false,
+      reasonKey: 'rb.chart.twoLevelsNeedStack',
+    })
+    expect(p.chartTypes.find((c) => c.value === 'bar')).toMatchObject({
+      legal: false,
+      reasonKey: 'rb.chart.twoLevelsNeedStack',
+    })
+    expect(p.chartTypes.find((c) => c.value === 'stacked-bar')?.legal).toBe(true)
+    expect(p.chartTypes.find((c) => c.value === 'stacked-100')?.legal).toBe(true)
+    expect(p.chartTypes.find((c) => c.value === 'table')?.legal).toBe(true)
+  })
+})
+
+describe('8 — `stacked-bar` (AC-1115)', () => {
+  it('is illegal for a non-additive measure', () => {
+    const p = plan(trend({ measures: [{ key: 'trips.cancellationRate' }] }))
+    expect(p.chartTypes.find((c) => c.value === 'stacked-bar')).toMatchObject({
+      legal: false,
+      reasonKey: 'rb.chart.stackNeedsAdditive',
+    })
+  })
+
+  it('is illegal with one additive measure and no split', () => {
+    const p = plan(trend({ measures: [{ key: 'trips.completed' }], groupBy: [] }))
+    expect(p.chartTypes.find((c) => c.value === 'stacked-bar')).toMatchObject({
+      legal: false,
+      reasonKey: 'rb.chart.stackNeedsParts',
+    })
+  })
+
+  it.each(['percent', 'ratio', 'rating'] as const)('is illegal for unit %s, each with its own reason key', (unit) => {
+    const measure = syntheticMeasure({ key: `test.${unit}`, unit })
+    const catalogue = catalogueWith(measure)
+    const p = planIn(trend({ measures: [{ key: measure.key }], groupBy: ['trip.pickup'] }), catalogue)
+    expect(p.chartTypes.find((c) => c.value === 'stacked-bar')).toMatchObject({
+      legal: false,
+      reasonKey: 'rb.chart.stackUnit',
+      reasonParams: { unit },
+    })
+  })
+})
+
+describe('9 — `kpi` (AC-1116)', () => {
+  it('is legal for one measure, no split, no segment, at any grain', () => {
+    for (const grain of ['day', 'none'] as const) {
+      const p = plan(trend({ measures: [{ key: 'trips.completed' }], groupBy: [], segments: [], grain }))
+      expect(p.chartTypes.find((c) => c.value === 'kpi')?.legal).toBe(true)
+    }
+  })
+
+  it('is illegal with a split', () => {
+    const p = plan(trend({ groupBy: ['trip.pickup'] }))
+    expect(p.chartTypes.find((c) => c.value === 'kpi')).toMatchObject({
+      legal: false,
+      reasonKey: 'rb.chart.kpiOneSeries',
+    })
+  })
+
+  it('is illegal with a segment', () => {
+    const p = plan(trend({ segments: [{ kind: 'inline', label: 'x', filters: [] }] }))
+    expect(p.chartTypes.find((c) => c.value === 'kpi')).toMatchObject({
+      legal: false,
+      reasonKey: 'rb.chart.kpiOneSeries',
+    })
+  })
+
+  it('is illegal with a second measure', () => {
+    const p = plan(trend({ measures: [{ key: 'trips.completed' }, { key: 'trips.quickRides' }] }))
+    expect(p.chartTypes.find((c) => c.value === 'kpi')).toMatchObject({
+      legal: false,
+      reasonKey: 'rb.chart.kpiOneSeries',
+    })
+  })
+})
+
+describe('10 — `horizontal-bar` (AC-1117)', () => {
+  it('is legal with a single-period split of one measure', () => {
+    const p = plan(trend({ groupBy: ['trip.pickup'], grain: 'none' }))
+    expect(p.chartTypes.find((c) => c.value === 'horizontal-bar')?.legal).toBe(true)
+  })
+
+  it('is illegal without a split', () => {
+    const p = plan(trend({ groupBy: [], grain: 'none' }))
+    expect(p.chartTypes.find((c) => c.value === 'horizontal-bar')).toMatchObject({
+      legal: false,
+      reasonKey: 'rb.chart.hbarNeedsSplit',
+    })
+  })
+
+  it('is illegal when the grain is not `none`', () => {
+    const p = plan(trend({ groupBy: ['trip.pickup'], grain: 'day' }))
+    expect(p.chartTypes.find((c) => c.value === 'horizontal-bar')).toMatchObject({
+      legal: false,
+      reasonKey: 'rb.chart.hbarSinglePeriod',
+    })
+  })
+})
+
+describe('11 — `area` (AC-1118)', () => {
+  it('is legal for one measure', () => {
+    const p = plan(trend({ measures: [{ key: 'trips.completed' }], groupBy: [] }))
+    expect(p.chartTypes.find((c) => c.value === 'area')?.legal).toBe(true)
+  })
+
+  it('is illegal for two measures', () => {
+    const p = plan(trend({ measures: [{ key: 'trips.completed' }, { key: 'trips.quickRides' }] }))
+    expect(p.chartTypes.find((c) => c.value === 'area')).toMatchObject({
+      legal: false,
+      reasonKey: 'rb.chart.areaOneMeasure',
+    })
+  })
+})
+
+describe('12 — `NEAREST` fallbacks follow 02 §3 (AC-1119)', () => {
+  it('area falls back to line when only the one-measure gate fails', () => {
+    const p = plan(
+      trend({
+        measures: [{ key: 'trips.completed' }, { key: 'trips.quickRides' }],
+        chartType: 'area',
+      }),
+    )
+    expect(p.effectiveChartType).toBe('line')
+    expect(p.chartTypeCoerced).toBe(true)
+  })
+
+  it('stacked-100 falls back through stacked-bar to table when there are no parts', () => {
+    const p = plan(trend({ measures: [{ key: 'trips.completed' }], groupBy: [], chartType: 'stacked-100' }))
+    expect(p.effectiveChartType).toBe('table')
+    expect(p.chartTypeCoerced).toBe(true)
+  })
+
+  it('horizontal-bar falls back to bar when the grain is not `none`', () => {
+    const p = plan(trend({ groupBy: ['trip.pickup'], grain: 'day', chartType: 'horizontal-bar' }))
+    expect(p.effectiveChartType).toBe('bar')
+    expect(p.chartTypeCoerced).toBe(true)
+  })
+})
+
+describe('13 — `illegal-aggregate` (AC-1120)', () => {
+  it('refuses an aggregate outside the measure’s `bucketAggregateOptions`', () => {
+    const v = violation(trend({ measures: [{ key: 'trips.completed', aggregate: 'sum' }] }), 'illegal-aggregate')
+    expect(v).toMatchObject({
+      field: 'measures',
+      reasonKey: 'rb.violation.illegalAggregate',
+      reasonParams: { key: 'trips.completed', aggregate: 'sum' },
+    })
+  })
+
+  it('accepts an aggregate the measure lists in `bucketAggregateOptions`', () => {
+    const measure = syntheticMeasure({ key: 'test.aggregable', bucketAggregateOptions: ['count', 'sum'] })
+    const catalogue = catalogueWith(measure)
+    const query = trend({ measures: [{ key: measure.key, aggregate: 'sum' }] })
+    expect(planIn(query, catalogue).violations).toEqual([])
+  })
+})
+
+/* ───────────────────── 14 — formula legality delegates ─────────────────── */
+
+describe('14 — formula legality delegates to `formulaUnit`', () => {
+  it('surfaces a parse error at its position (`formula-parse`)', () => {
+    const v = violation(trend({ formula: { expression: 'A /', label: 'x' } }), 'formula-parse')
+    expect(v?.field).toBe('formula')
+    expect(v?.reasonKey).toBe('rb.violation.formulaParse')
+    expect(typeof v?.reasonParams.position).toBe('number')
+  })
+
+  it('refuses `B` with no second measure (`formula-unknown-ref`)', () => {
+    const v = violation(trend({ formula: { expression: 'B', label: 'x' } }), 'formula-unknown-ref')
+    expect(v).toMatchObject({ field: 'formula', reasonKey: 'rb.violation.formulaUnknownRef' })
+  })
+
+  it('refuses mismatched units (`formula-unit`)', () => {
+    const query = trend({
+      measures: [{ key: 'trips.completed' }, { key: 'trips.fareCollected' }],
+      formula: { expression: 'A - B', label: 'x' },
+    })
+    const v = violation(query, 'formula-unit')
+    expect(v).toMatchObject({ field: 'formula', reasonKey: 'rb.violation.formulaUnit' })
+  })
+
+  it('refuses CUMSUM on a non-additive measure (`formula-needs-additive`)', () => {
+    const query = trend({
+      measures: [{ key: 'trips.cancellationRate' }],
+      formula: { expression: 'CUMSUM(A)', label: 'x' },
+    })
+    const v = violation(query, 'formula-needs-additive')
+    expect(v).toMatchObject({ field: 'formula', reasonKey: 'rb.violation.formulaNeedsAdditive' })
+  })
+
+  it('refuses PCT with no split (`formula-needs-split`)', () => {
+    const query = trend({ groupBy: [], formula: { expression: 'PCT(A)', label: 'x' } })
+    const v = violation(query, 'formula-needs-split')
+    expect(v).toMatchObject({ field: 'formula', reasonKey: 'rb.violation.formulaNeedsSplit' })
+  })
+
+  it('is silent for a legal formula', () => {
+    const query = trend({ formula: { expression: 'A / 2', label: 'x' } })
+    expect(codes(query).some((c) => c.startsWith('formula-'))).toBe(false)
+  })
+})
+
+/* ──────────── 15 — a `performed` segment needs the server support ──────── */
+
+describe('15 — segment-performed-unsupported', () => {
+  it('refuses `performed` on a measure whose `supportsPerformed` is not `true`', () => {
+    const query = trend({
+      segments: [
+        {
+          kind: 'inline',
+          label: 'active riders',
+          filters: [],
+          performed: { measureKey: 'trips.completed', op: 'gte', count: 1, window: 'each-bucket' },
+        },
+      ],
+    })
+    const v = violation(query, 'segment-performed-unsupported')
+    expect(v).toMatchObject({
+      field: 'segments',
+      reasonKey: 'rb.violation.segmentPerformedUnsupported',
+      reasonParams: { measure: 'trips.completed' },
+    })
+  })
+
+  it('is silent once the catalogue declares `supportsPerformed`', () => {
+    const measure = syntheticMeasure({ key: 'test.performable', supportsPerformed: true })
+    const catalogue = catalogueWith(measure)
+    const query = trend({
+      segments: [
+        {
+          kind: 'inline',
+          label: 'active riders',
+          filters: [],
+          performed: { measureKey: measure.key, op: 'gte', count: 1, window: 'each-bucket' },
+        },
+      ],
+    })
+    expect(planIn(query, catalogue).violations).toEqual([])
+  })
+})
+
+/* ───────── 16 — a fixed comparison window must match the primary's ─────── */
+
+describe('16 — comparison-length', () => {
+  // Same dates `buckets.test.ts`'s "fixed comparison length" primitive proves disagree.
+  const current: ReportQuery['window'] = { kind: 'absolute', from: '2026-06-01', to: '2026-06-30' }
+
+  it('refuses a fixed comparison window of a different bucket count', () => {
+    const query = trend({
+      window: current,
+      periodComparison: { kind: 'fixed', from: '2025-01-01', to: '2025-01-10' },
+    })
+    const v = violation(query, 'comparison-length')
+    expect(v).toMatchObject({
+      field: 'periodComparison',
+      reasonKey: 'rb.violation.comparisonLength',
+      reasonParams: { required: 30, got: 10 },
+    })
+  })
+
+  it('is silent when the fixed window has the same bucket count', () => {
+    const query = trend({
+      window: current,
+      periodComparison: { kind: 'fixed', from: '2025-01-01', to: '2025-01-30' },
+    })
+    expect(codes(query)).not.toContain('comparison-length')
+  })
+})
+
+/* ───────── 17 — a funnel's server-only options (§5, `funnel-needs-server`) ─ */
+
+describe('17 — funnel-needs-server', () => {
+  const twoSteps = [step('riders.joined'), step('trips.completed')]
+
+  it('refuses `mode: "sequential"` when no rung declares `funnelCapabilities.sequential`', () => {
+    const query: ReportQuery = {
+      ...base,
+      mode: 'funnel',
+      funnel: funnelSpec(twoSteps, { mode: 'sequential' }),
+    }
+    expect(violation(query, 'funnel-needs-server')).toMatchObject({
+      field: 'funnel',
+      reasonKey: 'rb.funnel.needsServer',
+    })
+  })
+
+  it('refuses a `holdConstant` no rung declares support for', () => {
+    const query: ReportQuery = {
+      ...base,
+      mode: 'funnel',
+      funnel: funnelSpec(twoSteps, { holdConstant: 'trip.kind' }),
+    }
+    expect(violation(query, 'funnel-needs-server')).toBeDefined()
+  })
+
+  it('refuses `exclude` unconditionally — no capability flag could ever satisfy it', () => {
+    const query: ReportQuery = {
+      ...base,
+      mode: 'funnel',
+      funnel: funnelSpec(twoSteps, { exclude: ['captains.joined'] }),
+    }
+    expect(violation(query, 'funnel-needs-server')).toBeDefined()
+  })
+
+  it('is silent at the v2 defaults — ordered, no hold, nothing excluded', () => {
+    const query: ReportQuery = { ...base, mode: 'funnel', funnel: funnelSpec(twoSteps) }
+    expect(codes(query)).not.toContain('funnel-needs-server')
   })
 })

@@ -19,6 +19,11 @@ import { createDatabaseFromEnv, type Database } from '../_lib/db'
 import { createGetSessionHandler } from '../_lib/handlers/session'
 import { createSignInHandler, createSignOutHandler, createSignOutEverywhereHandler } from '../_lib/handlers/auth'
 import { createListTeamUsersHandler, createGetTeamUserHandler } from '../_lib/handlers/team'
+import {
+  createListMeasuresHandler,
+  createListDimensionsHandler,
+  createGetGlossaryHandler,
+} from '../_lib/handlers/catalogue'
 import type { IsoDateTime } from '@/data/types/common'
 
 interface HealthPayload {
@@ -54,6 +59,11 @@ export function createApiHandler(deps: ApiDeps): (req: Request) => Promise<Respo
   // team.* (read-only slice — see handlers/team.ts)
   router.get('/team-users', createListTeamUsersHandler(deps.db))
   router.get('/team-users/:id', createGetTeamUserHandler(deps.db))
+
+  // catalogue.* (see handlers/catalogue.ts) — WP-6.3
+  router.get('/catalogue/measures', createListMeasuresHandler(deps.db))
+  router.get('/catalogue/dimensions', createListDimensionsHandler(deps.db))
+  router.get('/catalogue/glossary', createGetGlossaryHandler(deps.db))
 
   return async function handler(req: Request): Promise<Response> {
     const requestId = req.headers.get('x-vercel-id') ?? crypto.randomUUID()

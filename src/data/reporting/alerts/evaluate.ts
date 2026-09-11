@@ -16,6 +16,15 @@ export interface ResolvedSeries {
   buckets: readonly IsoDate[]
   points: readonly (number | null)[]
   partialBucketIndexes: readonly number[]
+  /**
+   * The report's own `role: 'comparison'` series for this measure (§2's
+   * "previous-period"), index-aligned with `points` — `resolveReport.ts`
+   * already slices the prior window to the same bucket count, so `against:
+   * 'previous-period'` reads `previousPeriodPoints[testedIndex]` rather than
+   * re-deriving a prior window here. `null`/absent when the report has no
+   * period comparison enabled.
+   */
+  previousPeriodPoints?: readonly (number | null)[] | null
 }
 
 export type AlertConditionOutcome =
@@ -88,26 +97,33 @@ function relativeFires(change: number, direction: 'up' | 'down' | 'either', amou
 }
 
 /**
- * `AlertCondition.relative`'s comparison window, resolved to a bucket index in
- * the same series — never a second query (`evaluate` is pure, no fetch). Refuses
- * `same-bucket-previous-week` outside `day` grain (AC-1222) instead of silently
- * picking the nearest legal thing.
+ * `AlertCondition.relative`'s reference point. `previous-bucket` and
+ * `same-bucket-previous-week` are index offsets in the same series;
+ * `same-bucket-previous-week` refuses outside `day` grain (AC-1222) instead of
+ * picking the nearest legal thing. `previous-period` has no offset — it reads
+ * `series.previousPeriodPoints`, the report's own aligned comparison series.
  */
-function referenceIndex(
-  against: Extract<AlertCondition, { kind: 'relative' }>['against'],
+function reference(
+  condition: Extract<AlertCondition, { kind: 'relative' }>,
+  series: ResolvedSeries,
   testedIndex: number,
-  bucketCount: number,
   grain: AlertRule['evaluationGrain'],
-): number | 'invalid' {
-  if (against === 'previous-bucket') return testedIndex - 1
-  if (against === 'same-bucket-previous-week') {
-    if (grain !== 'day') return 'invalid'
-    return testedIndex - 7
+): { value: number; bucketStart: IsoDate } | null | 'invalid' {
+  const partial = new Set(series.partialBucketIndexes)
+  if (condition.against === 'previous-period') {
+    const value = series.previousPeriodPoints?.[testedIndex]
+    if (value === null || value === undefined) return null
+    // The prior window's own calendar date is not reconstructed here — the
+    // resolver never exposes it per-series, only the current window's
+    // `buckets` — so the nominal (current) bucket anchors the evidence.
+    return { value, bucketStart: series.buckets[testedIndex]! }
   }
-  // 'previous-period': one full window back, the window being the length the
-  // report itself was run over (04-alerting-v2.md §2's "the lookback the
-  // report used") — i.e. shifted back by the whole result, not one bucket.
-  return testedIndex - bucketCount
+  if (condition.against === 'same-bucket-previous-week' && grain !== 'day') return 'invalid'
+  const refIdx = condition.against === 'previous-bucket' ? testedIndex - 1 : testedIndex - 7
+  if (refIdx < 0 || partial.has(refIdx)) return null
+  const value = series.points[refIdx]
+  if (value === null || value === undefined) return null
+  return { value, bucketStart: series.buckets[refIdx]! }
 }
 
 function evaluateStatic(
@@ -142,25 +158,22 @@ function evaluateRelative(
   const value = series.points[idx] as number
   const bucketStart = series.buckets[idx]!
 
-  const refIdx = referenceIndex(condition.against, idx, series.buckets.length, rule.evaluationGrain)
-  if (refIdx === 'invalid') {
+  const ref = reference(condition, series, idx, rule.evaluationGrain)
+  if (ref === 'invalid') {
     return { evaluatedAt: now, outcome: 'invalid-condition', bucketStart, value, threshold: condition.amount, reference: null, band: null, missingCount: null }
   }
-  const partial = new Set(series.partialBucketIndexes)
-  const refValue = refIdx >= 0 && !partial.has(refIdx) ? series.points[refIdx] : null
-  if (refIdx < 0 || refValue === null || refValue === undefined) {
+  if (ref === null) {
     return { evaluatedAt: now, outcome: 'no-baseline', bucketStart, value, threshold: condition.amount, reference: null, band: null, missingCount: null }
   }
-  const reference = { value: refValue, bucketStart: series.buckets[refIdx]! }
 
   const change =
     condition.measure === 'delta'
-      ? difference([value], [reference.value])[0]
-      : percentChange([value], [reference.value])[0]
+      ? difference([value], [ref.value])[0]
+      : percentChange([value], [ref.value])[0]
   // `percentChange` nulls a zero baseline (transforms.ts) — that is this
   // condition's `no-baseline` too, not a divide-by-zero the caller sees.
   if (change === null || change === undefined) {
-    return { evaluatedAt: now, outcome: 'no-baseline', bucketStart, value, threshold: condition.amount, reference, band: null, missingCount: null }
+    return { evaluatedAt: now, outcome: 'no-baseline', bucketStart, value, threshold: condition.amount, reference: ref, band: null, missingCount: null }
   }
 
   const fires = relativeFires(change, condition.direction, condition.amount)
@@ -170,7 +183,7 @@ function evaluateRelative(
     bucketStart,
     value,
     threshold: condition.amount,
-    reference,
+    reference: ref,
     band: null,
     missingCount: null,
   }

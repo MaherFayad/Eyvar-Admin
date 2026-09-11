@@ -35,11 +35,9 @@ import { allTripFixtures } from '../fixtures/trips'
 import { measuresByKey } from '../fixtures/measures'
 import {
   addDays,
-  bucketEndExclusive,
   bucketStarts,
   comparisonWindow,
   localDayOf,
-  partialBucketIndexes,
   resolveWindow,
 } from '../reporting/buckets'
 import {
@@ -51,20 +49,34 @@ import {
 } from '../reporting/plan'
 import { buildCohortMatrix } from '../reporting/cohorts'
 import { subjectKindOf, type SubjectKind } from '../reporting/subjects'
+import {
+  OTHER,
+  resolveFormulaLeg,
+  resolveTrendLeg,
+  type CoreLegResult,
+  type CoreMeasureRows,
+  type CoreRow,
+} from '../reporting/resolve/core'
 import { EYVAR_NOW } from './clock'
 import { matchesFilter } from './query'
 import type { FilterSpec, IsoDate } from '../types/common'
-import type { Measure } from '../types/measure'
+import type { BucketAggregate, Measure } from '../types/measure'
 import type { PermissionKey } from '../types/navigation'
-import { reportMode } from '../types/report'
+import {
+  DEFAULT_COMPARISON_DISPLAY,
+  DEFAULT_REPORT_TRANSFORM,
+  normaliseReportQuery,
+  REPORT_GROUP_BY_MAX,
+} from '../types/report'
 import type {
-  ReportGrain,
   ReportPanel,
   ReportQuery,
   ReportResult,
   ReportSeries,
   ReportWarning,
+  SegmentRef,
 } from '../types/report'
+import type { PerformedSpec } from '../types/segment'
 
 /* ─────────────────────── the row-source table ──────────────────────────── */
 
@@ -242,8 +254,8 @@ export interface ResolveContext {
   failMeasureKeys?: readonly string[]
 }
 
-/** §7.4's fold bucket. Always last, always rendered, even at zero. */
-export const OTHER = '__other__'
+/** §7.4's fold bucket, re-exported so `clients/index.ts`'s `OTHER_GROUP` keeps resolving. */
+export { OTHER }
 
 /**
  * Resolve a query that `planQuery` has already found legal.
@@ -258,7 +270,12 @@ export function resolveReport(
   ctx: ResolveContext,
 ): ReportResult {
   const window = resolveWindow(query.window, ctx.today)
-  const buckets = bucketStarts(window.from, window.to, query.grain)
+
+  /* `reports.ts` calls this directly, never through `normaliseReportQuery`, so
+     a v1 caller's `groupBy: null` is still real at runtime (AC-1100). `query`
+     itself still echoes on the result — §8.3 state 2 compares it by
+     reference — so only the local `q` is normalised. */
+  const q = normaliseReportQuery(query)
 
   /* ── the five modes ───────────────────────────────────────────────────── */
   /* `trend` and `table` fall through and resolve exactly as they always have:
@@ -267,103 +284,113 @@ export function resolveReport(
      numbers over time, so each has its own resolver below — and each returns
      the same `ReportResult` shape, which is what lets one CSV exporter, one
      alert rule and one dashboard tile serve all five (P7-T3). */
-  const mode = reportMode(query)
-  if (mode === 'funnel') return resolveFunnel(query, window, ctx)
-  if (mode === 'cohort') return resolveCohort(query, window, ctx)
-  if (mode === 'journey') return resolveJourney(query, window, ctx)
-  const partials = partialBucketIndexes(buckets, query.grain, window, ctx.today)
+  if (q.mode === 'funnel') return resolveFunnel(query, q, window, ctx)
+  if (q.mode === 'cohort') return resolveCohort(query, q, window, ctx)
+  if (q.mode === 'journey') return resolveJourney(query, q, window, ctx)
+
+  const buckets = bucketStarts(window.from, window.to, q.grain)
+  const partials = partialBucketIndexes(buckets, q.grain, window, ctx.today)
   const warnings = new Set<ReportWarning>()
 
   if (partials.includes(0)) warnings.add('partial-first')
   if (buckets.length > 0 && partials.includes(buckets.length - 1)) warnings.add('partial-last')
 
+  /* `planQuery` is not yet migrated to array `groupBy` (WP-1.3); called on the
+     original query, unchanged from before this split, so its coercion check
+     keeps behaving exactly as it did. */
   const plan = planQuery(query, catalogue, ctx.today)
   if (plan.chartTypeCoerced) warnings.add('grain-coarsened')
 
-  const measures = query.measures
-    .map((ref) => measuresByKey[ref.key])
-    .filter((m): m is Measure => Boolean(m))
+  const groupBy = q.groupBy.slice(0, REPORT_GROUP_BY_MAX)
+  const transform = q.transform ?? DEFAULT_REPORT_TRANSFORM
+  const comparisonDisplay = q.comparisonDisplay ?? DEFAULT_COMPARISON_DISPLAY
+  /* G5: `[]` or absent means "everyone" — one iteration, the whole population. */
+  const segments: (SegmentRef | null)[] = q.segments && q.segments.length > 0 ? q.segments : [null]
+  const comparisonWin = q.periodComparison !== 'none' ? comparisonWindow(window, q.periodComparison) : null
+
+  const measures = q.measures
+    .map((ref) => ({ ref, measure: measuresByKey[ref.key] }))
+    .filter((m): m is { ref: (typeof q.measures)[number]; measure: Measure } => Boolean(m.measure))
 
   const panels: ReportPanel[] = []
   const series: ReportSeries[] = []
   let truncated = false
   let foldedGroupCount: number | null = null
-
-  for (const measure of measures) {
-    /* §13.1 — authorised per viewer, per measure, at the data layer. A blocked
-       series carries **no points**, verified against the response (AC-888). */
-    const required = measure.permission
-    const blocked: PermissionKey | null =
-      required && !ctx.permissions.includes(required.key) ? required.key : null
-
-    const failed = ctx.failMeasureKeys?.includes(measure.key)
-      ? { code: 'series_failed', retryable: true }
-      : null
-
-    const grouping = blocked || failed ? { values: [null], folded: 0, top: [] } : groupsFor(measure, query, window)
-    if (grouping.folded > 0) {
+  const addFolded = (n: number | null): void => {
+    if (n !== null && n > 0) {
       warnings.add('groups-folded')
-      foldedGroupCount = (foldedGroupCount ?? 0) + grouping.folded
+      foldedGroupCount = (foldedGroupCount ?? 0) + n
     }
+  }
 
-    for (const groupValue of grouping.values) {
-      const panelId = panelIdFor(measure.key, groupValue)
-      const panel: ReportPanel = {
-        panelId,
-        titleKey: groupValue === null ? 'rb.panel.measure' : 'rb.panel.measureByGroup',
-        titleParams:
-          groupValue === null
-            ? { measure: measure.labelKey }
-            : { measure: measure.labelKey, group: groupValue },
-        unit: measure.unit,
-        currency: measure.currency,
-        seriesIds: [],
+  if (q.formula && measures[0]) {
+    /* G2: a formula replaces the measure series in the plot — one leg, not
+       one per measure. `resolveFormulaLeg` groups by A's rows and reuses the
+       same paths against B's, so the two align group for group. */
+    const a = measures[0].measure
+    const b = measures[1]?.measure ?? null
+    for (const [segIndex, segment] of segments.entries()) {
+      const idSuffix = segments.length > 1 ? `#seg${segIndex}` : ''
+      const resolved = resolveSegment(segment, b ? [a, b] : [a], window)
+      if (resolved.failed) {
+        emitRedacted(a, idSuffix, { blocked: null, failed: resolved.failed }, panels, series)
+        continue
       }
-      panels.push(panel)
-
-      const current = buildSeries({
-        measure,
-        query,
-        buckets,
+      const aInput = buildMeasureRows(a, resolveAggregate(measures[0].ref, a), q, resolved.filters, resolved.subjectAllow)
+      const bInput = b ? buildMeasureRows(b, resolveAggregate(measures[1]!.ref, b), q, resolved.filters, resolved.subjectAllow) : null
+      truncated = truncated || aInput.truncated || (bInput?.truncated ?? false)
+      const groupLevels = effectiveLevels(a, groupBy)
+      const leg = resolveFormulaLeg({
+        formula: q.formula,
+        a: aInput.rows,
+        b: bInput ? bInput.rows : null,
+        groupLevels,
+        transform,
+        comparisonDisplay,
         window,
-        groupValue,
-        topGroups: grouping.top,
-        role: 'current',
-        panelId,
-        partials,
-        blocked,
-        failed,
+        comparisonWindow: comparisonWin,
+        grain: q.grain,
+        today: ctx.today,
       })
-      truncated = truncated || current.truncated
-      if (current.hadGap) warnings.add('gaps-outside-fixture-range')
-      series.push(current.series)
-      panel.seriesIds.push(current.series.id)
+      emitLeg(leg, 'rb.canvas.heading', idSuffix, panels, series, warnings, addFolded)
+    }
+  } else {
+    for (const { ref, measure } of measures) {
+      /* §13.1 — authorised per viewer, per measure, at the data layer. A blocked
+         series carries **no points**, verified against the response (AC-888). */
+      const required = measure.permission
+      const blocked: PermissionKey | null =
+        required && !ctx.permissions.includes(required.key) ? required.key : null
+      const failed = ctx.failMeasureKeys?.includes(measure.key)
+        ? { code: 'series_failed', retryable: true }
+        : null
 
-      if (query.periodComparison !== 'none' && !blocked && !failed) {
-        const prior = comparisonWindow(window, query.periodComparison)
-        const priorBuckets = bucketStarts(prior.from, prior.to, query.grain).slice(0, buckets.length)
-        const comparison = buildSeries({
-          measure,
-          query,
-          buckets: priorBuckets,
-          window: prior,
-          groupValue,
-          topGroups: grouping.top,
-          role: 'comparison',
-          panelId,
-          /* A partial bucket is excluded from the period-comparison delta
-             (AC-818), so the comparison series carries none of its own. */
-          partials: [],
-          blocked: null,
-          failed: null,
+      if (blocked || failed) {
+        emitRedacted(measure, '', { blocked, failed }, panels, series)
+        continue
+      }
+
+      for (const [segIndex, segment] of segments.entries()) {
+        const idSuffix = segments.length > 1 ? `#seg${segIndex}` : ''
+        const resolved = resolveSegment(segment, [measure], window)
+        if (resolved.failed) {
+          emitRedacted(measure, idSuffix, { blocked: null, failed: resolved.failed }, panels, series)
+          continue
+        }
+        const input = buildMeasureRows(measure, resolveAggregate(ref, measure), q, resolved.filters, resolved.subjectAllow)
+        truncated = truncated || input.truncated
+        const groupLevels = effectiveLevels(measure, groupBy)
+        const leg = resolveTrendLeg({
+          measure: input.rows,
+          groupLevels,
+          transform,
+          comparisonDisplay,
+          window,
+          comparisonWindow: comparisonWin,
+          grain: q.grain,
+          today: ctx.today,
         })
-        truncated = truncated || comparison.truncated
-        if (comparison.hadGap) warnings.add('gaps-outside-fixture-range')
-        series.push(comparison.series)
-        /* Same panel, therefore the same y-axis — the one and only pair for
-           which a shared axis is honest. §3.7: dotted, same hue, never a
-           second colour. */
-        panel.seriesIds.push(comparison.series.id)
+        emitLeg(leg, measure.labelKey, idSuffix, panels, series, warnings, addFolded)
       }
     }
   }
@@ -378,6 +405,265 @@ export function resolveReport(
     truncatedAtRows: truncated ? currentRowCap() : null,
     warnings: [...warnings],
     foldedGroupCount,
+  }
+}
+
+/* ─────────────────── one leg, filed as panels and series ───────────────── */
+
+/**
+ * `CoreLegResult` → the wire shape, mechanical: one panel and one-or-two
+ * series (current, and comparison when asked) per group. `idSuffix` is empty
+ * unless more than one segment is in play, in which case every id from it
+ * carries `#seg<n>` — the ordinary, single-segment id is untouched, matching
+ * AC-1123's format exactly (`<measure>#<g1>|<g2>#<role>`).
+ */
+function emitLeg(
+  leg: CoreLegResult,
+  measureLabelKey: string,
+  idSuffix: string,
+  panels: ReportPanel[],
+  series: ReportSeries[],
+  warnings: Set<ReportWarning>,
+  addFolded: (n: number | null) => void,
+): void {
+  addFolded(leg.foldedGroupCount)
+  if (leg.hadGap) warnings.add('gaps-outside-fixture-range')
+
+  for (const group of leg.groups) {
+    const panelId = panelIdFor(leg.measureKey, group.groupValue)
+    const panel: ReportPanel = {
+      panelId,
+      titleKey: group.groupValue === null ? 'rb.panel.measure' : 'rb.panel.measureByGroup',
+      titleParams:
+        group.groupValue === null
+          ? { measure: measureLabelKey }
+          : { measure: measureLabelKey, group: group.groupValue },
+      unit: group.current.unit,
+      currency: group.current.currency,
+      seriesIds: [],
+    }
+    panels.push(panel)
+
+    const currentId = `${leg.measureKey}#${group.groupValue ?? '_'}#current${idSuffix}`
+    series.push({
+      id: currentId,
+      measureKey: leg.measureKey,
+      groupValue: group.groupValue,
+      role: 'current',
+      panelId,
+      unit: group.current.unit,
+      currency: group.current.currency,
+      temporality: leg.temporality,
+      points: group.current.points,
+      partialBucketIndexes: leg.partialBucketIndexes,
+      blocked: null,
+      failed: null,
+    })
+    panel.seriesIds.push(currentId)
+
+    if (group.comparison) {
+      const comparisonId = `${leg.measureKey}#${group.groupValue ?? '_'}#comparison${idSuffix}`
+      series.push({
+        id: comparisonId,
+        measureKey: leg.measureKey,
+        groupValue: group.groupValue,
+        role: 'comparison',
+        panelId,
+        unit: group.comparison.unit,
+        currency: group.comparison.currency,
+        temporality: leg.temporality,
+        points: group.comparison.points,
+        partialBucketIndexes: [],
+        blocked: null,
+        failed: null,
+      })
+      panel.seriesIds.push(comparisonId)
+    }
+  }
+}
+
+/** One redacted series (blocked or failed) — no points, its own single-series panel. §13.1 / AC-888. */
+function emitRedacted(
+  measure: Measure,
+  idSuffix: string,
+  reason: { blocked: PermissionKey | null; failed: { code: string; retryable: boolean } | null },
+  panels: ReportPanel[],
+  series: ReportSeries[],
+): void {
+  const panelId = panelIdFor(measure.key, null)
+  const panel: ReportPanel = {
+    panelId,
+    titleKey: 'rb.panel.measure',
+    titleParams: { measure: measure.labelKey },
+    unit: measure.unit,
+    currency: measure.currency,
+    seriesIds: [],
+  }
+  panels.push(panel)
+  const id = `${measure.key}#_#current${idSuffix}`
+  series.push({
+    id,
+    measureKey: measure.key,
+    groupValue: null,
+    role: 'current',
+    panelId,
+    unit: measure.unit,
+    currency: measure.currency,
+    temporality: measure.temporality,
+    points: [],
+    partialBucketIndexes: [],
+    blocked: reason.blocked,
+    failed: reason.failed,
+  })
+  panel.seriesIds.push(id)
+}
+
+/** G1: a legal `MeasureRef.aggregate` override, or the catalogue's own. */
+function resolveAggregate(ref: { aggregate?: BucketAggregate }, measure: Measure): BucketAggregate {
+  if (ref.aggregate && measure.bucketAggregateOptions?.includes(ref.aggregate)) return ref.aggregate
+  return measure.bucketAggregate
+}
+
+/** How many split levels this measure's own store can actually answer — never more than the query asks for. */
+function effectiveLevels(measure: Measure, groupBy: readonly string[]): 0 | 1 | 2 {
+  const source = SOURCES[measure.population.resource]
+  const level0 = source && groupBy[0] ? Boolean(source.fields[groupBy[0]]) : false
+  if (!level0) return 0
+  const level1 = source && groupBy[1] ? Boolean(source.fields[groupBy[1]]) : false
+  return level1 ? 2 : 1
+}
+
+/* ───────────────────────────── segments (G5) ───────────────────────────── */
+
+interface SegmentResolution {
+  filters: FilterSpec[]
+  /** Subjects the `performed` clause admits, or `null` when there is none to apply. */
+  subjectAllow: Set<string> | null
+  failed: { code: string; retryable: boolean } | null
+}
+
+/**
+ * A segment narrows the measure's population before bucketing (§2.5).
+ * `'saved'` resolves to "everyone" (no saved-segment store exists yet — WP-1.6
+ * report). `performed` (AC-1122) needs a subject on both the segmented and
+ * the performed measure — the join is "the same person" — or it is refused
+ * with `segment-performed-unsupported` rather than silently ignored.
+ */
+function resolveSegment(
+  segment: SegmentRef | null,
+  measures: readonly Measure[],
+  window: { from: IsoDate; to: IsoDate },
+): SegmentResolution {
+  if (!segment) return { filters: [], subjectAllow: null, failed: null }
+  if (segment.kind === 'saved') return { filters: [], subjectAllow: null, failed: null }
+
+  const filters = segment.filters ?? []
+  if (!segment.performed) return { filters, subjectAllow: null, failed: null }
+
+  const everySubjectShaped = measures.every((m) => subjectKindOf(m.population.resource) !== null)
+  const performedMeasure = measuresByKey[segment.performed.measureKey]
+  const performedIsSubject = performedMeasure ? subjectKindOf(performedMeasure.population.resource) !== null : false
+
+  if (!everySubjectShaped || !performedMeasure || !performedIsSubject) {
+    return { filters, subjectAllow: null, failed: { code: 'segment-performed-unsupported', retryable: false } }
+  }
+
+  return { filters, subjectAllow: subjectsMeetingPerformed(performedMeasure, segment.performed, window), failed: null }
+}
+
+/**
+ * `subjectId → how many times its rows matched, within `window`` — then the
+ * ids meeting `op`/`count`. A deliberate simplification (WP-1.6 report):
+ * `PerformedSpec.window`'s `'each-bucket'` vs `{rollingDays}` distinction is
+ * not applied per bucket here, only over the whole report window; a bucket-
+ * accurate mock is future work, not a change this package's ACs ask for.
+ */
+function subjectsMeetingPerformed(
+  performedMeasure: Measure,
+  spec: PerformedSpec,
+  window: { from: IsoDate; to: IsoDate },
+): Set<string> {
+  const source = SOURCES[performedMeasure.population.resource]
+  const allow = new Set<string>()
+  if (!source || !source.subject) return allow
+
+  const counts = new Map<string, number>()
+  for (const row of source.rows.slice(0, currentRowCap())) {
+    if (!matchesAll(row, performedMeasure.population.predicate, source)) continue
+    const date = source.dateOf(row, performedMeasure.population.timeField)
+    if (date === null || date < window.from || date > window.to) continue
+    const id = source.subject.idOf(row)
+    if (!id) continue
+    counts.set(id, (counts.get(id) ?? 0) + 1)
+  }
+  for (const [id, n] of counts) {
+    const meets = spec.op === 'gte' ? n >= spec.count : spec.op === 'lte' ? n <= spec.count : n === spec.count
+    if (meets) allow.add(id)
+  }
+  return allow
+}
+
+/* ─────────────────────── measure rows, for one leg ──────────────────────── */
+
+/**
+ * Every row matching a measure's population, the query's own filters and (if
+ * segmented) the segment's, flattened to `CoreRow` — the only place fixture
+ * field names (`driver.city`, `trip.kind`, …) are read for the trend/table
+ * path. Not window-filtered: `resolveTrendLeg`/`resolveFormulaLeg` bucket the
+ * same set twice, current and comparison.
+ */
+function buildMeasureRows(
+  measure: Measure,
+  bucketAggregate: BucketAggregate,
+  query: ReportQuery,
+  extraFilters: readonly FilterSpec[],
+  subjectAllow: Set<string> | null,
+): { rows: CoreMeasureRows; truncated: boolean } {
+  const source = SOURCES[measure.population.resource]
+  if (!source) {
+    throw new Error(
+      `Measure "${measure.key}" declares population "${measure.population.resource}", which no source reads. ` +
+        `A population that cannot be read is a measure that should not be in the catalogue (R5-15).`,
+    )
+  }
+
+  const capped = source.rows.slice(0, currentRowCap())
+  const truncated = capped.length < source.rows.length
+  const groupBy = query.groupBy.slice(0, REPORT_GROUP_BY_MAX)
+  const level0 = groupBy[0] ? source.fields[groupBy[0]] ?? null : null
+  const level1 = level0 && groupBy[1] ? source.fields[groupBy[1]] ?? null : null
+  const liveAtOf = source.liveAt
+
+  const rows: CoreRow[] = []
+  for (const row of capped) {
+    if (!matchesAll(row, measure.population.predicate, source)) continue
+    if (!matchesAll(row, query.filters, source)) continue
+    if (!matchesAll(row, extraFilters, source)) continue
+    if (subjectAllow) {
+      const id = source.subject ? source.subject.idOf(row) : null
+      if (!id || !subjectAllow.has(id)) continue
+    }
+    rows.push({
+      date: source.dateOf(row, measure.population.timeField),
+      value: source.valueOf(row, measure.population.valueField),
+      liveAt: liveAtOf ? (day: IsoDate) => liveAtOf(row, day) : null,
+      groupKeys: [level0 ? String(level0(row) ?? '') : null, level1 ? String(level1(row) ?? '') : null],
+    })
+  }
+
+  return {
+    rows: {
+      key: measure.key,
+      unit: measure.unit,
+      currency: measure.currency,
+      temporality: measure.temporality,
+      additive: measure.additive,
+      bucketAggregate,
+      coverage: measure.population.coverage,
+      supportsStock: source.liveAt !== null,
+      rows,
+    },
+    truncated,
   }
 }
 
@@ -573,12 +859,13 @@ function emptyModeResult(query: ReportQuery, warnings: ReportWarning[] = []): Re
  * first rung's date is carried forward rather than recomputed.
  */
 function resolveFunnel(
+  original: ReportQuery,
   query: ReportQuery,
   window: { from: IsoDate; to: IsoDate },
   ctx: ResolveContext,
 ): ReportResult {
   const steps = query.funnel?.steps ?? []
-  if (steps.length === 0) return emptyModeResult(query)
+  if (steps.length === 0) return emptyModeResult(original)
 
   const warnings = new Set<ReportWarning>()
   const panelId = 'p:funnel'
@@ -632,10 +919,8 @@ function resolveFunnel(
       const next = new Map<string, IsoDate>()
       reached.forEach((previousDate, id) => {
         const startedOn = entered.get(id) ?? previousDate
-        const deadline =
-          query.funnel?.conversionWindowDays == null
-            ? window.to
-            : addDays(startedOn, query.funnel.conversionWindowDays)
+        const windowDays = conversionWindowDays(query.funnel?.conversionWindow ?? null)
+        const deadline = windowDays === null ? window.to : addDays(startedOn, windowDays)
         const match = (bySubject.get(id) ?? []).find((e) => e.date >= previousDate && e.date <= deadline)
         if (match) next.set(id, match.date)
       })
@@ -679,7 +964,7 @@ function resolveFunnel(
   }
 
   return {
-    query,
+    query: original,
     asOf: EYVAR_NOW,
     /* One bucket: the window, collapsed. A funnel's x-axis is its rungs, which
        is exactly what `grain: 'none'` already means (§3.5). */
@@ -691,6 +976,14 @@ function resolveFunnel(
     warnings: [...warnings],
     foldedGroupCount: null,
   }
+}
+
+/** G10's `{value, unit}` in days; `'week'` scales, `'hour'` rounds to same-day (sub-day windows are P3 work). `null` is the report window. */
+function conversionWindowDays(cw: { value: number; unit: 'hour' | 'day' | 'week' } | null): number | null {
+  if (cw === null) return null
+  if (cw.unit === 'week') return cw.value * 7
+  if (cw.unit === 'hour') return 0
+  return cw.value
 }
 
 /** `subjectId → its earliest event`, which is when it entered. */
@@ -749,20 +1042,21 @@ function groupBySubject(events: readonly SubjectEvent[]): Map<string, SubjectEve
  * active date. Both are read off recorded rows; neither is invented (AC-453).
  */
 function resolveCohort(
+  original: ReportQuery,
   query: ReportQuery,
   window: { from: IsoDate; to: IsoDate },
   ctx: ResolveContext,
 ): ReportResult {
   const spec = query.cohort
   const anchor = spec?.anchorMeasureKey ? measuresByKey[spec.anchorMeasureKey] ?? null : null
-  if (!spec || !anchor) return emptyModeResult(query)
+  if (!spec || !anchor) return emptyModeResult(original)
 
   const panelId = 'p:cohort'
   const intervals = cohortIntervals(spec.horizon)
   const blocked = blockedFor(anchor, ctx)
   if (blocked) {
     return {
-      ...emptyModeResult(query),
+      ...emptyModeResult(original),
       panels: [
         cohortPanel(
           panelId,
@@ -777,9 +1071,16 @@ function resolveCohort(
   const anchorSet = eventsOf(anchor, query.filters, window)
   const joined = earliestPerSubject(anchorSet.events)
 
-  const returnMeasure = spec.returnMeasureKey ? measuresByKey[spec.returnMeasureKey] ?? null : null
-  const returnBlocked = returnMeasure ? blockedFor(returnMeasure, ctx) : null
-  const returned = returnMeasure && !returnBlocked ? latestPerSubject(eventsOf(returnMeasure, query.filters, window).events) : null
+  /* §6: OR-combined — "still here" is true the moment any named return event
+     recorded it, so the merge keeps each subject's LATEST qualifying date. A
+     blocked return measure is left out rather than leaking a number through it. */
+  const returnMeasures = (spec.returnMeasureKeys ?? [])
+    .map((k) => measuresByKey[k])
+    .filter((m): m is Measure => Boolean(m) && !blockedFor(m, ctx))
+  const returned =
+    returnMeasures.length > 0
+      ? mergeLatest(returnMeasures.map((m) => latestPerSubject(eventsOf(m, query.filters, window).events)))
+      : null
 
   const kind = anchorSet.kind
   const entities = [...joined.entries()]
@@ -824,7 +1125,7 @@ function resolveCohort(
   }))
 
   return {
-    query,
+    query: original,
     asOf: EYVAR_NOW,
     buckets,
     panels: [cohortPanel(panelId, series.map((s) => s.id), anchor.labelKey)],
@@ -857,6 +1158,18 @@ function latestPerSubject(events: readonly SubjectEvent[]): Map<string, IsoDate>
   for (const event of events) {
     const held = out.get(event.subjectId)
     if (held === undefined || event.date > held) out.set(event.subjectId, event.date)
+  }
+  return out
+}
+
+/** Several `latestPerSubject` maps, OR-combined: each subject keeps the latest date any of them recorded. */
+function mergeLatest(maps: readonly Map<string, IsoDate>[]): Map<string, IsoDate> {
+  const out = new Map<string, IsoDate>()
+  for (const m of maps) {
+    for (const [id, date] of m) {
+      const held = out.get(id)
+      if (held === undefined || date > held) out.set(id, date)
+    }
   }
   return out
 }
@@ -936,20 +1249,21 @@ function lastActiveOf(kind: SubjectKind, subjectId: string): IsoDate | null {
 export const NO_PATH = '__none__'
 
 function resolveJourney(
+  original: ReportQuery,
   query: ReportQuery,
   window: { from: IsoDate; to: IsoDate },
   ctx: ResolveContext,
 ): ReportResult {
   const spec = query.journey
   const root = spec?.rootMeasureKey ? measuresByKey[spec.rootMeasureKey] ?? null : null
-  if (!spec || !root) return emptyModeResult(query)
+  if (!spec || !root) return emptyModeResult(original)
 
   const panelId = 'p:journey'
   const kind = subjectKindOf(root.population.resource)
   const blocked = blockedFor(root, ctx)
   if (blocked || kind === null) {
     return {
-      ...emptyModeResult(query),
+      ...emptyModeResult(original),
       panels: [
         journeyPanel(panelId, blocked ? [`${root.key}#${NO_PATH}#current`] : [], root.labelKey),
       ],
@@ -1026,7 +1340,7 @@ function resolveJourney(
   }))
 
   return {
-    query,
+    query: original,
     asOf: EYVAR_NOW,
     buckets: [window.from],
     panels: [journeyPanel(panelId, series.map((s) => s.id), root.labelKey)],
@@ -1092,217 +1406,11 @@ function panelIdFor(measureKey: string, groupValue: string | null): string {
   return groupValue === null ? `p:${measureKey}` : `p:${measureKey}:${groupValue}`
 }
 
-/* ────────────────────────── one series ─────────────────────────────────── */
-
-interface BuildArgs {
-  measure: Measure
-  query: ReportQuery
-  buckets: IsoDate[]
-  window: { from: IsoDate; to: IsoDate }
-  groupValue: string | null
-  topGroups: string[]
-  role: 'current' | 'comparison'
-  panelId: string
-  partials: number[]
-  blocked: PermissionKey | null
-  failed: { code: string; retryable: boolean } | null
-}
-
-function buildSeries(args: BuildArgs): { series: ReportSeries; truncated: boolean; hadGap: boolean } {
-  const { measure, query, buckets, groupValue, topGroups, role, panelId, partials, blocked, failed } = args
-  const id = `${measure.key}#${groupValue ?? '_'}#${role}`
-
-  if (blocked || failed) {
-    return {
-      /* No points. Redaction is at the data layer; a client-side filter over a
-         full payload is not a permission control, it is a rendering choice with
-         the data still in the response (§13.1). */
-      series: {
-        id,
-        measureKey: measure.key,
-        groupValue,
-        role,
-        panelId,
-        unit: measure.unit,
-        currency: measure.currency,
-        temporality: measure.temporality,
-        points: [],
-        partialBucketIndexes: [],
-        blocked,
-        failed,
-      },
-      truncated: false,
-      hadGap: false,
-    }
-  }
-
-  const source = SOURCES[measure.population.resource]
-  if (!source) {
-    throw new Error(
-      `Measure "${measure.key}" declares population "${measure.population.resource}", which no source reads. ` +
-        `A population that cannot be read is a measure that should not be in the catalogue (R5-15).`,
-    )
-  }
-
-  const capped = source.rows.slice(0, currentRowCap())
-  const truncated = capped.length < source.rows.length
-  const groupField = query.groupBy === null ? null : source.fields[query.groupBy] ?? null
-
-  const rows = capped.filter((row) => {
-    if (!matchesAll(row, measure.population.predicate, source)) return false
-    if (!matchesAll(row, query.filters, source)) return false
-    if (groupValue === null || groupField === null) return true
-    const key = String(groupField(row) ?? '')
-    /* `Other` is the complement of the eight named groups, so its value is the
-       tail's real total and not a placeholder. */
-    return groupValue === OTHER ? !topGroups.includes(key) : key === groupValue
-  })
-
-  const points: (number | null)[] = []
-  let hadGap = false
-  const coverage = measure.population.coverage
-
-  for (const bucketStart of buckets) {
-    const span = bucketSpan(bucketStart, query.grain, args.window)
-    /* Outside the store's declared coverage the answer is unknown, and unknown
-       is `null`. Inside it, "no rows" is a real zero. */
-    if (span.last < coverage.from || span.first > coverage.to) {
-      points.push(null)
-      hadGap = true
-      continue
-    }
-    points.push(valueForBucket(measure, source, rows, span.first, span.last))
-  }
-
-  return {
-    series: {
-      id,
-      measureKey: measure.key,
-      groupValue,
-      role,
-      panelId,
-      unit: measure.unit,
-      currency: measure.currency,
-      temporality: measure.temporality,
-      points,
-      partialBucketIndexes: partials,
-      blocked: null,
-      failed: null,
-    },
-    truncated,
-    hadGap,
-  }
-}
-
-/** The inclusive day range a bucket covers. `grain: 'none'` is the whole window, one bucket. */
-function bucketSpan(
-  bucketStart: IsoDate,
-  grain: ReportGrain,
-  window: { from: IsoDate; to: IsoDate },
-): { first: IsoDate; last: IsoDate } {
-  if (grain === 'none') return { first: window.from, last: window.to }
-  const g = grain as 'day' | 'week' | 'month'
-  return { first: bucketStart, last: addDays(bucketEndExclusive(bucketStart, g), -1) }
-}
-
-/**
- * One bucket, one number.
- *
- * The two temporality rules of §6.2, and nothing else:
- *
- *   **stock** — read as at the bucket's last instant. Changing the grain changes
- *   the sampling density and never the values (AC-820).
- *
- *   **flow** — aggregate over the bucket. Changing the grain changes every
- *   value: weekly new subscriptions are roughly seven times daily, and the
- *   shape is not the same shape (AC-821).
- */
-function valueForBucket(
-  measure: Measure,
-  source: RowSource<AnyRow>,
-  rows: readonly AnyRow[],
-  first: IsoDate,
-  last: IsoDate,
-): number | null {
-  const { bucketAggregate, population } = measure
-
-  if (bucketAggregate === 'cumulative-count' || bucketAggregate === 'end-of-period') {
-    const liveAt = source.liveAt
-    if (!liveAt) return null
-    return rows.filter((row) => liveAt(row, last)).length
-  }
-
-  const inBucket = rows.filter((row) => {
-    const d = source.dateOf(row, population.timeField)
-    return d !== null && d >= first && d <= last
-  })
-
-  if (bucketAggregate === 'count') return inBucket.length
-  if (bucketAggregate === 'sum') {
-    return inBucket.reduce((total, row) => total + source.valueOf(row, population.valueField), 0)
-  }
-  /* mean — a rate is meaned, never summed. An empty bucket has no mean, and
-     `null` is the honest answer: `0 %` cancellations on a day with no trips is
-     a claim nobody measured. */
-  if (inBucket.length === 0) return null
-  const sum = inBucket.reduce((total, row) => total + source.valueOf(row, population.valueField), 0)
-  return Math.round((sum / inBucket.length) * 10) / 10
-}
-
-/* ──────────────────────────── grouping ─────────────────────────────────── */
-
-interface Grouping {
-  values: (string | null)[]
-  folded: number
-  /** The named groups, so an `Other` series knows what it is the complement of. */
-  top: string[]
-}
-
-/**
- * The groups a split produces, ranked by total descending, folded at eight.
- *
- * *"Silently dropping the tail is how a report tells an operator that the long
- * tail does not exist."* — §7.4. So the ninth and beyond become one `Other`
- * series, the legend names how many were folded, and the result carries
- * `groups-folded`.
- */
-export function groupsFor(
-  measure: Measure,
-  query: ReportQuery,
-  window: { from: IsoDate; to: IsoDate },
-): Grouping {
-  if (query.groupBy === null) return { values: [null], folded: 0, top: [] }
-  const source = SOURCES[measure.population.resource]
-  const get = source?.fields[query.groupBy]
-  if (!source || !get) return { values: [null], folded: 0, top: [] }
-
-  const totals = new Map<string, number>()
-  for (const row of source.rows.slice(0, currentRowCap())) {
-    if (!matchesAll(row, measure.population.predicate, source)) continue
-    if (!matchesAll(row, query.filters, source)) continue
-    /* **The window, which this ranking used to ignore.** Without it the top-N
-       groups were chosen over the whole store, so `last-month` and `last-7d`
-       returned byte-identical group membership AND order — and the rank-1 group
-       could contribute 0.00 to the period actually on screen, while the folded
-       `Other` bucket outweighed every named one. Same rule as the trend
-       resolver: a row with no date in this window is not in this question. */
-    const date = source.dateOf(row, measure.population.timeField)
-    if (date === null || date < window.from || date > window.to) continue
-    const key = String(get(row) ?? '')
-    if (key === '') continue
-    totals.set(key, (totals.get(key) ?? 0) + source.valueOf(row, measure.population.valueField))
-  }
-
-  const ranked = [...totals.entries()]
-    /* Deterministic: total descending, then key ascending. A tie must not
-       reshuffle between renders or visual regression cannot diff it. */
-    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], ['ar', 'en']))
-    .map(([key]) => key)
-
-  if (ranked.length <= MAX_GROUPS) return { values: ranked, folded: 0, top: ranked }
-  const top = ranked.slice(0, MAX_GROUPS)
-  return { values: [...top, OTHER], folded: ranked.length - MAX_GROUPS, top }
-}
+/* `buildSeries`, `bucketSpan`, `valueForBucket` and `groupsFor` moved to
+   `reporting/resolve/core.ts` (`resolveTrendLeg`/`resolveFormulaLeg`,
+   `planGroupPaths`) as the pure aggregation core — WP-1.6. `buildMeasureRows`
+   above is what replaced them here: population, predicate, filter and segment
+   matching, flattened to the `CoreRow` shape core operates on. */
 
 function matchesAll(row: AnyRow, filters: readonly FilterSpec[], source: RowSource<AnyRow>): boolean {
   return filters.every((f) => {
