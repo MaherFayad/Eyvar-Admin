@@ -587,12 +587,14 @@ describe('§12 — the client half of alerts, and the two fields nobody has deci
     expect(rules.every((rule) => rule.minReArmMinutes === null)).toBe(true)
 
     renderAt('/management/reports?view=alerts', <ReportsScreen />)
-    /* R10/T9.15 — the banner says it once for the page, so the `Checked`
-       column repeats nothing and the cell is blank (O9). */
+    /* v2 (`22-analytics-v2.md` §4.6) restates R10's banner with its own copy
+       and states the fact plainly on every row instead of leaving it blank. */
     expect(
-      await screen.findByText(REPORTS_EN['rb.alerts.banner.body'] as string),
+      await screen.findByText(REPORTS_EN['rb.alert.banner.noCadence.body'] as string),
     ).toBeInTheDocument()
-    expect(screen.queryByText(REPORTS_EN['rb.alert.cadence.unset'] as string)).toBeNull()
+    expect(
+      (await screen.findAllByText(REPORTS_EN['rb.alert.cadence.none'] as string)).length,
+    ).toBeGreaterThan(0)
   })
 
   it('AC-885 — a firing rule uses the word and a warning tone, and no red anywhere', async () => {

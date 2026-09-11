@@ -266,3 +266,120 @@ describe('reports.run: auth and legality', () => {
     expect(rows[0]!.id).toMatch(/^run_/)
   })
 })
+
+/**
+ * WP-6.4c: `sequential` and `holdConstant` (`02-report-builder-v2.md` §5)
+ * have no mock to equality-test against — `resolveReport.ts` never computes
+ * them. Each test seeds a handful of its own fixture rows (isolated from the
+ * standard fixtures by a rider id / pickup value used nowhere else), so the
+ * expected numbers can be traced by hand from the rows the test itself
+ * inserts, not from the ~130-row shared trip fixture.
+ *
+ * `fixtures-to-seed.mjs`'s `SERVER_ONLY_FUNNEL_CAPABILITIES` declares
+ * `sequential`/`holdConstant` support for `riders.joined`, `trips.completed`
+ * and `subscriptions.started` in `measures.seed.sql` — the one column this
+ * seed states that the TS fixture (`src/data/fixtures/measures.ts`) does
+ * not, because only the server computes either option. Without it `plan.ts`
+ * would refuse both queries below with `funnel-needs-server`.
+ */
+describe('reports.run: funnel server-only options (WP-6.4c)', () => {
+  it(
+    'sequential: an interleaving trip between the matched trip and the matched subscription drops that rider, ' +
+      'ordered would have kept — RDR-TEST-SEQ-A joins 06-01, trips (done) 06-05, subscribes 06-10: no other rung ' +
+      'event falls strictly between 06-05 and 06-10, so all 3 rungs count it. RDR-TEST-SEQ-B joins 06-01, trips ' +
+      '06-05 AND AGAIN 06-07, subscribes 06-10: rung 2 (trips) still matches at 06-07 is not in play — the FIRST ' +
+      'trip (06-05) is what matches rung 2 either way — but rung 3 sees its OWN second trip (06-07) sitting ' +
+      'strictly between rung 2\'s matched date (06-05) and the subscription (06-10), so sequential drops it: ' +
+      'expected rung counts [2, 2, 1], not [2, 2, 2]',
+    async () => {
+      await pglite.exec(`
+        INSERT INTO fixture_riders (id, "joinedAt", "rider.city", "rider.status") VALUES
+          ('RDR-TEST-SEQ-A', '2026-06-01', 'TestSeqCity', 'on-demand'),
+          ('RDR-TEST-SEQ-B', '2026-06-01', 'TestSeqCity', 'on-demand');
+        INSERT INTO fixture_trips (id, "riderId", "endedAt", "trip.kind", "trip.status", "trip.pickup", "fareHalalas") VALUES
+          ('TRP-TEST-SEQ-A1', 'RDR-TEST-SEQ-A', '2026-06-05T10:00:00+03:00', 'Quick Ride', 'done', 'TestDistrict', 1000),
+          ('TRP-TEST-SEQ-B1', 'RDR-TEST-SEQ-B', '2026-06-05T10:00:00+03:00', 'Quick Ride', 'done', 'TestDistrict', 1000),
+          ('TRP-TEST-SEQ-B2', 'RDR-TEST-SEQ-B', '2026-06-07T10:00:00+03:00', 'Quick Ride', 'done', 'TestDistrict', 1000);
+        INSERT INTO fixture_subscriptions (id, "riderId", "startedOn", "endsOn", "subscription.plan", "subscription.vehicleClass", "subscription.status", "paidHalalas") VALUES
+          ('SUB-TEST-SEQ-A', 'RDR-TEST-SEQ-A', '2026-06-10', '2026-12-31', 'basic', 'economy', 'active', 9900),
+          ('SUB-TEST-SEQ-B', 'RDR-TEST-SEQ-B', '2026-06-10', '2026-12-31', 'basic', 'economy', 'active', 9900);
+      `)
+
+      const query = {
+        measures: [],
+        groupBy: [],
+        filters: [],
+        window: { kind: 'preset' as const, preset: 'last-30d' as const },
+        grain: 'none' as const,
+        periodComparison: 'none' as const,
+        chartType: 'bar' as const,
+        mode: 'funnel' as const,
+        funnel: {
+          steps: [
+            { measureKey: 'riders.joined', filters: [{ field: 'rider.city', op: 'eq' as const, value: 'TestSeqCity' }] },
+            { measureKey: 'trips.completed', filters: [] },
+            { measureKey: 'subscriptions.started', filters: [] },
+          ],
+          conversionWindow: null,
+          mode: 'sequential' as const,
+          holdConstant: null,
+          exclude: [],
+          measuredAs: 'conversion' as const,
+          groupBy: null,
+        },
+      }
+
+      const response = await handler(run(query, analystCookie))
+      expect(response.status).toBe(200)
+      const result = (await response.json()) as ReportResult
+      const points = result.series.map((s) => s.points[0])
+      expect(points).toEqual([2, 2, 1])
+      expect(result.warnings).not.toContain('funnel-counted-not-followed')
+    },
+  )
+
+  it(
+    'holdConstant on trip.pickup: RDR-TEST-HC-A\'s second trip repeats the entry pickup (TestHcEntryDistrict) and ' +
+      'is kept; RDR-TEST-HC-B\'s second trip is at a different pickup (TestHcOtherDistrict) and is dropped — ' +
+      'expected rung counts [2, 1], not [2, 2]',
+    async () => {
+      await pglite.exec(`
+        INSERT INTO fixture_trips (id, "riderId", "endedAt", "trip.kind", "trip.status", "trip.pickup", "fareHalalas") VALUES
+          ('TRP-TEST-HC-A1', 'RDR-TEST-HC-A', '2026-06-05T10:00:00+03:00', 'Quick Ride', 'done', 'TestHcEntryDistrict', 1000),
+          ('TRP-TEST-HC-B1', 'RDR-TEST-HC-B', '2026-06-05T10:00:00+03:00', 'Quick Ride', 'done', 'TestHcEntryDistrict', 1000),
+          ('TRP-TEST-HC-A2', 'RDR-TEST-HC-A', '2026-06-10T10:00:00+03:00', 'Quick Ride', 'done', 'TestHcEntryDistrict', 1000),
+          ('TRP-TEST-HC-B2', 'RDR-TEST-HC-B', '2026-06-10T10:00:00+03:00', 'Quick Ride', 'done', 'TestHcOtherDistrict', 1000);
+      `)
+
+      const query = {
+        measures: [],
+        groupBy: [],
+        filters: [],
+        window: { kind: 'preset' as const, preset: 'last-30d' as const },
+        grain: 'none' as const,
+        periodComparison: 'none' as const,
+        chartType: 'bar' as const,
+        mode: 'funnel' as const,
+        funnel: {
+          steps: [
+            { measureKey: 'trips.completed', filters: [{ field: 'trip.pickup', op: 'eq' as const, value: 'TestHcEntryDistrict' }] },
+            { measureKey: 'trips.completed', filters: [] },
+          ],
+          conversionWindow: null,
+          mode: 'ordered' as const,
+          holdConstant: 'trip.pickup',
+          exclude: [],
+          measuredAs: 'conversion' as const,
+          groupBy: null,
+        },
+      }
+
+      const response = await handler(run(query, analystCookie))
+      expect(response.status).toBe(200)
+      const result = (await response.json()) as ReportResult
+      const points = result.series.map((s) => s.points[0])
+      expect(points).toEqual([2, 1])
+      expect(result.warnings).not.toContain('funnel-counted-not-followed')
+    },
+  )
+})
