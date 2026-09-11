@@ -54,14 +54,22 @@
  *               its own `asOf`. Never blanked, never silently stale.
  */
 
-import { useId } from 'react'
+import { useId, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { EmptyState } from '@/components/EmptyState'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { ErrorState } from '@/components/ErrorState'
 import { LoadingSkeleton } from '@/components/LoadingSkeleton'
+import { ChevronDownIcon, MoreIcon } from '@/components/icons'
 import type {
+  ChartType,
   CurrencyCode,
   Measure,
   MetricUnit,
@@ -69,8 +77,13 @@ import type {
   ReportPanel,
   ReportResult,
 } from '@/data/types'
+import type { Annotation, AnnotationKind } from '@/data/types/annotation'
+import { serialiseReportQuery } from '@/data/clients'
 import { formatDate, type Language, type Translator } from '@/lib'
+import { useChartView } from '@/hooks/useChartView'
+import { AnnotationForm } from './AnnotationForm'
 import { DistributionCard } from './DistributionCard'
+import { KpiCard } from './KpiCard'
 import {
   PanelCard,
   PanelFrame,
@@ -79,7 +92,13 @@ import {
   relatedBoards,
   type RelatedBoard,
 } from './PanelCard'
-import { SeriesChart, seriesColor, seriesDash } from './SeriesChart'
+import {
+  COMPARISON_SERIES_ID,
+  SeriesChart,
+  type SeriesChartKind,
+  seriesColor,
+  seriesDash,
+} from './SeriesChart'
 import { SeriesHeadlines } from './SeriesHeadlines'
 import { ResultTable } from './ResultTable'
 
@@ -95,8 +114,20 @@ export interface ResultCanvasProps {
   measuresByKey: Readonly<Record<string, Measure>>
   /** The chart type the operator asked for, when the planner coerced it (§7.3). */
   coercedFrom: string | null
-  /** `line` or `bar` for a small-multiple; `pie` / `bar` for a distribution; `table` for the table. */
-  effectiveChartType: 'line' | 'bar' | 'pie' | 'table'
+  /** The shape the planner actually draws — every v2 `ChartType` is legal here now. */
+  effectiveChartType: ChartType
+  /**
+   * §2's chart-view cache key — the saved report id, or `serialiseReportQuery`
+   * of the draft when unsaved. Defaults to the latter so a caller that has not
+   * been updated for v2 keeps working; a saved report should pass its own id
+   * so the view survives a query edit that does not change the report.
+   */
+  viewKey?: string
+  /** §2.4 — the window's annotations, already fetched by the caller (dumb about fetching, per this module's rule). */
+  annotations?: readonly Annotation[]
+  /** `manage_analytics` is not yet a minted `PermissionKey` (D17); the caller resolves it (BUILD-LOG F-V2-28) and passes the outcome. */
+  canAnnotate?: boolean
+  onSaveAnnotation?: (input: { date: string; label: string; kind: AnnotationKind; note: string }) => Promise<void>
   /**
    * Re-runs the whole result. Reached from three places, all of them real: the
    * error state's `Run again`, `Meta`'s refresh beside the freshness line, and
@@ -178,6 +209,10 @@ export function ResultCanvas({
   measuresByKey,
   coercedFrom,
   effectiveChartType,
+  viewKey,
+  annotations = [],
+  canAnnotate = false,
+  onSaveAnnotation,
   onRetry,
   onRetrySeries,
   withTable = false,
@@ -226,6 +261,10 @@ export function ResultCanvas({
             measuresByKey={measuresByKey}
             coercedFrom={coercedFrom}
             effectiveChartType={effectiveChartType}
+            viewKey={viewKey ?? serialiseReportQuery(result.query)}
+            annotations={annotations}
+            canAnnotate={canAnnotate}
+            onSaveAnnotation={onSaveAnnotation}
             onRetrySeries={onRetrySeries}
             combinedTable={withTable}
             framed={framed}

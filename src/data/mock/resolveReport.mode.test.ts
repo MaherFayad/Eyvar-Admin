@@ -434,3 +434,74 @@ describe('6 — v2 (WP-1.6): two-level splits and segments', () => {
     expect(result.series[0]?.failed).toBeNull()
   })
 })
+
+/* ────────────── 7 — v2 (WP-3.1/3.2): funnel and cohort v2 ───────────────── */
+
+describe('7 — funnel v2: mode, conversion-over-time, time-to-convert', () => {
+  it('unordered (AC-1167 §5) never counts fewer subjects than ordered — it only relaxes the sequence rule', () => {
+    const unordered: ReportQuery = { ...funnel, funnel: { ...funnel.funnel!, mode: 'unordered' } }
+    const orderedCount = Number(run(funnel).series[1]?.points[0] ?? 0)
+    const unorderedCount = Number(run(unordered).series[1]?.points[0] ?? 0)
+    expect(unorderedCount).toBeGreaterThanOrEqual(orderedCount)
+  })
+
+  it('conversion-over-time (AC-1169) draws a trend, one bucket per grain period, not one collapsed bucket', () => {
+    const overTime: ReportQuery = {
+      ...funnel,
+      grain: 'week',
+      funnel: { ...funnel.funnel!, measuredAs: 'conversion-over-time' },
+    }
+    const result = run(overTime)
+    expect(result.buckets.length).toBeGreaterThan(1)
+    expect(result.series).toHaveLength(1)
+    expect(result.series[0]?.unit).toBe('percent')
+    expect(result.series[0]?.points).toHaveLength(result.buckets.length)
+    /* A bucket nobody entered is a gap, never a manufactured 0 %. */
+    for (const point of result.series[0]?.points ?? []) {
+      expect(point === null || (typeof point === 'number' && point >= 0 && point <= 100)).toBe(true)
+    }
+  })
+
+  it('conversion-over-time collapses to one bucket at grain "none", same as any other trend', () => {
+    const overTime: ReportQuery = {
+      ...funnel,
+      grain: 'none',
+      funnel: { ...funnel.funnel!, measuredAs: 'conversion-over-time' },
+    }
+    expect(run(overTime).buckets).toHaveLength(1)
+  })
+
+  it('time-to-convert (AC-1169) draws p25…p95 as five panels, non-decreasing where all are known', () => {
+    const ttc: ReportQuery = { ...funnel, funnel: { ...funnel.funnel!, measuredAs: 'time-to-convert' } }
+    const result = run(ttc)
+    expect(result.panels).toHaveLength(5)
+    expect(result.series.every((s) => s.unit === 'minutes')).toBe(true)
+    const values = result.series.map((s) => s.points[0])
+    const known = values.filter((v): v is number => typeof v === 'number')
+    for (let i = 1; i < known.length; i += 1) expect(known[i]!).toBeGreaterThanOrEqual(known[i - 1]!)
+  })
+})
+
+describe('8 — cohort v2: grain, method, brackets', () => {
+  it('cohortGrain (AC-1171) actually changes the engine, not just the label — week produces more, narrower buckets than month over the same window', () => {
+    const week = run({ ...cohort, cohort: { ...cohort.cohort!, cohortGrain: 'week' } })
+    const month = run(cohort)
+    expect(week.buckets.length).toBeGreaterThan(month.buckets.length)
+    /* Every bucket is a real date, never the `YYYY-MM` label alone. */
+    for (const bucket of week.buckets) expect(bucket).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+  })
+
+  it('method (AC-1172) changes the numbers: nday reads differently from rolling for the same cohort', () => {
+    const rolling = run(cohort)
+    const nday = run({ ...cohort, cohort: { ...cohort.cohort!, method: 'nday' } })
+    expect(nday.series.map((s) => s.points)).not.toEqual(rolling.series.map((s) => s.points))
+  })
+
+  it('method: "bracket" (AC-1172) names its columns by the given [lo, hi) windows, not M0…Mn', () => {
+    const bracket = run({
+      ...cohort,
+      cohort: { ...cohort.cohort!, method: 'bracket', brackets: [[0, 1], [1, 3]] },
+    })
+    expect(bracket.series.map((s) => s.groupValue)).toEqual(['0-1', '1-3'])
+  })
+})

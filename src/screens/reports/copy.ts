@@ -194,8 +194,20 @@ export const REPORTS_EN: Dictionary = {
   'rb.control.window.to': 'To',
   'rb.control.window.custom': 'Custom range',
   'rb.control.window.range': '{from} – {to}',
+  /* WP-2.6, §1.4 — the fixed-comparison popover. It is the custom-range HALF
+     of this same control's own shape, so it shares these keys' neighbourhood. */
+  'rb.control.window.fixedCompare.heading': 'Fixed comparison range',
+  'rb.control.window.fixedCompare.length': 'This range needs {count} buckets to match the current window.',
   'rb.control.grain': 'Grain',
   'rb.control.compare': 'Compare to',
+  /* WP-2.6, §1.5. */
+  'rb.control.comparisonDisplay': 'Show as',
+  'rb.comparisonDisplay.series': 'Series',
+  'rb.comparisonDisplay.difference': 'Difference',
+  'rb.comparisonDisplay.percentChange': '% change',
+  'rb.comparisonDisplay.series.full': 'Draw the comparison as a second, dashed line',
+  'rb.comparisonDisplay.difference.full': 'Draw the difference between the two periods',
+  'rb.comparisonDisplay.percentChange.full': 'Draw the percent change between the two periods',
   'rb.control.chartType': 'Chart type',
   /* **`Run` became `Refresh`, and the KEY did not move.**
      The canvas follows the question now — it re-runs itself 350ms after the
@@ -209,6 +221,57 @@ export const REPORTS_EN: Dictionary = {
      handoff for i18n to rename with its call sites when it is cheap. */
   'rb.control.run': 'Refresh',
   'rb.control.disabled.unstarted': 'Choose a measure first.',
+
+  /* ────────────────────── formula, transform, segments (WP-2.6, §1.1-§1.3) ─ */
+
+  'rb.control.formula': 'Formula',
+  'rb.control.formula.placeholder': 'A / B × 100',
+  'rb.control.formula.hint': 'Combine measures A and B. Use ROLLAVG, CUMSUM, DELTA or PCT to shape one.',
+  'rb.control.formula.refA': 'A is {measure}',
+  'rb.control.formula.refB': 'B is {measure}',
+  'rb.control.formula.refB.unset': 'B is not set',
+  'rb.control.formula.showParts': 'Show A and B too',
+  'rb.control.formula.unit': 'Result in {unit}.',
+  'rb.violation.formulaParse': 'Position {position}: expected {expected}.',
+  'rb.violation.formulaUnknownRef': 'Add a second measure to use B in this formula.',
+  'rb.violation.formulaUnit': 'A and B use different units and cannot combine this way.',
+  'rb.violation.formulaNeedsAdditive': 'CUMSUM needs a measure that adds up, like a count or a total.',
+  'rb.violation.formulaNeedsSplit': 'PCT needs a split, so there is a group to take a share of.',
+
+  'rb.control.transform': 'Transform',
+  'rb.control.transform.hint': 'Reshape the answer without changing the question.',
+  'rb.control.transform.cumulative': 'Cumulative total',
+  'rb.control.transform.cumulative.disabled':
+    'This measure does not add up, so a running total would not be meaningful.',
+  'rb.control.transform.rollingAverage': 'Rolling average over',
+  'rb.control.transform.rollingAverage.unit': 'buckets',
+  'rb.control.transform.rollingAverage.disabled':
+    'This range has {count} complete buckets. Widen it to average over more.',
+  'rb.control.transform.percentOfTotal': 'Percent of total',
+  'rb.control.transform.percentOfTotal.disabled': 'Add a split so there is a group to take a share of.',
+
+  'rb.control.segments': 'Segments',
+  'rb.control.segments.hint': 'Compare up to four populations side by side. Leave empty to include everyone.',
+  'rb.control.segments.add': 'Add segment',
+  'rb.control.segments.max': 'Segments are capped at 4. Remove one to add another.',
+  'rb.control.segments.none': 'No saved segments yet.',
+  'rb.control.segments.search': 'Search…',
+  'rb.control.segments.new.name': 'Segment name',
+  'rb.control.segments.new.cancel': 'Cancel',
+  'rb.control.segments.new.add': 'Add segment',
+  'rb.control.segments.performed.label': 'Performed',
+  'rb.control.segments.performed.unsupported': 'This population has no per-person activity to count against.',
+  'rb.control.segments.performed.eachBucket': 'in each bucket',
+  'rb.control.segments.performed.rollingDays': 'in the last {days} days',
+  'rb.control.segments.performed.timesUnit': 'times',
+  'rb.control.segments.performed.op.gte': 'at least',
+  'rb.control.segments.performed.op.lte': 'at most',
+  'rb.control.segments.performed.op.eq': 'exactly',
+  'rb.control.segments.remove': 'Remove segment {name}',
+  'rb.control.segments.overCeiling': 'over the series limit',
+  'rb.violation.tooManySeries': 'This asks for {count} series. The limit is {max}. Remove a segment or a split.',
+  'rb.catalogue.segments.loading': 'Loading segments…',
+  'rb.catalogue.segments.error': 'Couldn’t load segments. Try again.',
 
   /* ─────────────────────────── the chart toolbar ────────────────────────── */
 
@@ -290,10 +353,20 @@ export const REPORTS_EN: Dictionary = {
   'rb.chartType.bar': 'Bar',
   'rb.chartType.pie': 'Pie',
   'rb.chartType.table': 'Table',
+  /* G8, `02-report-builder-v2.md` §2.8 — the five v2 shapes the library's own
+     `Type` filter must name, even before every one draws (WP-2.7/2.8). */
+  'rb.chartType.area': 'Area',
+  'rb.chartType.stacked-bar': 'Stacked bar',
+  'rb.chartType.stacked-100': '100% stacked',
+  'rb.chartType.horizontal-bar': 'Horizontal bar',
+  'rb.chartType.kpi': 'KPI',
 
   'rb.compare.none': 'No comparison',
   'rb.compare.previous-period': 'Previous period',
+  'rb.compare.previous-quarter': 'Previous quarter',
   'rb.compare.previous-year': 'Previous year',
+  /* G6 — a fixed range compares against explicit dates rather than a rolling one. */
+  'rb.compare.fixed': 'Fixed range ({from} – {to})',
 
   /* ───────────── why a control is disabled — the layer's own keys ────────── */
 
@@ -660,6 +733,11 @@ export const REPORTS_EN: Dictionary = {
   'rb.save.invalid.report-unsaved': 'Save the report first.',
   'rb.save.invalid.recipient-not-permitted': 'That person can’t see this measure.',
 
+  /* §8 — the library's own filter facet. `Enter` or a comma commits a chip. */
+  'rb.save.tags': 'Tags',
+  'rb.save.tags.placeholder': 'Add a tag',
+  'rb.save.tags.remove': 'Remove tag {tag}',
+
   /* Pinning at save time. Optional, and the default is not-pinned — so the
      picker's own four states are the four states of an OPTIONAL control: none
      of them may block the save. */
@@ -980,13 +1058,27 @@ export const REPORTS_EN: Dictionary = {
   'rb.alerts.search': 'Search alerts',
   'rb.alerts.col.name': 'Alert',
   'rb.alerts.col.state': 'State',
-  'rb.alerts.col.cadence': 'Checked',
+  /* v2 renames this column from the display it inherited from `lastEvaluated`
+     (`Checked`) to what it actually shows now that `cadence` is a real,
+     settable schedule (`Hourly`/`Daily`/`Not scheduled`) rather than always
+     `null` — `rb.alerts.col.lastEvaluated` carries the "when" this column
+     used to stand in for. */
+  'rb.alerts.col.cadence': 'Cadence',
   /* The line the rule watches, beside the reading that is tested against it.
      Amplitude §H's principle — what needs attention reads at a glance — needs
      both numbers in view; one of them was only ever inside the rule sentence. */
   'rb.alerts.col.threshold': 'Threshold',
   'rb.alerts.col.lastValue': 'Last reading',
   'rb.alerts.col.lastEvaluated': 'Last checked',
+  /* v2 (`04-alerting-v2.md` §4) — the condition summary column, one sentence
+     per kind from `rb.alert.sentence.<kind>`, and the schedule/channels/labels
+     columns the extended table adds. */
+  'rb.alerts.col.condition': 'Condition',
+  'rb.alerts.col.channels': 'Channels',
+  'rb.alerts.col.labels': 'Labels',
+  'rb.alerts.col.mute': 'Mute',
+  'rb.alerts.tab.rules': 'Rules',
+  'rb.alerts.tab.firings': 'Firings',
   'rb.alerts.firstRun.heading': 'Alerts on crossed thresholds',
   'rb.alerts.firstRun.body':
     'An alert watches one series of one saved report and posts to the notification centre when it crosses your threshold.',
@@ -1071,11 +1163,12 @@ export const REPORTS_EN: Dictionary = {
      asked for, and it says which report the rule will watch. */
   'rb.alert.form.preset': 'Watching “{name}”. Choose a series and a threshold.',
   'rb.alert.form.series': 'Series',
+  /* Reused as the static condition's sr-only labels (§4.2's `[ > ▾ ] [ 400 ] SAR`
+     row carries no visible label of its own — these name the two controls for
+     assistive tech). */
   'rb.alert.form.comparator': 'Fires when the value',
   'rb.alert.form.threshold': 'Threshold',
   'rb.alert.form.threshold.unit': 'In {unit}',
-  'rb.alert.form.grain': 'Reads the last complete',
-  'rb.alert.form.cadence': 'Checked',
   'rb.alert.form.recipients': 'Also tell',
   'rb.alert.form.enabled': 'On',
   'rb.alert.form.report.loading': 'Loading the saved reports',
@@ -1083,15 +1176,12 @@ export const REPORTS_EN: Dictionary = {
   'rb.alert.form.series.unstarted': 'Choose a report first.',
   'rb.alert.form.series.loading': 'Reading the report’s series',
   'rb.alert.form.series.error': 'The report didn’t run, so its series are unknown.',
-  'rb.alert.form.series.empty': 'This report has no series you can read.',
-  'rb.alert.form.muted': 'Muted',
-  'rb.alert.form.muted.none': 'Not muted',
-  'rb.alert.form.muted.clear': 'Un-mute',
-  /* AC-891 is blocked on D4. The field is present and off, saying why — an
-     absent field is a decision nobody can see. */
-  'rb.alert.form.recipients.count': 'Currently telling {count} people',
-  'rb.alert.form.recipients.blocked':
-    'Who else gets told cannot be chosen yet: an operator who cannot see this measure is not allowed to receive the alert, and permissions are not yet fine-grained enough to work that out. The people already on this rule keep getting told.',
+  /* **D4 is no longer fully open — `listTeamUsers` + `effectivePermissions`
+     answer "can user X see measure M" well enough to filter a picker.** v1's
+     blocked field and its explanation are replaced by a real multi-select
+     (§4.4) filtered the same way the email channel's picker is; see
+     `rb.alert.channel.email.empty` for the parallel empty case on recipients. */
+  'rb.alert.form.recipients.empty': 'No team member holds access to this measure.',
   'rb.alert.form.save': 'Save alert',
   'rb.alert.form.cancel': 'Cancel',
   'rb.alert.form.failed': 'The alert wasn’t saved. Nothing was changed.',
@@ -1133,6 +1223,27 @@ export const REPORTS_EN: Dictionary = {
      `warning`, and R7 puts a terminal factual outcome in neutral. */
   'rb.alert.history.notification.present': 'In the notification centre',
   'rb.alert.history.notification.cleared': 'No longer in the notification centre',
+  /* v2 (`04-alerting-v2.md` §5) — the band a firing evaluated against, and its
+     per-channel deliveries. A failed delivery states the channel and the error
+     without touching the firing's own row (state 24, AC-1237). */
+  'rb.alert.history.col.band': 'Band',
+  'rb.alert.history.band': '{low} – {high}',
+  'rb.alert.history.col.deliveries': 'Deliveries',
+  'rb.alert.history.delivery.sent': '{channel} sent',
+  'rb.alert.history.delivery.failed': '{channel} failed',
+  /* The `Changes` tab — every save, as `field: old → new`. */
+  'rb.alert.history.tab.firings': 'Firings',
+  'rb.alert.history.tab.changes': 'Changes',
+  'rb.alert.history.changes.empty': 'This rule has not been changed since it was created.',
+  'rb.alert.history.changes.error': 'The change history didn’t load.',
+  'rb.alert.history.changes.entry': '{field}: {from} → {to}',
+  'rb.alert.history.changes.by': 'Changed by {who}',
+  'rb.alert.history.changes.field.name': 'Name',
+  'rb.alert.history.changes.field.evaluationGrain': 'Evaluation grain',
+  'rb.alert.history.changes.field.cadence': 'Cadence',
+  'rb.alert.history.changes.field.severity': 'Severity',
+  'rb.alert.history.changes.field.enabled': 'On',
+  'rb.alert.history.changes.field.mutedUntil': 'Muted until',
   /* §11.1 — the heading names what the ledger is FOR, never the absence of
      rows. *No firings yet* would be the absence; this is the section. The
      sentence beneath it is the fact. */
@@ -1160,4 +1271,154 @@ export const REPORTS_EN: Dictionary = {
      a toast for every successful mutation, INCLUDING ones inside a modal. */
   'rb.alert.toast.saved': '{name} saved',
   'rb.alert.toast.deleted': '{name} deleted',
+
+  /* ── v2: the composer as an inline panel, four condition kinds, channels,
+     mute, lag (`04-alerting-v2.md` §4, `docs/05-restructure/design/
+     22-analytics-v2.md` §4) — final copy, carried over verbatim from the
+     design spec's own tables. ─────────────────────────────────────────── */
+
+  'rb.alert.panel.heading.new': 'New alert rule',
+  'rb.alert.panel.heading.edit': 'Edit alert rule',
+  'rb.alert.series.empty': 'This report has no series to watch.',
+  'rb.alert.form.condition': 'Condition',
+  'rb.alert.form.evaluationGrain': 'Evaluation grain',
+  'rb.alert.form.cadence': 'Cadence',
+  'rb.alert.cadence.hourly': 'Hourly',
+  'rb.alert.cadence.daily': 'Daily',
+  'rb.alert.cadence.none': 'Not scheduled',
+  'rb.alert.form.reArm': 'Re-arm after',
+  'rb.alert.form.reArm.unit': 'minutes',
+  'rb.alert.form.severity': 'Severity',
+  'rb.alert.severity.high': 'High',
+  'rb.alert.severity.critical': 'Critical',
+  'rb.alert.severity.critical.blocked': 'Critical severity needs a recipient rule that is not decided yet.',
+  'rb.alert.form.labels': 'Labels',
+  'rb.alert.form.labels.placeholder': 'Add a label',
+  'rb.alert.form.labels.remove': 'Remove label {name}',
+  'rb.alert.action.test': 'Test now',
+  'rb.alert.action.save': 'Save rule',
+
+  /* §4.2 — each condition kind's own fields. */
+  'rb.alert.kind.static.name': 'Threshold',
+  'rb.alert.kind.static.desc': 'Fires when a value crosses a fixed line',
+  'rb.alert.kind.relative.name': 'Change',
+  'rb.alert.kind.relative.desc': 'Fires when a value moves against a past bucket',
+  'rb.alert.kind.anomaly.name': 'Anomaly',
+  'rb.alert.kind.anomaly.desc': 'Fires when a value leaves its normal range',
+  'rb.alert.kind.missing.name': 'Missing data',
+  'rb.alert.kind.missing.desc': 'Fires when the pipeline stops delivering',
+  'rb.alert.relative.direction': 'Direction',
+  'rb.alert.relative.direction.up': 'Up',
+  'rb.alert.relative.direction.down': 'Down',
+  'rb.alert.relative.direction.either': 'Either',
+  'rb.alert.relative.measure': 'Measure',
+  'rb.alert.relative.measure.delta': 'Amount changed',
+  'rb.alert.relative.measure.percent': 'Percent changed',
+  'rb.alert.relative.amount': 'Amount',
+  'rb.alert.relative.against': 'Against',
+  'rb.alert.relative.against.previousBucket': 'Previous bucket',
+  'rb.alert.relative.against.sameWeekday': 'Same bucket, previous week',
+  'rb.alert.relative.against.previousPeriod': 'Previous period',
+  'rb.alert.against.weekOnlyAtDay': 'This comparison needs a daily evaluation grain.',
+  'rb.alert.anomaly.direction': 'Direction',
+  'rb.alert.anomaly.direction.above': 'Above',
+  'rb.alert.anomaly.direction.below': 'Below',
+  'rb.alert.anomaly.direction.either': 'Either',
+  'rb.alert.anomaly.confidence': 'Confidence',
+  'rb.alert.anomaly.confidence.95': '95%',
+  'rb.alert.anomaly.confidence.99': '99%',
+  'rb.alert.anomaly.lookback': 'Lookback',
+  'rb.alert.anomaly.lookback.placeholder': 'Uses the last {count} buckets',
+  'rb.alert.anomaly.method':
+    'This estimates a normal range from recent history. It is a simple statistical band, not a learned model.',
+  'rb.alert.missing.count': 'Fires when',
+  'rb.alert.missing.count.suffix': 'complete buckets in a row are missing',
+
+  /* §4.3 — the preview chart. */
+  'rb.alert.preview.heading': 'Would this have fired?',
+  'rb.alert.preview.incomplete': 'Fill in the condition to see when this would have fired.',
+  'rb.alert.anomaly.noBaseline': 'Needs 8 complete buckets to estimate a range. This series has {count}.',
+  'rb.alert.preview.summary': '{count} of the last {window} buckets would have fired',
+
+  /* §4.4 — channels. */
+  'rb.alert.channel.inApp': 'In-app',
+  'rb.alert.channel.inApp.always': 'always on',
+  'rb.alert.channel.email': 'Email',
+  'rb.alert.channel.email.empty': 'No team member with access to this measure can receive email.',
+  'rb.alert.channel.slack': 'Slack',
+  'rb.alert.channel.slack.empty': 'No Slack webhook is connected.',
+  'rb.alert.channel.slack.addLink': 'Add one in Admin › Integrations',
+  'rb.alert.channel.recipientDropped': 'Lost access to this measure',
+  'rb.alert.channel.email.add': 'Add recipient',
+  'rb.alert.channel.email.remove': 'Remove {name}',
+  'rb.alert.channel.email.search': 'Search team members…',
+  'rb.alert.channel.email.noMatch': 'No team member matches.',
+
+  /* §4.5 — the mute menu, shared by the Rules table and the composer. */
+  'rb.alert.mute.menu': 'Mute for…',
+  'rb.alert.mute.1h': '1 hour',
+  'rb.alert.mute.8h': '8 hours',
+  'rb.alert.mute.24h': '24 hours',
+  'rb.alert.mute.untilMonday': 'Until Monday',
+  'rb.alert.mute.custom': 'Custom date…',
+  'rb.alert.mute.custom.apply': 'Apply',
+  'rb.alert.mute.custom.cancel': 'Cancel',
+  'rb.alert.mute.unmute': 'Unmute',
+  'rb.alert.mute.rowState': 'Muted until {time}',
+  'rb.alert.mute.failed': 'The rule wasn’t muted. Nothing was changed.',
+  'rb.alert.mute.action': 'Mute {name} for…',
+
+  /* §4.6 — the lag state, row-level and list-level. */
+  'rb.alert.state.lag': 'Last evaluated {duration} ago · expected {cadence}',
+  'rb.alert.state.notScheduled': 'Not scheduled',
+  'rb.alert.banner.noCadence.title': 'A rule without a cadence never runs.',
+  'rb.alert.banner.noCadence.body': 'Set a cadence so it can evaluate and fire.',
+  'rb.alert.banner.noCadence.action': 'Set cadence',
+
+  /* The condition summary column (AC-1232) — one short sentence per kind, built
+     from words rather than the raw `>`/`↓` shorthand the doc's example uses,
+     matching this product's no-symbol convention (`copy.md` rule 1). */
+  'rb.alert.sentence.static': '{comparator} {threshold}',
+  'rb.alert.sentence.relative': '{direction} by {amount} vs {against}',
+  'rb.alert.sentence.anomaly': '{direction} its {confidence}% band',
+  'rb.alert.sentence.missing': 'misses {count} buckets in a row',
+  'rb.alert.relative.directionWord.up': 'rises',
+  'rb.alert.relative.directionWord.down': 'falls',
+  'rb.alert.relative.directionWord.either': 'changes',
+  'rb.alert.relative.against.previousBucket.inline': 'the previous bucket',
+  'rb.alert.relative.against.sameWeekday.inline': 'the same day last week',
+  'rb.alert.relative.against.previousPeriod.inline': 'the previous period',
+  'rb.alert.anomaly.directionWord.above': 'rises above',
+  'rb.alert.anomaly.directionWord.below': 'falls below',
+  'rb.alert.anomaly.directionWord.either': 'leaves',
+
+  /* ── the firings feed (`?view=alerts`, Firings tab) — a cross-rule ledger,
+     `04-alerting-v2.md` §4. ─────────────────────────────────────────────── */
+
+  'rb.alert.feed.search': 'Search firings',
+  'rb.alert.feed.col.firedAt': 'Fired',
+  'rb.alert.feed.col.rule': 'Rule',
+  'rb.alert.feed.col.value': 'Value',
+  'rb.alert.feed.col.bucket': 'Reading for',
+  'rb.alert.feed.col.severity': 'Severity',
+  'rb.alert.feed.col.acknowledged': 'Acknowledged',
+  'rb.alert.feed.col.deliveries': 'Deliveries',
+  'rb.alert.feed.col.actions': 'Actions',
+  'rb.alert.feed.filter.rule': 'Rule',
+  'rb.alert.feed.filter.acknowledged': 'Acknowledged',
+  'rb.alert.feed.filter.severity': 'Severity',
+  'rb.alert.feed.filter.acknowledged.yes': 'Acknowledged',
+  'rb.alert.feed.filter.acknowledged.no': 'Not acknowledged',
+  'rb.alert.feed.acknowledge': 'Acknowledge',
+  'rb.alert.feed.acknowledged.by': 'By {who}, {time}',
+  'rb.alert.feed.explain': 'Explain',
+  'rb.alert.feed.firstRun.heading': 'A feed of firings',
+  'rb.alert.feed.firstRun.body':
+    'Once a rule fires, it lands here. Every rule you can see, newest first.',
+  'rb.alert.feed.empty': 'Nothing has fired yet.',
+  'rb.alert.feed.noMatch': 'No firing matches this search.',
+  'rb.alert.feed.noMatch.action': 'Clear filters',
+  'rb.alert.feed.error': 'The firings didn’t load.',
+  'rb.alert.feed.acknowledged.toast': 'Firing acknowledged',
+  'rb.alert.feed.acknowledge.failed': 'The firing wasn’t acknowledged. Nothing was changed.',
 }

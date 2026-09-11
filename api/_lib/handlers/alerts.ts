@@ -17,6 +17,7 @@ import { evaluate, type ResolvedSeries } from '@/data/reporting/alerts/evaluate'
 import { REPORT_NAME_MAX, type SaveInvalidReason } from '@/data/types/report'
 import type { AlertCondition, AlertEvaluation, AlertRule } from '@/data/types/alert'
 import type { PermissionKey } from '@/data/types/navigation'
+import type { IsoDate } from '@/data/types/common'
 import type { ReportQuery, ReportResult } from '@/data/types/report'
 import { notFoundError, validationError } from '../errors'
 import { jsonResponse, paginated, resolveOffsetPage, single } from '../envelope'
@@ -303,14 +304,21 @@ function bareEvaluation(rule: AlertRule, unit: AlertRule['thresholdUnit'], curre
  * rule fired — `stateChanged` is the literal `false`, and nothing here writes
  * to `alert_rules`, `alert_firings` or `notifications`.
  */
-export function createEvaluateAlertRuleHandler(db: Database): RouteHandler<RequestContext> {
-  const runReportHandler = createRunReportHandler(db)
+export interface EvaluateAlertRuleDeps {
+  /** Injectable so a test pins the same clock `reports.run` resolves the window against. Defaults to the real clock. */
+  today?: () => IsoDate
+  now?: () => string
+}
+
+export function createEvaluateAlertRuleHandler(db: Database, deps: EvaluateAlertRuleDeps = {}): RouteHandler<RequestContext> {
+  const runReportHandler = createRunReportHandler(db, deps)
+  const nowFn = deps.now ?? (() => new Date().toISOString())
   return async (_req, ctx) => {
     const operator = requirePermission(ctx, READ_PERMISSION)
     const row = await fetchAlertRuleRow(db, ctx.params.id ?? '')
     if (!row) throw notFoundError(`alert rule ${ctx.params.id}`)
     const rule = toWireAlertRule(row)
-    const now = new Date().toISOString()
+    const now = nowFn()
     const measure = await measureForSeries(db, rule.seriesId)
     const unit = measure?.unit ?? rule.thresholdUnit
     const currency = measure?.currency ?? rule.thresholdCurrency

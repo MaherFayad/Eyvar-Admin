@@ -81,6 +81,39 @@ export interface UndoOptions<T> {
   record?: (target: T) => { entityType: ProfileEntityType; entityId: string }
 }
 
+/**
+ * A 20-step in-memory undo stack for a surface with no server-audited
+ * inverse — the page editor (`03-pages-and-dashboards.md` §5), not the
+ * command centre's ten-second `undoHandle` above. Local only: it never
+ * touches the data seam, so it is wrong for anything `undoHandle` already
+ * covers.
+ */
+const PAGE_EDITOR_UNDO_LIMIT = 20
+
+export interface PageEditorUndoEntry<T> {
+  /** Restores the state before the edit this entry recorded. */
+  undo: () => T
+}
+
+export class PageEditorUndoStack<T> {
+  private readonly entries: PageEditorUndoEntry<T>[] = []
+
+  push(entry: PageEditorUndoEntry<T>): void {
+    this.entries.push(entry)
+    if (this.entries.length > PAGE_EDITOR_UNDO_LIMIT) this.entries.shift()
+  }
+
+  /** Pops and runs the last entry, or does nothing on an empty stack. */
+  undo(): T | undefined {
+    const entry = this.entries.pop()
+    return entry?.undo()
+  }
+
+  get size(): number {
+    return this.entries.length
+  }
+}
+
 export function undoHandle<T>(ctx: CommandContext<T>, options: UndoOptions<T>): UndoHandle {
   const targets = ctx.targets
   const count = targets.length

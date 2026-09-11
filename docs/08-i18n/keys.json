@@ -1,9 +1,9 @@
 {
   "totals": {
-    "keys": 6915,
-    "en": 6548,
-    "ar": 6914,
-    "arMissing": 0,
+    "keys": 7062,
+    "en": 6695,
+    "ar": 7054,
+    "arMissing": 7,
     "arExtra": 366,
     "copyFiles": 39,
     "unregisteredKeys": 194,
@@ -28,7 +28,7 @@
       "exports": [
         "REPORTS_EN"
       ],
-      "keys": 570,
+      "keys": 717,
       "notInEN": 0
     },
     {

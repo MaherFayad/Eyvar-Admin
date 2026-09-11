@@ -1,22 +1,39 @@
 /**
- * Cohort analysis engine for Eyvar analytics.
- *
- * Groups entities by signup/creation period (month/quarter) and evaluates activity or retention
- * across subsequent age intervals (M0, M1, M3, M6).
+ * Cohort analysis engine for Eyvar analytics — grain-generic (G11).
+ * Groups entities by the period they joined, at `day`/`week`/`month`, and
+ * ages them under `rolling` (still active at N+), `nday` (active at exactly
+ * N) or `bracket` (active within an operator's `[lo, hi)`).
  */
 
+import { addDays, bucketStartOf, localDayOf } from './buckets'
 import type { IsoDate, IsoDateTime } from '../types/common'
 
+export type CohortGrain = 'day' | 'week' | 'month'
+export type CohortMethod = 'rolling' | 'nday' | 'bracket'
+
 export interface CohortRow {
-  cohortKey: string // e.g. "2026-01"
+  /** The cohort's own label — `'2026-01'` at `month`, a full date at `day`/`week`. */
+  cohortKey: string
+  /** The cohort's bucket start, always a full `IsoDate` regardless of grain — what a caller buckets the result on. */
+  cohortStart: IsoDate
   size: number
-  retentionByMonth: Record<string, number | null> // e.g. { M0: 100, M1: 85.5, M3: 70.2 }
+  /** Keyed by the `intervals` this matrix was built with — `'M0'…` for `rolling`/`nday`, `'{lo}-{hi}'` for `bracket`. */
+  retentionByInterval: Record<string, number | null>
 }
 
 export interface CohortMatrix {
-  intervals: string[] // ['M0', 'M1', 'M2', 'M3', 'M6']
+  intervals: string[]
   rows: CohortRow[]
   overallSurvivalRate: number | null
+}
+
+export interface CohortMatrixOptions {
+  /** Default `'month'` — `buildCohortMatrix`'s original, only-computed grain. */
+  grain?: CohortGrain
+  /** Default `'rolling'`. */
+  method?: CohortMethod
+  /** `[lo, hi)` pairs in `grain` units, read only when `method === 'bracket'`. */
+  brackets?: readonly [number, number][] | null
 }
 
 /**
@@ -31,86 +48,143 @@ export function monthDiff(fromIso: IsoDate | IsoDateTime, toIso: IsoDate | IsoDa
   return (toYear - fromYear) * 12 + (toMonth - fromMonth)
 }
 
+/** Whole Riyadh-local calendar days between two dates/datetimes, `to − from`. */
+function dayDiff(fromIso: IsoDate | IsoDateTime, toIso: IsoDate | IsoDateTime): number {
+  const from = localDayOf(fromIso)
+  const to = localDayOf(toIso)
+  return Math.round((Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 86_400_000)
+}
+
+/**
+ * How many `grain` periods separate two dates — the one function every method
+ * below reads age through, so `rolling`, `nday` and `bracket` cannot disagree
+ * about what "period 3" means.
+ */
+export function gapDiff(
+  fromIso: IsoDate | IsoDateTime,
+  toIso: IsoDate | IsoDateTime,
+  grain: CohortGrain,
+): number {
+  if (grain === 'month') return monthDiff(fromIso, toIso)
+  const days = dayDiff(fromIso, toIso)
+  return grain === 'week' ? Math.floor(days / 7) : days
+}
+
+/** The cohort a `joinedAt` falls into, at `grain` — its label and its bucket's real start date. */
+function cohortKeyOf(joinedAt: IsoDate | IsoDateTime, grain: CohortGrain): { key: string; start: IsoDate } {
+  const day = localDayOf(joinedAt)
+  if (grain === 'month') return { key: day.slice(0, 7), start: `${day.slice(0, 7)}-01` }
+  const start = bucketStartOf(day, grain)
+  return { key: start, start }
+}
+
+/**
+ * §6 / AC-1172: two `[lo, hi)` brackets overlap when one starts before the
+ * other ends. Half-open on purpose — `[[0,7],[7,14]]` is the spec's own
+ * example of legal, touching brackets, and inclusive-inclusive would flag day
+ * 7 as belonging to both.
+ */
+export function bracketsOverlap(brackets: readonly [number, number][]): boolean {
+  for (let i = 0; i < brackets.length; i += 1) {
+    for (let j = i + 1; j < brackets.length; j += 1) {
+      const [aLo, aHi] = brackets[i]!
+      const [bLo, bHi] = brackets[j]!
+      if (aLo < bHi && bLo < aHi) return true
+    }
+  }
+  return false
+}
+
 /**
  * Builds a cohort retention matrix from a population of entities.
+ *
+ * `today` is required and not optional: a cell for a period that has not
+ * elapsed for a given cohort is `null`, never `0` — see `buildCohortMatrix`'s
+ * original header, whose argument is unchanged by grain or method.
  */
 export function buildCohortMatrix<T>(
   entities: readonly T[],
   getJoinedAt: (entity: T) => IsoDate | IsoDateTime,
   getLastActiveAt: (entity: T) => IsoDate | IsoDateTime | null,
-  /**
-   * **Today, and it is not optional.** A cohort cell for a month that has not
-   * happened yet is unknown, not zero.
-   *
-   * Without this the June-2026 cohort read `100 / 0 / 0 / 0` on 25 June 2026 —
-   * three of twelve rows wrong on screen, and wrong in the most damaging
-   * direction, because `0%` retention is a business emergency and the truth was
-   * "ask again in a month". The type already allows `null` and the renderer
-   * already blanks it; only the arithmetic was missing.
-   */
   today: IsoDate,
-  intervals = ['M0', 'M1', 'M2', 'M3', 'M6'],
+  intervals: string[] = ['M0', 'M1', 'M2', 'M3', 'M6'],
+  options: CohortMatrixOptions = {},
 ): CohortMatrix {
-  const cohorts: Record<string, { size: number; activeAtMonth: Record<number, number> }> = {}
+  const grain = options.grain ?? 'month'
+  const method = options.method ?? 'rolling'
+  const brackets = options.method === 'bracket' ? (options.brackets ?? null) : null
+
+  const cohorts: Record<string, { start: IsoDate; size: number; gaps: number[] }> = {}
 
   entities.forEach((entity) => {
     const joinedAt = getJoinedAt(entity)
     if (!joinedAt) return
-    const cohortKey = joinedAt.slice(0, 7) // "YYYY-MM"
-
-    if (!cohorts[cohortKey]) {
-      cohorts[cohortKey] = { size: 0, activeAtMonth: {} }
-    }
-    cohorts[cohortKey].size += 1
+    const { key, start } = cohortKeyOf(joinedAt, grain)
+    const cohort = cohorts[key] ?? (cohorts[key] = { start, size: 0, gaps: [] })
+    cohort.size += 1
 
     const lastActiveAt = getLastActiveAt(entity)
-    const survivedMonths = lastActiveAt ? monthDiff(joinedAt, lastActiveAt) : 0
-
-    // Mark as active for all months up to survivedMonths
-    for (let m = 0; m <= Math.max(survivedMonths, 0); m += 1) {
-      cohorts[cohortKey].activeAtMonth[m] = (cohorts[cohortKey].activeAtMonth[m] ?? 0) + 1
-    }
+    /* No further activity is period 0, not "no data": the join itself is one
+       recorded moment, and a subject not seen again is "still here at M0". */
+    const gap = lastActiveAt ? Math.max(gapDiff(joinedAt, lastActiveAt, grain), 0) : 0
+    cohort.gaps.push(gap)
   })
 
   const sortedCohortKeys = Object.keys(cohorts).sort()
   const rows: CohortRow[] = sortedCohortKeys.map((cohortKey) => {
     const cohort = cohorts[cohortKey]!
-    const retentionByMonth: Record<string, number | null> = {}
+    /* Has this period elapsed for THIS cohort? Per row, never per table — an
+       older cohort has lived through periods a newer one has not reached. */
+    const elapsed = gapDiff(cohort.start, today, grain)
+    const retentionByInterval: Record<string, number | null> = {}
 
-    intervals.forEach((intervalStr) => {
-      const monthNum = Number(intervalStr.replace(/^M/, ''))
-      if (Number.isNaN(monthNum)) return
-
-      /* Has this month elapsed for THIS cohort? `M3` is meaningful for a cohort
-         that joined four months ago and unknowable for one that joined last
-         week — so the cut is per row, never per table. */
-      const elapsed = monthDiff(`${cohortKey}-01`, today)
-      if (monthNum > elapsed) {
-        retentionByMonth[intervalStr] = null
-      } else if (cohort.size === 0) {
-        retentionByMonth[intervalStr] = null
-      } else {
-        const active = cohort.activeAtMonth[monthNum] ?? 0
-        retentionByMonth[intervalStr] = Math.round((active / cohort.size) * 1000) / 10
-      }
-    })
-
-    return {
-      cohortKey,
-      size: cohort.size,
-      retentionByMonth,
+    if (method === 'bracket' && brackets) {
+      brackets.forEach(([lo, hi]) => {
+        const label = `${lo}-${hi}`
+        retentionByInterval[label] =
+          elapsed < lo
+            ? null
+            : Math.round((cohort.gaps.filter((g) => g >= lo && g < hi).length / cohort.size) * 1000) / 10
+      })
+    } else {
+      intervals.forEach((intervalStr) => {
+        const n = Number(intervalStr.replace(/^M/, ''))
+        if (Number.isNaN(n)) return
+        if (n > elapsed) {
+          retentionByInterval[intervalStr] = null
+          return
+        }
+        /* `rolling`: still here AT LEAST N periods on — the cumulative curve.
+           `nday`: returned on EXACTLY period N — a bump, not a ramp. Both read
+           the same `gaps`, so the two methods cannot disagree about who came
+           back, only about which periods that counts toward. */
+        const active =
+          method === 'nday'
+            ? cohort.gaps.filter((g) => g === n).length
+            : cohort.gaps.filter((g) => g >= n).length
+        retentionByInterval[intervalStr] = Math.round((active / cohort.size) * 1000) / 10
+      })
     }
+
+    return { cohortKey, cohortStart: cohort.start, size: cohort.size, retentionByInterval }
   })
 
   const totalEntities = entities.length
-  const totalM1Surviving = rows.reduce((sum, r) => {
-    const m1Pct = r.retentionByMonth['M1']
-    return sum + (m1Pct !== null && m1Pct !== undefined ? (m1Pct / 100) * r.size : 0)
-  }, 0)
+  const second = intervals[1] ?? null
+  const totalSecondSurviving = second
+    ? rows.reduce((sum, r) => {
+        const pct = r.retentionByInterval[second]
+        return sum + (pct !== null && pct !== undefined ? (pct / 100) * r.size : 0)
+      }, 0)
+    : 0
 
   return {
     intervals,
     rows,
-    overallSurvivalRate: totalEntities > 0 ? Math.round((totalM1Surviving / totalEntities) * 1000) / 10 : null,
+    overallSurvivalRate:
+      totalEntities > 0 && second ? Math.round((totalSecondSurviving / totalEntities) * 1000) / 10 : null,
   }
 }
+
+/** Re-exported so a caller building bracket columns need not reach into `buckets.ts` itself. */
+export { addDays }

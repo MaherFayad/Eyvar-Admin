@@ -488,6 +488,7 @@ export type {
   SaveInvalidReason,
   SaveReportOutcome,
   SavedReport,
+  SavedReportVersion,
 } from './report'
 
 /* P7-T1's values. `reportMode(query)` rather than `query.mode` at every call
@@ -499,6 +500,12 @@ export {
   REPORT_NAME_MAX,
   normaliseReportQuery,
   reportMode,
+  /* §8's readers — the one place each of these optional-and-defaulted `SavedReport` fields is read. */
+  reportOfficial,
+  reportStarredBy,
+  reportTags,
+  reportUpdatedBy,
+  reportVersions,
 } from './report'
 
 export type {

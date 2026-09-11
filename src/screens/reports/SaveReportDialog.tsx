@@ -82,6 +82,7 @@
  */
 
 import { useEffect, useState } from 'react'
+import { CloseIcon } from '@/components/icons'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -116,14 +117,12 @@ import { Textarea } from '@/components/ui/textarea'
 import { ErrorState } from '@/components/ErrorState'
 import { LoadingSkeleton } from '@/components/LoadingSkeleton'
 import { useAsync } from '@/hooks'
-import { listDashboards, saveDashboard, saveReport } from '@/data/clients'
-import { REPORT_NAME_MAX } from '@/data/types'
-import type {
-  Dashboard,
-  ReportQuery,
-  SaveInvalidReason,
-  SavedReport,
-} from '@/data/types'
+import { listPages, savePage, saveReport } from '@/data/clients'
+import { REPORT_NAME_MAX, reportTags } from '@/data/types'
+import type { ReportQuery, SaveInvalidReason, SavedReport } from '@/data/types'
+/* Not yet in the `@/data/types` barrel — `pages.ts` itself imports the same
+   way. Flagged in the handoff for whoever owns that barrel next. */
+import { PAGE_BLOCK_MAX, type Page } from '@/data/types/page'
 import { isolatedRunProps, type Translator } from '@/lib'
 
 export interface SaveReportDialogProps {
@@ -172,7 +171,10 @@ export function SaveReportDialog({
   const [visibility, setVisibility] = useState<SavedReport['visibility']>(
     report?.visibility ?? 'private',
   )
-  const [dashboardId, setDashboardId] = useState<string>(NO_DASHBOARD)
+  const [pageId, setPageId] = useState<string>(NO_DASHBOARD)
+  /** §8 — free-text, operator-set. `tagDraft` is the field's own uncommitted text. */
+  const [tags, setTags] = useState<string[]>(reportTags(report ?? {}))
+  const [tagDraft, setTagDraft] = useState('')
   const [reasons, setReasons] = useState<readonly SaveInvalidReason[]>([])
   const [failed, setFailed] = useState(false)
   /** What the last successful `saveReport` returned. `null` until there is one. */
@@ -182,13 +184,19 @@ export function SaveReportDialog({
 
   /* Read only while the dialog is open — a picker nobody has opened should not
      cost a request on every builder render. `deps: [open]` keeps the cache key
-     distinct from `DashboardsView`'s, which is keyed by its table params. */
-  const boards = useAsync((signal) => listDashboards({ pageSize: 100 }, signal), {
-    deps: [open],
-    enabled: open,
-    cacheKey: 'dashboards.list',
-    isEmpty: (page) => page.items.length === 0,
-  })
+     distinct from `DashboardsView`'s, which is keyed by its table params.
+     D46/§8 — `Dashboard` is gone; a dashboard is a `Page` of `kind: 'dashboard'`
+     now, and the picker offers those, never a `case-study` or a `note`. */
+  const pages = useAsync(
+    (signal) =>
+      listPages({ pageSize: 100, filters: [{ field: 'kind', op: 'eq', value: 'dashboard' }] }, signal),
+    {
+      deps: [open],
+      enabled: open,
+      cacheKey: 'pages.list.dashboard',
+      isEmpty: (result) => result.items.length === 0,
+    },
+  )
 
   /* Re-seed when the dialog opens against a different record. Not on every
      render: that would overwrite what the operator is typing. */
@@ -197,7 +205,9 @@ export function SaveReportDialog({
     setName(draftName ?? report?.name ?? '')
     setDescription(draftDescription ?? report?.description ?? '')
     setVisibility(report?.visibility ?? 'private')
-    setDashboardId(NO_DASHBOARD)
+    setPageId(NO_DASHBOARD)
+    setTags(reportTags(report ?? {}))
+    setTagDraft('')
     setReasons([])
     setFailed(false)
     setSaved(null)
@@ -209,32 +219,39 @@ export function SaveReportDialog({
   }, [open, report])
 
   /**
-   * Add the report to the board as one more tile, and **never throw**.
-   *
-   * A throw here would land in the transport `catch` below and render
-   * `rb.save.failed` — *"The report wasn't saved. Nothing was changed."* —
-   * about a report that was saved. The boolean keeps the two outcomes apart.
+   * Add the report to the page as one more `ReportBlock`, and **never throw**
+   * — a throw here would land in the transport `catch` below and render
+   * `rb.save.failed` about a report that WAS saved (D9 partial-outcome rule).
    */
-  const pin = async (board: Dashboard, record: SavedReport): Promise<boolean> => {
+  const pin = async (page: Page, record: SavedReport): Promise<boolean> => {
+    if (page.blocks.length >= PAGE_BLOCK_MAX) return false
     try {
-      const outcome = await saveDashboard({
-        id: board.id,
-        /* Sent whole, and unchanged. `SaveDashboardInput` requires both because
-           a caller that omitted `description` would blank what the board's
-           author wrote. */
-        name: board.name,
-        description: board.description,
-        tiles: [
-          ...board.tiles,
+      const outcome = await savePage({
+        id: page.id,
+        kind: page.kind,
+        /* Sent whole, and unchanged — `SavePageInput` is a full replace, the
+           same contract `saveDashboard` used to have for its tile list. */
+        title: page.title,
+        icon: page.icon,
+        description: page.description,
+        visibility: page.visibility,
+        tags: page.tags,
+        scope: page.scope,
+        blocks: [
+          ...page.blocks,
           {
-            tileId: `TIL-${board.id}-${record.id}`,
+            id: `RPB-${page.id}-${record.id}`,
+            type: 'report',
             reportId: record.id,
-            /* A display fallback ONLY, for a tile whose report has vanished
-               (AC-869). The tile stores a reference, never a copy. */
-            pinnedName: record.name,
-            order: board.tiles.length + 1,
+            view: 'chart',
+            height: 'M',
+            /* A display fallback ONLY, for a block whose report has vanished
+               (AC-869's tile parallel). The block stores a reference, never a
+               copy. */
+            title: record.name,
           },
         ],
+        version: page.version,
       })
       return outcome.status === 'saved'
     } catch {
@@ -256,6 +273,7 @@ export function SaveReportDialog({
         description: description.trim() === '' ? null : description,
         query,
         visibility,
+        tags,
       })
       if (outcome.status === 'invalid') {
         setReasons(outcome.reasons)
@@ -263,8 +281,8 @@ export function SaveReportDialog({
       }
       setSaved(outcome.report)
 
-      const board = boards.data?.items.find((row) => row.id === dashboardId) ?? null
-      if (board !== null && !(await pin(board, outcome.report))) {
+      const page = pages.data?.items.find((row) => row.id === pageId) ?? null
+      if (page !== null && !(await pin(page, outcome.report))) {
         /* The report is saved. Stated in full, here, where picking another
            board and trying again is one click away. */
         setPinFailed(true)
@@ -326,6 +344,49 @@ export function SaveReportDialog({
             </FieldControl>
           </Field>
 
+          {/* §8 — free-text tags, the library's own filter facet. `Enter` or a
+              comma commits the draft as a chip; the chip's own button removes it
+              (§12.1 forbids an interactive `Badge`, so this is a plain span). */}
+          <Field id="rb-save-tags">
+            <FieldLabel optional={t('field.optional')}>{t('rb.save.tags')}</FieldLabel>
+            {tags.length > 0 && (
+              <div className="flex flex-wrap items-center gap-1.5">
+                {tags.map((tag) => (
+                  <span
+                    key={tag}
+                    className="inline-flex h-control items-center gap-1 rounded-lg border border-border-control bg-card ps-2 pe-1 text-sm text-foreground"
+                  >
+                    <bdi>{tag}</bdi>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-xs"
+                      className="size-5"
+                      aria-label={t('rb.save.tags.remove', { tag })}
+                      onClick={() => setTags((current) => current.filter((each) => each !== tag))}
+                    >
+                      <CloseIcon aria-hidden="true" className="size-3" />
+                    </Button>
+                  </span>
+                ))}
+              </div>
+            )}
+            <FieldControl>
+              <Input
+                value={tagDraft}
+                onChange={(event) => setTagDraft(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key !== 'Enter' && event.key !== ',') return
+                  event.preventDefault()
+                  const next = tagDraft.trim()
+                  if (next !== '' && !tags.includes(next)) setTags((current) => [...current, next])
+                  setTagDraft('')
+                }}
+                placeholder={t('rb.save.tags.placeholder')}
+              />
+            </FieldControl>
+          </Field>
+
           <FieldSet>
             <FieldLegend>{t('rb.save.visibility')}</FieldLegend>
             <RadioGroup
@@ -363,24 +424,24 @@ export function SaveReportDialog({
             {/* `FieldLabel` only where there is a control for it to point at.
                 The other three states carry no `<select>`, and a `for` that
                 resolves to nothing is a label a screen reader drops. */}
-            {boards.status === 'content' ? (
+            {pages.status === 'content' ? (
               <FieldLabel optional={t('field.optional')}>{t('rb.save.addTo')}</FieldLabel>
             ) : (
               <FieldTitle>{t('rb.save.addTo')}</FieldTitle>
             )}
-            {boards.status === 'loading' ? (
+            {pages.status === 'loading' ? (
               <LoadingSkeleton pattern="P1" rows={1} label={t('rb.save.addTo.loading')} />
-            ) : boards.status === 'error' ? (
+            ) : pages.status === 'error' ? (
               <ErrorState
                 scope="card"
                 card={false}
                 message={t('rb.save.addTo.error')}
-                action={{ label: t('rb.save.addTo.error.retry'), onClick: boards.refetch }}
+                action={{ label: t('rb.save.addTo.error.retry'), onClick: pages.refetch }}
               />
-            ) : boards.status === 'empty' ? (
+            ) : pages.status === 'empty' ? (
               <FieldDescription>{t('rb.save.addTo.empty')}</FieldDescription>
             ) : (
-              <Select value={dashboardId} onValueChange={setDashboardId}>
+              <Select value={pageId} onValueChange={setPageId}>
                 <FieldControl>
                   <SelectTrigger className="w-full">
                     <SelectValue />
@@ -388,12 +449,12 @@ export function SaveReportDialog({
                 </FieldControl>
                 <SelectContent>
                   <SelectItem value={NO_DASHBOARD}>{t('rb.save.addTo.none')}</SelectItem>
-                  {(boards.data?.items ?? []).map((board) => (
-                    <SelectItem key={board.id} value={board.id}>
+                  {(pages.data?.items ?? []).map((page) => (
+                    <SelectItem key={page.id} value={page.id}>
                       {/* Operator-authored, so it is a bidi run of its own —
-                          an Arabic board name in an English list, or the
+                          an Arabic page title in an English list, or the
                           reverse, must not reorder the sentence around it. */}
-                      <bdi {...isolatedRunProps().run}>{board.name}</bdi>
+                      <bdi {...isolatedRunProps().run}>{page.title}</bdi>
                     </SelectItem>
                   ))}
                 </SelectContent>

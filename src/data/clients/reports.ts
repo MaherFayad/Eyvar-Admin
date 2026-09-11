@@ -210,6 +210,16 @@ export async function listReports(
     let rows = reports.filter((r) => r.visibility === 'team' || r.ownerId === me)
     if (params.view === 'mine') rows = rows.filter((r) => r.ownerId === me)
     if (params.view === 'team') rows = rows.filter((r) => r.visibility === 'team')
+    /* §8, AC-1163 — the three views v1 had no field for. `recent` sorts on
+       `lastRunAt` rather than a visit log this layer does not keep. */
+    if (params.view === 'starred') rows = rows.filter((r) => (r.starredBy ?? []).includes(me))
+    if (params.view === 'official') rows = rows.filter((r) => r.official === true)
+    if (params.view === 'recent') {
+      rows = [...rows]
+        .filter((r) => r.lastRunAt !== null)
+        .sort((a, b) => (b.lastRunAt as string).localeCompare(a.lastRunAt as string))
+        .slice(0, 20)
+    }
     for (const filter of params.filters ?? []) {
       const wanted = Array.isArray(filter.value)
         ? filter.value.map(String)
@@ -256,6 +266,8 @@ export interface SaveReportInput {
   description: string | null
   query: ReportQuery
   visibility: SavedReport['visibility']
+  /** §8 — free-text, operator-set. Omitted keeps whatever the record already has. */
+  tags?: string[]
 }
 
 /**
@@ -297,6 +309,7 @@ export async function saveReport(
         description: input.description,
         query: input.query,
         visibility: input.visibility,
+        tags: input.tags ?? existing.tags,
         updatedAt: EYVAR_NOW,
         updatedBy: currentMockUserId(),
         versions: [...(existing.versions ?? []), priorVersion].slice(-20),
@@ -312,6 +325,7 @@ export async function saveReport(
       query: input.query,
       ownerId: currentMockUserId(),
       visibility: input.visibility,
+      tags: input.tags ?? [],
       createdAt: EYVAR_NOW,
       updatedAt: EYVAR_NOW,
       /* Saving is not running. A report saved from the builder has been run in
@@ -380,7 +394,8 @@ export async function duplicateReport(id: string, signal?: AbortSignal): Promise
     const copy: SavedReport = {
       ...row,
       id: `RPT-${reports.length + 1}${reports.length}`,
-      name: `${row.name} copy`,
+      /* AC-1166 names the exact form: `<name> (copy)`. */
+      name: `${row.name} (copy)`,
       ownerId: currentMockUserId(),
       visibility: 'private',
       official: false,

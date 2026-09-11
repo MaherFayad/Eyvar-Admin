@@ -4,16 +4,8 @@
  * The order below is the order the question is asked in, not the order the
  * fields happen to sit in the type (§5.3):
  *
- * ```
- *  1  Measure          required, first, and the ONLY control enabled on an
- *                      empty report (AC-807)
- *  2  Second measure   offers only measures legal to pair with the first
- *  3  Split by         offers only dimensions legal for EVERY measure
- *  4  Filters          the existing FilterSpec vocabulary, scoped to the
- *                      intersection. An empty intersection disables it and
- *                      says why (AC-813)
- *  5  Refresh          NOT a commit any more — see below
- * ```
+ * measure, second measure, formula (§1.1), transform (§1.3), split by,
+ * segments (§1.2), filters (AC-813), `Refresh` — NOT a commit; see below.
  *
  * ## Item 5 stopped being the commit
  *
@@ -121,6 +113,9 @@ import {
 import { ErrorState } from '@/components/ErrorState'
 import { LoadingSkeleton } from '@/components/LoadingSkeleton'
 import { InfoHint, hintLines } from '@/components/InfoHint'
+import { FormulaField } from './FormulaField'
+import { SegmentPicker } from './SegmentPicker'
+import { TransformControls } from './TransformControls'
 import { pairableWith } from '@/data/clients'
 import type { Dimension, Measure, QueryPlan, ReportQuery } from '@/data/types'
 import type { Translator } from '@/lib'
@@ -191,14 +186,16 @@ export function QueryPanel({
     const nextKeys = key === null ? [query.measures[0]?.key ?? ''] : [query.measures[0]?.key ?? '', key]
     const next = { ...query, measures: nextKeys.filter(Boolean).map((k) => ({ key: k })) }
     const chosen = nextKeys.map((k) => byKey.get(k)).filter((m): m is Measure => Boolean(m))
-    const stillLegal =
-      next.groupBy === null ||
-      chosen.every((m) => m.dimensions.some((d) => d.key === next.groupBy))
-    onChange(stillLegal ? next : { ...next, groupBy: null })
-    if (!stillLegal) setClearedSplit(true)
+    /* G4: `groupBy` is an array now (≤ `REPORT_GROUP_BY_MAX`). Every level has
+       to survive the same legality check a single level always got. */
+    const stillLegal = next.groupBy.every((g) => chosen.every((m) => m.dimensions.some((d) => d.key === g)))
+    onChange(stillLegal ? next : { ...next, groupBy: [] })
+    if (!stillLegal && next.groupBy.length > 0) setClearedSplit(true)
   }
 
   const [clearedSplit, setClearedSplit] = useState(false)
+  /** §2.2 — view-only: redraws A/B as dashed context series, never in `ReportQuery`. */
+  const [showParts, setShowParts] = useState(false)
 
   return (
     <section
@@ -293,7 +290,32 @@ export function QueryPanel({
         </Select>
       </div>
 
-      {/* ── 3 · split by ─────────────────────────────────────────────────── */}
+      {/* ── 4 · formula (22-analytics-v2.md §1.1) ───────────────────────── */}
+      <FormulaField
+        query={query}
+        onChange={onChange}
+        firstMeasure={first}
+        secondMeasure={second}
+        hasSplit={query.groupBy.length > 0}
+        violations={violationsFor('formula')}
+        unstarted={unstarted}
+        showParts={showParts}
+        onShowPartsChange={setShowParts}
+        t={t}
+      />
+
+      {/* ── 5 · transform (§1.3) ─────────────────────────────────────────── */}
+      <TransformControls
+        query={query}
+        onChange={onChange}
+        firstMeasure={first}
+        hasSplit={query.groupBy.length > 0}
+        bucketCount={plan.bucketCount}
+        unstarted={unstarted}
+        t={t}
+      />
+
+      {/* ── 6 · split by ─────────────────────────────────────────────────── */}
       <div className="flex flex-col gap-1.5">
         <div className="flex items-center gap-1.5">
           <Label htmlFor="rb-groupby">{t('rb.control.groupBy')}</Label>
@@ -307,11 +329,11 @@ export function QueryPanel({
           </InfoHint>
         </div>
         <Select
-          value={query.groupBy ?? NONE}
+          value={query.groupBy[0] ?? NONE}
           disabled={unstarted || plan.legalDimensions.length === 0}
           onValueChange={(key) => {
             setClearedSplit(false)
-            onChange({ ...query, groupBy: key === NONE ? null : key })
+            onChange({ ...query, groupBy: key === NONE ? [] : [key] })
           }}
         >
           <SelectTrigger id="rb-groupby" className="w-full">
@@ -336,7 +358,19 @@ export function QueryPanel({
         )}
       </div>
 
-      {/* ── 4 · filters ──────────────────────────────────────────────────── */}
+      {/* ── 7 · segments (§1.2) ──────────────────────────────────────────── */}
+      <SegmentPicker
+        query={query}
+        onChange={onChange}
+        legalFilterFields={plan.legalFilterFields}
+        dimensions={dimensions}
+        measures={measures}
+        violations={violationsFor('segments')}
+        unstarted={unstarted}
+        t={t}
+      />
+
+      {/* ── 8 · filters ──────────────────────────────────────────────────── */}
       <Filters
         query={query}
         onChange={onChange}

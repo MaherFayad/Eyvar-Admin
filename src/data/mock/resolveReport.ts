@@ -36,12 +36,15 @@ import { measuresByKey } from '../fixtures/measures'
 import { segmentFixtures } from '../fixtures/segments'
 import {
   addDays,
+  bucketEndExclusive,
   bucketStarts,
   comparisonWindow,
+  daysInclusive,
   localDayOf,
   partialBucketIndexes,
   resolveWindow,
 } from '../reporting/buckets'
+import { percentile } from '../reporting/distribution'
 import {
   MAX_GROUPS,
   MAX_JOURNEY_DEPTH,
@@ -71,6 +74,7 @@ import {
   REPORT_GROUP_BY_MAX,
 } from '../types/report'
 import type {
+  FunnelStep,
   ReportPanel,
   ReportQuery,
   ReportResult,
@@ -867,6 +871,13 @@ function emptyModeResult(query: ReportQuery, warnings: ReportWarning[] = []): Re
  * subject has that many days from **their own first rung**, which is why the
  * first rung's date is carried forward rather than recomputed.
  */
+/**
+ * §5. `measuredAs` picks the shape: the cascade (default), a trend of the
+ * final rung's conversion rate over entry date, or a distribution of how long
+ * a converting subject took. All three read the same rungs the same way
+ * (`computeFunnelCore`) so the three pictures cannot disagree about who
+ * converted, only about how that fact is drawn.
+ */
 function resolveFunnel(
   original: ReportQuery,
   query: ReportQuery,
@@ -876,6 +887,19 @@ function resolveFunnel(
   const steps = query.funnel?.steps ?? []
   if (steps.length === 0) return emptyModeResult(original)
 
+  const measuredAs = query.funnel?.measuredAs ?? 'conversion'
+  if (measuredAs === 'conversion-over-time') return resolveFunnelOverTime(original, query, window, ctx)
+  if (measuredAs === 'time-to-convert') return resolveFunnelTimeToConvert(original, query, window, ctx)
+  return resolveFunnelConversion(original, query, window, ctx)
+}
+
+function resolveFunnelConversion(
+  original: ReportQuery,
+  query: ReportQuery,
+  window: { from: IsoDate; to: IsoDate },
+  ctx: ResolveContext,
+): ReportResult {
+  const steps = query.funnel?.steps ?? []
   const warnings = new Set<ReportWarning>()
   const panelId = 'p:funnel'
   const series: ReportSeries[] = []
@@ -886,6 +910,9 @@ function resolveFunnel(
   const first = kinds[0] ?? null
   const follow = first !== null && kinds.every((k) => k === first)
   if (!follow) warnings.add('funnel-counted-not-followed')
+
+  const funnelMode = query.funnel?.mode ?? 'ordered'
+  const windowDays = conversionWindowDays(query.funnel?.conversionWindow ?? null)
 
   /* `subjectId → the date of its event at the rung reached so far`, and the
      date of its FIRST rung, which the conversion window is measured from. */
@@ -928,9 +955,15 @@ function resolveFunnel(
       const next = new Map<string, IsoDate>()
       reached.forEach((previousDate, id) => {
         const startedOn = entered.get(id) ?? previousDate
-        const windowDays = conversionWindowDays(query.funnel?.conversionWindow ?? null)
         const deadline = windowDays === null ? window.to : addDays(startedOn, windowDays)
-        const match = (bySubject.get(id) ?? []).find((e) => e.date >= previousDate && e.date <= deadline)
+        /* `unordered` (G10): still bounded by the conversion window from
+           ENTRY, but not required to fall after the previous rung's own
+           date — the three rungs may land in any order. `ordered` (and the
+           mock's best-effort stand-in for `sequential`, which needs
+           event-level data `funnel-needs-server` already refuses) keeps the
+           `>= previousDate` requirement. */
+        const earliestLegal = funnelMode === 'unordered' ? startedOn : previousDate
+        const match = (bySubject.get(id) ?? []).find((e) => e.date >= earliestLegal && e.date <= deadline)
         if (match) next.set(id, match.date)
       })
       reached = next
@@ -985,6 +1018,225 @@ function resolveFunnel(
     warnings: [...warnings],
     foldedGroupCount: null,
   }
+}
+
+/**
+ * §5's `conversion-over-time`: the last rung's conversion rate, bucketed by
+ * ENTRY date at `query.grain`. A bucket nobody entered is `null` — a rate over
+ * zero entrants is not zero, it is undefined, the same rule §4.4.1 states for
+ * a gap outside a store's coverage.
+ */
+function resolveFunnelOverTime(
+  original: ReportQuery,
+  query: ReportQuery,
+  window: { from: IsoDate; to: IsoDate },
+  ctx: ResolveContext,
+): ReportResult {
+  const steps = query.funnel?.steps ?? []
+  const rungs = funnelRungs(steps)
+  if (rungs.length === 0) return emptyModeResult(original)
+
+  const blocked = firstBlockedRung(rungs, ctx)
+  const panelId = 'p:funnel-trend'
+  const buckets = bucketStarts(window.from, window.to, query.grain)
+  const firstMeasure = rungs[0]!.measure
+
+  if (blocked) {
+    return {
+      ...emptyModeResult(original),
+      buckets,
+      panels: [{ panelId, titleKey: 'rb.panel.funnel', titleParams: { measure: firstMeasure.labelKey }, unit: 'percent', currency: null, seriesIds: [`${firstMeasure.key}#_#current`] }],
+      series: [redactedSeries(firstMeasure, '_', panelId, blocked)],
+    }
+  }
+
+  const funnelMode = query.funnel?.mode ?? 'ordered'
+  const windowDays = conversionWindowDays(query.funnel?.conversionWindow ?? null)
+  const points: (number | null)[] = buckets.map((bucketStart) => {
+    const entryGrain = query.grain === 'none' || query.grain === 'hour' ? 'day' : query.grain
+    const entryTo = addDays(bucketEndExclusive(bucketStart, entryGrain), -1)
+    const core = computeFunnelCore(rungs, query.filters, window, funnelMode, windowDays, { from: bucketStart, to: entryTo })
+    if (!core.follow) return null
+    const enteredCount = core.reachedByRung[0]?.size ?? 0
+    const lastCount = core.reachedByRung[core.reachedByRung.length - 1]?.size ?? 0
+    /* Nobody entered in this bucket: the rate is unknown, not `0 %` — the
+       same "a gap is `null`" rule every other trend in this file follows. */
+    return enteredCount === 0 ? null : Math.round((lastCount / enteredCount) * 1000) / 10
+  })
+
+  const lastMeasure = rungs[rungs.length - 1]!.measure
+  const seriesId = `${lastMeasure.key}#_#current`
+  return {
+    query: original,
+    asOf: EYVAR_NOW,
+    buckets,
+    panels: [{ panelId, titleKey: 'rb.panel.funnel', titleParams: { measure: firstMeasure.labelKey }, unit: 'percent', currency: null, seriesIds: [seriesId] }],
+    series: [
+      {
+        id: seriesId,
+        measureKey: lastMeasure.key,
+        groupValue: null,
+        role: 'current',
+        panelId,
+        unit: 'percent',
+        currency: null,
+        temporality: lastMeasure.temporality,
+        points,
+        partialBucketIndexes: partialBucketIndexes(buckets, query.grain, window, ctx.today),
+        blocked: null,
+        failed: null,
+      },
+    ],
+    truncated: false,
+    truncatedAtRows: null,
+    warnings: [],
+    foldedGroupCount: null,
+  }
+}
+
+/**
+ * §5's `time-to-convert`: p25/p50/p75/p90/p95 of how long a converting
+ * subject took, in minutes (`MetricUnit` has no coarser duration). Five
+ * panels of one reading each, for `DistributionCard`'s `bar` kind.
+ */
+function resolveFunnelTimeToConvert(
+  original: ReportQuery,
+  query: ReportQuery,
+  window: { from: IsoDate; to: IsoDate },
+  ctx: ResolveContext,
+): ReportResult {
+  const steps = query.funnel?.steps ?? []
+  const rungs = funnelRungs(steps)
+  if (rungs.length === 0) return emptyModeResult(original)
+
+  const blocked = firstBlockedRung(rungs, ctx)
+  const firstMeasure = rungs[0]!.measure
+  if (blocked) {
+    const panelId = 'p:funnel-ttc'
+    return {
+      ...emptyModeResult(original),
+      panels: [{ panelId, titleKey: 'rb.panel.funnel', titleParams: { measure: firstMeasure.labelKey }, unit: 'minutes', currency: null, seriesIds: [`${firstMeasure.key}#_#current`] }],
+      series: [redactedSeries(firstMeasure, '_', panelId, blocked)],
+    }
+  }
+
+  const funnelMode = query.funnel?.mode ?? 'ordered'
+  const windowDays = conversionWindowDays(query.funnel?.conversionWindow ?? null)
+  const core = computeFunnelCore(rungs, query.filters, window, funnelMode, windowDays, window)
+
+  const minutes: number[] = []
+  if (core.follow) {
+    const entered = core.reachedByRung[0] ?? new Map()
+    const converted = core.reachedByRung[core.reachedByRung.length - 1] ?? new Map()
+    converted.forEach((reachedDate, id) => {
+      const startedOn = entered.get(id)
+      if (!startedOn) return
+      minutes.push((daysInclusive(startedOn, reachedDate) - 1) * 1440)
+    })
+  }
+
+  const PERCENTILES = [25, 50, 75, 90, 95] as const
+  const panels: ReportPanel[] = []
+  const series: ReportSeries[] = []
+  for (const p of PERCENTILES) {
+    const panelId = `p:funnel-ttc-p${p}`
+    const seriesId = `${firstMeasure.key}#p${p}#current`
+    panels.push({
+      panelId,
+      titleKey: 'rb.funnel.timeToConvert.percentile',
+      titleParams: { percentile: p },
+      unit: 'minutes',
+      currency: null,
+      seriesIds: [seriesId],
+    })
+    series.push({
+      id: seriesId,
+      measureKey: firstMeasure.key,
+      groupValue: `p${p}`,
+      role: 'current',
+      panelId,
+      unit: 'minutes',
+      currency: null,
+      temporality: firstMeasure.temporality,
+      points: [percentile(minutes, p)],
+      partialBucketIndexes: [],
+      blocked: null,
+      failed: null,
+    })
+  }
+
+  return {
+    query: original,
+    asOf: EYVAR_NOW,
+    buckets: [window.from],
+    panels,
+    series,
+    truncated: core.truncated,
+    truncatedAtRows: core.truncated ? currentRowCap() : null,
+    warnings: core.follow ? [] : ['funnel-counted-not-followed'],
+    foldedGroupCount: null,
+  }
+}
+
+/** Every step whose measure resolves, paired with it. An unknown rung is dropped, not thrown (`reports.export` resolves without planning first). */
+function funnelRungs(steps: readonly FunnelStep[]): { step: FunnelStep; measure: Measure }[] {
+  return steps
+    .map((step) => ({ step, measure: measuresByKey[step.measureKey] }))
+    .filter((r): r is { step: FunnelStep; measure: Measure } => Boolean(r.measure))
+}
+
+/** §13.1 — the first rung this viewer may not read, if any. */
+function firstBlockedRung(rungs: readonly { measure: Measure }[], ctx: ResolveContext): PermissionKey | null {
+  for (const rung of rungs) {
+    const blocked = blockedFor(rung.measure, ctx)
+    if (blocked) return blocked
+  }
+  return null
+}
+
+/**
+ * §5's shared core: who reached each rung, and when. `entryWindow` narrows
+ * rung 0 to one bucket for a trend, or the whole window for a distribution.
+ * `!follow` returns an empty `reachedByRung` — no counted-totals fallback.
+ */
+function computeFunnelCore(
+  rungs: readonly { step: FunnelStep; measure: Measure }[],
+  queryFilters: readonly FilterSpec[],
+  window: { from: IsoDate; to: IsoDate },
+  mode: 'ordered' | 'unordered' | 'sequential',
+  windowDays: number | null,
+  entryWindow: { from: IsoDate; to: IsoDate },
+): { reachedByRung: Map<string, IsoDate>[]; follow: boolean; truncated: boolean } {
+  const kinds = rungs.map((r) => subjectKindOf(r.measure.population.resource))
+  const first = kinds[0] ?? null
+  const follow = first !== null && kinds.every((k) => k === first)
+
+  const eventSets = rungs.map((r) => eventsOf(r.measure, [...queryFilters, ...(r.step.filters ?? [])], window))
+  const truncated = eventSets.some((s) => s.truncated)
+  if (!follow) return { reachedByRung: [], follow, truncated }
+
+  const entered = earliestPerSubject(eventSets[0]!.events)
+  const boundedEntered = new Map(
+    [...entered].filter(([, date]) => date >= entryWindow.from && date <= entryWindow.to),
+  )
+  const reachedByRung: Map<string, IsoDate>[] = [boundedEntered]
+
+  let carried = boundedEntered
+  for (let i = 1; i < rungs.length; i += 1) {
+    const bySubject = groupBySubject(eventSets[i]!.events)
+    const next = new Map<string, IsoDate>()
+    carried.forEach((previousDate, id) => {
+      const startedOn = entered.get(id)!
+      const deadline = windowDays === null ? window.to : addDays(startedOn, windowDays)
+      const earliestLegal = mode === 'unordered' ? startedOn : previousDate
+      const match = (bySubject.get(id) ?? []).find((e) => e.date >= earliestLegal && e.date <= deadline)
+      if (match) next.set(id, match.date)
+    })
+    reachedByRung.push(next)
+    carried = next
+  }
+
+  return { reachedByRung, follow, truncated }
 }
 
 /** G10's `{value, unit}` in days; `'week'` scales, `'hour'` rounds to same-day (sub-day windows are P3 work). `null` is the report window. */
@@ -1061,7 +1313,14 @@ function resolveCohort(
   if (!spec || !anchor) return emptyModeResult(original)
 
   const panelId = 'p:cohort'
-  const intervals = cohortIntervals(spec.horizon)
+  /* §6: `bracket` names its own columns — `{lo}-{hi}`, in `cohortGrain` units —
+     because `cohortIntervals` (the planner's `M0…M{horizon}` list) has no
+     brackets to draw. Every other method keeps the planner's columns, so a
+     saved alert on `M1` still points at the column it was written against. */
+  const intervals =
+    spec.method === 'bracket' && spec.brackets
+      ? spec.brackets.map(([lo, hi]) => `${lo}-${hi}`)
+      : cohortIntervals(spec.horizon)
   const blocked = blockedFor(anchor, ctx)
   if (blocked) {
     return {
@@ -1105,17 +1364,15 @@ function resolveCohort(
           : null,
     }))
 
-  const matrix = buildCohortMatrix(
-    entities,
-    (e) => e.joinedAt,
-    (e) => e.lastActiveAt,
-    ctx.today,
-    intervals,
-  )
+  const matrix = buildCohortMatrix(entities, (e) => e.joinedAt, (e) => e.lastActiveAt, ctx.today, intervals, {
+    grain: spec.cohortGrain,
+    method: spec.method,
+    brackets: spec.brackets,
+  })
 
-  /* `YYYY-MM` is `buildCohortMatrix`'s own cohort key; a bucket is a date, so
-     the cohort's first day is the date it is. */
-  const buckets = matrix.rows.map((row) => `${row.cohortKey}-01` as IsoDate)
+  /* `cohortStart` is always a full `IsoDate`, at every grain — `cohorts.ts`
+     does the grain-specific formatting so this file does not string-build one. */
+  const buckets = matrix.rows.map((row) => row.cohortStart)
 
   const series: ReportSeries[] = intervals.map((interval) => ({
     id: `${anchor.key}#${interval}#current`,
@@ -1127,7 +1384,7 @@ function resolveCohort(
     unit: 'percent',
     currency: null,
     temporality: anchor.temporality,
-    points: matrix.rows.map((row) => row.retentionByMonth[interval] ?? null),
+    points: matrix.rows.map((row) => row.retentionByInterval[interval] ?? null),
     partialBucketIndexes: [],
     blocked: null,
     failed: null,

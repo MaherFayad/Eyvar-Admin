@@ -66,18 +66,22 @@
  *   AC-443    one key with named placeholders for the range label.
  */
 
-import { Suspense, lazy, useEffect, useState } from 'react'
+import { Suspense, lazy, useEffect, useId, useState } from 'react'
 import { CalendarIcon, CheckIcon, ChevronDownIcon } from '@/components/icons'
 import { forwardIcon } from '@/components/icons'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
-import { resolveWindow } from '@/data/clients'
+import { comparisonWindow, countBuckets, resolveWindow } from '@/data/clients'
 import { REPORT_PRESETS } from '@/data/clients/reports'
-import type { ReportQuery } from '@/data/types'
+import type { PeriodComparison, ReportQuery } from '@/data/types'
+/* `ComparisonDisplay` is not yet re-exported from `@/data/types`'s barrel
+   (WP-1.1 gap, flagged in the WP-2.6 handoff) — read directly from `report.ts`. */
+import { DEFAULT_COMPARISON_DISPLAY, type ComparisonDisplay } from '@/data/types/report'
 import { directionFor, formatDate, type Language, type Translator } from '@/lib'
 
 /* `react-day-picker` + `date-fns` is 20.5 KB gzip and this rail renders on
@@ -358,4 +362,241 @@ export function WindowControl({
       {control}
     </div>
   )
+}
+
+/* ─────────────────────── comparison — §1.4's fixed range ────────────────── */
+
+/** The four string-valued comparisons. `fixed` is the object variant, offered as its own row below. */
+const SERIES_COMPARISONS = ['none', 'previous-period', 'previous-quarter', 'previous-year'] as const
+const FIXED = '__fixed__'
+
+/**
+ * The `Compare to` select plus its fifth, non-committing row (§1.4):
+ * `Fixed range…` opens this file's own popover shape rather than writing the
+ * query on select. Ready for `ChartToolbar` (WP-2.7) to swap in for its
+ * inline `COMPARISONS` select; the trailing clear stays theirs.
+ */
+export function ComparisonControl({
+  query,
+  onChange,
+  today,
+  disabled = false,
+  id = 'rb-compare',
+  t,
+  language,
+}: {
+  query: ReportQuery
+  onChange: (query: ReportQuery) => void
+  today: string
+  disabled?: boolean
+  id?: string
+  t: Translator
+  language: Language
+}) {
+  const labelId = useId()
+  const [open, setOpen] = useState(false)
+  const isFixed = typeof query.periodComparison === 'object'
+  const fixedFrom = isFixed && typeof query.periodComparison === 'object' ? query.periodComparison.from : ''
+  const fixedTo = isFixed && typeof query.periodComparison === 'object' ? query.periodComparison.to : ''
+  const [draft, setDraft] = useState({ from: fixedFrom, to: fixedTo })
+
+  /* Re-seed from the LIVE value whenever it changes, same rule `WindowControl`
+     itself follows — reopening after an `Apply` must not show a stale draft. */
+  useEffect(() => {
+    setDraft({ from: fixedFrom, to: fixedTo })
+  }, [fixedFrom, fixedTo])
+
+  const resolvedWindow = resolveWindow(query.window, today)
+  const bucketCount = countBuckets(resolvedWindow.from, resolvedWindow.to, query.grain)
+
+  const draftIllegal = draft.from === '' || draft.to === '' || draft.from > draft.to
+  const draftBucketCount = draftIllegal
+    ? 0
+    : countBuckets(
+        comparisonWindow(resolvedWindow, { kind: 'fixed', from: draft.from, to: draft.to }).from,
+        comparisonWindow(resolvedWindow, { kind: 'fixed', from: draft.from, to: draft.to }).to,
+        query.grain,
+      )
+  const lengthMismatch = !draftIllegal && draftBucketCount !== bucketCount
+
+  const selectValue = isFixed ? FIXED : (query.periodComparison as string)
+
+  function abandon() {
+    setDraft({ from: fixedFrom, to: fixedTo })
+    setOpen(false)
+  }
+
+  const applyFixed = () => {
+    onChange({ ...query, periodComparison: { kind: 'fixed', from: draft.from, to: draft.to } })
+    setOpen(false)
+  }
+
+  return (
+    <Popover open={open} onOpenChange={(next) => (next ? setOpen(true) : abandon())}>
+      <Label id={labelId} className="sr-only">
+        {t('rb.control.compare')}
+      </Label>
+      <Select
+        value={selectValue}
+        disabled={disabled}
+        onValueChange={(value) => {
+          if (value === FIXED) {
+            setOpen(true)
+            return
+          }
+          onChange({ ...query, periodComparison: value as PeriodComparison })
+        }}
+      >
+        {/* An ANCHOR, not a trigger: this is the Select's own trigger button,
+            and a Select already opens itself — wrapping it in `PopoverTrigger`
+            would fire both primitives' open logic off one click. The popover
+            opens programmatically from `Fixed range…`'s `onValueChange` above,
+            same non-committing branch `WindowControl`'s own custom range uses. */}
+        <PopoverAnchor asChild>
+          <SelectTrigger id={id} size="sm" aria-labelledby={labelId} className={cn(isFixed && 'h-auto py-1')}>
+            {isFixed ? (
+              <span className="flex flex-col items-start gap-0.5">
+                <span>{t('rb.compare.fixed')}</span>
+                <bdi className="text-2xs font-normal tabular-nums text-muted-foreground">
+                  {t('rb.control.window.range', {
+                    from: formatDate(fixedFrom || resolvedWindow.from, { style: 'day-month', language }),
+                    to: formatDate(fixedTo || resolvedWindow.to, { style: 'day-month', language }),
+                  })}
+                </bdi>
+              </span>
+            ) : (
+              <SelectValue />
+            )}
+          </SelectTrigger>
+        </PopoverAnchor>
+        <SelectContent>
+          {SERIES_COMPARISONS.map((value) => (
+            <SelectItem key={value} value={value}>
+              {t(`rb.compare.${value}`)}
+            </SelectItem>
+          ))}
+          <SelectItem value={FIXED}>{t('rb.compare.fixed')}</SelectItem>
+        </SelectContent>
+      </Select>
+
+      <PopoverContent align="start" className="flex w-auto flex-col gap-3 p-3">
+        <p className="text-xs font-medium text-foreground">{t('rb.control.window.fixedCompare.heading')}</p>
+        <div className="flex items-end gap-2">
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor={`${id}-from`} className="text-xs text-muted-foreground">
+              {t('rb.control.window.from')}
+            </Label>
+            <Input
+              id={`${id}-from`}
+              type="date"
+              className="w-36 tabular-nums"
+              value={draft.from}
+              onChange={(event) => setDraft((current) => ({ ...current, from: event.target.value }))}
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor={`${id}-to`} className="text-xs text-muted-foreground">
+              {t('rb.control.window.to')}
+            </Label>
+            <Input
+              id={`${id}-to`}
+              type="date"
+              className="w-36 tabular-nums"
+              value={draft.to}
+              onChange={(event) => setDraft((current) => ({ ...current, to: event.target.value }))}
+            />
+          </div>
+        </div>
+
+        <Suspense fallback={<div className="h-62 w-full" aria-hidden="true" />}>
+          <Calendar
+            mode="range"
+            numberOfMonths={2}
+            defaultMonth={toLocalDate(draft.from)}
+            selected={{ from: toLocalDate(draft.from), to: toLocalDate(draft.to) }}
+            onSelect={(picked) =>
+              setDraft((current) => ({
+                from: toIsoDay(picked?.from) ?? current.from,
+                to: toIsoDay(picked?.to) ?? toIsoDay(picked?.from) ?? current.to,
+              }))
+            }
+          />
+        </Suspense>
+
+        {/* §1.4 — the mismatch is visible BEFORE `Apply`, not only after
+            (AC-1112, AC-1157). */}
+        {lengthMismatch && (
+          <p role="status" className="text-xs text-muted-foreground">
+            {t('rb.control.window.fixedCompare.length', { count: bucketCount })}
+          </p>
+        )}
+
+        <Separator />
+        <div className="flex items-center justify-end gap-2">
+          <Button type="button" variant="ghost" size="xs" onClick={abandon}>
+            {t('rb.control.window.cancel')}
+          </Button>
+          <Button type="button" size="xs" disabled={draftIllegal} onClick={applyFixed}>
+            {t('rb.control.window.apply')}
+          </Button>
+        </div>
+      </PopoverContent>
+    </Popover>
+  )
+}
+
+/* ─────────────────────── §1.5 — the comparison-display toggle ───────────── */
+
+const COMPARISON_DISPLAYS: readonly ComparisonDisplay[] = ['series', 'difference', 'percent-change']
+
+/**
+ * `comparisonDisplay`, shown only while `periodComparison !== 'none'` — the
+ * caller decides that; this renders unconditionally once mounted. View-only:
+ * it never issues a request (`askedOf` already strips nothing here because
+ * `comparisonDisplay` IS part of `ReportQuery`, per 02 §2.6 — the resolver
+ * needs it to compute `difference`/`percent-change`, so this one control
+ * genuinely does belong on the query, unlike `ChartView`).
+ */
+export function ComparisonDisplayToggle({
+  query,
+  onChange,
+  disabled = false,
+  t,
+}: {
+  query: ReportQuery
+  onChange: (query: ReportQuery) => void
+  disabled?: boolean
+  t: Translator
+}) {
+  const labelId = useId()
+  const value = query.comparisonDisplay ?? DEFAULT_COMPARISON_DISPLAY
+
+  return (
+    <>
+      <Label id={labelId} className="sr-only">
+        {t('rb.control.comparisonDisplay')}
+      </Label>
+      <Select
+        value={value}
+        disabled={disabled}
+        onValueChange={(next) => onChange({ ...query, comparisonDisplay: next as ComparisonDisplay })}
+      >
+        <SelectTrigger id="rb-comparison-display" size="sm" aria-labelledby={labelId}>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {COMPARISON_DISPLAYS.map((option) => (
+            <SelectItem key={option} value={option} textValue={t(`rb.comparisonDisplay.${camel(option)}.full`)}>
+              {t(`rb.comparisonDisplay.${camel(option)}`)}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </>
+  )
+}
+
+/** `percent-change` → `percentChange` — the only translated key that isn't the wire value verbatim. */
+function camel(value: ComparisonDisplay): string {
+  return value === 'percent-change' ? 'percentChange' : value
 }

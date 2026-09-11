@@ -81,6 +81,21 @@ import {
   createStarPageHandler,
   createUpdatePageHandler,
 } from '../_lib/handlers/pages'
+import {
+  createAcknowledgeFiringHandler,
+  createCreateAlertRuleHandler,
+  createDeleteAlertRuleHandler,
+  createEvaluateAlertRuleHandler,
+  createGetAlertConfigHistoryHandler,
+  createGetAlertHistoryHandler,
+  createGetAlertRuleHandler,
+  createListAlertRulesHandler,
+  createListFiringsHandler,
+  createMuteAlertRuleHandler,
+  createUpdateAlertRuleHandler,
+} from '../_lib/handlers/alerts'
+import { createCreateWebhookHandler, createDeleteWebhookHandler, createListWebhooksHandler } from '../_lib/handlers/webhooks'
+import { createSecretsAdapterFromEnv, type SecretsAdapter } from '../_lib/secrets'
 import type { IsoDate, IsoDateTime } from '@/data/types/common'
 
 interface HealthPayload {
@@ -94,6 +109,21 @@ export interface ApiDeps {
   generateCode?: () => string
   /** WP-6.4: injectable so `reports.run`'s AC-1276 equality test can pin the same clock the mock resolver runs against (`EYVAR_TODAY`/`EYVAR_NOW`). Defaults to the real clock. */
   reportsClock?: { today?: () => IsoDate; now?: () => string }
+  /** WP-6.6: injectable so a webhook test can encrypt/decrypt with a fixed key instead of requiring `SECRETS_KEY`. Defaults to the lazy env-backed adapter. */
+  secrets?: SecretsAdapter
+}
+
+/** `SECRETS_KEY` is read only when a webhook route actually encrypts or decrypts — mirrors `lazyEnvDatabase()` below, so this module stays importable without it set (e.g. `/health`). */
+function lazyEnvSecrets(): SecretsAdapter {
+  let real: SecretsAdapter | null = null
+  function ensure(): SecretsAdapter {
+    if (!real) real = createSecretsAdapterFromEnv()
+    return real
+  }
+  return {
+    encrypt: (plaintext) => ensure().encrypt(plaintext),
+    decrypt: (blob) => ensure().decrypt(blob),
+  }
 }
 
 export function createApiHandler(deps: ApiDeps): (req: Request) => Promise<Response> {
@@ -101,6 +131,7 @@ export function createApiHandler(deps: ApiDeps): (req: Request) => Promise<Respo
   const sessionStore = new DbSessionStore(deps.db)
   const idempotencyStore = new DbIdempotencyStore(deps.db)
   const generateCode = deps.generateCode ?? generateOtpCode
+  const secrets = deps.secrets ?? lazyEnvSecrets()
 
   router.get('/health', async () => {
     const body = single<HealthPayload>({ status: 'ok', time: new Date().toISOString() })
@@ -182,6 +213,27 @@ export function createApiHandler(deps: ApiDeps): (req: Request) => Promise<Respo
   router.post('/pages/:id/publish', createPublishPageHandler(deps.db))
   router.post('/pages/:id/duplicate', createDuplicatePageHandler(deps.db))
   router.post('/pages/:id/star', createStarPageHandler(deps.db))
+
+  // alerts.* — see handlers/alerts.ts — WP-6.6 (AC-1282 … AC-1286).
+  // `/alerts/firings` must be registered before `/alerts/:id` — both are two
+  // segments, and `router.ts` matches by registration order, so `:id` would
+  // otherwise swallow the literal `firings` path (see alerts.ts's header).
+  router.get('/alerts/firings', createListFiringsHandler(deps.db))
+  router.post('/alerts/firings/:id/acknowledge', createAcknowledgeFiringHandler(deps.db))
+  router.get('/alerts', createListAlertRulesHandler(deps.db))
+  router.post('/alerts', createCreateAlertRuleHandler(deps.db))
+  router.get('/alerts/:id', createGetAlertRuleHandler(deps.db))
+  router.patch('/alerts/:id', createUpdateAlertRuleHandler(deps.db))
+  router.delete('/alerts/:id', createDeleteAlertRuleHandler(deps.db))
+  router.post('/alerts/:id/evaluate', createEvaluateAlertRuleHandler(deps.db, deps.reportsClock))
+  router.get('/alerts/:id/history', createGetAlertHistoryHandler(deps.db))
+  router.get('/alerts/:id/config-history', createGetAlertConfigHistoryHandler(deps.db))
+  router.post('/alerts/:id/mute', createMuteAlertRuleHandler(deps.db))
+
+  // webhooks.* — see handlers/webhooks.ts — WP-6.6
+  router.get('/webhooks', createListWebhooksHandler(deps.db))
+  router.post('/webhooks', createCreateWebhookHandler(deps.db, secrets))
+  router.delete('/webhooks/:id', createDeleteWebhookHandler(deps.db))
 
   return async function handler(req: Request): Promise<Response> {
     const requestId = req.headers.get('x-vercel-id') ?? crypto.randomUUID()
