@@ -25,8 +25,12 @@
  *   `week`'s `aria-describedby` pointing at it is a dangling reference, and a
  *   disabled control whose reason has no target is worse than a duplicate.
  *
- * The options are the **planner's own**, not hand-written, so a change to the
- * cohort-grain rule reaches this test rather than sliding past it.
+ * **WP-1.9 made all three cohort grains legal** — day and week now compute,
+ * not just month — so the planner itself no longer produces the duplicate
+ * this file was built to catch. The mechanism below is proven against a
+ * fixture shaped exactly like the original bug report instead; a separate
+ * test asserts, through the real planner, that no cohort grain is illegal
+ * today, so a regression back to the old behaviour still reaches this file.
  */
 
 import { render, screen, within } from '@testing-library/react'

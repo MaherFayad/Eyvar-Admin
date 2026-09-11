@@ -68,7 +68,7 @@ async function openMenu(user: ReturnType<typeof userEvent.setup>, blockName: str
 }
 
 describe('AC-1198 — Move to column… is disabled in place, with a reason, when the page has no columns block', () => {
-  it.fails('DEFECT — the reason is unreachable: a disabled Radix SubTrigger never opens its sub-content', async () => {
+  it('AC-1198 — the reason renders on the disabled item itself, never inside an unopenable submenu', async () => {
     const user = userEvent.setup()
     const pageId = await onePage([{ id: 'h1', type: 'heading', level: 2, text: 'Solo' }])
     await mountEditing(pageId)
@@ -77,16 +77,17 @@ describe('AC-1198 — Move to column… is disabled in place, with a reason, whe
     const submenu = within(menu).getByRole('menuitem', { name: copy('pg.edit.moveToColumn') })
     expect(submenu).toHaveAttribute('aria-disabled', 'true')
 
-    /* The `pg.edit.moveToColumn.none` reason exists as a child item in
-       `BlockMenu.tsx`, but Radix refuses to open a `DropdownMenuSub` whose
-       trigger is itself `disabled` — the reason is written, never shown. */
+    /* `BlockMenu.tsx` renders the `pg.edit.moveToColumn.none` reason as a
+       second line on the disabled item itself, not inside a `DropdownMenuSub`
+       — Radix never opens a sub whose trigger is disabled, so a reason
+       written there would stay unreachable. */
     await user.hover(submenu)
     expect(await screen.findByText(copy('pg.edit.moveToColumn.none'))).toBeInTheDocument()
   })
 })
 
 describe('AC-1198 — Turn into… is disabled in place, with a reason, for a block with no legal target', () => {
-  it.fails('DEFECT — the reason is unreachable: a disabled Radix SubTrigger never opens its sub-content', async () => {
+  it('AC-1198 — the reason renders on the disabled item itself, never inside an unopenable submenu', async () => {
     const user = userEvent.setup()
     const pageId = await onePage([{ id: 'd1', type: 'divider' }])
     await mountEditing(pageId)
@@ -143,7 +144,7 @@ describe('AC-1198 — every action is offered, none of them hidden', () => {
     expect(within(menu).getByRole('menuitem', { name: copy('pg.edit.view') })).toBeInTheDocument()
   })
 
-  it.fails('DEFECT — Move up on the first block (and Move down on the last) is not disabled in place', async () => {
+  it('AC-1198 — Move up on the first block (and Move down on the last) is disabled in place', async () => {
     const user = userEvent.setup()
     const pageId = await onePage([
       { id: 'h1', type: 'heading', level: 2, text: 'First' },
@@ -152,9 +153,9 @@ describe('AC-1198 — every action is offered, none of them hidden', () => {
     await mountEditing(pageId)
 
     const menu = await openMenu(user, 'Heading')
-    /* `blockOps.moveBlock` is a documented no-op at either end (AC-1199),
-       but `BlockMenu.tsx` never disables `Move up`/`Move down` to say so —
-       unlike `moveToColumn`/`turnInto`, which do. */
+    /* `blockOps.moveBlock` is a documented no-op at either end (AC-1199), and
+       `BlockMenu.tsx` disables `Move up`/`Move down` to say so, exactly as
+       `moveToColumn`/`turnInto` already did. */
     expect(within(menu).getByRole('menuitem', { name: copy('pg.edit.moveUp') })).toHaveAttribute('aria-disabled', 'true')
   })
 })

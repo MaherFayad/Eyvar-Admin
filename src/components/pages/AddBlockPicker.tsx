@@ -47,6 +47,8 @@ export interface AddBlockPickerProps {
   totalBlocks: number
   onInsert: (block: Block) => void
   onPickReport: (type: 'report' | 'metric') => void
+  /** `false` for the slash command, which opens with focus already in the text block (AC-1197) — the `+` button (AC-1196) still autofocuses. */
+  autoFocusSearch?: boolean
   t: Translator
 }
 
@@ -59,6 +61,7 @@ export function AddBlockPicker({
   totalBlocks,
   onInsert,
   onPickReport,
+  autoFocusSearch = true,
   t,
 }: AddBlockPickerProps) {
   const atCap = totalBlocks >= PAGE_BLOCK_MAX
@@ -76,12 +79,15 @@ export function AddBlockPicker({
     <Popover open={open} onOpenChange={onOpenChange}>
       <PopoverAnchor asChild>{anchor}</PopoverAnchor>
       <PopoverContent align="start" className="w-80 p-0">
-        <Command>
+        {/* cmdk points the input's `aria-labelledby` at its own hidden
+            `<label>`, which wins over an `aria-label` on the input itself —
+            so the label text has to come from `Command`'s own `label` prop. */}
+        <Command label={t('pg.picker.search')}>
           <CommandInput
             value={query}
             onValueChange={onQueryChange}
             placeholder={t('pg.picker.search')}
-            autoFocus
+            autoFocus={autoFocusSearch}
           />
           <CommandList>
             {atCap && (

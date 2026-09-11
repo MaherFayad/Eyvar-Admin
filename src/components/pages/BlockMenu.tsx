@@ -19,7 +19,7 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { listColumnsBlocks } from './blockOps'
+import { findBlock, listColumnsBlocks } from './blockOps'
 import { usePageBlocks } from './PageBlocksContext'
 import type { Block, ReportBlockHeight, ReportBlockView } from '@/data/types/page'
 
@@ -33,6 +33,15 @@ function canTurnInto(from: Block['type'], to: Block['type']): boolean {
   if (prose.includes(from) && prose.includes(to)) return true
   if (pinned.includes(from) && pinned.includes(to)) return true
   return false
+}
+
+/** The block's own sibling list — the page root, or the container `findBlock` finds it in. */
+function siblingsOf(blocks: readonly Block[], containerId: string | null, columnIndex: number | null): readonly Block[] {
+  if (containerId === null) return blocks
+  const container = findBlock(blocks, containerId)
+  if (container?.type === 'toggle') return container.blocks
+  if (container?.type === 'columns' && columnIndex !== null) return container.columns[columnIndex]?.blocks ?? blocks
+  return blocks
 }
 
 export interface BlockMenuProps {
@@ -51,24 +60,53 @@ export function BlockMenu({ block, containerId, columnIndex, open, onOpenChange,
   const columnsBlocks = listColumnsBlocks(blocks).filter((c) => c.id !== containerId)
   const isReport = block.type === 'report'
   const turnable = TURN_INTO.filter((to) => to !== block.type && canTurnInto(block.type, to))
+  const siblings = siblingsOf(blocks, containerId, columnIndex)
+  const ownIndex = siblings.findIndex((b) => b.id === block.id)
+  const isFirst = ownIndex <= 0
+  const isLast = ownIndex === siblings.length - 1
 
   return (
     <DropdownMenu open={open} onOpenChange={onOpenChange}>
       <DropdownMenuTrigger asChild>{trigger}</DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuItem onSelect={() => actions.onMove(block.id, -1)}>{t('pg.edit.moveUp')}</DropdownMenuItem>
-        <DropdownMenuItem onSelect={() => actions.onMove(block.id, 1)}>{t('pg.edit.moveDown')}</DropdownMenuItem>
+        {/* `moveBlock` is a documented no-op at either end (AC-1199) — disabled in place, with the reason, rather than silently doing nothing. */}
+        <DropdownMenuItem
+          disabled={isFirst}
+          aria-label={t('pg.edit.moveUp')}
+          onSelect={() => actions.onMove(block.id, -1)}
+        >
+          <span className="flex flex-col">
+            <span>{t('pg.edit.moveUp')}</span>
+            {isFirst && <span className="text-xs text-muted-foreground">{t('pg.edit.moveUp.first')}</span>}
+          </span>
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          disabled={isLast}
+          aria-label={t('pg.edit.moveDown')}
+          onSelect={() => actions.onMove(block.id, 1)}
+        >
+          <span className="flex flex-col">
+            <span>{t('pg.edit.moveDown')}</span>
+            {isLast && <span className="text-xs text-muted-foreground">{t('pg.edit.moveDown.last')}</span>}
+          </span>
+        </DropdownMenuItem>
 
-        <DropdownMenuSub>
-          <DropdownMenuSubTrigger disabled={columnsBlocks.length === 0}>
-            {t('pg.edit.moveToColumn')}
-          </DropdownMenuSubTrigger>
-          <DropdownMenuPortal>
-            <DropdownMenuSubContent>
-              {columnsBlocks.length === 0 ? (
-                <DropdownMenuItem disabled>{t('pg.edit.moveToColumn.none')}</DropdownMenuItem>
-              ) : (
-                columnsBlocks.map((columnsBlock) =>
+        {/* Radix will not open a `DropdownMenuSub` whose trigger is disabled
+            (AC-1198), so with no legal target this is a plain disabled item
+            carrying its reason in place — never a submenu nobody can open. */}
+        {columnsBlocks.length === 0 ? (
+          <DropdownMenuItem disabled aria-label={t('pg.edit.moveToColumn')}>
+            <span className="flex flex-col">
+              <span>{t('pg.edit.moveToColumn')}</span>
+              <span className="text-xs text-muted-foreground">{t('pg.edit.moveToColumn.none')}</span>
+            </span>
+          </DropdownMenuItem>
+        ) : (
+          <DropdownMenuSub>
+            <DropdownMenuSubTrigger>{t('pg.edit.moveToColumn')}</DropdownMenuSubTrigger>
+            <DropdownMenuPortal>
+              <DropdownMenuSubContent>
+                {columnsBlocks.map((columnsBlock) =>
                   columnsBlock.columns
                     .map((_column, index) => index)
                     /* The block's own current column is not offered as a target — moving a block into the column it is already in is not a move. */
@@ -81,30 +119,35 @@ export function BlockMenu({ block, containerId, columnIndex, open, onOpenChange,
                         {t('pg.edit.moveToColumn.target', { position: index + 1 })}
                       </DropdownMenuItem>
                     )),
-                )
-              )}
-            </DropdownMenuSubContent>
-          </DropdownMenuPortal>
-        </DropdownMenuSub>
+                )}
+              </DropdownMenuSubContent>
+            </DropdownMenuPortal>
+          </DropdownMenuSub>
+        )}
 
         <DropdownMenuItem onSelect={() => actions.onDuplicate(block.id)}>{t('pg.edit.duplicate')}</DropdownMenuItem>
 
-        <DropdownMenuSub>
-          <DropdownMenuSubTrigger disabled={turnable.length === 0}>{t('pg.edit.turnInto')}</DropdownMenuSubTrigger>
-          <DropdownMenuPortal>
-            <DropdownMenuSubContent>
-              {turnable.length === 0 ? (
-                <DropdownMenuItem disabled>{t('pg.edit.turnInto.none')}</DropdownMenuItem>
-              ) : (
-                turnable.map((to) => (
+        {turnable.length === 0 ? (
+          <DropdownMenuItem disabled aria-label={t('pg.edit.turnInto')}>
+            <span className="flex flex-col">
+              <span>{t('pg.edit.turnInto')}</span>
+              <span className="text-xs text-muted-foreground">{t('pg.edit.turnInto.none')}</span>
+            </span>
+          </DropdownMenuItem>
+        ) : (
+          <DropdownMenuSub>
+            <DropdownMenuSubTrigger>{t('pg.edit.turnInto')}</DropdownMenuSubTrigger>
+            <DropdownMenuPortal>
+              <DropdownMenuSubContent>
+                {turnable.map((to) => (
                   <DropdownMenuItem key={to} onSelect={() => actions.onTurnInto(block.id, to)}>
                     {t(`pg.block.${to}.name`)}
                   </DropdownMenuItem>
-                ))
-              )}
-            </DropdownMenuSubContent>
-          </DropdownMenuPortal>
-        </DropdownMenuSub>
+                ))}
+              </DropdownMenuSubContent>
+            </DropdownMenuPortal>
+          </DropdownMenuSub>
+        )}
 
         {isReport && (
           <DropdownMenuSub>

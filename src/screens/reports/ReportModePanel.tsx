@@ -391,9 +391,10 @@ function FunnelFields({
   /* G10 / §5: mirrors `plan.ts`'s own `funnelViolations` predicate — every
      rung's measure must declare the capability, and no fixture measure ever
      does, so this reads the SAME catalogue field the planner refuses on
-     rather than inventing a second rule. `exclude` has no capability flag at
-     all: `plan.ts` refuses it unconditionally, so it is not offered a choice. */
-  const supports = (capability: 'sequential' | 'holdConstant'): boolean =>
+     rather than inventing a second rule. `exclude` sits on the same footing
+     as `sequential` and `holdConstant`: its own `funnelCapabilities.exclude`
+     flag, checked the same way. */
+  const supports = (capability: 'sequential' | 'holdConstant' | 'exclude'): boolean =>
     steps.length > 0 &&
     steps.every((step) => measures.find((m) => m.key === step.measureKey)?.funnelCapabilities?.[capability] === true)
 
@@ -403,6 +404,7 @@ function FunnelFields({
       : { value, legal: false, reasonKey: 'rb.funnel.needsServer', reasonParams: {} },
   )
   const holdConstantSupported = supports('holdConstant')
+  const excludeSupported = supports('exclude')
 
   return (
     <div className="flex flex-col gap-3">
@@ -609,13 +611,23 @@ function FunnelFields({
             "Exclude" instead, exactly the defect `Add a step`'s own label
             risks above. */}
         <Label>{t('rb.funnel.exclude')}</Label>
-        {/* §5: refused unconditionally — no catalogue capability could ever
-            satisfy it (`plan.ts`'s `funnelViolations`), so this is not a
-            picker with every option disabled, it is one disabled control. */}
-        <Button type="button" variant="secondary" disabled>
+        {/* §5: `exclude` reads its own `funnelCapabilities` flag, the same way
+            `sequential` and `holdConstant` do (`plan.ts`'s `funnelViolations`),
+            so the control stays on screen and gates on `supports('exclude')`
+            rather than a permanent disable. */}
+        <Button
+          type="button"
+          variant="secondary"
+          disabled={!excludeSupported}
+          aria-describedby={excludeSupported ? undefined : 'rb-funnel-exclude-reason'}
+        >
           {t('rb.funnel.exclude.add')}
         </Button>
-        <p className="text-xs text-muted-foreground">{t('rb.funnel.needsServer')}</p>
+        {!excludeSupported && (
+          <p id="rb-funnel-exclude-reason" className="text-xs text-muted-foreground">
+            {t('rb.funnel.needsServer')}
+          </p>
+        )}
       </div>
     </div>
   )

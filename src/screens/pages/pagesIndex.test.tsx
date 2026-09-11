@@ -162,7 +162,7 @@ describe('AC-1214 — deleting a page removes no report, and the confirm names t
 })
 
 describe('AC-1215 — Duplicate copies blocks, with new block ids, and the same report references', () => {
-  it.fails('DEFECT — duplicatePage shares the original block ids rather than minting new ones', async () => {
+  it('AC-1215 — duplicatePage mints new block ids, never sharing the source’s', async () => {
     const source = await getPage('DSH-1')
     const outcome = await (await import('@/data/clients/pages')).duplicatePage('DSH-1')
 

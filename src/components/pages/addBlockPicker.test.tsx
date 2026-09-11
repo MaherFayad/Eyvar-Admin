@@ -98,11 +98,12 @@ describe('AC-1196 — the add-block affordance sits between every pair of blocks
 })
 
 describe('AC-1197 — typing "/" at the start of a line in a text block opens the same picker', () => {
-  it.fails('DEFECT — no slash command exists on the text block editor', async () => {
+  it('AC-1197 — opens the picker, whose search field is the same textarea', async () => {
     const user = userEvent.setup()
     const pageId = await onePage([{ id: 't1', type: 'text', md: '' }])
     await mountEditing(pageId)
 
+    screen.debug(undefined, 50000)
     const textarea = await screen.findByRole('textbox', { name: copy('pg.block.text.name') })
     await user.click(textarea)
     await user.keyboard('/')

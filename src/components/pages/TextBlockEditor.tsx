@@ -5,7 +5,7 @@
  * never renders the parsed tree itself.
  */
 
-import { useRef } from 'react'
+import { useRef, type ChangeEvent } from 'react'
 import { BoldIcon, ItalicIcon, LinkIcon, ListIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
@@ -17,6 +17,10 @@ export interface TextBlockEditorProps {
   onChange: (md: string) => void
   onBlur?: () => void
   placeholder?: string
+  /** AC-1197 — `null` when the caret is not at a `/` starting a line; the text after the slash otherwise. */
+  onSlashQuery?: (query: string | null) => void
+  /** While the slash picker is open, this field doubles as its search box (its name changes to say so). */
+  slashActive?: boolean
   t: Translator
 }
 
@@ -40,8 +44,19 @@ function prefixLine(value: string, start: number, end: number, prefix: string): 
   }
 }
 
-export function TextBlockEditor({ md, onChange, onBlur, placeholder, t }: TextBlockEditorProps) {
+export function TextBlockEditor({ md, onChange, onBlur, placeholder, onSlashQuery, slashActive, t }: TextBlockEditorProps) {
   const ref = useRef<HTMLTextAreaElement>(null)
+
+  /** A line starting with `/` opens the picker (AC-1197); anything else keeps it closed. */
+  const handleChange = (event: ChangeEvent<HTMLTextAreaElement>) => {
+    const value = event.target.value
+    onChange(value)
+    if (!onSlashQuery) return
+    const caret = event.target.selectionStart ?? value.length
+    const lineStart = value.lastIndexOf('\n', caret - 1) + 1
+    const linePrefix = value.slice(lineStart, caret)
+    onSlashQuery(linePrefix.startsWith('/') ? linePrefix.slice(1) : null)
+  }
 
   const applyMark = (kind: 'bold' | 'italic' | 'link' | 'list') => {
     const el = ref.current
@@ -90,7 +105,8 @@ export function TextBlockEditor({ md, onChange, onBlur, placeholder, t }: TextBl
         value={md}
         maxLength={MAX_MARKDOWN_LENGTH}
         placeholder={placeholder}
-        onChange={(event) => onChange(event.target.value)}
+        aria-label={slashActive ? t('pg.picker.search') : undefined}
+        onChange={handleChange}
         onBlur={onBlur}
         className="field-sizing-content min-h-16 font-sans text-sm"
       />

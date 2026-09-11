@@ -8,6 +8,7 @@
  */
 
 import { DATA_SOURCE, registerOperations } from '../config'
+import { ulid } from '@/lib/ids'
 import { EYVAR_NOW } from '../mock/clock'
 import { mock, mockMutation, notFound } from '../mock/delay'
 import { paginate } from '../mock/query'
@@ -200,13 +201,24 @@ export async function publishPage(id: string, signal?: AbortSignal): Promise<Sin
   })
 }
 
+/** Mints a fresh id for `block`, recursively (AC-1215) — two pages sharing a block id is an id-keyed-operation hazard, not a cosmetic one. */
+function mintFreshBlockIds(block: Block): Block {
+  const id = ulid()
+  if (block.type === 'toggle') return { ...block, id, blocks: block.blocks.map(mintFreshBlockIds) }
+  if (block.type === 'columns') {
+    return { ...block, id, columns: block.columns.map((c) => ({ ...c, blocks: c.blocks.map(mintFreshBlockIds) })) }
+  }
+  return { ...block, id }
+}
+
 /**
  * POST /api/v1/pages/:id/duplicate
  *   -> Single<Page>
  *
- * Copies blocks and scope, never `publishedAt` (§6: "a template copy is a
- * draft until the operator publishes"). Owned by the acting operator,
- * private, so duplicating a `team` page does not hand it to the team.
+ * Copies blocks (with fresh ids, AC-1215) and scope, never `publishedAt`
+ * (§6: "a template copy is a draft until the operator publishes"). Owned by
+ * the acting operator, private, so duplicating a `team` page does not hand
+ * it to the team.
  */
 export async function duplicatePage(id: string, signal?: AbortSignal): Promise<Single<Page>> {
   if (DATA_SOURCE === 'http') return http.post<Single<Page>>(`/pages/${id}/duplicate`, undefined, { signal })
@@ -222,6 +234,7 @@ export async function duplicatePage(id: string, signal?: AbortSignal): Promise<S
       official: false,
       template: false,
       starredBy: [],
+      blocks: row.blocks.map(mintFreshBlockIds),
       version: 1,
       publishedAt: null,
       createdAt: EYVAR_NOW,

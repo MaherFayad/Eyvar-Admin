@@ -13,6 +13,40 @@ implementing agents do not edit it.
 
 Everything else in the plan stands, including every gate.
 
+## Where this stopped (2026-09-11)
+
+The owner called a halt. Five agents were stopped mid-task; their partial work is committed
+and labelled below rather than reverted, because it contains real fixes — including the 409
+data-loss repair.
+
+**Suites at the stop:**
+
+| Suite | Result |
+|---|---|
+| `npm test` (frontend) | **5,658 passing, 25 failing across 13 files** |
+| `npm run test:api` | **188 passing, 0 failing** |
+| `npm --prefix agent test` | **135 passing, 3 skipped, 0 failing** |
+| `npm run typecheck` | **7 errors**, all in two test files |
+| `npm run api:check` | clean, 377 endpoints |
+| `npm run i18n:check` | clean, 0 `defaultValue` at ceiling 0 |
+
+**What the 25 frontend failures are**, honestly:
+
+- **4 are partial repairs stopped mid-edit** in `addBlockPicker`, `blockMenu` and `turnInto`.
+  Two of those (AC-1206's turn-into pair) were **passing before** and regressed while
+  `BlockMenu.tsx` was being restructured for the disabled-reason fix. This is a real
+  regression introduced by stopping, not a pre-existing defect.
+- **4 remain pinned `it.fails` DEFECT tests** — AC-1187 (twice), AC-1205, AC-1212 — the page
+  defects WP-4.10 had not reached.
+- **The rest** are the residue WP-8.0 was midway through: stale assertions in
+  `legalityHint`, `window.control`, `localisedKeys`, plus `reports.mode.test.tsx`'s
+  `listDashboards` block (F-V2-82, a genuine rewrite), `routes.test.ts`, `autorun`,
+  `modeMemory`, `commands.test.tsx`, and `wp-gate.test.mjs` being collected by vitest when it
+  is a `node --test` file.
+
+**The one fix worth naming:** AC-1202 now passes — after a 409 conflict, the kept edit is
+resent and persists. That was silent data loss, and it is repaired.
+
 ## Status
 
 | WP | Owner | State |

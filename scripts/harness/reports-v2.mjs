@@ -70,6 +70,11 @@ for (const [id, kind] of CHART_TYPE_REPORTS) {
       const { ctx, page, errors } = await newPage({ dark })
       await openReport(page, id, { arabic })
       const label = `${kind} · ${dark ? 'dark' : 'light'} · ${arabic ? 'ar' : 'en'}`
+      /* The very first navigation in the run is a cold bundle eval; give it
+         one more beat rather than widen every later check's shared wait. */
+      if (kind !== 'kpi') {
+        await page.locator('.recharts-surface').first().waitFor({ state: 'attached', timeout: 3000 }).catch(() => {})
+      }
       const drawn = await page.evaluate(
         (isKpi) => (isKpi ? document.body.textContent?.length > 0 : document.querySelectorAll('.recharts-surface').length > 0),
         kind === 'kpi',
@@ -356,7 +361,12 @@ for (const width of [1280, 1440]) {
   await openReport(page, 'RPT-1')
   /* `ANN-6` (`fixtures/annotations.ts`) sits inside the fixed clock's last
      30 days — RPT-1's own window — by construction. */
+  /* The mark's own fetch starts only once the run it draws over has landed
+     (`ReportBuilder`'s `annotationWindow` depends on `shownResult`), so it is
+     one more mock round-trip behind `openReport`'s wait — waited for
+     explicitly rather than widening that shared wait for every other check. */
   const mark = page.getByRole('button', { name: /Payment gateway outage/ })
+  await mark.first().waitFor({ state: 'attached', timeout: 4000 }).catch(() => {})
   check('AC-1148 an annotation inside the window draws a marker', (await mark.count()) > 0)
   if ((await mark.count()) > 0) {
     await mark.first().focus()

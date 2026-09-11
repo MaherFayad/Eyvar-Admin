@@ -112,7 +112,7 @@ export function ExportCard() {
     try {
       const query: ReportQuery = {
         measures: measures.map((key) => ({ key })),
-        groupBy: null,
+        groupBy: [],
         filters: [],
         window: { kind: 'preset', preset: range },
         grain,

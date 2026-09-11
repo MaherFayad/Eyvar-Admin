@@ -148,13 +148,21 @@ export function usePageEditor({ page, t }: UsePageEditorOptions) {
     }
   }, [content, save])
 
-  /** Adopts the server's current version, keeping every local edit, so the next autosave succeeds (AC-1202). */
+  /**
+   * Adopts the server's current version, keeping every local edit, and
+   * resends it (AC-1202). The debounce effect fires on `[debouncedContent,
+   * editing]` alone — neither changes here — so without an explicit resend
+   * the kept edit would sit on screen, unsaved, until the operator typed
+   * again; navigating away first would lose it silently.
+   */
   const reload = useCallback(() => {
     if (!conflict) return
     versionRef.current = conflict.version
     setConflict(null)
     setSaveStatus('idle')
-  }, [conflict])
+    lastSentRef.current = content
+    void save(content)
+  }, [conflict, content, save])
 
   const applyBlocks = useCallback((mutate: (blocks: Block[]) => Block[]) => {
     setContent((current) => {

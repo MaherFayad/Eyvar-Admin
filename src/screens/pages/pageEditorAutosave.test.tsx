@@ -150,7 +150,7 @@ describe('AC-1202 — a 409 keeps every local edit, never discards them', () => 
     expect(screen.getByLabelText(copy('pg.page.title.label'))).toHaveValue('My edit')
   })
 
-  it.fails('DEFECT — after Reload, the kept edit is never resent; it is lost unless the operator types again', async () => {
+  it('AC-1202 — after Reload, the kept edit is resent and persists under the page id', async () => {
     const user = userEvent.setup({ delay: null })
     const pageId = await onePage('Conflict test 2')
     const loaded = await getPage(pageId)
