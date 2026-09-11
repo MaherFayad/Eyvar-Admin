@@ -438,6 +438,14 @@ describe('6 — v2 (WP-1.6): two-level splits and segments', () => {
 /* ────────────── 7 — v2 (WP-3.1/3.2): funnel and cohort v2 ───────────────── */
 
 describe('7 — funnel v2: mode, conversion-over-time, time-to-convert', () => {
+  it('`mode: "sequential"` refuses rather than silently answering as ordered, reached directly like `reports.export`', () => {
+    const sequential: ReportQuery = { ...funnel, funnel: { ...funnel.funnel!, mode: 'sequential' } }
+    const result = run(sequential)
+    expect(result.warnings).toContain('funnel-sequential-not-resolved')
+    expect(result.series).toHaveLength(0)
+    expect(result.panels).toHaveLength(0)
+  })
+
   it('unordered (AC-1167 §5) never counts fewer subjects than ordered — it only relaxes the sequence rule', () => {
     const unordered: ReportQuery = { ...funnel, funnel: { ...funnel.funnel!, mode: 'unordered' } }
     const orderedCount = Number(run(funnel).series[1]?.points[0] ?? 0)

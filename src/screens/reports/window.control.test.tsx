@@ -89,7 +89,7 @@ function renderAt(path: string) {
 
 const base: ReportQuery = {
   measures: [],
-  groupBy: null,
+  groupBy: [],
   filters: [],
   window: { kind: 'preset', preset: 'last-30d' },
   grain: 'none',
@@ -120,7 +120,12 @@ const RAILS: Record<ReportMode, ReportQuery> = {
         { measureKey: 'riders.joined', filters: [] },
         { measureKey: 'trips.completed', filters: [] },
       ],
-      conversionWindowDays: null,
+      conversionWindow: null,
+      mode: 'ordered',
+      holdConstant: null,
+      exclude: [],
+      measuredAs: 'conversion',
+      groupBy: null,
     },
   },
   cohort: {
@@ -128,8 +133,10 @@ const RAILS: Record<ReportMode, ReportQuery> = {
     mode: 'cohort',
     cohort: {
       anchorMeasureKey: 'riders.joined',
-      returnMeasureKey: null,
+      returnMeasureKeys: [],
       cohortGrain: 'month',
+      method: 'rolling',
+      brackets: null,
       horizon: 3,
     },
   },

@@ -20,7 +20,7 @@
  * its presence, not that this particular sandbox's CLI accepts it.
  */
 
-import { spawn as spawnProcess } from 'node:child_process'
+import { spawn as spawnProcess, exec as execProcess } from 'node:child_process'
 import { readJsonSchema, type AgentJobKind } from './jobAssembly.js'
 import type { ToolLogEntry } from './validate.js'
 import { detectRateLimit, type RateLimitResult } from './limits.js'
@@ -174,29 +174,21 @@ function extractCandidate(resultMessage: StreamMessage | null): unknown {
 }
 
 /**
- * Streams one job's spawn to completion (or the timeout). Building the
- * `ToolLogEntry[]` here — not in `validate.ts` — keeps `validate.ts` a pure
- * function over already-extracted data, testable with no process at all.
+ * The line-by-line `stream-json` state machine, extracted from the process
+ * plumbing so it is directly testable against a captured transcript with no
+ * child process at all (`collectFromLines`, used by `spawn.test.ts`) — the
+ * real spawn (`runAnalystSpawn`) feeds it the same way, one line at a time
+ * as stdout arrives.
  */
-export async function runAnalystSpawn(config: SpawnConfig, timeoutMs: number): Promise<SpawnOutcome> {
+function createStreamCollector() {
   const lines: string[] = []
   const pendingToolUse = new Map<string, { name: string; input: unknown; startedAt: number }>()
   const toolLog: ToolLogEntry[] = []
   const events: RunnerEventDraft[] = []
   const findings: FindingDraft[] = []
-  let toolCallCount = 0
   let resultMessage: StreamMessage | null = null
-  let timedOut = false
 
-  const child = spawnProcess(config.command, config.args, { cwd: config.cwd, shell: true, env: { ...process.env, ...config.env } })
-
-  const timer = setTimeout(() => {
-    timedOut = true
-    child.kill('SIGTERM')
-  }, timeoutMs)
-
-  let buffer = ''
-  const handleLine = (line: string): void => {
+  function handleLine(line: string): void {
     if (!line.trim()) return
     lines.push(line)
     let parsed: StreamMessage
@@ -226,7 +218,6 @@ export async function runAnalystSpawn(config: SpawnConfig, timeoutMs: number): P
         pendingToolUse.delete(block.tool_use_id)
         if (!use || use.name === 'StructuredOutput') continue // the schema-delivery tool, not an eyvar call — never logged as one
 
-        toolCallCount += 1
         const durationMs = Date.now() - use.startedAt
         const shortName = shortToolName(use.name)
         const text = toolResultText(block.content)
@@ -260,11 +251,83 @@ export async function runAnalystSpawn(config: SpawnConfig, timeoutMs: number): P
     }
   }
 
+  function finish(): Omit<SpawnOutcome, 'timedOut' | 'exitCode'> {
+    const finalResultText = resultMessage && typeof resultMessage.result === 'string' ? resultMessage.result : null
+    const rateLimit = detectRateLimit(lines, finalResultText)
+    const turns = resultMessage && typeof (resultMessage as { num_turns?: unknown }).num_turns === 'number' ? (resultMessage as { num_turns: number }).num_turns : null
+    return {
+      toolLog,
+      events,
+      findings,
+      candidate: extractCandidate(resultMessage),
+      rateLimit,
+      toolCallCount: events.length,
+      turns,
+    }
+  }
+
+  return { handleLine, finish }
+}
+
+/** Pure: feeds a captured (or fixture) `stream-json` transcript through the same logic a real spawn uses. No process, no `timedOut`/`exitCode` (those only a real spawn has). */
+export function collectFromLines(lines: readonly string[]): Omit<SpawnOutcome, 'timedOut' | 'exitCode'> {
+  const collector = createStreamCollector()
+  for (const line of lines) collector.handleLine(line)
+  return collector.finish()
+}
+
+/**
+ * `child.kill('SIGTERM')` alone is not enough here: `spawnAndCollect` runs
+ * with `shell: true`, so the direct child is the shell (`cmd.exe` on
+ * Windows), not `claude` itself — killing the shell does not kill its own
+ * child. Confirmed live: a hung process survived `child.kill('SIGTERM')`
+ * for the full 10 s test timeout on this machine. `taskkill /t /f` kills
+ * the whole process tree by pid on Windows; POSIX's plain `SIGTERM` is
+ * enough there since a shell it starts (`/bin/sh -c ...`) forwards signals
+ * to its own child by default in the case that matters here (no
+ * `detached: true`, no new process group).
+ */
+function killProcessTree(child: ReturnType<typeof spawnProcess>): void {
+  if (process.platform === 'win32' && child.pid) {
+    execProcess(`taskkill /pid ${child.pid} /t /f`, () => {
+      /* best-effort — if the process already exited, taskkill errors harmlessly */
+    })
+  } else {
+    child.kill('SIGTERM')
+  }
+}
+
+/**
+ * Command-agnostic process plumbing: spawn, stream stdout line-by-line
+ * through a fresh collector, enforce the timeout. Separated from
+ * `runAnalystSpawn` so the timeout/SIGTERM/exit-code behaviour is testable
+ * against a plain, valid `node` invocation — `buildSpawnArgs`'s argv is
+ * always claude-shaped and cannot itself run an arbitrary test script.
+ */
+async function spawnAndCollect(command: string, args: string[], cwd: string, env: Record<string, string>, timeoutMs: number): Promise<SpawnOutcome> {
+  const collector = createStreamCollector()
+  let timedOut = false
+
+  // `shell: true` — Windows' `child_process.spawn` does not resolve a PATH executable without a
+  // shell (no PATHEXT lookup), and the runner's target machine's OS is not assumed either way.
+  // `command` is quoted by hand when it holds a space: `shell: true` passes it to the shell
+  // unquoted, and on Windows the install path itself often has one (`C:\Program Files\...`) —
+  // confirmed by running exactly this against `process.execPath` on this machine, which split on
+  // the space and failed with `'C:\Program' is not recognized...` before this fix.
+  const shellSafeCommand = command.includes(' ') ? `"${command}"` : command
+  const child = spawnProcess(shellSafeCommand, args, { cwd, shell: true, env: { ...process.env, ...env } })
+
+  const timer = setTimeout(() => {
+    timedOut = true
+    killProcessTree(child)
+  }, timeoutMs)
+
+  let buffer = ''
   child.stdout.on('data', (chunk: Buffer) => {
     buffer += chunk.toString('utf8')
     const parts = buffer.split('\n')
     buffer = parts.pop() ?? ''
-    for (const part of parts) handleLine(part)
+    for (const part of parts) collector.handleLine(part)
   })
 
   const exitCode = await new Promise<number | null>((resolve) => {
@@ -272,21 +335,20 @@ export async function runAnalystSpawn(config: SpawnConfig, timeoutMs: number): P
     child.on('error', () => resolve(null))
   })
   clearTimeout(timer)
-  if (buffer.trim()) handleLine(buffer)
+  if (buffer.trim()) collector.handleLine(buffer)
 
-  const finalResultText = resultMessage && typeof (resultMessage as StreamMessage).result === 'string' ? (resultMessage as StreamMessage).result! : null
-  const rateLimit = detectRateLimit(lines, finalResultText)
-  const turns = resultMessage && typeof (resultMessage as { num_turns?: unknown }).num_turns === 'number' ? ((resultMessage as { num_turns: number }).num_turns) : null
-
-  return {
-    toolLog,
-    events,
-    findings,
-    candidate: extractCandidate(resultMessage),
-    rateLimit,
-    timedOut,
-    exitCode,
-    toolCallCount,
-    turns,
-  }
+  return { ...collector.finish(), timedOut, exitCode }
 }
+
+/**
+ * Streams one job's spawn to completion (or the timeout). Building the
+ * `ToolLogEntry[]` here — not in `validate.ts` — keeps `validate.ts` a pure
+ * function over already-extracted data, testable with no process at all.
+ */
+export async function runAnalystSpawn(config: SpawnConfig, timeoutMs: number): Promise<SpawnOutcome> {
+  const built = buildSpawnArgs(config)
+  return spawnAndCollect(built.command, built.args, built.cwd, built.env, timeoutMs)
+}
+
+/** Exposed for `spawn.test.ts`'s process-plumbing tests: the timeout/exit-code behaviour against a plain command, decoupled from claude's own argv shape. */
+export const __testing__ = { spawnAndCollect }

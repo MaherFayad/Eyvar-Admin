@@ -178,6 +178,23 @@ describe('AC-1138/1139/1141 — the legend is real buttons', () => {
     expect(screen.getByRole('button', { name: titleOf('p1') })).toHaveAttribute('aria-pressed', 'true')
     expect(screen.queryByRole('button', { name: copy('rb.legend.showAll') })).not.toBeInTheDocument()
   })
+
+  it('Shift+click on a legend entry reaches the same isolate the kebab does (AC-1139)', () => {
+    renderCanvas()
+    fireEvent.click(screen.getByRole('button', { name: titleOf('p1') }), { shiftKey: true })
+    expect(screen.getByRole('button', { name: titleOf('p1') })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('button', { name: titleOf('p2') })).toHaveAttribute('aria-pressed', 'false')
+    expect(screen.getByRole('button', { name: copy('rb.legend.showAll') })).toBeInTheDocument()
+  })
+
+  it('a second Shift+click on the same entry restores all (AC-1139)', () => {
+    renderCanvas()
+    const entry = () => screen.getByRole('button', { name: titleOf('p1') })
+    fireEvent.click(entry(), { shiftKey: true })
+    fireEvent.click(entry(), { shiftKey: true })
+    expect(screen.getByRole('button', { name: titleOf('p1') })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('button', { name: titleOf('p2') })).toHaveAttribute('aria-pressed', 'true')
+  })
 })
 
 describe('AC-1140 — the comparison entry toggles as one unit', () => {
@@ -217,6 +234,31 @@ describe('AC-1144/1147 — the View menu disables in place, with a reason', () =
     renderCanvas()
     await userEvent.click(screen.getByRole('button', { name: copy('rb.view.menu') }))
     const item = await screen.findByRole('menuitemcheckbox', { name: new RegExp(copy('rb.view.log')) })
+    expect(item).not.toHaveAttribute('aria-disabled', 'true')
+  })
+
+  it('disables data labels with the count once buckets × visible series exceed 60 (AC-1147)', async () => {
+    const buckets = Array.from({ length: 21 }, (_, i) => `2026-06-${String(i + 1).padStart(2, '0')}`)
+    renderCanvas({
+      result: twoPanelResult({
+        buckets,
+        panels: [panelOf('p1'), panelOf('p2'), panelOf('p3')],
+        series: buckets.length
+          ? ['p1', 'p2', 'p3'].map((id) => seriesOf(id, { points: buckets.map(() => 1) }))
+          : [],
+      }),
+    })
+    await userEvent.click(screen.getByRole('button', { name: copy('rb.view.menu') }))
+    const item = await screen.findByRole('menuitemcheckbox', { name: new RegExp(copy('rb.view.dataLabels')) })
+    expect(item).toHaveAttribute('aria-disabled', 'true')
+    /* 21 buckets × 3 visible series = 63. */
+    expect(within(item).getByText(t('rb.view.dataLabels.disabled', { count: 63 }))).toBeInTheDocument()
+  })
+
+  it('leaves data labels enabled at or under the 60-point ceiling', async () => {
+    renderCanvas()
+    await userEvent.click(screen.getByRole('button', { name: copy('rb.view.menu') }))
+    const item = await screen.findByRole('menuitemcheckbox', { name: new RegExp(copy('rb.view.dataLabels')) })
     expect(item).not.toHaveAttribute('aria-disabled', 'true')
   })
 })
@@ -285,9 +327,11 @@ describe('AC-1148/1149 — annotation marks and the inline form', () => {
     expect(screen.queryByRole('button', { name: new RegExp(outsideWindow.label) })).not.toBeInTheDocument()
   })
 
-  it('does not offer `Add annotation` without `canAnnotate` (AC-1149)', () => {
+  it('disables `Add annotation` with the reason, not removed, without `canAnnotate` (AC-1149)', () => {
     renderCanvas({ canAnnotate: false, onSaveAnnotation: async () => {} })
-    expect(screen.queryByRole('button', { name: copy('rb.chart.addAnnotation') })).not.toBeInTheDocument()
+    const button = screen.getByRole('button', { name: copy('rb.chart.addAnnotation') })
+    expect(button).toBeDisabled()
+    expect(button).toHaveAttribute('title', copy('rb.chart.addAnnotation.needsPermission'))
   })
 
   it('opens the inline form and saves through the caller — no dialog', async () => {
@@ -300,6 +344,28 @@ describe('AC-1148/1149 — annotation marks and the inline form', () => {
     await userEvent.type(within(form).getByLabelText(copy('rb.annotation.form.label')), 'Launch')
     await userEvent.click(within(form).getByRole('button', { name: copy('rb.annotation.form.submit') }))
     expect(onSaveAnnotation).toHaveBeenCalledTimes(1)
+  })
+})
+
+/* ═══════════════════ §4.8 — the eight-hue palette and Other ═══════════════ */
+
+describe('AC-1136 — series seven and eight take s7/s8; Other takes muted-foreground', () => {
+  it('emits the eighth and ninth series colours and mutes the folded Other', () => {
+    /* `ChartStyle` (`ui/chart.tsx`) emits `--color-<key>` as a `<style>` tag —
+       real DOM, unlike the SVG marks jsdom cannot lay out (file header). */
+    const ids = Array.from({ length: 9 }, (_, i) => `p${i + 1}`)
+    const { container } = renderCanvas({
+      result: twoPanelResult({
+        panels: ids.map((id) => panelOf(id)),
+        series: ids.map((id, i) => seriesOf(id, i === 8 ? { groupValue: '__other__' } : {})),
+        foldedGroupCount: 1,
+      }),
+      effectiveChartType: 'bar',
+    })
+    const style = container.querySelector('style')?.textContent ?? ''
+    expect(style).toContain('--color-s6: var(--chart-s7);')
+    expect(style).toContain('--color-s7: var(--chart-s8);')
+    expect(style).toContain('--color-s8: var(--muted-foreground);')
   })
 })
 

@@ -202,7 +202,7 @@ describe('a series with no declared rollup states that, beside one that has it',
     return {
       query: {
         measures: [{ key: ANCHOR_KEY }],
-        groupBy: null,
+        groupBy: [],
         filters: [],
         window: { kind: 'absolute', from: BUCKETS[0] as string, to: BUCKETS[2] as string },
         grain: 'day',

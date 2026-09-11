@@ -247,7 +247,7 @@ describe('R5-15 — the operator can read the population, not just the number', 
   it('renders the measure’s own population sentence, and it moves with the measure', async () => {
     const captains = reportQueryPath({
       measures: [{ key: 'captains.registered' }],
-      groupBy: null,
+      groupBy: [],
       filters: [],
       window: { kind: 'preset', preset: 'last-30d' },
       grain: 'day',
@@ -256,7 +256,7 @@ describe('R5-15 — the operator can read the population, not just the number', 
     })
     const trips = reportQueryPath({
       measures: [{ key: 'trips.completed' }],
-      groupBy: null,
+      groupBy: [],
       filters: [],
       window: { kind: 'preset', preset: 'last-30d' },
       grain: 'day',
@@ -286,7 +286,7 @@ describe('R5-15 — the operator can read the population, not just the number', 
     const short = await runReport(
       {
         measures: [{ key: 'revenue.total' }],
-        groupBy: null,
+        groupBy: [],
         filters: [],
         window: { kind: 'preset', preset: 'last-30d' },
         grain: 'day',
@@ -298,7 +298,7 @@ describe('R5-15 — the operator can read the population, not just the number', 
     const long = await runReport(
       {
         measures: [{ key: 'revenue.total' }],
-        groupBy: null,
+        groupBy: [],
         filters: [],
         window: { kind: 'preset', preset: 'last-90d' },
         grain: 'day',
@@ -461,7 +461,7 @@ describe('AC-844 — the no-data sentence is the metric boards’ own string', (
     renderAt(
       reportQueryPath({
         measures: [{ key: 'revenue.total' }],
-        groupBy: null,
+        groupBy: [],
         filters: [],
         window: { kind: 'absolute', from: '2020-01-01', to: '2020-01-31' },
         grain: 'day',
@@ -488,7 +488,7 @@ describe('AC-850 — one blocked series does not take the report down', () => {
     const outcome = await runReport(
       {
         measures: [{ key: 'revenue.total' }],
-        groupBy: null,
+        groupBy: [],
         filters: [],
         window: { kind: 'preset', preset: 'last-30d' },
         grain: 'day',
@@ -650,7 +650,7 @@ describe('AC-853, AC-855 — a link reproduces the question', () => {
   it('restores measures, split, grain, comparison and chart type from the URL alone', async () => {
     const query = {
       measures: [{ key: 'trips.completed' }],
-      groupBy: 'trip.kind',
+      groupBy: ['trip.kind'],
       filters: [],
       window: { kind: 'preset' as const, preset: 'last-30d' as const },
       grain: 'week' as const,

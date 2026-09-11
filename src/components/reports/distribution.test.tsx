@@ -114,7 +114,7 @@ function distributionResult(
   return {
     query: {
       measures: [{ key: measure.key }],
-      groupBy: measure.dimensions[0]?.key ?? null,
+      groupBy: measure.dimensions[0] ? [measure.dimensions[0].key] : [],
       filters: [],
       window: { kind: 'absolute', from: BUCKET, to: '2026-06-30' },
       grain: 'none',
@@ -179,7 +179,7 @@ describe('the pie card and the line card take the same steps from the same prop'
     const result: ReportResult = {
       query: {
         measures: [{ key: additive.key }],
-        groupBy: null,
+        groupBy: [],
         filters: [],
         window: { kind: 'absolute', from: '2026-06-19', to: '2026-06-21' },
         grain: 'day',

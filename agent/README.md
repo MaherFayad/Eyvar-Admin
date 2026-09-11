@@ -38,10 +38,11 @@ agent/
 
 ```
 npm --prefix agent install     # once, or after package.json changes
-npm --prefix agent test        # the tool suite (vitest, EYVAR_MCP_SOURCE forced to mock)
+npm --prefix agent test        # the tool + runner suite (vitest, EYVAR_MCP_SOURCE forced to mock)
 npm --prefix agent run typecheck
-npm --prefix agent run build   # tsc → agent/dist (see "Known gap: the compiled dist path" below)
+npm --prefix agent run build   # tsc (typecheck-shaped) + esbuild bundle → agent/dist/mcp/server.js (see "Resolved gap" below)
 npm --prefix agent run dev     # tsx mcp/server.ts, against EYVAR_MCP_SOURCE from the environment
+npm --prefix agent run runner:dev   # tsx runner/index.ts — the daemon, WP-7.2
 ```
 
 `claude -p` spawns the server itself via `agent/mcp.json`'s `{ "command": "node", "args":
@@ -60,9 +61,16 @@ command).
 | `EYVAR_API_BASE_URL` | `client.ts` (http mode only) | Defaults to `http://localhost:3000/api/v1`. |
 
 Mock mode reads no environment variable beyond `EYVAR_MCP_SOURCE`, `EYVAR_JOB_ID` and whichever
-mock operator is "signed in" — which in a real job is fixed by the runner (out of this WP's
-scope, WP-7.2) and in the interactive/test path is `switchMockUser()` from
-`src/data/clients`.
+mock operator is "signed in" — which in a real job is fixed by the runner (WP-7.2, below) and in
+the interactive/test path is `switchMockUser()` from `src/data/clients`.
+
+**The runner's own environment** (`agent/runner/env.ts` — distinct from this table, which is the
+spawned MCP tool server's) is `AGENT_RUNNER_TOKEN`, `AGENT_RUNNER_ID`/`AGENT_RUNNER_NAME`,
+`EYVAR_API_BASE_URL`, `EYVAR_REPO_ROOT`, `CLAUDE_BIN`, `AGENT_POLL_INTERVAL_MS`,
+`AGENT_HEARTBEAT_INTERVAL_MS`, `AGENT_JOB_TIMEOUT_MS`, `AGENT_MAX_TURNS` — the daemon reads these
+to know how to reach the job queue and what to spawn, then sets `EYVAR_MCP_SOURCE`/`EYVAR_JOB_ID`/
+`EYVAR_ACTING_FOR`/`AGENT_RUNNER_TOKEN`/`EYVAR_API_BASE_URL` itself on each `claude -p` child
+(`runner/index.ts#runOneAttempt`) — the two tables never need reconciling by hand.
 
 ## Pointing it at mock vs http
 
@@ -76,65 +84,43 @@ EYVAR_MCP_SOURCE=http AGENT_RUNNER_TOKEN=... EYVAR_ACTING_FOR=USR-1 \
 `mockBackend.ts` / `httpBackend.ts` — the other is never evaluated, so an http-mode process
 never touches `src/data/clients` (and the gap below never bites it).
 
-## Known gap: `import.meta.env` outside Vite/Vitest
+## Resolved gap: `import.meta.env` outside Vite/Vitest
 
-`src/data/config.ts` reads `import.meta.env.VITE_DATA_SOURCE` unguarded (every other read in
-that file goes through its own `readEnv()`, which try/catches this exact case — this one line
-does not). Under Vite and under Vitest, `import.meta.env` is a real object and this works; under
-plain Node or `tsx` — the mechanism `01-analyst-agent.md` §3.1 names for mock-mode development
-("mock imports `src/data/clients/index.ts` through `tsx`") — `import.meta.env` is `undefined`,
-and the read throws before `mockBackend.ts` finishes loading.
+WP-7.1 found `src/data/config.ts` reading `import.meta.env.VITE_DATA_SOURCE` unguarded, throwing
+under plain Node/`tsx` outside Vite or Vitest. The orchestrator fixed the one line (`config.ts`
+now routes through its own `readEnv()` like every other read in that file) before WP-7.2 (the
+runner) started. **Verified by actually running it**: `EYVAR_MCP_SOURCE=mock npx tsx mcp/server.ts`
+now starts and serves a real tool call (`eyvar_glossary`) against the mock backend with no throw.
 
-Consequence: **`npm --prefix agent test` is unaffected** — every test runs under Vitest, which
-defines `import.meta.env` correctly, so all 23 tool suites exercise the real mock backend end
-to end. What does **not** work today is running the *compiled* server (`node dist/mcp/server.js`
-or `npm run dev`'s `tsx mcp/server.ts`) with `EYVAR_MCP_SOURCE=mock` — it throws on startup. Http
-mode is unaffected either way (it never imports `src/data/clients`).
+## Resolved gap: `npm run build`'s output now runs under plain `node`
 
-This is one line, in a file outside `agent/**`'s touch scope:
+WP-7.1 found `tsc -p tsconfig.json`'s per-file emission unusable under plain Node:
+`mockBackend.ts`/`labels.ts`/the Zod schemas import `../../src/data/**` and `../../src/screens/**`
+without extensions (legal under the app's bundler resolution, illegal under Node's ESM loader) —
+confirmed live, `node dist/agent/mcp/server.js` failed with `ERR_MODULE_NOT_FOUND` on its first
+such import. WP-7.1's own recommendation — bundle with esbuild instead of per-file `tsc` emission
+— is what WP-7.2 (the runner, which actually has to spawn this server) implemented and verified:
 
-```ts
-// src/data/config.ts — current
-export const DATA_SOURCE: DataSource = import.meta.env.VITE_DATA_SOURCE === 'http' ? 'http' : 'mock'
-// the fix (mirrors every other read in the same file):
-export const DATA_SOURCE: DataSource = readEnv('VITE_DATA_SOURCE') === 'http' ? 'http' : 'mock'
-```
+- `build` now runs `tsc` (typecheck-shaped emission, harmless but unused at runtime) **and**
+  `build:mcp-bundle`: `esbuild mcp/server.ts --bundle --platform=node --format=esm
+  --packages=external --outfile=dist/mcp/server.js` — one self-contained file, `node_modules`
+  packages (`zod`, `@modelcontextprotocol/sdk`) left external since they resolve normally from
+  `agent/node_modules` and only the hand-authored `src/**`/`agent/**` graph needed inlining.
+- **Verified by actually running it**: `EYVAR_MCP_SOURCE=mock node dist/mcp/server.js`, driven by
+  a real `@modelcontextprotocol/sdk` `Client` over `StdioClientTransport`, served a real
+  `eyvar_glossary` tool call — the same call that previously threw `ERR_MODULE_NOT_FOUND`.
+- `mcp.json`'s `args` now point at the bundle's real path, `agent/dist/mcp/server.js` (esbuild's
+  `--outfile` is not subject to `tsc`'s `rootDir`-driven `agent/dist/agent/mcp/server.js`
+  doubling that the previous version of this README described).
+- The runner itself (`agent/runner/**`) turned out **not** to need bundling at all — it holds no
+  runtime import of `src/**`, only type-only ones (erased at compile time) — so `tsc`'s ordinary
+  per-file emission already produces a plain-Node-runnable `dist/agent/runner/index.js`, confirmed
+  by running it directly (`node dist/agent/runner/index.js` fails on the intended
+  `AGENT_RUNNER_TOKEN is not set` check, not on module resolution).
 
-`globals.d.ts` in this workspace only shims the *type* of `import.meta.env` so `tsc` can
-check the files `mockBackend.ts` pulls in; it changes nothing at runtime.
-
-## Known gap: `npm run build`'s output does not run under plain `node` yet
-
-`tsc -p tsconfig.json` needs `rootDir: ".."` (the repo root) because `mockBackend.ts`,
-`labels.ts` and the Zod schemas import from `../../src/data/**` and `../../src/screens/**`.
-Two consequences, both real, both outside `agent/**`'s fix:
-
-1. **The whole transitively-imported `src/` subtree gets compiled into `agent/dist/src/**`
-   too** — not a bug (those files must exist for a compiled `mockBackend.js`'s relative import
-   to resolve at all), but it does mean `agent/dist/mcp/server.js` from `01-analyst-agent.md`
-   §3.1's illustrative path is actually `agent/dist/**agent/**mcp/server.js` once `rootDir`
-   accounts for the repo root — `mcp.json` here uses the real path.
-2. **Every file under `src/` is authored with extensionless relative imports**
-   (`from '../types/report'`), legal under the main app's `moduleResolution: "bundler"` (Vite,
-   Vitest, `tsx` all tolerate it) and illegal under plain Node's ESM loader, which requires an
-   explicit extension. `node agent/dist/agent/mcp/server.js` today fails on its first such
-   import (`ERR_MODULE_NOT_FOUND`) — confirmed by running it. This hits **both** modes, not
-   just mock: `labels.ts` (used by `catalogue_measures`/`catalogue_dimensions`/`glossary`)
-   statically imports `src/screens/reports/copy.ts` regardless of `EYVAR_MCP_SOURCE`.
-
-Neither is fixable inside `agent/**` alone without either (a) rewriting many `src/` imports to
-carry `.js` extensions — a repo-wide convention change well outside this WP, or (b) bundling
-(`esbuild --bundle --platform=node --format=esm`) instead of per-file `tsc` emission, which
-sidesteps Node's extension rule entirely by inlining the dependency graph. (b) is the
-recommended fix for whichever WP wires the runner's actual spawn — it is not this one.
-
-**What does work today, unaffected by either gap:** `npm --prefix agent test` (Vitest — the WP's
-own proof mechanism, §11), `npm --prefix agent run typecheck`, and `npm --prefix agent run dev`
-(`tsx`, once the `import.meta.env` gap above is fixed upstream) for mock-mode manual testing.
-Http mode's own files (`client.ts`, `httpBackend.ts`, the `tools/*.ts` that route entirely
-through `Backend`) never touch `src/` at runtime except via `labels.ts`/`blockSchema.ts`/the
-pure `reporting/` modules — the same extensionless-import issue above, so http mode is equally
-blocked for a `node`-run compiled server until (b) lands.
+Http mode was always unaffected by the `src/`-import half of this (it never imports
+`src/data/clients`), but `labels.ts`/`blockSchema.ts`/the pure `reporting/` modules it does use
+had the same extensionless-import exposure — the bundle fixes it for both modes at once.
 
 ## Tool coverage
 

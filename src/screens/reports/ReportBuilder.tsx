@@ -196,6 +196,8 @@ import {
 import { ChartToolbar, QueryPanel, ResultCanvas, type CanvasStatus } from '@/components/reports'
 import { useAsync, useDebouncedValue } from '@/hooks'
 import { useNowIso } from '@/screens/queues'
+import { useShell } from '@/shell/ShellContext'
+import type { Annotation, AnnotationKind } from '@/data/types/annotation'
 import {
   EYVAR_TODAY,
   REPORT_QUERY_PARAM,
@@ -203,6 +205,7 @@ import {
   deserialiseReportQuery,
   duplicateReport,
   exportReport,
+  listAnnotations,
   listDimensions,
   listMeasures,
   listPages,
@@ -211,6 +214,7 @@ import {
   planReportQuery,
   resolveWindow,
   runReport,
+  saveAnnotation,
   savePage,
   serialiseReportQuery,
 } from '@/data/clients'
@@ -405,6 +409,10 @@ export function ReportBuilder({
   const location = useLocation()
   const now = useNowIso()
   const today = useMemo(() => (now ? localDayOf(now) : EYVAR_TODAY), [now])
+  /* F-V2-28 — no `manage_analytics` key exists; the server gates every
+     analytics write on `view_analytics`, so this is what "the caller
+     resolves it" (`ResultCanvas.tsx`'s own doc comment) means today. */
+  const canAnnotate = useShell().permissions.permissions.includes('view_analytics')
 
   /* The question, restored from the URL when there is one, then from the saved
      report, then empty. Reading the URL FIRST is what makes a link to a
@@ -1480,6 +1488,36 @@ export function ReportBuilder({
   const shownResult = resultInMode ? result : null
   const shownStatus: CanvasStatus = status === 'content' && !resultInMode ? 'unstarted' : status
 
+  /**
+   * §2.4 — the window an answer is actually drawing for, not the draft. Only
+   * the two series modes reach `ResultCanvas`'s compound plot; the other
+   * three take `ReportModeCanvas`, which has no marks to draw.
+   */
+  const annotationWindow = useMemo(() => {
+    if (!seriesMode || !shownResult) return null
+    return resolveWindow(shownResult.query.window, today)
+  }, [seriesMode, shownResult, today])
+
+  const annotationsAsync = useAsync<Annotation[]>(
+    async (signal) => {
+      if (!annotationWindow) return []
+      return listAnnotations({ from: annotationWindow.from, to: annotationWindow.to }, signal)
+    },
+    { deps: [annotationWindow?.from, annotationWindow?.to], enabled: annotationWindow !== null },
+  )
+  const annotations = annotationsAsync.data ?? []
+
+  /* AC-1150 — writes through the client, then re-reads the window so the
+     mark appears with no page reload; the form's own catch (`AnnotationForm`)
+     keeps the draft open on failure. */
+  const saveAnnotationForWindow = useCallback(
+    async (input: { date: string; label: string; kind: AnnotationKind; note: string }) => {
+      await saveAnnotation({ id: null, date: input.date, label: input.label, note: input.note, kind: input.kind })
+      annotationsAsync.refetch()
+    },
+    [annotationsAsync],
+  )
+
   return (
     <div className="flex h-full min-h-0 w-full flex-col px-page-pad py-6 wide:px-page-pad-wide">
       <div className="shrink-0">{header}</div>
@@ -1616,6 +1654,9 @@ export function ReportBuilder({
                 measuresByKey={measuresByKey}
                 coercedFrom={plan.chartTypeCoerced ? query.chartType : null}
                 effectiveChartType={plan.effectiveChartType}
+                annotations={annotations}
+                canAnnotate={canAnnotate}
+                onSaveAnnotation={saveAnnotationForWindow}
                 onRetry={() => void run(ranQuery ?? query, 'auto')}
                 onRetrySeries={(key) => void retrySeries(key)}
                 /* The builder is a workspace, so it takes the workspace chrome:

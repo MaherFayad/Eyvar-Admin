@@ -94,11 +94,11 @@ describe('R5-15 — every measure names a population, and the copy can say it', 
     for (const measure of measureFixtures) {
       for (const grain of GRAINS) {
         for (const chartType of CHART_TYPES) {
-          for (const groupBy of [null, ...measure.dimensions.map((d) => d.key), 'trip.pickup']) {
+          for (const groupByValue of [null, ...measure.dimensions.map((d) => d.key), 'trip.pickup']) {
             const plan = planReportQuery(
               {
                 measures: [{ key: measure.key }],
-                groupBy,
+                groupBy: groupByValue === null ? [] : [groupByValue],
                 filters: [],
                 window: { kind: 'preset', preset: 'last-365d' },
                 grain,
@@ -150,7 +150,7 @@ describe('R4-1 — two measures never share a y-axis', () => {
     for (const [a, b] of pairs) {
       const result = await run({
         measures: [{ key: a }, { key: b }],
-        groupBy: null,
+        groupBy: [],
         filters: [],
         window: { kind: 'preset', preset: 'last-30d' },
         grain: 'day',
@@ -173,7 +173,7 @@ describe('R4-1 — two measures never share a y-axis', () => {
   it('puts a measure and its own period comparison in the SAME panel', async () => {
     const result = await run({
       measures: [{ key: 'captains.registered' }],
-      groupBy: null,
+      groupBy: [],
       filters: [],
       window: { kind: 'preset', preset: 'last-30d' },
       grain: 'day',
@@ -197,7 +197,7 @@ describe('R4-1 — two measures never share a y-axis', () => {
   it('gives every group of a split its own panel', async () => {
     const result = await run({
       measures: [{ key: 'trips.completed' }],
-      groupBy: 'trip.pickup',
+      groupBy: ['trip.pickup'],
       filters: [],
       window: { kind: 'preset', preset: 'last-30d' },
       grain: 'week',
@@ -324,7 +324,7 @@ describe('the rollup states a base derived from the response', () => {
 describe('§7 — an illegal option is present and carries its reason', () => {
   const base: ReportQuery = {
     measures: [{ key: 'subscriptions.started' }],
-    groupBy: null,
+    groupBy: [],
     filters: [],
     window: { kind: 'preset', preset: 'last-30d' },
     grain: 'day',
@@ -346,7 +346,7 @@ describe('§7 — an illegal option is present and carries its reason', () => {
   it('enables the pie only when all five gates hold, and disables it when any one moves', () => {
     const legalPie: ReportQuery = {
       ...base,
-      groupBy: 'subscription.plan',
+      groupBy: ['subscription.plan'],
       grain: 'none',
       chartType: 'pie',
     }
@@ -354,7 +354,7 @@ describe('§7 — an illegal option is present and carries its reason', () => {
       planReportQuery(query, CATALOGUE, EYVAR_TODAY).chartTypes.find((o) => o.value === 'pie')!
     expect(pieOf(legalPie).legal).toBe(true)
 
-    expect(pieOf({ ...legalPie, groupBy: null }).legal).toBe(false)
+    expect(pieOf({ ...legalPie, groupBy: [] }).legal).toBe(false)
     expect(pieOf({ ...legalPie, grain: 'day' }).legal).toBe(false)
     expect(pieOf({ ...legalPie, measures: [...legalPie.measures, { key: 'trips.completed' }] }).legal).toBe(
       false,
@@ -362,7 +362,7 @@ describe('§7 — an illegal option is present and carries its reason', () => {
     /* A rate is never additive, so the same five controls in the same positions
        still refuse it — AC-839. */
     expect(
-      pieOf({ ...legalPie, measures: [{ key: 'trips.cancellationRate' }], groupBy: null }).legal,
+      pieOf({ ...legalPie, measures: [{ key: 'trips.cancellationRate' }], groupBy: [] }).legal,
     ).toBe(false)
   })
 

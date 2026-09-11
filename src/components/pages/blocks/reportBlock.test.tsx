@@ -5,14 +5,13 @@
  * block through `useResolvedReport` (AC-1186), never a fixture import.
  */
 
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { disableMockLatency, getReport, listMeasures, listDimensions, localDayOf, mockFailures, reportQueryPath, resetDataLayer, saveReport } from '@/data/clients'
 import { listPages } from '@/data/clients/pages'
 import { reportMode, type Dimension, type Measure } from '@/data/types'
 import type { Page, ReportBlock } from '@/data/types/page'
-import { isSeriesMode } from '@/screens/reports/ReportBuilder'
 import { ReportsScreen } from '@/screens/reports/ReportsScreen'
 import { ShellProvider } from '@/shell/ShellContext'
 import { PageBlocksProvider, type PageBlocksValue } from '../PageBlocksContext'

@@ -137,7 +137,7 @@ function seriesOf(panelId: string, over: Partial<ReportSeries> = {}): ReportSeri
 
 const QUERY: ReportQuery = {
   measures: [{ key: MEASURE.key }],
-  groupBy: null,
+  groupBy: [],
   filters: [],
   window: { kind: 'absolute', from: BUCKETS[0] as string, to: BUCKETS[2] as string },
   grain: 'day',

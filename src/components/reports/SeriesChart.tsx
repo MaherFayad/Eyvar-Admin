@@ -242,17 +242,16 @@ export function SeriesChart({
 
   /* `ChartContainer` emits `--color-<key>` per entry, which is what lets the
      marks below name a colour without inlining one. The keys are the same
-     index-addressed strings the rows carry. */
+     index-addressed strings the rows carry. §4.8 / AC-1136 — `Other` (§7.4's
+     fold) takes `--muted-foreground` here rather than the palette, which is
+     what makes every draw below (line, area, bar fill) agree with it for
+     free, the same way `HorizontalBarLayer` already does per-`Cell`. */
   const config: ChartConfig = {}
   panels.forEach((_, index) => {
-    config[currentKey(index)] = {
-      label: titles[index] ?? '',
-      color: seriesColor(colorIndexes[index] ?? index),
-    }
-    config[comparisonKey(index)] = {
-      label: titles[index] ?? '',
-      color: seriesColor(colorIndexes[index] ?? index),
-    }
+    const color =
+      currents[index]?.groupValue === '__other__' ? OTHER_COLOR : seriesColor(colorIndexes[index] ?? index)
+    config[currentKey(index)] = { label: titles[index] ?? '', color }
+    config[comparisonKey(index)] = { label: titles[index] ?? '', color }
   })
 
   /* One VISIBLE series keeps §3.7's pale wash; two or more do not. `area` is

@@ -83,7 +83,7 @@ function result(): ReportResult {
   return {
     query: {
       measures: [{ key: anchor.key }],
-      groupBy: null,
+      groupBy: [],
       filters: [],
       window: { kind: 'absolute', from: BUCKETS[0] as string, to: BUCKETS[29] as string },
       grain: 'day',

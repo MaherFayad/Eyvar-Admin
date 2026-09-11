@@ -326,6 +326,12 @@ function decodeTable(raw: WireTable | undefined): TableSpec | undefined {
  * query serialises to `v` plus the v1 set and nothing more (AC-1102).
  */
 export function serialiseReportQuery(query: ReportQuery): string {
+  /* A public entry point: a stored saved report or a test may still hold a
+     v1 shape (`groupBy` a bare dimension or `null`, a funnel with no
+     `exclude`). `deserialiseReportQuery` already normalises on the way in;
+     this is the same defence on the way out (AC-1100). */
+  query = normaliseReportQuery(query)
+
   const ordered: Record<string, unknown> = {
     v: 2,
     m: query.measures.map(encodeMeasure),

@@ -1549,6 +1549,8 @@ export const REPORTS_EN: Dictionary = {
   /* ── WP-2.1…2.5 — the chart surface, `22-analytics-v2.md` §2 ──────────── */
   'rb.chart.controlsRow': 'Chart controls',
   'rb.chart.addAnnotation': 'Add annotation',
+  /* AC-1149 — disabled-in-place reason, not a removal. */
+  'rb.chart.addAnnotation.needsPermission': 'You don’t have permission to add annotations.',
   'rb.chart.zoomed.reset': 'Zoomed · reset',
   'rb.chart.kpi.sparkline': '{title} over the window',
   'rb.chart.tooltip.partial': 'partial',

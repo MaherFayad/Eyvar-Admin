@@ -283,7 +283,7 @@ export interface FunnelSpec {
   mode: FunnelMode
   /** Needs `Measure.funnelCapabilities.holdConstant`. `null` holds nothing constant. */
   holdConstant: DimensionKey | null
-  /** Populations that disqualify a subject anywhere in the funnel. */
+  /** Populations that disqualify a subject anywhere in the funnel. Needs `Measure.funnelCapabilities.exclude` on every rung. */
   exclude: MeasureKey[]
   /** Default `'conversion'`. */
   measuredAs: FunnelMeasuredAs
@@ -300,15 +300,9 @@ export interface FunnelSpecV1 {
 /**
  * How cohorts are bucketed and how their age is counted.
  *
- * **Only `'month'` computes today**, and the reason is a data fact rather than
- * an unwritten feature: `reporting/cohorts.ts` measures age with `monthDiff`
- * over a single `lastActiveAt` per subject. That is honest at month resolution
- * — "was this subject still around in month 3" — and it is not honest at day
- * resolution, where a day-7 column derived from one last-seen timestamp is a
- * survival curve wearing a retention matrix. `planQuery` therefore returns
- * `'day'` and `'week'` **disabled in place with that reason** (D9 CQ-3) rather
- * than omitting them from the type, because a server with a real activity
- * history answers all three and the contract is written for that server.
+ * All three compute: `reporting/cohorts.ts` measures age with `gapDiff`,
+ * grain-generic since G11, over a single `lastActiveAt` per subject. `plan.ts`'s
+ * `COMPUTED_COHORT_GRAINS` is the wiring a future engine gap would narrow.
  */
 export type CohortGrain = 'day' | 'week' | 'month'
 
@@ -562,6 +556,13 @@ export type ReportWarning =
    * different meanings and nothing on screen would separate them.
    */
   | 'funnel-counted-not-followed'
+  /**
+   * `funnel.mode: 'sequential'`, resolved directly rather than through
+   * `planQuery`'s `funnel-needs-server` (G10, §5). No store here has the
+   * event-level ordering it needs, so the resolver refuses rather than
+   * silently answering as `ordered` under another name.
+   */
+  | 'funnel-sequential-not-resolved'
 
 /**
  * A y-axis and a chart card. **The unit of rendering, and the reason two
@@ -707,6 +708,8 @@ export type QueryViolationCode =
   | 'cohort-horizon-out-of-range'
   /** No engine here buckets retention by day or week. See `CohortGrain`. */
   | 'cohort-grain-unavailable'
+  /** §6 / AC-1172: two `method: 'bracket'` windows share a period. `cohorts.ts`'s `bracketsOverlap`. */
+  | 'cohort-brackets-overlap'
   | 'journey-needs-root'
   /** A journey follows a subject forward. A store that names nobody has no path. */
   | 'journey-root-not-subject'

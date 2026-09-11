@@ -939,6 +939,7 @@ export const REPORTS_AR: Dictionary = {
 
   'rb.chart.controlsRow': 'عناصر التحكم في المخطط',
   'rb.chart.addAnnotation': 'إضافة تعليق',
+  'rb.chart.addAnnotation.needsPermission': 'ليست لديك صلاحية إضافة التعليقات.',
   'rb.chart.zoomed.reset': 'مكبَّر · إعادة الضبط',
   'rb.chart.kpi.sparkline': '{title} خلال النطاق',
   'rb.chart.tooltip.partial': 'جزئية',

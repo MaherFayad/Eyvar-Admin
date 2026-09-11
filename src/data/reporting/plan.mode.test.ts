@@ -234,23 +234,27 @@ describe('2 — a cohort needs an anchor event and a window', () => {
     expect(codes(cohort({ horizon: 0 }))).toContain('cohort-horizon-out-of-range')
   })
 
-  it('offers day and week and disables them with the reason, rather than hiding them', () => {
-    /* `reporting/cohorts.ts` measures age with `monthDiff`. Day and week stay
-       on screen so the operator learns the rule (D9 CQ-3). */
+  it('offers day, week and month, all three legal — `reporting/cohorts.ts` is grain-generic (G11)', () => {
     const grains = plan(cohort({})).cohortGrains
     expect(grains.map((g) => g.value)).toEqual(['day', 'week', 'month'])
-    expect(grains.find((g) => g.value === 'month')?.legal).toBe(true)
-    expect(grains.find((g) => g.value === 'day')).toMatchObject({
-      legal: false,
-      reasonKey: 'rb.cohort.grainUnavailable',
-      reasonParams: { grain: 'day' },
-    })
+    expect(grains.every((g) => g.legal)).toBe(true)
   })
 
-  it('refuses a query that picks one of them anyway, with the same reason', () => {
-    /* AC-825: a hand-edited URL gets the sentence the greyed control carries. */
-    const v = violation(cohort({ cohortGrain: 'day' }), 'cohort-grain-unavailable')
-    expect(v).toMatchObject({ field: 'cohort', reasonKey: 'rb.cohort.grainUnavailable' })
+  it('accepts a query that picks day or week (AC-825: the same rule a hand-edited URL meets)', () => {
+    expect(codes(cohort({ cohortGrain: 'day' }))).toEqual([])
+    expect(codes(cohort({ cohortGrain: 'week' }))).toEqual([])
+  })
+
+  it('refuses two `method: "bracket"` windows that share a period (AC-1172), the same reason the picker gives', () => {
+    const v = violation(
+      cohort({ method: 'bracket', brackets: [[0, 7], [5, 14]] }),
+      'cohort-brackets-overlap',
+    )
+    expect(v).toMatchObject({ field: 'cohort', reasonKey: 'rb.cohort.brackets.overlap' })
+  })
+
+  it('accepts touching brackets — `[0,7]` and `[7,14]` share no day', () => {
+    expect(codes(cohort({ method: 'bracket', brackets: [[0, 7], [7, 14]] }))).toEqual([])
   })
 
   it('hands `reporting/cohorts.ts` its own column vocabulary', () => {
@@ -377,6 +381,17 @@ describe('4 — the mode fixes the chart and, where there is no calendar, the gr
   it('says `mode-fixes-grain` when a query asks for a calendar grain anyway', () => {
     const v = violation({ ...funnelQuery, grain: 'day' }, 'mode-fixes-grain')
     expect(v).toMatchObject({ field: 'grain', reasonKey: 'rb.grain.modeFixed' })
+  })
+
+  it('unlocks the grain for `measuredAs: "conversion-over-time"`, whose resolver already buckets by it', () => {
+    const overTime: ReportQuery = {
+      ...funnelQuery,
+      grain: 'day',
+      funnel: { ...funnelQuery.funnel!, measuredAs: 'conversion-over-time' },
+    }
+    const p = plan(overTime)
+    expect(p.grains.find((g) => g.value === 'day')?.legal).toBe(true)
+    expect(p.violations).toEqual([])
   })
 
   it('keeps the grain in `table` mode, because a daily table is the point', () => {
@@ -804,13 +819,31 @@ describe('17 — funnel-needs-server', () => {
     expect(violation(query, 'funnel-needs-server')).toBeDefined()
   })
 
-  it('refuses `exclude` unconditionally — no capability flag could ever satisfy it', () => {
+  it('refuses `exclude` when no rung declares `funnelCapabilities.exclude`, same as `sequential` and `holdConstant`', () => {
     const query: ReportQuery = {
       ...base,
       mode: 'funnel',
       funnel: funnelSpec(twoSteps, { exclude: ['captains.joined'] }),
     }
     expect(violation(query, 'funnel-needs-server')).toBeDefined()
+  })
+
+  it('accepts `exclude` once every rung declares the capability — gateable, not permanently dead', () => {
+    const a = syntheticMeasure({
+      key: 'test.excludeA',
+      funnelCapabilities: { sequential: false, holdConstant: false, exclude: true },
+    })
+    const b = syntheticMeasure({
+      key: 'test.excludeB',
+      funnelCapabilities: { sequential: false, holdConstant: false, exclude: true },
+    })
+    const catalogue = catalogueWith(a, b)
+    const query: ReportQuery = {
+      ...base,
+      mode: 'funnel',
+      funnel: funnelSpec([step(a.key), step(b.key)], { exclude: ['captains.joined'] }),
+    }
+    expect(planIn(query, catalogue).violations.map((v) => v.code)).not.toContain('funnel-needs-server')
   })
 
   it('is silent at the v2 defaults — ordered, no hold, nothing excluded', () => {

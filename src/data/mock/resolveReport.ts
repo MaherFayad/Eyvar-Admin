@@ -300,9 +300,8 @@ export function resolveReport(
   if (partials.includes(0)) warnings.add('partial-first')
   if (buckets.length > 0 && partials.includes(buckets.length - 1)) warnings.add('partial-last')
 
-  /* `planQuery` is not yet migrated to array `groupBy` (WP-1.3); called on the
-     original query, unchanged from before this split, so its coercion check
-     keeps behaving exactly as it did. */
+  /* `planQuery` normalises on entry (AC-1100), same as this function, so the
+     original (possibly v1) `query` is a legal argument here too. */
   const plan = planQuery(query, catalogue, ctx.today)
   if (plan.chartTypeCoerced) warnings.add('grain-coarsened')
 
@@ -887,6 +886,16 @@ function resolveFunnel(
   const steps = query.funnel?.steps ?? []
   if (steps.length === 0) return emptyModeResult(original)
 
+  /* `sequential` needs event-level ordering no store here has. `planQuery`
+     refuses it without a capability flag (`funnel-needs-server`); reached
+     directly — `reports.export` does this today, bypassing the planner — the
+     resolver itself must refuse rather than quietly compute `ordered`'s
+     answer under a different name. A silently wrong funnel is the one
+     failure this product cannot produce. */
+  if ((query.funnel?.mode ?? 'ordered') === 'sequential') {
+    return emptyModeResult(original, ['funnel-sequential-not-resolved'])
+  }
+
   const measuredAs = query.funnel?.measuredAs ?? 'conversion'
   if (measuredAs === 'conversion-over-time') return resolveFunnelOverTime(original, query, window, ctx)
   if (measuredAs === 'time-to-convert') return resolveFunnelTimeToConvert(original, query, window, ctx)
@@ -958,10 +967,9 @@ function resolveFunnelConversion(
         const deadline = windowDays === null ? window.to : addDays(startedOn, windowDays)
         /* `unordered` (G10): still bounded by the conversion window from
            ENTRY, but not required to fall after the previous rung's own
-           date — the three rungs may land in any order. `ordered` (and the
-           mock's best-effort stand-in for `sequential`, which needs
-           event-level data `funnel-needs-server` already refuses) keeps the
-           `>= previousDate` requirement. */
+           date — the three rungs may land in any order. `ordered` keeps the
+           `>= previousDate` requirement; `sequential` never reaches here —
+           `resolveFunnel` refuses it before dispatching to this function. */
         const earliestLegal = funnelMode === 'unordered' ? startedOn : previousDate
         const match = (bySubject.get(id) ?? []).find((e) => e.date >= earliestLegal && e.date <= deadline)
         if (match) next.set(id, match.date)

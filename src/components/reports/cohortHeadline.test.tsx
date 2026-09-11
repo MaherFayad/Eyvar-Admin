@@ -187,7 +187,7 @@ describe('a trend panel is untouched — the guard has to be narrow', () => {
     return {
       query: {
         measures: [{ key: ANCHOR_KEY }],
-        groupBy: null,
+        groupBy: [],
         filters: [],
         window: { kind: 'absolute', from: BUCKETS[0] as string, to: BUCKETS[2] as string },
         grain: 'day',

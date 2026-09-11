@@ -49,7 +49,7 @@ const UNAVAILABLE = t('rb.cohort.grainUnavailable')
    honest here rather than a stub standing in for data. */
 const COHORT: ReportQuery = {
   measures: [],
-  groupBy: null,
+  groupBy: [],
   filters: [],
   window: { kind: 'preset', preset: 'last-365d' },
   grain: 'none',
@@ -58,8 +58,10 @@ const COHORT: ReportQuery = {
   mode: 'cohort',
   cohort: {
     anchorMeasureKey: 'riders.joined',
-    returnMeasureKey: null,
+    returnMeasureKeys: [],
     cohortGrain: 'month',
+    method: 'rolling',
+    brackets: null,
     horizon: 3,
   },
 }

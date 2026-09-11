@@ -14,8 +14,6 @@ import { ToggleBlockView } from './ToggleBlockView'
 import { REPORTS_EN } from '@/screens/reports/copy'
 import { PAGES_EN } from '@/screens/pages/copy'
 
-const copy = (key: string) => (REPORTS_EN[key] ?? PAGES_EN[key]) as string
-
 function noopTranslator(key: string, params?: Record<string, string | number>): string {
   const template = REPORTS_EN[key] ?? PAGES_EN[key] ?? key
   return Object.entries(params ?? {}).reduce((s, [k, v]) => s.replaceAll(`{${k}}`, String(v)), template)

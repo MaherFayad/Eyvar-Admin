@@ -47,6 +47,8 @@
  * | `RPT-17` `horizontal-bar` | G8 |
  * | `RPT-18` `kpi` | G8 |
  * | `RPT-19` money over count | G2, WP-1.4b — `A / B`, a currency measure over a count one |
+ * | `RPT-20` a split with ≥8 real groups | AC-1136 — `--chart-s7`/`-s8` and the muted `Other` fold, drawn (not the catalogue's static hint) |
+ * | `RPT-21` `stacked-bar` with a comparison | AC-1132 — two series, so the dashed outline behind the stack is reachable |
  * | `oneRungFunnel` (not saved) | AC-825's hand-edited URL: legal to link, refused when planned |
  * | `DSH-1` three tiles, the first `span: 'full'` | a rendered dashboard, and §C5's hero-over-grid layout |
  * | `DSH-2` no tiles | §11.4's first-run empty *for that dashboard* |
@@ -403,6 +405,40 @@ const tripsThisWeekKpi: ReportQuery = {
   mode: 'trend',
 }
 
+/**
+ * AC-1136 — `trip.pickup`'s 12 real districts clear `MAX_GROUPS` (8) on
+ * their own; the 90-day window holds all of `fillerTrips`' 45-day spread so
+ * every one actually appears. A real `grain` draws this through
+ * `SeriesChart`'s compound plot, not `DistributionCard`.
+ */
+const tripsByDistrictWide: ReportQuery = {
+  measures: [{ key: 'trips.completed' }],
+  groupBy: ['trip.pickup'],
+  filters: [],
+  window: { kind: 'preset', preset: 'last-90d' },
+  grain: 'week',
+  periodComparison: 'none',
+  chartType: 'bar',
+  mode: 'trend',
+}
+
+/**
+ * AC-1132 — `trip.kind`'s cardinality is 2, inside the compound plot's
+ * comparison cap (`ResultCanvas.tsx`'s `group.panels.length <= 2`).
+ * `stacked-bar` plus a comparison draws the previous period as a dashed
+ * outline behind the stack rather than inside it.
+ */
+const tripsByKindStackedComparison: ReportQuery = {
+  measures: [{ key: 'trips.completed' }],
+  groupBy: ['trip.kind'],
+  filters: [],
+  window: { kind: 'preset', preset: 'last-30d' },
+  grain: 'week',
+  periodComparison: 'previous-period',
+  chartType: 'stacked-bar',
+  mode: 'trend',
+}
+
 /* ───────────────────────── saved reports ───────────────────────────────── */
 
 export const savedReportFixtures: SavedReport[] = [
@@ -653,6 +689,30 @@ export const savedReportFixtures: SavedReport[] = [
     createdAt: offsetFromNow({ days: -1 }),
     updatedAt: offsetFromNow({ days: -1 }),
     lastRunAt: offsetFromNow({ hours: -6 }),
+    pinnedToDashboardIds: [],
+  },
+  {
+    id: 'RPT-20',
+    name: 'Completed trips by district · 90 days',
+    description: 'Every district the fixture holds, so the eighth hue and the folded Other both draw.',
+    query: tripsByDistrictWide,
+    ownerId: 'USR-5',
+    visibility: 'team',
+    createdAt: offsetFromNow({ days: -6 }),
+    updatedAt: offsetFromNow({ days: -6 }),
+    lastRunAt: offsetFromNow({ hours: -4 }),
+    pinnedToDashboardIds: [],
+  },
+  {
+    id: 'RPT-21',
+    name: 'Completed trips by kind · stacked, vs last week',
+    description: 'Two series, so the previous period draws as an outline behind the stack.',
+    query: tripsByKindStackedComparison,
+    ownerId: 'USR-1',
+    visibility: 'team',
+    createdAt: offsetFromNow({ days: -4 }),
+    updatedAt: offsetFromNow({ days: -4 }),
+    lastRunAt: offsetFromNow({ hours: -2 }),
     pinnedToDashboardIds: [],
   },
 ]

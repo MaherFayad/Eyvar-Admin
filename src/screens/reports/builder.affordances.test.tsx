@@ -56,7 +56,7 @@ const shell = (key: string) => EN[key] as string
 /** A legal trend, composed here rather than read out of the seed. */
 const TREND: ReportQuery = {
   measures: [{ key: 'captains.registered' }],
-  groupBy: null,
+  groupBy: [],
   filters: [],
   window: { kind: 'preset', preset: 'last-30d' },
   grain: 'day',

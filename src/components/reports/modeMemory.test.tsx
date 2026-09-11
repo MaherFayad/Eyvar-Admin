@@ -143,7 +143,7 @@ function columnCount(): number {
 
 const TREND: ReportQuery = {
   measures: [{ key: 'captains.registered' }],
-  groupBy: null,
+  groupBy: [],
   filters: [],
   window: { kind: 'preset', preset: 'last-30d' },
   grain: 'day',
@@ -153,7 +153,7 @@ const TREND: ReportQuery = {
 
 const FUNNEL: ReportQuery = {
   measures: [],
-  groupBy: null,
+  groupBy: [],
   filters: [],
   window: { kind: 'preset', preset: 'last-365d' },
   grain: 'none',
@@ -165,7 +165,12 @@ const FUNNEL: ReportQuery = {
       { measureKey: 'riders.joined', filters: [] },
       { measureKey: 'trips.completed', filters: [] },
     ],
-    conversionWindowDays: null,
+    conversionWindow: null,
+    mode: 'ordered',
+    holdConstant: null,
+    exclude: [],
+    measuredAs: 'conversion',
+    groupBy: null,
   },
 }
 

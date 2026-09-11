@@ -236,12 +236,12 @@ export interface Measure {
    */
   supportsPerformed?: boolean
   /**
-   * G10: which v2 funnel options the server can compute for a rung over this
-   * measure. **Absent means neither** — `sequential` and `holdConstant` need
-   * event-level data the mock does not have; the planner refuses them with
-   * `funnel-needs-server` until this says otherwise.
+   * G10, §5: which v2 funnel options the server can compute for a rung over
+   * this measure. **Absent means none** — `sequential`, `holdConstant` and
+   * `exclude` all need event-level data the mock does not have; the planner
+   * refuses each with `funnel-needs-server` until this says otherwise.
    */
-  funnelCapabilities?: { sequential: boolean; holdConstant: boolean }
+  funnelCapabilities?: { sequential: boolean; holdConstant: boolean; exclude: boolean }
   /**
    * §4.1 **F-2**. Whether values may be summed across buckets **or across
    * groups**. Gates stacked bars and gates the pie entirely (§7.2): a pie of

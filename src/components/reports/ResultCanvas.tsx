@@ -952,8 +952,17 @@ function TrendPlotGroup({
             {t('rb.chart.zoomed.reset')}
           </Button>
         )}
-        {canAnnotate && onSaveAnnotation && (
-          <Button type="button" variant="ghost" size="xs" onClick={() => setAddingAnnotation((v) => !v)}>
+        {/* AC-1149 — disabled in place with the reason, never removed: an
+            operator without `manage_analytics` still sees the control exists. */}
+        {onSaveAnnotation && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="xs"
+            disabled={!canAnnotate}
+            title={canAnnotate ? undefined : t('rb.chart.addAnnotation.needsPermission')}
+            onClick={() => setAddingAnnotation((v) => !v)}
+          >
             {t('rb.chart.addAnnotation')}
           </Button>
         )}
@@ -1111,7 +1120,10 @@ function SeriesLegend({
             <button
               type="button"
               aria-pressed={!isHidden}
-              onClick={() => onToggle(panel.panelId)}
+              /* AC-1139 — Shift+click reaches the same isolate the kebab's
+                 `Isolate` item does; the menu stays the discoverable path and
+                 this is its shortcut, not a second behaviour. */
+              onClick={(event) => (event.shiftKey ? onIsolate(panel.panelId) : onToggle(panel.panelId))}
               className="flex min-w-0 items-center gap-1.5 rounded-control outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
             >
               <Swatch

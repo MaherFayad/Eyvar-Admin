@@ -94,7 +94,7 @@ export function parseRateLimitFromResultText(text: string | null | undefined): R
   }
 
   const resetsMatch = text.match(/resets\s+(\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}(?::\d{2})?)\s*UTC/i)
-  if (resetsMatch) {
+  if (resetsMatch?.[1]) {
     const iso = `${resetsMatch[1].replace(' ', 'T')}Z`
     const parsed = Date.parse(iso)
     if (!Number.isNaN(parsed)) {

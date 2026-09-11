@@ -89,7 +89,7 @@ const questionInUrl = () =>
 /** A legal question, composed here rather than read out of the fixtures. */
 const LEGAL: ReportQuery = {
   measures: [{ key: 'captains.registered' }],
-  groupBy: null,
+  groupBy: [],
   filters: [],
   window: { kind: 'preset', preset: 'last-30d' },
   grain: 'day',

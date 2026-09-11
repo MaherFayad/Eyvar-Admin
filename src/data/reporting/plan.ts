@@ -57,10 +57,11 @@
  */
 
 import { GRAIN_RANK, pairRefusal, type Dimension, type Measure, type MeasureKey } from '../types/measure'
-import { REPORT_GROUP_BY_MAX, reportMode } from '../types/report'
+import { REPORT_GROUP_BY_MAX, normaliseReportQuery, reportMode } from '../types/report'
 import type {
   ChartType,
   CohortGrain,
+  FunnelMeasuredAs,
   OptionLegality,
   QueryPlan,
   QueryViolation,
@@ -71,6 +72,7 @@ import type {
 } from '../types/report'
 import type { IsoDate } from '../types/common'
 import { comparisonWindow, countBuckets, resolveWindow } from './buckets'
+import { bracketsOverlap } from './cohorts'
 import { subjectKindOf } from './subjects'
 import { formulaUnit, type FormulaError, type FormulaRefs, type FormulaViolationCode } from './formula'
 
@@ -148,11 +150,13 @@ export const MIN_COHORT_HORIZON = 1
 export const COHORT_GRAINS: CohortGrain[] = ['day', 'week', 'month']
 
 /**
- * The only cohort grain `reporting/cohorts.ts` measures age at — its `monthDiff`
- * and its `YYYY-MM` cohort key. **This constant is the wiring**: change the
- * engine and this list grows; nothing else in the plan moves.
+ * Which cohort grains `reporting/cohorts.ts` can actually compute. **This
+ * constant is the wiring**: the `day` and `week` engines exist and are
+ * tested (`gapDiff`, `cohorts.test.ts`), so all three are reachable; if a
+ * future grain has no engine, it is added to `COHORT_GRAINS` and left out of
+ * this list, exactly as `month` alone used to be.
  */
-const COMPUTED_COHORT_GRAINS: readonly CohortGrain[] = ['month']
+const COMPUTED_COHORT_GRAINS: readonly CohortGrain[] = ['day', 'week', 'month']
 
 /** A journey deeper than this is a diagram nobody reads. `ReportStudio` drew two. */
 export const MAX_JOURNEY_DEPTH = 5
@@ -175,20 +179,15 @@ const MODE_CHART: Record<ReportMode, ChartType | null> = {
 }
 
 /**
- * **Which modes have a calendar x-axis.** A funnel's x-axis is its steps, a
- * cohort's is age, a journey's is depth — none of them is time, so each
- * collapses the window into one period, which is exactly what `grain: 'none'`
- * already means (§3.5: *"a legal grain, not an absence of one"*).
- *
- * `table` keeps the grain because a data table of daily numbers is the whole
- * point of a data table.
+ * §3.5. A cohort's x-axis is age, a journey's is depth, neither a calendar, so
+ * each collapses the window to `grain: 'none'`. A funnel's cascade and its
+ * time-to-convert do the same — but `conversion-over-time` buckets BY entry
+ * date, and `resolveFunnelOverTime` is already grain-aware, so that one shape
+ * keeps the grain the way `table` does.
  */
-const MODE_FIXES_GRAIN_TO_NONE: Record<ReportMode, boolean> = {
-  trend: false,
-  table: false,
-  funnel: true,
-  cohort: true,
-  journey: true,
+function modeFixesGrainToNone(mode: ReportMode, funnelMeasuredAs: FunnelMeasuredAs | undefined): boolean {
+  if (mode === 'funnel') return funnelMeasuredAs !== 'conversion-over-time'
+  return mode === 'cohort' || mode === 'journey'
 }
 
 /**
@@ -228,7 +227,7 @@ export interface Catalogue {
  * primary, not by an error after the fact**; this is the same rule one level
  * up.
  *
- * It reads `MODE_CHART` and `MODE_FIXES_GRAIN_TO_NONE` — the constants the
+ * It reads `MODE_CHART` and `modeFixesGrainToNone` — the same rules the
  * legality above is written from — so the switch and the refusal cannot
  * disagree. A screen that hardcoded *"a funnel is bars"* would be a second copy
  * of that rule, and the day a mode's chart changed the two would drift.
@@ -244,7 +243,7 @@ export function applyReportMode(query: ReportQuery, mode: ReportMode): ReportQue
 
   const chart = MODE_CHART[mode]
   if (chart !== null) next.chartType = chart
-  if (MODE_FIXES_GRAIN_TO_NONE[mode]) next.grain = 'none'
+  if (modeFixesGrainToNone(mode, next.funnel?.measuredAs)) next.grain = 'none'
   /* Coming BACK to a series mode from one that collapsed the grain: `none` is
      a legal grain and a legitimate choice, so it is left alone. The operator
      picks a grain in a control that is now enabled, which is the whole point
@@ -296,6 +295,12 @@ export function applyReportMode(query: ReportQuery, mode: ReportMode): ReportQue
  * `today` is a parameter. There is no ambient clock in `src/data/`.
  */
 export function planQuery(query: ReportQuery, catalogue: Catalogue, today: IsoDate): QueryPlan {
+  /* A public entry point: a stored saved report, a URL or a test may still
+     hold a v1 shape (`groupBy` a bare dimension or `null`, a funnel with no
+     `exclude`). `resolveReport` defends the same way — normalise once, at the
+     boundary, so every rule below can assume the v2 shape (AC-1100). */
+  query = normaliseReportQuery(query)
+
   const violations: QueryViolation[] = []
   const byKey = new Map(catalogue.measures.map((m) => [m.key, m]))
 
@@ -487,7 +492,7 @@ export function planQuery(query: ReportQuery, catalogue: Catalogue, today: IsoDa
      Every other grain is offered and disabled with the reason — the operator
      sees that the control exists and why it is off, rather than watching it
      disappear when they switch mode (D9 CQ-3, AC-816). */
-  const grainFixed = MODE_FIXES_GRAIN_TO_NONE[mode]
+  const grainFixed = modeFixesGrainToNone(mode, query.funnel?.measuredAs)
 
   const grains: OptionLegality<ReportGrain>[] = GRAINS.map((g) => {
     if (grainFixed) {
@@ -783,24 +788,25 @@ function funnelViolations(query: ReportQuery, byKey: Map<MeasureKey, Measure>): 
     seen.add(signature)
   })
 
-  /* G10 / §5: `sequential`, `holdConstant` and `exclude` need event-level data
-     no store here has. Refused **unconditionally for `exclude`** — no
-     capability flag names it, because nothing in this catalogue could ever
-     satisfy it — and for the other two unless every rung's measure declares
-     `funnelCapabilities` for the one asked. One violation, not three: the
-     three options share a control and a query asking for more than one gets
-     one reason, not a stack of identical sentences. */
+  /* G10 / §5: `sequential`, `holdConstant` and `exclude` all need event-level
+     data no store here has — the same footing, gated the same way, unless
+     every rung's measure declares `funnelCapabilities` for the one asked. One
+     violation, not three: the three options share a control and a query
+     asking for more than one gets one reason, not a stack of identical
+     sentences. */
   if (spec) {
     const wantsSequential = spec.mode === 'sequential'
     const wantsHoldConstant = spec.holdConstant !== null
     const wantsExclude = spec.exclude.length > 0
     if (wantsSequential || wantsHoldConstant || wantsExclude) {
-      const supported =
-        !wantsExclude &&
-        steps.every((step) => {
-          const caps = byKey.get(step.measureKey)?.funnelCapabilities
-          return (!wantsSequential || caps?.sequential === true) && (!wantsHoldConstant || caps?.holdConstant === true)
-        })
+      const supported = steps.every((step) => {
+        const caps = byKey.get(step.measureKey)?.funnelCapabilities
+        return (
+          (!wantsSequential || caps?.sequential === true) &&
+          (!wantsHoldConstant || caps?.holdConstant === true) &&
+          (!wantsExclude || caps?.exclude === true)
+        )
+      })
       if (!supported) {
         out.push({
           code: 'funnel-needs-server',
@@ -867,6 +873,18 @@ function cohortViolations(
       field: 'cohort',
       reasonKey: grainOption.reasonKey ?? 'rb.cohort.grainUnavailable',
       reasonParams: grainOption.reasonParams,
+    })
+  }
+
+  /* AC-1172: the client already refuses two overlapping `[lo, hi)` brackets
+     before they reach state; a hand-edited URL must meet the same refusal
+     (§3.5's rule, applied to a control the picker enforces client-side). */
+  if (spec.method === 'bracket' && spec.brackets && bracketsOverlap(spec.brackets)) {
+    out.push({
+      code: 'cohort-brackets-overlap',
+      field: 'cohort',
+      reasonKey: 'rb.cohort.brackets.overlap',
+      reasonParams: {},
     })
   }
 
