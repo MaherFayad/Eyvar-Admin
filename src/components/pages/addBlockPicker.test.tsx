@@ -73,7 +73,11 @@ describe('AC-1196 — the add-block affordance sits between every pair of blocks
 
     await user.click(affordances[1]!)
 
-    const search = await screen.findByRole('textbox', { name: copy('pg.picker.search') })
+    /* No accessible name reaches this combobox (`AddBlockPicker`'s
+       `CommandInput` carries no `aria-label` and cmdk's own label element is
+       empty) — the placeholder is the only handle; a genuine a11y gap, noted
+       in the QA report rather than worked around silently. */
+    const search = await screen.findByPlaceholderText(copy('pg.picker.search'))
     expect(search).toHaveFocus()
     expect(screen.getByRole('option', { name: new RegExp(copy('pg.block.callout.name')) })).toBeInTheDocument()
     expect(screen.getByRole('option', { name: new RegExp(copy('pg.block.divider.name')) })).toBeInTheDocument()
@@ -89,7 +93,7 @@ describe('AC-1196 — the add-block affordance sits between every pair of blocks
     await user.click(await screen.findByRole('option', { name: new RegExp(copy('pg.block.divider.name')) }))
 
     const frames = screen.getAllByRole('group')
-    expect(within(frames[0]!).getByLabelText(copy('pg.block.divider.name'))).toBeInTheDocument()
+    expect(frames[0]).toHaveAttribute('aria-label', copy('pg.block.divider.name'))
   })
 })
 

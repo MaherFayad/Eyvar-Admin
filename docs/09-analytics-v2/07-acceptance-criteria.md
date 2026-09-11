@@ -45,7 +45,7 @@
 | AC | Criterion |
 |---|---|
 | AC-1130 H | Each of `area`, `stacked-bar`, `stacked-100`, `horizontal-bar` renders on the fixture reports in both themes and both languages with no console error |
-| AC-1131 H | A click on a mark of every chart type fires the datapoint handler in Chromium (the `INERT` proof) |
+| AC-1131 H | The `INERT` proof, in Chromium, for every chart type: marks carry `pointer-events: none`, and the plot's own click and keyboard affordances still fire after the marks render and after the brush is mounted. On `PanelChart`, where one mark means one series, that is the datapoint handler. On the compound plot it is **not** click-through to a board: `ResultCanvas`'s standing ruling removes it, because on a plot of six series a click has no single answer, and §A12's anchor strip replaces it. (Restated 2026-09-11: the original text demanded the datapoint handler on every chart type, which would have reversed that ruling.) |
 | AC-1132 H | A stacked comparison draws as an outline behind the stack, never inside it, in the same hue, dashed |
 | AC-1133 | `stacked-100`'s y-axis reads 0–100 % and every bucket's parts sum to 100 |
 | AC-1134 H | `horizontal-bar` sorts descending with `Other` last and labels each bar's value at its end, on the inline-end side in Arabic |
