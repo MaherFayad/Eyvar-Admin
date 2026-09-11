@@ -50,6 +50,9 @@ import { jsonResponse } from '../envelope'
 import { requirePermission, type RequestContext } from '../auth'
 import type { RouteHandler } from '../router'
 import type { Database } from '../db'
+import { resolveFunnel } from './reportsFunnel'
+import { resolveCohort } from './reportsCohort'
+import { resolveJourney } from './reportsJourney'
 
 export { OTHER as REPORT_OTHER_GROUP }
 
@@ -325,19 +328,61 @@ export function createRunReportHandler(db: Database, deps: RunReportDeps = {}): 
 
     const q = normaliseReportQuery(query)
     const asOf = now()
+    const window = resolveWindow(query.window, todayDate)
+
+    if (q.mode === 'funnel' || q.mode === 'cohort' || q.mode === 'journey') {
+      // WP-6.4c: the three subject-shaped modes §6 and WP-6.4's own brief
+      // left as `mode-not-resolved`. Each has its own resolver
+      // (`reportsFunnel.ts`/`reportsCohort.ts`/`reportsJourney.ts`), ported
+      // from `src/data/mock/resolveReport.ts` onto `compile.ts`'s
+      // `fetchSubjectEvents`/`fetchLastActiveIndex` the same way the
+      // trend/formula path is ported onto `fetchMeasureRows` — see those
+      // files' own headers. AC-1276 (RPT-6/7/8) is the proof.
+      const modeByKey = new Map(catalogue.measures.map((m) => [m.key, m]))
+      const modeDimByKey = new Map(catalogue.dimensions.map((d) => [d.key, d]))
+      const result =
+        q.mode === 'funnel'
+          ? await resolveFunnel(
+              db,
+              query,
+              q,
+              window,
+              { permissions: operator.permissions, today: todayDate, asOf, rowCap },
+              modeByKey,
+              modeDimByKey,
+            )
+          : q.mode === 'cohort'
+            ? await resolveCohort(
+                db,
+                query,
+                q,
+                window,
+                { permissions: operator.permissions, today: todayDate, asOf, rowCap },
+                modeByKey,
+              )
+            : await resolveJourney(
+                db,
+                query,
+                q,
+                window,
+                { permissions: operator.permissions, asOf, rowCap },
+                modeByKey,
+                catalogue.measures,
+              )
+      await persistRun(db, operator.userId, query, result, jobId)
+      return jsonResponse(result)
+    }
 
     if (q.mode !== 'trend' && q.mode !== 'table') {
-      // §6 and this WP's brief cover the trend/formula path only (steps 1-6
-      // over resolveTrendLeg/resolveFormulaLeg). Funnel, cohort and journey
-      // resolution is a different WP; `mode-not-resolved` is the wire value
-      // `types/report.ts` keeps exactly for a server that has not caught up
-      // with a mode the client can ask for.
+      // Unreachable: `ReportMode`'s five values are all handled, here and
+      // above. `mode-not-resolved` is kept as the belt §6's own comment
+      // already described, for a mode a future client adds before a server
+      // catches up with it.
       const result = emptyModeResult(query, asOf, ['mode-not-resolved'])
       await persistRun(db, operator.userId, query, result, jobId)
       return jsonResponse(result)
     }
 
-    const window = resolveWindow(query.window, todayDate)
     const buckets = bucketStarts(window.from, window.to, q.grain)
     const partials = partialBucketIndexes(buckets, q.grain, window, todayDate)
     const warnings = new Set<ReportWarning>()

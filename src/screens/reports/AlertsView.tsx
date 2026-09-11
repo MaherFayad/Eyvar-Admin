@@ -290,7 +290,7 @@ export function AlertsView({
     {
       id: 'cadence',
       header: t('rb.alerts.col.cadence'),
-      width: 100,
+      width: 120,
       dataType: 'enum',
       cell: (row) => (
         <span className={row.cadence === null ? 'text-muted-foreground' : undefined}>
@@ -301,7 +301,7 @@ export function AlertsView({
     {
       id: 'lastValue',
       header: t('rb.alerts.col.lastValue'),
-      width: 190,
+      width: 150,
       align: 'end',
       dataType: 'number',
       /* AC-1233 — the sparkline draws the threshold or the band, never red;
@@ -320,8 +320,8 @@ export function AlertsView({
               ? { kind: 'band', low: row.lastBand.low, high: row.lastBand.high }
               : null
         return (
-          <span className="flex items-center justify-end gap-2">
-            <span className="tabular-nums">
+          <span className="flex min-w-0 items-center justify-end gap-1.5 overflow-hidden">
+            <span className="shrink-0 tabular-nums">
               {formatMetricValue(row.lastValue, row.thresholdUnit, language)}
             </span>
             {info && info.points.length > 1 && (
@@ -367,7 +367,7 @@ export function AlertsView({
     {
       id: 'channels',
       header: t('rb.alerts.col.channels'),
-      width: 90,
+      width: 110,
       dataType: 'text',
       cell: (row) => <ChannelGlyphs rule={row} t={t} />,
     },
@@ -375,6 +375,11 @@ export function AlertsView({
       id: 'labels',
       header: t('rb.alerts.col.labels'),
       width: 140,
+      /* Nine columns wrap every header at 1280px (measured, `alerts-v2.mjs`);
+         sparse data (one seeded rule carries any) makes this the one to move
+         behind `Columns` rather than mint a narrower label myself — a
+         density call flagged to product-designer, not made here. */
+      defaultHidden: true,
       dataType: 'text',
       cell: (row) =>
         (row.labels ?? []).length === 0 ? null : (
@@ -671,8 +676,8 @@ function RuleSparkline({
   const max = domain.length > 0 ? Math.max(...domain, 0) : 0
 
   return (
-    <div dir="ltr" aria-hidden="true" className="min-w-0">
-      <ChartContainer config={SPARKLINE_CONFIG} className="aspect-auto h-7 w-20">
+    <div dir="ltr" aria-hidden="true" className="w-14 min-w-0 shrink-0">
+      <ChartContainer config={SPARKLINE_CONFIG} className="aspect-auto h-7 w-14">
         <AreaChart data={rows} margin={{ top: 2, right: 0, bottom: 0, left: 0 }}>
           <YAxis hide domain={[min, max === min ? min + 1 : max]} />
           {reference?.kind === 'band' && (

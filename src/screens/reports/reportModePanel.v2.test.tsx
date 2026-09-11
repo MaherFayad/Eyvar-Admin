@@ -93,12 +93,20 @@ const cohortQuery: ReportQuery = {
 }
 
 describe('funnel v2 — order, and the server-only options (AC-1168)', () => {
-  it('offers ordered, unordered and sequential, with sequential disabled and named as server-only', () => {
+  it('offers ordered, unordered and sequential, with sequential disabled and named as server-only (AC-1168)', () => {
     render(<Harness initial={funnelQuery} />)
     const group = screen.getByRole('group', { name: copy('rb.funnel.mode') })
     expect(within(group).getByRole('button', { name: copy('rb.funnel.mode.ordered') })).toBeEnabled()
     expect(within(group).getByRole('button', { name: copy('rb.funnel.mode.unordered') })).toBeEnabled()
-    expect(within(group).getByRole('button', { name: copy('rb.funnel.mode.sequential') })).toBeDisabled()
+    /* Present and disabled — D9 CQ-3's "never hidden" half. */
+    const sequential = within(group).getByRole('button', { name: copy('rb.funnel.mode.sequential') })
+    expect(sequential).toBeDisabled()
+    /* And the reason is a real, reachable node — `aria-describedby`'s target
+       resolves to a node that states the server computes this, not a tooltip
+       a disabled control can never open. */
+    const describedById = sequential.getAttribute('aria-describedby')
+    expect(describedById).toBeTruthy()
+    expect(document.getElementById(describedById as string)?.textContent).toBe(copy('rb.funnel.needsServer'))
   })
 
   it('choosing "in any order" sets funnel.mode to unordered', async () => {

@@ -116,9 +116,11 @@ import { InfoHint, hintLines } from '@/components/InfoHint'
 import { FormulaField } from './FormulaField'
 import { SegmentPicker } from './SegmentPicker'
 import { TransformControls } from './TransformControls'
+import { ComparisonControl, ComparisonDisplayToggle } from './WindowControl'
 import { pairableWith } from '@/data/clients'
-import type { Dimension, Measure, QueryPlan, ReportQuery } from '@/data/types'
-import type { Translator } from '@/lib'
+import { REPORT_GROUP_BY_MAX } from '@/data/types/report'
+import { reportMode, type BucketAggregate, type Dimension, type Measure, type MeasureRef, type QueryPlan, type ReportQuery } from '@/data/types'
+import type { Language, Translator } from '@/lib'
 
 /** The sentinel a `Select` uses for "none". Radix forbids an empty-string item value. */
 const NONE = '__none__'
@@ -140,6 +142,15 @@ export interface QueryPanelProps {
   catalogueStatus: 'loading' | 'error' | 'empty' | 'content'
   onRetryCatalogue: () => void
   running: boolean
+  /**
+   * WP-2.6b — `ComparisonControl`'s fixed-range popover needs both, and
+   * `ChartToolbar` has not swapped it in for its own inline `Compare to`
+   * select yet (its own note: "ready for `ChartToolbar` (WP-2.7)"). Wired
+   * here as the stopgap so a fixed comparison is reachable at all; see the
+   * handoff for which file removes the duplicate once WP-2.7 lands.
+   */
+  today: string
+  language: Language
   t: Translator
 }
 
@@ -153,12 +164,17 @@ export function QueryPanel({
   catalogueStatus,
   onRetryCatalogue,
   running,
+  today,
+  language,
   t,
 }: QueryPanelProps) {
   const byKey = useMemo(() => new Map(measures.map((m) => [m.key, m])), [measures])
   const first = query.measures[0] ? byKey.get(query.measures[0].key) ?? null : null
   const second = query.measures[1] ? byKey.get(query.measures[1].key) ?? null : null
   const unstarted = query.measures.length === 0
+  /* §9 — `periodComparison` is only asked of a trend or a table (`plan.ts`'s own `isSeriesMode`). */
+  const mode = reportMode(query)
+  const isSeriesMode = mode === 'trend' || mode === 'table'
 
   /* While the catalogue is still arriving every measure is "unknown" to the
      planner, which is true and useless: the operator has not made a mistake and
@@ -173,24 +189,39 @@ export function QueryPanel({
      server-side `pairableWith` filter, so the two cannot disagree. */
   const pairable = first ? pairableWith(first, measures) : []
 
-  const setMeasures = (keys: string[]) => onChange({ ...query, measures: keys.map((key) => ({ key })) })
+  /* Replaces the first measure. **Keeps the second ref exactly as it was** —
+     including its `aggregate` (G1) — because picking a new first measure says
+     nothing about the second one; rebuilding both from bare keys would silently
+     drop an operator's `Measured as` choice on a ref nobody touched. */
+  const setFirstMeasure = (key: string) => {
+    const secondRef = query.measures[1]
+    onChange({ ...query, measures: secondRef ? [{ key }, secondRef] : [{ key }] })
+  }
 
   /**
-   * **AC-812** — adding a second measure whose legal dimensions do not include
-   * the current split clears the split **and states that it did**. Silently
-   * keeping an illegal split would send a query the run then refuses; silently
-   * dropping it without saying so changes the operator's question behind their
-   * back.
+   * AC-812 — an illegal split clears **and says so**. Keeps the first ref as
+   * it was, same reason as `setFirstMeasure`: choosing a second measure must
+   * not wipe the first's `aggregate`.
    */
   const chooseSecond = (key: string | null) => {
-    const nextKeys = key === null ? [query.measures[0]?.key ?? ''] : [query.measures[0]?.key ?? '', key]
-    const next = { ...query, measures: nextKeys.filter(Boolean).map((k) => ({ key: k })) }
-    const chosen = nextKeys.map((k) => byKey.get(k)).filter((m): m is Measure => Boolean(m))
+    const firstRef = query.measures[0]
+    if (!firstRef) return
+    const nextMeasures: MeasureRef[] = key === null ? [firstRef] : [firstRef, { key }]
+    const next = { ...query, measures: nextMeasures }
+    const chosen = nextMeasures.map((m) => byKey.get(m.key)).filter((m): m is Measure => Boolean(m))
     /* G4: `groupBy` is an array now (≤ `REPORT_GROUP_BY_MAX`). Every level has
        to survive the same legality check a single level always got. */
     const stillLegal = next.groupBy.every((g) => chosen.every((m) => m.dimensions.some((d) => d.key === g)))
     onChange(stillLegal ? next : { ...next, groupBy: [] })
     if (!stillLegal && next.groupBy.length > 0) setClearedSplit(true)
+  }
+
+  /** G1 (§2.1) — `undefined` writes back to "no override", the catalogue's own `bucketAggregate`. */
+  const setMeasureAggregate = (index: 0 | 1, aggregate: BucketAggregate | undefined) => {
+    const ref = query.measures[index]
+    if (!ref) return
+    const nextRef: MeasureRef = aggregate === undefined ? { key: ref.key } : { key: ref.key, aggregate }
+    onChange({ ...query, measures: query.measures.map((r, i) => (i === index ? nextRef : r)) })
   }
 
   const [clearedSplit, setClearedSplit] = useState(false)
@@ -246,10 +277,7 @@ export function QueryPanel({
              picker to render and nothing else belongs here. */
           null
         ) : (
-          <Select
-            value={query.measures[0]?.key ?? ''}
-            onValueChange={(key) => setMeasures([key, ...(query.measures[1] ? [query.measures[1].key] : [])])}
-          >
+          <Select value={query.measures[0]?.key ?? ''} onValueChange={setFirstMeasure}>
             <SelectTrigger id="rb-measure" className="w-full">
               <SelectValue placeholder={t('rb.control.measure.placeholder')} />
             </SelectTrigger>
@@ -257,6 +285,17 @@ export function QueryPanel({
               <MeasureItems measures={measures} t={t} />
             </SelectContent>
           </Select>
+        )}
+        {/* G1 (§2.1) — beside the measure it describes; present only when the
+            catalogue offers more than one aggregate. */}
+        {first && (
+          <MeasuredAsControl
+            id="rb-measure-aggregate"
+            measure={first}
+            value={query.measures[0]?.aggregate}
+            onChange={(aggregate) => setMeasureAggregate(0, aggregate)}
+            t={t}
+          />
         )}
       </div>
 
@@ -288,6 +327,15 @@ export function QueryPanel({
             <MeasureItems measures={pairable} t={t} />
           </SelectContent>
         </Select>
+        {second && (
+          <MeasuredAsControl
+            id="rb-measure-2-aggregate"
+            measure={second}
+            value={query.measures[1]?.aggregate}
+            onChange={(aggregate) => setMeasureAggregate(1, aggregate)}
+            t={t}
+          />
+        )}
       </div>
 
       {/* ── 4 · formula (22-analytics-v2.md §1.1) ───────────────────────── */}
@@ -308,14 +356,13 @@ export function QueryPanel({
       <TransformControls
         query={query}
         onChange={onChange}
-        firstMeasure={first}
-        hasSplit={query.groupBy.length > 0}
+        options={plan.transformOptions}
         bucketCount={plan.bucketCount}
         unstarted={unstarted}
         t={t}
       />
 
-      {/* ── 6 · split by ─────────────────────────────────────────────────── */}
+      {/* ── 6 · split by (G4 — up to `REPORT_GROUP_BY_MAX` levels) ────────── */}
       <div className="flex flex-col gap-1.5">
         <div className="flex items-center gap-1.5">
           <Label htmlFor="rb-groupby">{t('rb.control.groupBy')}</Label>
@@ -333,7 +380,11 @@ export function QueryPanel({
           disabled={unstarted || plan.legalDimensions.length === 0}
           onValueChange={(key) => {
             setClearedSplit(false)
-            onChange({ ...query, groupBy: key === NONE ? [] : [key] })
+            const level1 = key === NONE ? undefined : key
+            const level2 = query.groupBy[1]
+            const next =
+              level1 === undefined ? [] : level2 && level2 !== level1 ? [level1, level2] : [level1]
+            onChange({ ...query, groupBy: next })
           }}
         >
           <SelectTrigger id="rb-groupby" className="w-full">
@@ -356,6 +407,30 @@ export function QueryPanel({
             {t('rb.control.groupBy.cleared', { measure: second ? t(second.labelKey) : '' })}
           </p>
         )}
+
+        {/* The second level. Always present, disabled in place until a first
+            split exists — D9 CQ-3, same rule every other row in this panel
+            follows. */}
+        <SecondSplitControl
+          query={query}
+          onChange={onChange}
+          legalDimensions={plan.legalDimensions}
+          dimensions={dimensions}
+          unstarted={unstarted}
+          t={t}
+        />
+
+        {/* WP-2.6b gap 3: the third level is refused **in place**, not hidden —
+            `REPORT_GROUP_BY_MAX` is a standing cap, not a catalogue fact, so
+            this button is permanently disabled and always says why. */}
+        <div className="flex flex-col gap-0.5">
+          <Button type="button" variant="secondary" size="xs" disabled aria-describedby="rb-groupby-3-reason">
+            {t('rb.control.groupBy3.add')}
+          </Button>
+          <p id="rb-groupby-3-reason" className="text-xs text-muted-foreground">
+            {t('rb.violation.tooManyGroupLevels', { max: REPORT_GROUP_BY_MAX })}
+          </p>
+        </div>
       </div>
 
       {/* ── 7 · segments (§1.2) ──────────────────────────────────────────── */}
@@ -381,14 +456,25 @@ export function QueryPanel({
         t={t}
       />
 
-      {/* ── 5 · refresh ──────────────────────────────────────────────────── */}
+      {/* ── 9 · compare to (WP-2.6b stopgap — see `QueryPanelProps.today`) ── */}
+      {/* `ChartToolbar`'s own `Compare to` still lacks `previous-quarter` and
+          the fixed row, and `Show as` is not on screen anywhere. Both exist
+          as `WindowControl` exports with nowhere to render; this is that
+          somewhere until WP-2.7 swaps them into the toolbar and this section
+          comes back out. Series modes only — a funnel, a cohort and a
+          journey have no `periodComparison` (`plan.ts`'s `isSeriesMode`). */}
+      {isSeriesMode && (
+        <div className="flex flex-col gap-1.5">
+          <ComparisonControl query={query} onChange={onChange} today={today} disabled={unstarted} t={t} language={language} />
+          {query.periodComparison !== 'none' && (
+            <ComparisonDisplayToggle query={query} onChange={onChange} disabled={unstarted} t={t} />
+          )}
+        </div>
+      )}
 
-      {/* **Items 5-8 moved to `ChartToolbar` and are deliberately not here.**
-          The date range, the grain, the comparison and the chart type are
-          decisions about *how the answer is read*, and §A7 puts them on the row
-          above the plot they change. Rendering them here as well would give one
-          setting two controls that can disagree on screen. See
-          `ChartToolbar.tsx` for the split and for where each one went. */}
+      {/* **The date range, the grain and the chart type are `ChartToolbar`'s.**
+          They are decisions about *how the answer is read*, and §A7 puts them
+          on the row above the plot they change. See `ChartToolbar.tsx`. */}
       <Button
         type="button"
         variant="default"
@@ -429,6 +515,123 @@ function MeasureItems({ measures, t }: { measures: readonly Measure[]; t: Transl
         </SelectGroup>
       ))}
     </>
+  )
+}
+
+/** `BucketAggregate` → its copy key's suffix. The two hyphenated values are the only irregulars. */
+function aggregateKeySuffix(aggregate: BucketAggregate): string {
+  if (aggregate === 'end-of-period') return 'endOfPeriod'
+  if (aggregate === 'cumulative-count') return 'cumulativeCount'
+  return aggregate
+}
+
+/**
+ * G1 (§2.1) — **the catalogue stays the authority.** Renders nothing unless
+ * `measure.bucketAggregateOptions` has more than one entry; there is no
+ * fallback single-option render, because a control with one legal choice is
+ * not a choice.
+ */
+function MeasuredAsControl({
+  id,
+  measure,
+  value,
+  onChange,
+  t,
+}: {
+  id: string
+  measure: Measure
+  value: BucketAggregate | undefined
+  onChange: (aggregate: BucketAggregate | undefined) => void
+  t: Translator
+}) {
+  const options = measure.bucketAggregateOptions
+  if (!options || options.length < 2) return null
+  const current = value ?? measure.bucketAggregate
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      <Label htmlFor={id}>{t('rb.control.measuredAs')}</Label>
+      <Select
+        value={current}
+        onValueChange={(next) => {
+          const aggregate = next as BucketAggregate
+          onChange(aggregate === measure.bucketAggregate ? undefined : aggregate)
+        }}
+      >
+        <SelectTrigger id={id} className="w-full">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {options.map((option) => (
+            <SelectItem key={option} value={option}>
+              {t(`rb.control.measuredAs.${aggregateKeySuffix(option)}`)}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  )
+}
+
+/**
+ * WP-2.6b gap 3 (G4) — the split's second level. Disabled in place (D9 CQ-3)
+ * until a first level is chosen, rather than hidden: an operator who has not
+ * split yet still sees that a second level exists.
+ */
+function SecondSplitControl({
+  query,
+  onChange,
+  legalDimensions,
+  dimensions,
+  unstarted,
+  t,
+}: {
+  query: ReportQuery
+  onChange: (query: ReportQuery) => void
+  legalDimensions: readonly string[]
+  dimensions: readonly Dimension[]
+  unstarted: boolean
+  t: Translator
+}) {
+  const level1 = query.groupBy[0]
+  const disabled = unstarted || !level1
+  const options = level1 ? legalDimensions.filter((key) => key !== level1) : []
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      <div className="flex items-center gap-1.5">
+        <Label htmlFor="rb-groupby-2">{t('rb.control.groupBy2')}</Label>
+        <InfoHint t={t}>
+          {hintLines([
+            unstarted
+              ? t('rb.control.disabled.unstarted')
+              : !level1
+                ? t('rb.control.groupBy2.needsFirst')
+                : options.length === 0 && t('rb.control.groupBy.empty'),
+          ])}
+        </InfoHint>
+      </div>
+      <Select
+        value={query.groupBy[1] ?? NONE}
+        disabled={disabled || options.length === 0}
+        onValueChange={(key) => {
+          if (!level1) return
+          onChange({ ...query, groupBy: key === NONE ? [level1] : [level1, key] })
+        }}
+      >
+        <SelectTrigger id="rb-groupby-2" className="w-full">
+          <SelectValue placeholder={t('rb.control.groupBy2.none')} />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value={NONE}>{t('rb.control.groupBy2.none')}</SelectItem>
+          {options.map((key) => (
+            <SelectItem key={key} value={key}>
+              {t(dimensions.find((d) => d.key === key)?.labelKey ?? key)}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
   )
 }
 

@@ -103,15 +103,38 @@ export const DATA_SOURCE: DataSource = readEnv('VITE_DATA_SOURCE') === 'http' ? 
 `globals.d.ts` in this workspace only shims the *type* of `import.meta.env` so `tsc` can
 check the files `mockBackend.ts` pulls in; it changes nothing at runtime.
 
-## Known gap: the compiled `dist` path and `src/data/clients`
+## Known gap: `npm run build`'s output does not run under plain `node` yet
 
-`npm run build` (`tsc -p tsconfig.json`) compiles `agent/mcp/**/*.ts` but, correctly, does not
-re-emit `src/data/clients/**` (it is outside `rootDir`/`include` — those files are type-checked
-as dependencies, never compiled into `agent/dist`). Combined with the gap above, a fully
-`tsc`-compiled, plain-`node`-executed server in `EYVAR_MCP_SOURCE=mock` is not a supported path
-today; http mode compiles and runs standalone with `node` with no such issue, since it never
-imports anything under `src/`. Mock-mode development runs through `npm --prefix agent test`
-(Vitest) or `npm --prefix agent run dev` (`tsx`, once the gap above is fixed upstream).
+`tsc -p tsconfig.json` needs `rootDir: ".."` (the repo root) because `mockBackend.ts`,
+`labels.ts` and the Zod schemas import from `../../src/data/**` and `../../src/screens/**`.
+Two consequences, both real, both outside `agent/**`'s fix:
+
+1. **The whole transitively-imported `src/` subtree gets compiled into `agent/dist/src/**`
+   too** — not a bug (those files must exist for a compiled `mockBackend.js`'s relative import
+   to resolve at all), but it does mean `agent/dist/mcp/server.js` from `01-analyst-agent.md`
+   §3.1's illustrative path is actually `agent/dist/**agent/**mcp/server.js` once `rootDir`
+   accounts for the repo root — `mcp.json` here uses the real path.
+2. **Every file under `src/` is authored with extensionless relative imports**
+   (`from '../types/report'`), legal under the main app's `moduleResolution: "bundler"` (Vite,
+   Vitest, `tsx` all tolerate it) and illegal under plain Node's ESM loader, which requires an
+   explicit extension. `node agent/dist/agent/mcp/server.js` today fails on its first such
+   import (`ERR_MODULE_NOT_FOUND`) — confirmed by running it. This hits **both** modes, not
+   just mock: `labels.ts` (used by `catalogue_measures`/`catalogue_dimensions`/`glossary`)
+   statically imports `src/screens/reports/copy.ts` regardless of `EYVAR_MCP_SOURCE`.
+
+Neither is fixable inside `agent/**` alone without either (a) rewriting many `src/` imports to
+carry `.js` extensions — a repo-wide convention change well outside this WP, or (b) bundling
+(`esbuild --bundle --platform=node --format=esm`) instead of per-file `tsc` emission, which
+sidesteps Node's extension rule entirely by inlining the dependency graph. (b) is the
+recommended fix for whichever WP wires the runner's actual spawn — it is not this one.
+
+**What does work today, unaffected by either gap:** `npm --prefix agent test` (Vitest — the WP's
+own proof mechanism, §11), `npm --prefix agent run typecheck`, and `npm --prefix agent run dev`
+(`tsx`, once the `import.meta.env` gap above is fixed upstream) for mock-mode manual testing.
+Http mode's own files (`client.ts`, `httpBackend.ts`, the `tools/*.ts` that route entirely
+through `Backend`) never touch `src/` at runtime except via `labels.ts`/`blockSchema.ts`/the
+pure `reporting/` modules — the same extensionless-import issue above, so http mode is equally
+blocked for a `node`-run compiled server until (b) lands.
 
 ## Tool coverage
 

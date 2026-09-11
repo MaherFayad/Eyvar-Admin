@@ -176,6 +176,36 @@ function cohortResult(cohortCount: number): ReportResult {
   }
 }
 
+describe('AC-1171 — a cell beyond the cohort\'s elapsed time is null, and is DRAWN as null, never 0', () => {
+  it('renders "No reading", never "0%", for a null cell — and a real 0% elsewhere is still drawn as 0%', () => {
+    /* One cohort that has not had time to reach M1 (null) beside one that
+       genuinely returned nobody at M1 (a real, measured 0 %) — the two must
+       read differently, or the matrix cannot tell "unknown" from "empty". */
+    const notElapsed = cohortSeriesAt('M0', [100, 100])
+    const m1 = cohortSeriesAt('M1', [0, null])
+    const result: ReportResult = {
+      query: cohortQuery,
+      asOf: '2026-06-25T09:14:00+03:00',
+      buckets: ['2026-01-01', '2026-06-01'],
+      panels: [{ panelId: 'p:cohort', titleKey: 'rb.panel.cohort', titleParams: {}, unit: 'percent', currency: null, seriesIds: [notElapsed.id, m1.id] }],
+      series: [notElapsed, m1],
+      truncated: false,
+      truncatedAtRows: null,
+      warnings: [],
+      foldedGroupCount: null,
+      cohortSizes: [10, 10],
+    }
+    renderCanvas(result)
+
+    /* The real zero is drawn as a real zero. */
+    expect(screen.getByText('0%')).toBeInTheDocument()
+    /* The unelapsed cell is drawn in words, never as a number at all. */
+    expect(screen.getByText(copy('rb.cohort.cell.none'))).toBeInTheDocument()
+    /* And it is never rendered as the digit `0` disguised as the word. */
+    expect(screen.queryAllByText('0%')).toHaveLength(1)
+  })
+})
+
 describe('AC-1173 — the retention matrix uses the four heat tokens only', () => {
   it('every non-empty cell carries a bg-heat-1…4 class and no inline opacity', () => {
     const { container } = renderCanvas(cohortResult(3))

@@ -48,7 +48,10 @@ Everything else in the plan stands, including every gate.
 | WP-6.6 Alerts and crons | general-purpose | done — 6 tables, 5 crons, 162 api tests |
 | WP-6.7 Agent queue | general-purpose | done — acting-for cannot impersonate, unbacked numbers refused, 181 api tests |
 | WP-6.4c Server funnel, cohort, journey | general-purpose | running |
-| WP-7.1 MCP tool server | general-purpose | running |
+| WP-7.1 MCP tool server | general-purpose | done — 20 tools, 84 tests, PII masking proved |
+| WP-7.2 Runner | general-purpose | running |
+| WP-7.3 Prompts and schemas | general-purpose | running |
+| WP-3.6 Seam violation in two tests | qa-engineer | running (orchestrator-opened) |
 | WP-1.6c Alert evaluator | mock-data-engineer | done — 4 condition kinds, 5-state machine, 40 tests |
 | WP-4.1 Markdown | utilities-engineer | done — parse+render, 151 tests, no dangerouslySetInnerHTML |
 | WP-6.1 Backend scaffold | general-purpose | done — api/ project, router, envelopes, migrations, 5 tests |
@@ -87,6 +90,10 @@ instead; that trades a marked wrong answer for an unmarked slow one.
 | F-V2-2 | Q-RB-3 (week start) and Q-RB-7 (alert cadence) are not in `docs/07-api/OPEN-QUESTIONS.md`; they live in `specs/06-report-builder.md`. D45 and D41 answer them but the spec still poses them | WP-0.1 | Fixed in WP-8.5 |
 | ~~F-V2-30~~ | **Fixed in WP-6.4b** via a real live-window model (`live_to_bounds_json`, combined with `LEAST`), not a special case. `subscriptions.active` and `subscriptions.cancelled` do not equal the mock: the mock's liveness is a three-condition window (`startedOn`, `endsOn`, **and** `cancelledAt`), while `measure_sources.live_to_column` is a two-bound scheme that ignores an early cancellation. A cancelled subscription counts as active on the server | WP-6.4 | **WP-6.4b opened.** This is a wrong number, not a missing feature |
 | ~~F-V2-31~~ | **Fixed in WP-6.4b.** A saved segment resolves against the seeded `segments` table and an unknown id refuses with `segment-not-found` rather than falling through to everyone. Was: the compiler treated a saved segment as a no-op, matching the mock's behaviour before WP-1.7 gave it a real lookup | WP-6.4 | **WP-6.4b**, once the `segments` table is seeded |
+| ~~F-V2-51~~ | `src/data/config.ts` read `import.meta.env.VITE_DATA_SOURCE` unguarded, bypassing the `readEnv` helper the same file defines — whose own docblock says the module "must load under Vite, under Vitest, and under a bare Node script" and that "a throw here would take down every screen". Mock mode crashed under plain Node, which is how the MCP server runs | WP-7.1 | **Fixed by the orchestrator:** the line now uses `readEnv`, matching the file's stated contract |
+| F-V2-52 | Two new test files import fixtures directly, breaking the seam guard that 200 other test files obey. A test reaching past the client seam stops proving the screen works through the seam it ships with | WP-3.3 | **WP-3.6 opened.** The rule is not being exempted for tests |
+| F-V2-53 | The agent's compiled output cannot run under plain Node: `src/` uses extensionless imports, legal under bundler resolution and illegal under Node's ESM loader | WP-7.1 | **WP-7.2** bundles with esbuild rather than emitting per file |
+| F-V2-54 | T19 `note_finding` keeps findings in a local module map because `src/data/clients/agent.ts` has no `noteAgentFinding`; T3's glossary is a hand-written starter set, not generated, even though WP-6.3 built a real generator in `api/_lib/glossary.ts` | WP-7.1 | Both for phase 7 follow-up; the glossary should read the generator rather than duplicate it |
 | F-V2-46 | `plan.ts`'s `COMPUTED_COHORT_GRAINS` is still `['month']`, so the day and week cohort engines WP-3.2 built and tested are unreachable from the product. Same for `MODE_FIXES_GRAIN_TO_NONE`, which must become a function of `measuredAs` before the funnel grain control unlocks | WP-3.2 | **WP-3.5.** Built-but-unreachable is indistinguishable from not built, from an operator's seat |
 | F-V2-47 | `ResultTableColumns` (the whole `TableSpec` columns mode, AC-1174 … AC-1178) has **no live caller** — table mode still renders through the old series path. Built, tested, unreachable | WP-3.3 | **WP-3.5** wires a columns editor and a resolver leg per column |
 | F-V2-48 | No `cohort-brackets-overlap` violation code exists, so overlapping brackets are refused in the client but not on the wire — the same hand-edited-URL hole as the transforms | WP-3.2 | **WP-3.5** |

@@ -7,16 +7,18 @@
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ShellProvider } from '@/shell/ShellContext'
 import { disableMockLatency, listReports, resetDataLayer } from '@/data/clients'
-import { reportOfficial } from '@/data/types'
+import { reportOfficial, type SavedReport } from '@/data/types'
 import { EN } from '@/i18n/dictionaries'
+import { createTranslator } from '@/lib'
 import { REPORTS_EN } from './copy'
+import { ReportLibrary } from './ReportLibrary'
 import { ReportsScreen } from './ReportsScreen'
 
 const copy = (key: string) => REPORTS_EN[key] as string
-const shellCopy = (key: string) => EN[key] as string
+const t = createTranslator({ dictionary: EN })
 
 beforeEach(() => {
   disableMockLatency()
@@ -39,6 +41,32 @@ function renderLibrary() {
       </ShellProvider>
     </MemoryRouter>,
   )
+}
+
+/**
+ * The library mounted directly, as `builder.chrome.test.tsx` mounts the
+ * builder — `onOpen` is a spy here rather than `ReportsScreen`'s own
+ * `navigate`, because that navigation needs a route table this test does not
+ * carry (`SavedReportScreen` is wired at the app shell, not inside
+ * `ReportsScreen`).
+ */
+function renderLibraryDirect() {
+  const onOpen = vi.fn<(report: SavedReport) => void>()
+  render(
+    <MemoryRouter initialEntries={['/management/reports']}>
+      <ShellProvider>
+        <ReportLibrary
+          title={copy('rb.page.title')}
+          onOpen={onOpen}
+          onNew={() => {}}
+          t={t}
+          language="en"
+          dir="ltr"
+        />
+      </ShellProvider>
+    </MemoryRouter>,
+  )
+  return { onOpen }
 }
 
 async function rowNamed(name: string): Promise<HTMLElement> {
@@ -132,27 +160,27 @@ describe('AC-1164 — the star toggle', () => {
 /* ───── AC-1166 — Duplicate ────────────────────────────────────────────────── */
 
 describe('AC-1166 — Duplicate', () => {
-  it('creates a private copy named "<name> (copy)" and navigates to it', async () => {
+  it('creates a private copy named "<name> (copy)" and calls onOpen with it', async () => {
     const user = userEvent.setup()
-    renderLibrary()
+    /* `onOpen` spied directly: `ReportsScreen`'s own `navigate` to the copy
+       needs a route table this render does not carry (`SavedReportScreen` is
+       wired at the app shell, one level up), so the observable contract here
+       is the one this component actually owns — which report it hands its
+       caller, not what the app shell does with it. */
+    const { onOpen } = renderLibraryDirect()
     const row = await rowNamed('Completed trips by pickup district')
-    /* The row's own overflow trigger, named "More actions for {id}" — not the
-       page-level one, which `shellCopy('shell.moreActions')` alone would also
-       match on a page that has both. */
     await user.click(within(row).getByRole('button', { name: /more actions/iu }))
     await user.click(await screen.findByRole('menuitem', { name: copy('rb.library.duplicate') }))
 
-    /* Navigation landed on the copy — its own header names it. */
-    await waitFor(() =>
-      expect(screen.getByLabelText(copy('rb.title.label'))).toHaveValue(
-        'Completed trips by pickup district (copy)',
-      ),
-    )
+    await waitFor(() => expect(onOpen).toHaveBeenCalledTimes(1))
+    const copy_ = onOpen.mock.calls[0]?.[0] as SavedReport
+    expect(copy_.name).toBe('Completed trips by pickup district (copy)')
+    expect(copy_.visibility).toBe('private')
 
-    const copies = (await listReports({ pageSize: 200 })).items.filter(
+    const persisted = (await listReports({ pageSize: 200 })).items.filter(
       (r) => r.name === 'Completed trips by pickup district (copy)',
     )
-    expect(copies).toHaveLength(1)
-    expect(copies[0]?.visibility).toBe('private')
+    expect(persisted).toHaveLength(1)
+    expect(persisted[0]?.id).toBe(copy_.id)
   })
 })

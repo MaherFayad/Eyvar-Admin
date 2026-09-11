@@ -194,7 +194,8 @@ export const REPORTS_EN: Dictionary = {
      affordance read, so the two sentences cannot drift. */
   'rb.control.groupBy2': 'Then split by',
   'rb.control.groupBy2.none': 'No second split',
-  'rb.control.groupBy2.add': 'Add a second split',
+  'rb.control.groupBy2.needsFirst': 'Choose a first split.',
+  'rb.control.groupBy3.add': 'Add a third split',
   'rb.control.filters': 'Filters',
   'rb.control.filters.field': 'Field',
   'rb.control.filters.value': 'Value',
