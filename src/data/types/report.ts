@@ -734,6 +734,17 @@ export type QueryViolationCode =
   | 'too-many-series'
   /** §5. `sequential`, `holdConstant` or `exclude` on a rung the catalogue has not declared server support for. */
   | 'funnel-needs-server'
+  /* ── WP-2.6b, gap 1: transform legality moves from `TransformControls` into
+     the planner, so a hand-edited URL is refused by the same code that greys
+     out the control (§2.3). ── */
+  /** `cumulative` needs a measure that adds up. */
+  | 'transform-needs-additive'
+  /** `rollingAverage` asks for more buckets than the window holds. */
+  | 'transform-needs-buckets'
+  /** `percentOfTotal` needs a split, so there is a group to take a share of. */
+  | 'transform-needs-split'
+  /** WP-2.6b, gap 3: `groupBy` above `REPORT_GROUP_BY_MAX` — a hand-edited third level. */
+  | 'too-many-group-levels'
 
 export interface QueryViolation {
   code: QueryViolationCode
@@ -756,6 +767,8 @@ export interface QueryViolation {
     | 'formula'
     | 'segments'
     | 'periodComparison'
+    /** WP-2.6b, gap 1: the transform checkboxes' shared reason slot. */
+    | 'transform'
   /** The reason, as a key with params. Never assembled from fragments (AC-894). */
   reasonKey: string
   reasonParams: Record<string, string | number>
@@ -770,6 +783,19 @@ export interface OptionLegality<T extends string> {
   reasonParams: Record<string, string | number>
 }
 
+/**
+ * WP-2.6b, gap 1. Whether each transform toggle **could legally be turned on
+ * right now** — computed once in `planQuery` from the same facts the pushed
+ * `QueryViolation` reads, so `TransformControls` disables a checkbox in place
+ * and a hand-edited URL that already holds an illegal transform is refused by
+ * the identical rule, never a second copy of it.
+ */
+export interface TransformLegality {
+  cumulative: OptionLegality<'cumulative'>
+  rollingAverage: OptionLegality<'rollingAverage'>
+  percentOfTotal: OptionLegality<'percentOfTotal'>
+}
+
 /** §7.1's matrix and §3.5's grain gate, resolved for the query currently in the panel. */
 export interface QueryPlan {
   violations: QueryViolation[]
@@ -777,6 +803,8 @@ export interface QueryPlan {
   bucketCount: number
   grains: OptionLegality<ReportGrain>[]
   chartTypes: OptionLegality<ChartType>[]
+  /** WP-2.6b, gap 1. Every entry is illegal with the unstarted reason when there is no first measure. */
+  transformOptions: TransformLegality
   /** The chart type that will actually be drawn — §7.3's nearest-legal coercion. */
   effectiveChartType: ChartType
   /** True when `effectiveChartType !== query.chartType`, so the card can say so inline. */

@@ -57,7 +57,7 @@
  */
 
 import { GRAIN_RANK, pairRefusal, type Dimension, type Measure, type MeasureKey } from '../types/measure'
-import { reportMode } from '../types/report'
+import { REPORT_GROUP_BY_MAX, reportMode } from '../types/report'
 import type {
   ChartType,
   CohortGrain,
@@ -67,6 +67,7 @@ import type {
   ReportGrain,
   ReportMode,
   ReportQuery,
+  TransformLegality,
 } from '../types/report'
 import type { IsoDate } from '../types/common'
 import { comparisonWindow, countBuckets, resolveWindow } from './buckets'
@@ -448,6 +449,19 @@ export function planQuery(query: ReportQuery, catalogue: Catalogue, today: IsoDa
     }
   }
 
+  /* WP-2.6b, gap 3: `REPORT_GROUP_BY_MAX` is the rail's cap, not a type
+     constraint, so a hand-edited URL can still hold a third level. Refused the
+     same way a third measure is (`too-many-measures`), and the rail's own
+     "add a third split" control reads this reason rather than inventing one. */
+  if (query.groupBy.length > REPORT_GROUP_BY_MAX) {
+    violations.push({
+      code: 'too-many-group-levels',
+      field: 'groupBy',
+      reasonKey: 'rb.violation.tooManyGroupLevels',
+      reasonParams: { max: REPORT_GROUP_BY_MAX },
+    })
+  }
+
   for (const f of query.filters) {
     if (!legalFilterFields.includes(f.field)) {
       violations.push({
@@ -521,12 +535,64 @@ export function planQuery(query: ReportQuery, catalogue: Catalogue, today: IsoDa
     }
   }
 
-  /* ── chart type ───────────────────────────────────────────────────────── */
   /* G4: up to two levels. `splitParts` is the product of each level's
      cardinality hint — the catalogue's forecast of how many series the split
      produces, same role the single-level version always played. */
   const groupLevels = query.groupBy.length
   const hasSplit = groupLevels > 0
+
+  /* G3 (§2.3) / WP-2.6b gap 1: each toggle's legality computed exactly once —
+     read by the rail to disable the control **before** an illegal state
+     exists, and read again below to refuse a hand-edited URL that already
+     holds one. `TransformControls` used to carry a second copy of these three
+     predicates; it renders this instead now. */
+  const transformOptions: TransformLegality = {
+    cumulative: !first
+      ? illegal('cumulative', 'rb.control.disabled.unstarted', {})
+      : first.additive
+        ? legal('cumulative')
+        : illegal('cumulative', 'rb.control.transform.cumulative.disabled', {}),
+    rollingAverage:
+      bucketCount < 2
+        ? illegal('rollingAverage', 'rb.control.transform.rollingAverage.disabled', { count: bucketCount })
+        : legal('rollingAverage'),
+    percentOfTotal: hasSplit
+      ? legal('percentOfTotal')
+      : illegal('percentOfTotal', 'rb.control.transform.percentOfTotal.disabled', {}),
+  }
+  if (isSeriesMode && query.transform) {
+    const { cumulative, rollingAverage, percentOfTotal } = query.transform
+    if (cumulative && !transformOptions.cumulative.legal) {
+      violations.push({
+        code: 'transform-needs-additive',
+        field: 'transform',
+        reasonKey: transformOptions.cumulative.reasonKey ?? 'rb.control.transform.cumulative.disabled',
+        reasonParams: transformOptions.cumulative.reasonParams,
+      })
+    }
+    /* The checkbox's own gate is "at least 2 buckets exist"; this is the
+       value-specific rule a clamped `Input` enforces in the UI and a
+       hand-edited URL can skip — `rollingAverage` asking for more buckets
+       than the window actually holds. */
+    if (rollingAverage !== null && rollingAverage > bucketCount) {
+      violations.push({
+        code: 'transform-needs-buckets',
+        field: 'transform',
+        reasonKey: 'rb.control.transform.rollingAverage.disabled',
+        reasonParams: { count: bucketCount },
+      })
+    }
+    if (percentOfTotal && !transformOptions.percentOfTotal.legal) {
+      violations.push({
+        code: 'transform-needs-split',
+        field: 'transform',
+        reasonKey: transformOptions.percentOfTotal.reasonKey ?? 'rb.control.transform.percentOfTotal.disabled',
+        reasonParams: transformOptions.percentOfTotal.reasonParams,
+      })
+    }
+  }
+
+  /* ── chart type ───────────────────────────────────────────────────────── */
   const splitParts = hasSplit
     ? query.groupBy.reduce((total, dimension) => total * expectedGroupCount(dimension, catalogue), 1)
     : 1
@@ -614,6 +680,7 @@ export function planQuery(query: ReportQuery, catalogue: Catalogue, today: IsoDa
     chartTypeCoerced: effectiveChartType !== query.chartType,
     legalDimensions,
     legalFilterFields,
+    transformOptions,
     /* One panel per measure per group. `splitParts` is the catalogue's hint, so
        this is a forecast — the resolved result is authoritative. It is enough
        to tell the operator "this will draw four panels" before they run it.

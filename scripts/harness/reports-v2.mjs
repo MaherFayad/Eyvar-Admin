@@ -29,7 +29,7 @@ function check(label, ok, detail = '') {
   console.log(`${mark}  ${label}${detail ? '  — ' + detail : ''}`)
 }
 
-async function newPage({ dark = false, arabic = false, viewport = { width: 1280, height: 900 } } = {}) {
+async function newPage({ dark = false, viewport = { width: 1280, height: 900 } } = {}) {
   const ctx = await browser.newContext({ viewport, ...(dark ? { colorScheme: 'dark' } : {}) })
   const page = await ctx.newPage()
   const errors = []
@@ -37,20 +37,22 @@ async function newPage({ dark = false, arabic = false, viewport = { width: 1280,
   page.on('console', (m) => {
     if (m.type() === 'error') errors.push(m.text().slice(0, 300))
   })
-  if (arabic) {
-    await page.addInitScript(() => {
-      try {
-        localStorage.setItem('eyvar.1.owner', 'U1')
-        localStorage.setItem('eyvar.1.U1.ui.language', JSON.stringify({ v: 1, value: 'ar' }))
-      } catch {}
-    })
-  }
   return { ctx, page, errors }
 }
 
-async function openReport(page, id) {
+/* Arabic via the account menu's own language radio (`amp-builder-ar-dark.mjs`'s
+   proven pattern) — `setUiStateOwner` overwrites a hand-written `localStorage`
+   owner key the instant the mock session resolves, so writing the preference
+   before boot does not survive it. */
+async function openReport(page, id, { arabic = false } = {}) {
   await page.goto(`${BASE}/management/reports/${id}`, { waitUntil: 'load' })
-  await page.waitForTimeout(2200)
+  await page.waitForTimeout(1200)
+  if (arabic) {
+    await page.getByRole('button', { name: 'Account' }).click()
+    await page.getByRole('menuitemradio', { name: 'Arabic' }).click()
+    await page.waitForTimeout(600)
+  }
+  await page.waitForTimeout(1000)
 }
 
 /* ═══════════ AC-1130 — every v2 chart type, both themes, both languages ═══ */
@@ -66,8 +68,8 @@ const CHART_TYPE_REPORTS = [
 for (const [id, kind] of CHART_TYPE_REPORTS) {
   for (const dark of [false, true]) {
     for (const arabic of [false, true]) {
-      const { ctx, page, errors } = await newPage({ dark, arabic })
-      await openReport(page, id)
+      const { ctx, page, errors } = await newPage({ dark })
+      await openReport(page, id, { arabic })
       const label = `${kind} · ${dark ? 'dark' : 'light'} · ${arabic ? 'ar' : 'en'}`
       const drawn = await page.evaluate(
         (isKpi) => (isKpi ? document.body.textContent?.length > 0 : document.querySelectorAll('.recharts-surface').length > 0),
@@ -136,8 +138,8 @@ console.log('SKIP  AC-1132 needs a ≤2-series stacked-bar fixture with a compar
 /* ═══════════ AC-1134 — horizontal-bar: sorted desc, Other last, en/ar label end ═ */
 
 for (const arabic of [false, true]) {
-  const { ctx, page } = await newPage({ arabic })
-  await openReport(page, 'RPT-17')
+  const { ctx, page } = await newPage()
+  await openReport(page, 'RPT-17', { arabic })
   const rows = await page.evaluate(() =>
     [...document.querySelectorAll('.recharts-yAxis-tick-labels text')].map(
       (n) => n.textContent?.trim(),

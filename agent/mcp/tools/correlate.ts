@@ -11,6 +11,7 @@ import { getBackend } from '../source.js'
 import { ok, refuse } from '../result.js'
 import { correlate } from '../../../src/data/reporting/stats'
 import type { Backend } from '../backendTypes.js'
+import type { ReportSeries } from '../../../src/data/types/report'
 
 const seriesRef = z.object({ runId: z.string().min(1), seriesId: z.string().min(1) })
 
@@ -20,11 +21,13 @@ const inputShape = {
   maxLag: z.number().int().min(0).max(30).optional(),
 }
 
-async function resolveSeries(backend: Backend, ref: { runId: string; seriesId: string }) {
+type ResolvedSeries = { error: string; series?: undefined } | { error?: undefined; series: ReportSeries }
+
+async function resolveSeries(backend: Backend, ref: { runId: string; seriesId: string }): Promise<ResolvedSeries> {
   const run = await backend.getRun(ref.runId).catch(() => null)
-  if (!run) return { error: `No run with id "${ref.runId}" in this job's tool log.` as const }
+  if (!run) return { error: `No run with id "${ref.runId}" in this job's tool log.` }
   const series = run.data.result.series.find((s) => s.id === ref.seriesId)
-  if (!series) return { error: `Run "${ref.runId}" has no series "${ref.seriesId}".` as const }
+  if (!series) return { error: `Run "${ref.runId}" has no series "${ref.seriesId}".` }
   return { series }
 }
 
@@ -41,8 +44,8 @@ export function registerCorrelate(server: McpServer): void {
     async ({ a, b, maxLag }) => {
       const backend = await getBackend()
       const [resolvedA, resolvedB] = await Promise.all([resolveSeries(backend, a), resolveSeries(backend, b)])
-      if ('error' in resolvedA) return refuse('run-not-found', resolvedA.error, { ref: a })
-      if ('error' in resolvedB) return refuse('run-not-found', resolvedB.error, { ref: b })
+      if (typeof resolvedA.error === 'string') return refuse('run-not-found', resolvedA.error, { ref: a })
+      if (typeof resolvedB.error === 'string') return refuse('run-not-found', resolvedB.error, { ref: b })
 
       const result = correlate(
         resolvedA.series.points,

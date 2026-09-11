@@ -19,6 +19,6 @@
     "baseUrl": ".",
     "paths": { "@/*": ["../src/*"] }
   },
-  "include": ["mcp/**/*.ts"],
+  "include": ["mcp/**/*.ts", "globals.d.ts"],
   "exclude": ["node_modules", "dist"]
 }

@@ -408,6 +408,12 @@ export const measureFixtures: Measure[] = [
     },
     temporality: 'flow',
     bucketAggregate: 'sum',
+    /* G1 (`02-report-builder-v2.md` §2.1): one row per trip, so both are
+       honest — `sum` is the fare collected in the bucket, `mean` is the
+       average fare per completed ride. The first genuinely multi-option
+       measure in this catalogue; the `Measured as` control has nothing to
+       show until at least one exists. */
+    bucketAggregateOptions: ['sum', 'mean'],
     additive: true,
     unit: 'money',
     currency: 'SAR',
@@ -440,6 +446,11 @@ export const measureFixtures: Measure[] = [
     },
     temporality: 'flow',
     bucketAggregate: 'sum',
+    /* G1: one row per day, so `sum` is the period's total revenue and `mean`
+       is the average daily revenue — both honest reads of the same rows at
+       any grain coarser than a day. The second multi-option measure, deliberately
+       a snapshot-sourced one rather than a second row-level pick (WP-2.6b). */
+    bucketAggregateOptions: ['sum', 'mean'],
     additive: true,
     unit: 'money',
     currency: 'SAR',

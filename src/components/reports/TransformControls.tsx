@@ -1,9 +1,10 @@
 /**
- * Transform controls — `22-analytics-v2.md` §1.3. Three checkboxes over
- * `query.transform`. `plan.ts` carries no `ReportTransform` violation code
- * today (flagged in the WP-2.6 handoff), so each reason below is a LOCAL
- * predicate over facts the planner already exposes elsewhere — `additive`,
- * `hasSplit`, `bucketCount` — never a second copy of a rule stated twice.
+ * Transform controls — `22-analytics-v2.md` §1.3, WP-2.6b gap 1. Each of the
+ * three checkboxes reads its disabled state and its reason from
+ * `plan.transformOptions` (`planQuery`, `plan.ts`) — the same computation that
+ * refuses a hand-edited URL carrying an illegal transform. This file used to
+ * hold a second copy of the three predicates (`additive`, `hasSplit`,
+ * `bucketCount`); it renders the planner's answer now, never its own.
  */
 
 import { useId } from 'react'
@@ -11,16 +12,16 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { InfoHint, hintLines } from '@/components/InfoHint'
-import { DEFAULT_REPORT_TRANSFORM, type ReportTransform } from '@/data/types/report'
-import type { Measure, ReportQuery } from '@/data/types'
+import { DEFAULT_REPORT_TRANSFORM, type ReportTransform, type TransformLegality } from '@/data/types/report'
+import type { ReportQuery } from '@/data/types'
 import type { Translator } from '@/lib'
 
 export interface TransformControlsProps {
   query: ReportQuery
   onChange: (query: ReportQuery) => void
-  /** Rolling average defaults to 7 buckets on check; `null` clamps it. */
-  firstMeasure: Measure | null
-  hasSplit: boolean
+  /** `plan.transformOptions` — one source of truth, shared with `planQuery`'s violations. */
+  options: TransformLegality
+  /** Only for the number field's `min`/`max`; the legality itself lives in `options`. */
   bucketCount: number
   unstarted: boolean
   t: Translator
@@ -29,8 +30,7 @@ export interface TransformControlsProps {
 export function TransformControls({
   query,
   onChange,
-  firstMeasure,
-  hasSplit,
+  options,
   bucketCount,
   unstarted,
   t,
@@ -40,14 +40,18 @@ export function TransformControls({
   const setTransform = (next: Partial<ReportTransform>) =>
     onChange({ ...query, transform: { ...transform, ...next } })
 
-  const additive = firstMeasure?.additive ?? false
   const rollingMax = Math.max(2, Math.min(30, bucketCount))
 
-  const cumulativeOff = unstarted || !additive
-  const rollingOff = unstarted || bucketCount < 2
-  const percentOff = unstarted || !hasSplit
+  const cumulativeOff = unstarted || !options.cumulative.legal
+  const rollingOff = unstarted || !options.rollingAverage.legal
+  const percentOff = unstarted || !options.percentOfTotal.legal
 
   const unstartedReason = t('rb.control.disabled.unstarted')
+  /* `unstarted` always wins the sentence: a measure-less report reads "choose
+     a measure first" even where `options` (computed off `bucketCount` or
+     `hasSplit` alone) would otherwise call itself legal. */
+  const reasonFor = (option: TransformLegality[keyof TransformLegality]): string =>
+    unstarted || !option.reasonKey ? unstartedReason : t(option.reasonKey, option.reasonParams)
   const cumulativeReasonId = `${groupId}-cumulative-reason`
   const rollingReasonId = `${groupId}-rolling-reason`
   const percentReasonId = `${groupId}-percent-reason`
@@ -73,7 +77,7 @@ export function TransformControls({
           </label>
           {cumulativeOff && (
             <p id={cumulativeReasonId} className="text-xs text-muted-foreground">
-              {unstarted ? unstartedReason : t('rb.control.transform.cumulative.disabled')}
+              {reasonFor(options.cumulative)}
             </p>
           )}
         </div>
@@ -115,9 +119,7 @@ export function TransformControls({
           </div>
           {rollingOff && (
             <p id={rollingReasonId} className="text-xs text-muted-foreground">
-              {unstarted
-                ? unstartedReason
-                : t('rb.control.transform.rollingAverage.disabled', { count: bucketCount })}
+              {reasonFor(options.rollingAverage)}
             </p>
           )}
         </div>
@@ -135,7 +137,7 @@ export function TransformControls({
           </label>
           {percentOff && (
             <p id={percentReasonId} className="text-xs text-muted-foreground">
-              {unstarted ? unstartedReason : t('rb.control.transform.percentOfTotal.disabled')}
+              {reasonFor(options.percentOfTotal)}
             </p>
           )}
         </div>

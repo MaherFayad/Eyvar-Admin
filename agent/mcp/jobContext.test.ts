@@ -1,6 +1,6 @@
 /** T20 `job_context` — AC-1240. */
 
-import { beforeEach, afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 import { disableMockLatency, resetDataLayer } from '../../src/data/clients/index'
 import { buildTestClient, callTool, textOf } from './testHarness.js'
 import type { Client } from '@modelcontextprotocol/sdk/client/index.js'

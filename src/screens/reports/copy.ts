@@ -177,10 +177,24 @@ export const REPORTS_EN: Dictionary = {
   'rb.control.measure2': 'Second measure',
   'rb.control.measure2.none': 'No second measure',
   'rb.control.measure2.empty': 'No measure shares this one’s unit and period type.',
+  /* WP-2.6b, gap 2 (G1). Shown only when `Measure.bucketAggregateOptions` has
+     more than one entry — the catalogue stays the authority otherwise. */
+  'rb.control.measuredAs': 'Measured as',
+  'rb.control.measuredAs.count': 'Count',
+  'rb.control.measuredAs.sum': 'Sum',
+  'rb.control.measuredAs.mean': 'Average',
+  'rb.control.measuredAs.endOfPeriod': 'Latest reading',
+  'rb.control.measuredAs.cumulativeCount': 'Running count',
   'rb.control.groupBy': 'Split by',
   'rb.control.groupBy.none': 'No split',
   'rb.control.groupBy.empty': 'This measure has no dimension it can be split by.',
   'rb.control.groupBy.cleared': 'The split was cleared: it is not legal for {measure}.',
+  /* WP-2.6b, gap 3 (G4). The second level; `rb.violation.tooManyGroupLevels`
+     is the one reason both the plan's refusal and this row's "add a third"
+     affordance read, so the two sentences cannot drift. */
+  'rb.control.groupBy2': 'Then split by',
+  'rb.control.groupBy2.none': 'No second split',
+  'rb.control.groupBy2.add': 'Add a second split',
   'rb.control.filters': 'Filters',
   'rb.control.filters.field': 'Field',
   'rb.control.filters.value': 'Value',
@@ -416,6 +430,10 @@ export const REPORTS_EN: Dictionary = {
     'A {aTemporality} and a {bTemporality} cannot share a report: one is a level and the other is a total.',
   'rb.violation.mixedUnit': 'A {a} and a {b} cannot share a report.',
   'rb.violation.illegalDimension': 'These measures cannot be split by {dimension}.',
+  /* G1 (§2.1). Referenced by `plan.ts` since `illegal-aggregate` first landed; missing here until WP-2.6b. */
+  'rb.violation.illegalAggregate': 'This measure cannot be measured as {aggregate}.',
+  /* WP-2.6b, gap 3 (G4). Shared by the plan's refusal and the rail's disabled "add a third split" row. */
+  'rb.violation.tooManyGroupLevels': 'A split is capped at {max} levels. Remove one to add another.',
   'rb.violation.filterFieldNotShared': 'Both measures must be filterable on {field}.',
   'rb.violation.windowInverted': '{to} is before {from}.',
   'rb.violation.comparisonLength': 'The comparison range has {got} buckets. The current window needs {required}.',
