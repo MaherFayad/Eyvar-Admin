@@ -833,7 +833,12 @@ export function ReportBuilder({
   const exportPng = useCallback(async () => {
     const target = ranQuery ?? query
     if (!result) return
-    const svg = chartContainerRef.current?.querySelector<SVGSVGElement>('svg')
+    /* `.recharts-surface` first: the container also holds small decorative
+       icon `<svg>`s (the refresh glyph, `InfoHint`), and a bare `svg` selector
+       grabbed the first one of those instead of the plot. */
+    const svg =
+      chartContainerRef.current?.querySelector<SVGSVGElement>('svg.recharts-surface') ??
+      chartContainerRef.current?.querySelector<SVGSVGElement>('svg')
     if (!svg) return
     const win = resolveWindow(target.window, today)
     const caption: ChartPngCaption = {

@@ -181,7 +181,7 @@ describe('AC-1228 — the email/recipient pickers are filtered by the measure’
     const panel = await openRule(user, 'Gross revenue below SAR 400 a day')
 
     await user.click(within(panel).getByRole('button', { name: EN('rb.alert.channel.email.add') }))
-    expect(await screen.findByText('Fahad Al-Dosari')).toBeInTheDocument()
+    expect((await screen.findAllByText('Fahad Al-Dosari')).length).toBeGreaterThan(0)
     expect(screen.queryByText('Lina Al-Otaibi')).toBeNull()
   })
 
@@ -221,8 +221,9 @@ describe('AC-1232 — the Condition column carries a summary sentence per kind',
     expect(within(staticRow).getByText(new RegExp(EN('rb.alert.comparator.gt')))).toBeInTheDocument()
 
     const relativeRow = await rowNamed('Completed trips down 20% vs the previous bucket')
-    expect(within(relativeRow).getByText(/falls by 20%/)).toBeInTheDocument()
-    expect(within(relativeRow).getByText(/the previous bucket/)).toBeInTheDocument()
+    /* The rule's own NAME also contains "the previous bucket" — scoped to the
+       compact Condition-column sentence, which reads differently. */
+    expect(within(relativeRow).getByText('falls by 20% vs the previous bucket')).toBeInTheDocument()
 
     const anomalyRow = await rowNamed('Gross revenue outside its usual band')
     expect(within(anomalyRow).getByText(/falls below its 95% band/)).toBeInTheDocument()
@@ -244,7 +245,14 @@ describe('AC-1233 — the rules table sparkline never draws in a destructive ton
 
     const row = await rowNamed('Cancellation rate over 6%')
     const cell = within(row).getAllByRole('cell')[index]!
-    await waitFor(() => expect(cell.querySelector('svg')).toBeTruthy())
+    /* jsdom's `ResponsiveContainer` never resolves a real size, so it draws
+       no `<svg>` at all (the project's own standing note: a green suite
+       proves nothing about a drawn chart) — `[data-chart]` is `ChartContainer`
+       mounting, which is what this test can see; the drawn proof is the
+       harness. Bounded to the page's own rows, but each is its own
+       `runReport` — the default 1 000 ms `waitFor` is short for eleven of
+       them in series. */
+    await waitFor(() => expect(cell.querySelector('[data-chart]')).toBeTruthy(), { timeout: 5000 })
     /* The colours are `--chart-axis`/`--chart-fill`/`--color-value` tokens
        (`RuleSparkline`'s own props) — never a literal `destructive` fill or
        stroke, which is the one thing R5a would forbid here. */

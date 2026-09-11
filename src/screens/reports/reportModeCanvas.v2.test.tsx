@@ -3,12 +3,12 @@
  * matrix's heat tokens and curve view.
  */
 
-import { render, screen, within } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
 import { createTranslator } from '@/lib'
 import { EN } from '@/i18n/dictionaries'
-import type { Measure, ReportPanel, ReportQuery, ReportResult, ReportSeries } from '@/data/types'
+import type { Measure, ReportQuery, ReportResult, ReportSeries } from '@/data/types'
 import { ReportModeCanvas } from './ReportModeCanvas'
 
 const t = createTranslator({ dictionary: EN })

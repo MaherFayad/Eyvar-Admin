@@ -110,7 +110,7 @@ console.log('SKIP  AC-1132 needs a ≤2-series stacked-bar fixture with a compar
   const { ctx, page } = await newPage()
   await openReport(page, 'RPT-16')
   const axisText = await page.evaluate(() =>
-    [...document.querySelectorAll('.recharts-yAxis .recharts-cartesian-axis-tick-value')].map((n) => n.textContent),
+    [...document.querySelectorAll('.recharts-yAxis-tick-labels text')].map((n) => n.textContent),
   )
   check('AC-1133 the y-axis reads a percent scale', axisText.some((t) => t?.includes('%')), axisText.join(', '))
 
@@ -133,44 +133,24 @@ console.log('SKIP  AC-1132 needs a ≤2-series stacked-bar fixture with a compar
   await ctx.close()
 }
 
-/* ═══════════ AC-1133 — stacked-100 axis reads 0–100%, parts sum to 100 ════ */
-
-{
-  const { ctx, page } = await newPage()
-  await openReport(page, 'RPT-16')
-  const axisText = await page.evaluate(() =>
-    [...document.querySelectorAll('.recharts-yAxis .recharts-cartesian-axis-tick-value')].map((n) => n.textContent),
-  )
-  check('AC-1133 the y-axis reads a percent scale', axisText.some((t) => t?.includes('%')), axisText.join(', '))
-
-  /* Hover the first bucket's bar and sum every series' share from the tooltip. */
-  const bar = page.locator('.recharts-bar-rectangle').first()
-  await bar.hover()
-  await page.waitForTimeout(300)
-  const shares = await page.evaluate(() =>
-    [...document.querySelectorAll('[data-slot="series-tooltip"] span.tabular-nums')].map((n) =>
-      Number.parseFloat(n.textContent ?? ''),
-    ),
-  )
-  const sum = shares.reduce((a, b) => a + (Number.isFinite(b) ? b : 0), 0)
-  check('AC-1133 the hovered bucket’s parts sum to ~100', Math.abs(sum - 100) < 5, `sum=${sum}`)
-  await ctx.close()
-}
-
 /* ═══════════ AC-1134 — horizontal-bar: sorted desc, Other last, en/ar label end ═ */
 
 for (const arabic of [false, true]) {
   const { ctx, page } = await newPage({ arabic })
   await openReport(page, 'RPT-17')
   const rows = await page.evaluate(() =>
-    [...document.querySelectorAll('.recharts-yAxis .recharts-cartesian-axis-tick-value')].map(
+    [...document.querySelectorAll('.recharts-yAxis-tick-labels text')].map(
       (n) => n.textContent?.trim(),
     ),
   )
   const values = await page.evaluate(() =>
-    [...document.querySelectorAll('.recharts-bar-rectangle')].map((r) => Number(r.getAttribute('width'))),
+    [...document.querySelectorAll('.recharts-bar-rectangle path')].map((r) => Number(r.getAttribute('width'))),
   )
-  const descending = values.every((v, i) => i === 0 || v <= values[i - 1] + 0.5)
+  /* `Other` is excluded from the ordering check — it sorts last regardless
+     of its own value (it is a fold of every group the split dropped, so it
+     is very often the largest bar in the picture). */
+  const withoutOther = values.slice(0, -1)
+  const descending = withoutOther.every((v, i) => i === 0 || v <= withoutOther[i - 1] + 0.5)
   check(`AC-1134 horizontal-bar sorts descending (${arabic ? 'ar' : 'en'})`, descending, JSON.stringify(values))
   check(
     `AC-1134 horizontal-bar puts Other last (${arabic ? 'ar' : 'en'})`,
@@ -292,7 +272,7 @@ for (const width of [1280, 1440]) {
   const { ctx, page } = await newPage({ viewport: { width, height: 900 } })
   await openReport(page, 'RPT-14')
   const gaps = await page.evaluate(() => {
-    const labels = [...document.querySelectorAll('.recharts-xAxis .recharts-cartesian-axis-tick-value')]
+    const labels = [...document.querySelectorAll('.recharts-xAxis-tick-labels text')]
     const xs = labels.map((l) => l.getBoundingClientRect().x).sort((a, b) => a - b)
     const g = []
     for (let i = 1; i < xs.length; i += 1) g.push(xs[i] - xs[i - 1])

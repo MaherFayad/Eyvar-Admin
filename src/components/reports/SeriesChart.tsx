@@ -285,7 +285,11 @@ export function SeriesChart({
         tickLine={false}
         axisLine={{ stroke: 'var(--chart-axis)' }}
         tickMargin={8}
-        minTickGap={24}
+        /* §4.4 — at most one label per 64px; recharts skips a tick whose own
+           label would sit closer than this to its neighbour. Text never
+           rotates (unset here, and nothing in this file sets a transform). */
+        minTickGap={64}
+        interval="preserveStartEnd"
         tick={{ fill: 'var(--chart-axis)', fontSize: 11 }}
       />
       <YAxis

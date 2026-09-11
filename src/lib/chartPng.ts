@@ -44,12 +44,32 @@ function captionLines(caption: ChartPngCaption): string[] {
   return lines
 }
 
+/**
+ * Every custom property visible AT `source`, as a `:root` block: `globals.css`
+ * tokens plus `ChartContainer`'s `[data-chart]`-scoped `--color-<key>` layer.
+ * The standalone SVG document below (an object URL) has access to neither,
+ * so reading the SOURCE element rather than the page root is what resolves
+ * both — the root alone left every mark in the SVG spec's fallback ink.
+ */
+function inlineCssCustomProperties(source: Element): string {
+  const computed = getComputedStyle(source)
+  const declarations: string[] = []
+  for (let i = 0; i < computed.length; i++) {
+    const name = computed.item(i)
+    if (name.startsWith('--')) declarations.push(`${name}:${computed.getPropertyValue(name)};`)
+  }
+  return `:root{${declarations.join('')}}`
+}
+
 /** The chart's SVG, rasterised into a same-size `<img>` via an object URL. */
 function svgToImage(svg: SVGSVGElement, width: number, height: number): Promise<HTMLImageElement> {
   const clone = svg.cloneNode(true) as SVGSVGElement
   clone.setAttribute('width', String(width))
   clone.setAttribute('height', String(height))
   clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg')
+  const style = document.createElementNS('http://www.w3.org/2000/svg', 'style')
+  style.textContent = inlineCssCustomProperties(svg)
+  clone.insertBefore(style, clone.firstChild)
   const markup = new XMLSerializer().serializeToString(clone)
   const url = URL.createObjectURL(new Blob([markup], { type: 'image/svg+xml;charset=utf-8' }))
   return new Promise((resolve, reject) => {

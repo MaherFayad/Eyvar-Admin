@@ -65,6 +65,24 @@ function sqlJson(value) {
  * (AC-1275). WP-6.1's original six-column stub is gone: every field of
  * `Measure` (`src/data/types/measure.ts`) has a column now.
  */
+/**
+ * WP-6.4c: `sequential`/`holdConstant` funnel options are server-only
+ * (`plan.ts`'s `funnel-needs-server`) and no measure in
+ * `src/data/fixtures/measures.ts` declares `funnelCapabilities` for either —
+ * the mock never computes them, so it has no reason to. The seed is the one
+ * place the *server's* catalogue can say "I support this" without a
+ * frontend-owned fixture change, so `reports-run.test.ts`'s hand-checked
+ * server-only-option cases can reach the planner's real gate rather than a
+ * synthetic one. Declared for the same three measures RPT-6's funnel already
+ * uses; applied only where the fixture itself is silent, so a future fixture
+ * declaration always wins.
+ */
+const SERVER_ONLY_FUNNEL_CAPABILITIES = {
+  'riders.joined': { sequential: true, holdConstant: true },
+  'trips.completed': { sequential: true, holdConstant: true },
+  'subscriptions.started': { sequential: true, holdConstant: true },
+}
+
 function measuresSeed(measureFixtures) {
   const columns = [
     'key', 'sort_order', 'label_key', 'category',
@@ -104,7 +122,7 @@ function measuresSeed(measureFixtures) {
       sqlNullable(measure.captionKey),
       sqlJson(measure.displayedAsMetricKeys),
       measure.supportsPerformed === undefined ? 'null' : sqlBool(measure.supportsPerformed),
-      sqlJson(measure.funnelCapabilities),
+      sqlJson(measure.funnelCapabilities ?? SERVER_ONLY_FUNNEL_CAPABILITIES[measure.key]),
     ]
     return `INSERT INTO measures (${columns.join(', ')}) VALUES (${values.join(', ')}) ON CONFLICT (key) DO NOTHING;`
   })
@@ -151,11 +169,14 @@ function driversSeed(drivers) {
   return tableSeed('fixture_drivers', columns, drivers, (row, c) => sqlString(get[c](row)))
 }
 
-/** `Rider` → `fixture_riders`. */
+/** `Rider` → `fixture_riders`. `lastTripAt` is nullable (`0010_subject_modes.sql`) — `resolveCohort`'s `lastActiveOf` reads it when a cohort names no return measure. */
 function ridersSeed(riders) {
-  const columns = ['id', 'joinedAt', 'rider.city', 'rider.status']
+  const columns = ['id', 'joinedAt', 'rider.city', 'rider.status', 'lastTripAt']
   const get = { id: (r) => r.id, joinedAt: (r) => r.joinedAt, 'rider.city': (r) => r.city, 'rider.status': (r) => r.status }
-  return tableSeed('fixture_riders', columns, riders, (row, c) => sqlString(get[c](row)))
+  return tableSeed('fixture_riders', columns, riders, (row, c) => {
+    if (c === 'lastTripAt') return sqlNullable(row.lastTripAt)
+    return sqlString(get[c](row))
+  })
 }
 
 /** `Subscription` → `fixture_subscriptions`. `cancelledAt` is the one nullable column. */
@@ -176,9 +197,9 @@ function subscriptionsSeed(subscriptions) {
   })
 }
 
-/** `Trip` → `fixture_trips`. `endedAt` and `pickup` are nullable (in progress / cancelled before pickup). */
+/** `Trip` → `fixture_trips`. `endedAt`, `pickup` and `driverId` are nullable (in progress / cancelled before pickup / no captain assigned yet). `driverId` (`0010_subject_modes.sql`) is what `resolveCohort`'s driver-side `lastActiveOf` derives a captain's last-active date from. */
 function tripsSeed(trips) {
-  const columns = ['id', 'riderId', 'endedAt', 'trip.kind', 'trip.status', 'trip.pickup', 'fareHalalas']
+  const columns = ['id', 'riderId', 'endedAt', 'trip.kind', 'trip.status', 'trip.pickup', 'fareHalalas', 'driverId']
   const get = {
     id: (t) => t.id, riderId: (t) => t.riderId, 'trip.kind': (t) => t.kind, 'trip.status': (t) => t.status,
     fareHalalas: (t) => t.fareHalalas,
@@ -186,6 +207,7 @@ function tripsSeed(trips) {
   return tableSeed('fixture_trips', columns, trips, (row, c) => {
     if (c === 'endedAt') return sqlNullable(row.endedAt)
     if (c === 'trip.pickup') return sqlNullable(row.pickup)
+    if (c === 'driverId') return sqlNullable(row.driverId)
     if (c === 'fareHalalas') return String(get[c](row))
     return sqlString(get[c](row))
   })

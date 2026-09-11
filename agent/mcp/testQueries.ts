@@ -10,9 +10,10 @@ export const tripsCompletedTrend = {
   chartType: 'line',
 } as const
 
-export const tripsCompletedByCity = {
+/** `trip.kind` is a dimension `trips.completed` actually declares (§4.1 F-3) — `driver.city` is not. */
+export const tripsCompletedByKind = {
   measures: [{ key: 'trips.completed' }],
-  groupBy: ['driver.city'],
+  groupBy: ['trip.kind'],
   filters: [],
   window: { kind: 'preset', preset: 'last-30d' },
   grain: 'day',
@@ -26,6 +27,17 @@ export const invalidQuery = {
   groupBy: [],
   filters: [],
   window: { kind: 'absolute', from: '2026-06-25', to: '2026-06-01' },
+  grain: 'day',
+  periodComparison: 'none',
+  chartType: 'line',
+} as const
+
+/** Schema-legal, catalogue-illegal — survives a window override (T6/T9 replace `query.window` with their own windowA/windowB). */
+export const queryWithUnknownMeasure = {
+  measures: [{ key: 'not.a.real.measure' }],
+  groupBy: [],
+  filters: [],
+  window: { kind: 'preset', preset: 'last-30d' },
   grain: 'day',
   periodComparison: 'none',
   chartType: 'line',

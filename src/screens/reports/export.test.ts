@@ -67,7 +67,7 @@ describe('auditExport — AC-1160', () => {
         windowTo: '2026-06-30',
       },
     })
-    expect(String(events[0].props.filters)).toContain('city')
+    expect(String(events[0]?.props.filters)).toContain('city')
   })
 
   it('records a PNG export as its own event, format "png"', () => {

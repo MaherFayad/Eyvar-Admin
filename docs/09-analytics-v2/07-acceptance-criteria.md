@@ -132,7 +132,7 @@
 | AC-1206 | `Turn into` converts text ↔ heading ↔ callout and report ↔ metric without losing the referenced report id |
 | AC-1207 | `Turn into columns` wraps a block into a two-column block with the original on the start side |
 | AC-1208 | The width control offers ¼ ⅓ ½ ⅔ ¾ full and disables widths that would exceed 12 |
-| AC-1209 H | Columns render on a twelve-column grid at 1344 and stack to one column at 1280 |
+| AC-1209 H | Columns render on a twelve-column grid at 1280 and at 1440. They stack to one column below `--ev-bp-wide`, which ruling O1 moved to 1280 — the product's own supported floor — so the stacked case is proven by a harness run at 1279 and is unreachable on any supported viewport. (Restated 2026-09-11: the original text said "twelve-column at 1344 and stacked at 1280", which predates O1 and cannot hold, because `wide:` is inclusive from 1280.) |
 | AC-1210 | `/management/reports?view=dashboards` renders the pages view and `/management/reports/dashboards/:id` redirects to `/pages/:id` |
 | AC-1211 | The pages index views `mine · team · starred · drafts · templates` filter correctly and a draft shows the `Draft` badge |
 | AC-1212 | `New page → From template` creates a draft copy of the template owned by the operator and navigates to it in edit mode |

@@ -31,6 +31,8 @@ import type { CoreMeasureRows, CoreRow } from '@/data/reporting/resolve/core'
 import type { FilterSpec, IsoDate } from '@/data/types/common'
 import type { BucketAggregate, Dimension, Measure } from '@/data/types/measure'
 import type { Catalogue } from '@/data/reporting/plan'
+import { subjectKindOf, type SubjectKind } from '@/data/reporting/subjects'
+import { localDayOf } from '@/data/reporting/buckets'
 
 /** §6's cap: a leg over this many matching rows is truncated, never silently short. */
 export const DEFAULT_ROW_CAP = 50_000
@@ -54,6 +56,8 @@ interface MeasureSourceRow {
   live_to_bounds_json: unknown
   supports_stock: boolean
   field_columns_json: unknown
+  /** WP-6.4c, `0010_subject_modes.sql`. Which column is this table's real primary key — `resolveJourney`'s `rowId` identity, never a sort key (see that migration's header). Defaults to `'id'`. */
+  row_id_column: string
 }
 
 /** One upper bound on a stock row's liveness window (`0008_live_window.sql`). `exclusive` shifts the bound back one calendar day — the mock's `day < localDayOf(cancelledAt)`, not `day <= `. */
@@ -463,6 +467,164 @@ export async function subjectsMeetingPerformed(
     if (meets) allow.add(row.subject_id)
   }
   return allow
+}
+
+/* ────────────────── subject events: funnel, cohort, journey ──────────────── */
+
+/**
+ * `SubjectEvent` (`src/data/mock/resolveReport.ts`), fetched instead of read
+ * off a fixture row. `rowId` is `"${resource}#${primary key}"` — a stable
+ * identity for "the same physical row", not a sort key; see
+ * `0010_subject_modes.sql`'s header for why a real key stands in for the
+ * mock's array-index `rowId` without changing any observable result.
+ *
+ * `dimValue` is `null` unless a caller asks for `holdConstant`'s dimension
+ * AND that dimension's field exists on `measure`'s own table — see
+ * `fetchSubjectEvents`'s `dimension` parameter.
+ */
+export interface SubjectEvent {
+  subjectId: string
+  date: IsoDate
+  rowId: string
+  dimValue: string | null
+}
+
+export interface SubjectEventSet {
+  /** `null` when the store names nobody — `RowSource.subject === null` in the mock. */
+  kind: SubjectKind | null
+  events: SubjectEvent[]
+  truncated: boolean
+}
+
+/**
+ * `eventsOf` (`resolveReport.ts`), over SQL rows: every row of `measure`'s
+ * population, `filters` and `window` narrowed together, as one event per
+ * subject per row. Population `predicate` and `filters` are ANDed in SQL —
+ * the same rule `appendFilterSql` already applies for the trend/formula path,
+ * so a funnel rung filtered to Quick Rides narrows by exactly the rule a
+ * trend filtered to Quick Rides narrows by (AC-814).
+ *
+ * Sorted `date, subjectId, rowId` ascending, matching the mock's own
+ * determinism — kept for parity even though no caller's *output* actually
+ * depends on the `rowId` leg of that tie-break (see `0010_subject_modes.sql`).
+ */
+export async function fetchSubjectEvents(
+  db: Database,
+  measure: Measure,
+  filters: readonly FilterSpec[],
+  window: { from: IsoDate; to: IsoDate },
+  rowCap: number = DEFAULT_ROW_CAP,
+  dimension: Dimension | null = null,
+): Promise<SubjectEventSet> {
+  const source = await loadMeasureSource(db, measure.population.resource)
+  if (!source) {
+    throw new Error(
+      `Measure "${measure.key}" declares population "${measure.population.resource}", which no measure_sources row reads (R5-15).`,
+    )
+  }
+  const kind = subjectKindOf(measure.population.resource)
+  if (kind === null || !source.subject_column) return { kind: null, events: [], truncated: false }
+
+  const fieldColumns = parseFieldColumns(source.field_columns_json)
+  const timeField = await resolveColumn(db, source.table_name, fieldColumns, measure.population.timeField)
+  if (!timeField) return { kind, events: [], truncated: false }
+
+  const rowIdField = await resolveColumn(db, source.table_name, fieldColumns, source.row_id_column)
+  if (!rowIdField) return { kind, events: [], truncated: false }
+
+  /* Only meaningful when the *held* dimension's field lives on this same
+     table — see this function's own docblock and `holdConstant`'s comment in
+     `handlers/reportsFunnel.ts` for what a rung whose store cannot answer it
+     means. */
+  const dimField =
+    dimension && dimension.resource === measure.population.resource
+      ? await resolveColumn(db, source.table_name, fieldColumns, dimension.field)
+      : null
+
+  const table = quoteIdent(source.table_name)
+  const dateExpr = timeExprSql(timeField)
+  const subjectExpr = quoteIdent(source.subject_column)
+  const rowIdExpr = quoteIdent(rowIdField.column)
+  const dimExpr = dimField ? `(${quoteIdent(dimField.column)})::text` : 'NULL'
+
+  const sb = new SqlBuilder()
+  sb.text(
+    `SELECT ${subjectExpr} AS subject_id, ${dateExpr} AS date, (${rowIdExpr})::text AS row_id, ${dimExpr} AS dim_value ` +
+      `FROM ${table} WHERE TRUE`,
+  )
+
+  let forceEmpty = false
+  for (const filter of [...measure.population.predicate, ...filters]) {
+    const resolved = await resolveColumn(db, source.table_name, fieldColumns, filter.field)
+    if (!resolved) {
+      forceEmpty = true
+      break
+    }
+    sb.text(' AND (')
+    appendFilterSql(sb, quoteIdent(resolved.column), filter)
+    sb.text(')')
+  }
+  if (forceEmpty) return { kind, events: [], truncated: false }
+
+  sb.text(` AND ${dateExpr} >= `).param(window.from).text(` AND ${dateExpr} <= `).param(window.to)
+  sb.text(' LIMIT ').param(rowCap + 1)
+
+  const raw = await sb.run<{ subject_id: string | null; date: string; row_id: string; dim_value: string | null }>(db)
+  const truncated = raw.length > rowCap
+  const capped = truncated ? raw.slice(0, rowCap) : raw
+
+  const events: SubjectEvent[] = []
+  for (const r of capped) {
+    if (!r.subject_id) continue
+    events.push({
+      subjectId: r.subject_id,
+      date: r.date as IsoDate,
+      rowId: `${measure.population.resource}#${r.row_id}`,
+      dimValue: r.dim_value,
+    })
+  }
+  events.sort(
+    (a, b) => a.date.localeCompare(b.date) || a.subjectId.localeCompare(b.subjectId) || a.rowId.localeCompare(b.rowId),
+  )
+
+  return { kind, events, truncated }
+}
+
+/**
+ * `lastActiveOf` (`resolveReport.ts`): "when was this subject last seen",
+ * read off the store rather than derived from any measure — the same
+ * deliberate exception the mock's own docblock states (*"the one `RowSource`-
+ * shaped fact the cohort engine needs and the trend resolver never asks
+ * for"*). A rider's own `lastTripAt`; a driver's latest `trips.endedAt`
+ * (`0010_subject_modes.sql`'s two added columns). Whole-index, not
+ * per-subject, so `resolveCohort` makes one query per kind rather than one
+ * per subject.
+ */
+export async function fetchLastActiveIndex(db: Database, kind: SubjectKind): Promise<Map<string, IsoDate>> {
+  const out = new Map<string, IsoDate>()
+  if (kind === 'rider') {
+    const source = await loadMeasureSource(db, 'riders')
+    if (!source) return out
+    const table = quoteIdent(source.table_name)
+    const sb = new SqlBuilder().text(`SELECT id, "lastTripAt" FROM ${table} WHERE "lastTripAt" IS NOT NULL`)
+    const rows = await sb.run<{ id: string; lastTripAt: string | null }>(db)
+    for (const row of rows) {
+      if (row.lastTripAt) out.set(row.id, localDayOf(row.lastTripAt))
+    }
+    return out
+  }
+
+  const source = await loadMeasureSource(db, 'trips')
+  if (!source) return out
+  const table = quoteIdent(source.table_name)
+  const sb = new SqlBuilder().text(
+    `SELECT "driverId", MAX("endedAt") AS last_ended FROM ${table} WHERE "driverId" IS NOT NULL AND "endedAt" IS NOT NULL GROUP BY "driverId"`,
+  )
+  const rows = await sb.run<{ driverId: string; last_ended: string | null }>(db)
+  for (const row of rows) {
+    if (row.last_ended) out.set(row.driverId, localDayOf(row.last_ended))
+  }
+  return out
 }
 
 export type { Dimension, Measure }

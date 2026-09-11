@@ -11,12 +11,10 @@ const OUT = './scripts/harness/shots'
 mkdirSync(OUT, { recursive: true })
 const browser = await chromium.launch()
 
-async function findAPageId(page) {
-  await page.goto(BASE + '/management/reports?view=pages', { waitUntil: 'networkidle' })
-  await page.waitForTimeout(800)
-  const href = await page.getAttribute('table a[href*="/management/reports/pages/"], a[href*="/management/reports/pages/"]', 'href')
-  if (href) return href.split('/').pop()
-  return null
+/* `DSH-1` is the fixture `dashboardToPage` keeps its id for — the same one
+   `amp-dash.mjs` shoots at `/dashboards/DSH-1`, now migrated to a page. */
+async function findAPageId() {
+  return 'DSH-1'
 }
 
 async function shoot(name, { arabic = false, dark = false } = {}) {
@@ -35,14 +33,16 @@ async function shoot(name, { arabic = false, dark = false } = {}) {
     return
   }
 
+  await page.goto(`${BASE}/management/reports/pages/${pageId}`, { waitUntil: 'networkidle' })
+  await page.waitForTimeout(800)
+
   if (arabic) {
     await page.getByRole('button', { name: 'Account' }).click()
     await page.getByRole('menuitemradio', { name: 'Arabic' }).click()
-    await page.waitForTimeout(600)
+    await page.waitForTimeout(800)
   }
 
-  await page.goto(`${BASE}/management/reports/pages/${pageId}`, { waitUntil: 'networkidle' })
-  await page.waitForTimeout(1200)
+  await page.waitForTimeout(400)
   await page.screenshot({ path: `${OUT}/${name}-view.png`, fullPage: true })
 
   /* Edit mode. */
@@ -96,12 +96,18 @@ async function shootColumnsAtWidths() {
     if (await columnsItem.count()) {
       await columnsItem.first().click()
       await page.waitForTimeout(400)
+      /* Only the FIRST column's control — the second column's own budget is
+         what leaves some of these disabled while it still holds its
+         6-twelfth default, which is the overflow rule working, not a bug. */
       for (const label of ['¼', '⅓', '½', '⅔', '¾', 'Full']) {
-        const trigger = page.getByRole('tab', { name: label })
-        if (await trigger.count()) {
-          await trigger.first().click()
+        const trigger = page.getByRole('tab', { name: label }).first()
+        if ((await trigger.count()) && (await trigger.isEnabled())) {
+          await trigger.click()
           await page.waitForTimeout(200)
-          await page.screenshot({ path: `${OUT}/columns-width-${label.replace('¼', 'quarter').replace('⅓', 'third').replace('½', 'half').replace('⅔', 'two-thirds').replace('¾', 'three-quarters').replace('Full', 'full')}.png` })
+          const file = { '¼': 'quarter', '⅓': 'third', '½': 'half', '⅔': 'two-thirds', '¾': 'three-quarters', Full: 'full' }[label]
+          await page.screenshot({ path: `${OUT}/columns-width-${file}.png` })
+        } else {
+          console.log('columns width', label, 'disabled at this point — overflow rule, not attempted')
         }
       }
     }
