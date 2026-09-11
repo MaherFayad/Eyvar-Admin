@@ -27,6 +27,7 @@ import {
   planQuery,
   type Catalogue,
 } from './plan'
+import { formulaUnit } from './formula'
 import type { Measure } from '../types/measure'
 import type { FunnelStep, QueryViolation, ReportQuery } from '../types/report'
 
@@ -815,5 +816,52 @@ describe('17 — funnel-needs-server', () => {
   it('is silent at the v2 defaults — ordered, no hold, nothing excluded', () => {
     const query: ReportQuery = { ...base, mode: 'funnel', funnel: funnelSpec(twoSteps) }
     expect(codes(query)).not.toContain('funnel-needs-server')
+  })
+})
+
+/* ────── 18 — a formula's own units decide legality, not the raw pair (WP-1.4b) ────── */
+
+describe("18 — a formula's own units decide legality, not the raw pair", () => {
+  it('legalises revenue over trips — the raw pair disagrees on unit, the formula resolves it to a ratio', () => {
+    const query = trend({
+      measures: [{ key: 'revenue.total' }, { key: 'trips.completed' }],
+      formula: { expression: 'A / B', label: 'Revenue per trip' },
+    })
+    expect(plan(query).violations).toEqual([])
+
+    /* `formulaUnit` is the authority §2.2 names: `A / B` across a currency and
+       a count yields one `ratio` series (SAR per trip once formatted), never
+       a unit error. */
+    const revenue = measureFixtures.find((m) => m.key === 'revenue.total')!
+    const trips = measureFixtures.find((m) => m.key === 'trips.completed')!
+    const result = formulaUnit('A / B', {
+      A: { unit: revenue.unit, currency: revenue.currency, additive: revenue.additive, temporality: revenue.temporality },
+      B: { unit: trips.unit, currency: trips.currency, additive: trips.additive, temporality: trips.temporality },
+      hasSplit: false,
+    })
+    expect(result).toMatchObject({ ok: true, unit: 'ratio', currency: null, temporality: 'flow' })
+  })
+
+  it('still refuses two raw measures of different units with no formula (§6.2, AC-825)', () => {
+    const query = trend({ measures: [{ key: 'revenue.total' }, { key: 'trips.completed' }] })
+    const v = violation(query, 'mixed-unit')
+    expect(v).toMatchObject({
+      field: 'measures',
+      reasonKey: 'rb.violation.mixedUnit',
+      reasonParams: { a: 'money', b: 'count' },
+    })
+  })
+
+  it('still refuses a formula whose own units cannot combine, with `formula-unit` and a position', () => {
+    const query = trend({
+      measures: [{ key: 'revenue.total' }, { key: 'trips.completed' }],
+      formula: { expression: 'A + B', label: 'x' },
+    })
+    const v = violation(query, 'formula-unit')
+    expect(v?.field).toBe('formula')
+    expect(v?.reasonKey).toBe('rb.violation.formulaUnit')
+    expect(typeof v?.reasonParams.position).toBe('number')
+    /* Not `mixed-unit`: the raw-pair code must not leak through a formula's refusal. */
+    expect(codes(query)).not.toContain('mixed-unit')
   })
 })

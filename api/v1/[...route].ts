@@ -48,8 +48,40 @@ import {
   createListDimensionsHandler,
   createGetGlossaryHandler,
 } from '../_lib/handlers/catalogue'
-import { createRunReportHandler } from '../_lib/handlers/reports'
-import type { IsoDateTime } from '@/data/types/common'
+import { createRunReportHandler } from '../_lib/handlers/reportsRun'
+import {
+  createCreateReportHandler,
+  createDeleteReportHandler,
+  createDuplicateReportHandler,
+  createGetReportHandler,
+  createGetReportVersionsHandler,
+  createListReportsHandler,
+  createStarReportHandler,
+  createUpdateReportHandler,
+} from '../_lib/handlers/reports'
+import {
+  createCreateSegmentHandler,
+  createDeleteSegmentHandler,
+  createGetSegmentHandler,
+  createListSegmentsHandler,
+  createUpdateSegmentHandler,
+} from '../_lib/handlers/segments'
+import {
+  createCreateAnnotationHandler,
+  createDeleteAnnotationHandler,
+  createListAnnotationsHandler,
+} from '../_lib/handlers/annotations'
+import {
+  createCreatePageHandler,
+  createDeletePageHandler,
+  createDuplicatePageHandler,
+  createGetPageHandler,
+  createListPagesHandler,
+  createPublishPageHandler,
+  createStarPageHandler,
+  createUpdatePageHandler,
+} from '../_lib/handlers/pages'
+import type { IsoDate, IsoDateTime } from '@/data/types/common'
 
 interface HealthPayload {
   status: 'ok'
@@ -60,6 +92,8 @@ export interface ApiDeps {
   db: Database
   /** WP-6.2b: injectable so a test can drive `verifyCode` deterministically instead of racing a random six-digit code. Defaults to the real generator. */
   generateCode?: () => string
+  /** WP-6.4: injectable so `reports.run`'s AC-1276 equality test can pin the same clock the mock resolver runs against (`EYVAR_TODAY`/`EYVAR_NOW`). Defaults to the real clock. */
+  reportsClock?: { today?: () => IsoDate; now?: () => string }
 }
 
 export function createApiHandler(deps: ApiDeps): (req: Request) => Promise<Response> {
@@ -113,8 +147,41 @@ export function createApiHandler(deps: ApiDeps): (req: Request) => Promise<Respo
   router.get('/catalogue/dimensions', createListDimensionsHandler(deps.db))
   router.get('/catalogue/glossary', createGetGlossaryHandler(deps.db))
 
-  // reports.run (see handlers/reports.ts) — WP-6.4
-  router.post('/reports/run', createRunReportHandler(deps.db))
+  // reports.run (see handlers/reportsRun.ts — a separate file from WP-6.5's
+  // handlers/reports.ts CRUD library; see reportsRun.ts's header) — WP-6.4
+  router.post('/reports/run', createRunReportHandler(deps.db, deps.reportsClock))
+
+  // reports.* CRUD library — see handlers/reports.ts — WP-6.5 (AC-1280)
+  router.get('/reports', createListReportsHandler(deps.db))
+  router.post('/reports', createCreateReportHandler(deps.db))
+  router.get('/reports/:id', createGetReportHandler(deps.db))
+  router.patch('/reports/:id', createUpdateReportHandler(deps.db))
+  router.delete('/reports/:id', createDeleteReportHandler(deps.db))
+  router.post('/reports/:id/duplicate', createDuplicateReportHandler(deps.db))
+  router.post('/reports/:id/star', createStarReportHandler(deps.db))
+  router.get('/reports/:id/versions', createGetReportVersionsHandler(deps.db))
+
+  // segments.* — see handlers/segments.ts — WP-6.5
+  router.get('/segments', createListSegmentsHandler(deps.db))
+  router.post('/segments', createCreateSegmentHandler(deps.db))
+  router.get('/segments/:id', createGetSegmentHandler(deps.db))
+  router.patch('/segments/:id', createUpdateSegmentHandler(deps.db))
+  router.delete('/segments/:id', createDeleteSegmentHandler(deps.db))
+
+  // annotations.* — see handlers/annotations.ts — WP-6.5
+  router.get('/annotations', createListAnnotationsHandler(deps.db))
+  router.post('/annotations', createCreateAnnotationHandler(deps.db))
+  router.delete('/annotations/:id', createDeleteAnnotationHandler(deps.db))
+
+  // pages.* — see handlers/pages.ts — WP-6.5 (AC-1279, AC-1280, AC-1281)
+  router.get('/pages', createListPagesHandler(deps.db))
+  router.post('/pages', createCreatePageHandler(deps.db))
+  router.get('/pages/:id', createGetPageHandler(deps.db))
+  router.patch('/pages/:id', createUpdatePageHandler(deps.db))
+  router.delete('/pages/:id', createDeletePageHandler(deps.db))
+  router.post('/pages/:id/publish', createPublishPageHandler(deps.db))
+  router.post('/pages/:id/duplicate', createDuplicatePageHandler(deps.db))
+  router.post('/pages/:id/star', createStarPageHandler(deps.db))
 
   return async function handler(req: Request): Promise<Response> {
     const requestId = req.headers.get('x-vercel-id') ?? crypto.randomUUID()

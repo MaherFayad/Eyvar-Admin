@@ -351,9 +351,15 @@ export function planQuery(query: ReportQuery, catalogue: Catalogue, today: IsoDa
   }
 
   /* §6.2's refusal, applied wherever a pair arrives from — the picker, a saved
-     report, or a hand-edited URL. AC-825. */
+     report, or a hand-edited URL. AC-825. This is about **two raw measures
+     sharing one y-axis** (R4-1). A formula produces one series with one unit
+     that `formulaUnit` below decides for itself — 02 §2.2's table legalises
+     `A / B` across units on purpose, a currency over a count, so the raw pair
+     must not also refuse it (WP-1.4b). `Show A and B too` redraws the operands
+     as dashed context series from a view-only option (§2.2), never from
+     `ReportQuery`, so it never reaches this planner and needs no rule here. */
   const [first, second] = measures
-  if (isSeriesMode && first && second) {
+  if (isSeriesMode && first && second && !query.formula) {
     const refusal = pairRefusal(first, second)
     if (refusal === 'different-temporality') {
       violations.push({

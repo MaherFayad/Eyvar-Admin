@@ -30,7 +30,7 @@ Everything else in the plan stands, including every gate.
 | WP-1.4 Planner | mock-data-engineer | done — v2 legality, NEAREST, formula violations, 33 new tests |
 | WP-1.8 Fixtures | mock-data-engineer | done — v2 migration, 6 new fixture files, AC-1290 table, 61 typecheck errors left (all in reports screens) |
 | WP-1.7 Clients | mock-data-engineer | running |
-| WP-1.4b Formula unit fix | utilities-engineer | running (orchestrator-opened) |
+| WP-1.4b Formula unit fix | utilities-engineer | done — revenue-per-trip legal, both guards kept, RPT-19 seeded |
 | WP-1.5 Serialiser | mock-data-engineer | done — v:2 wire, every v1 URL still decodes, 56 tests |
 | WP-1.6a Resolver core | mock-data-engineer | done — pure core + fixture adapter, 52 tests |
 | WP-6.4 Compiler | general-purpose | running |
@@ -48,6 +48,7 @@ Everything else in the plan stands, including every gate.
 |---|---|---|---|
 | F-V2-1 | D33 … D37 exist only as prose in `RULINGS.md`'s "Standing owner overrides", never as headed entries in `DECISIONS.md`, though the ID-namespace table says their text lives there | WP-0.1 | Backlog; not fixed in this build. The owner decides whether they get retroactive entries |
 | F-V2-2 | Q-RB-3 (week start) and Q-RB-7 (alert cadence) are not in `docs/07-api/OPEN-QUESTIONS.md`; they live in `specs/06-report-builder.md`. D45 and D41 answer them but the spec still poses them | WP-0.1 | Fixed in WP-8.5 |
+| F-V2-27 | `02-report-builder-v2.md` §2.2 types `A / B` as `ratio` unconditionally, so revenue per trip renders as a bare number with no currency — an operator sees `23.4`, not `SAR 23.40`. Built to the plan, because D42 was signed with that table | WP-1.4b | **Open, the owner's call.** Money divided by a count is money per unit; carrying the currency would read better and cannot mislead. Changing it means amending §2.2, `formulaUnit` and its tests |
 | F-V2-24 | `plan.ts` applies the raw-pair `mixed-unit` refusal to a query that carries a formula, so `revenue.total / trips.completed` — revenue per trip, an obvious business metric — is refused. The fixture was changed to same-unit measures rather than seed an illegal saved report | WP-1.8 | **WP-1.4b opened.** A formula's unit is `formulaUnit`'s to decide; the raw-pair check must not also apply |
 | F-V2-25 | Type gaps found by seeding real data: `AlertFiring` has no `deliveries[]` or `band` (04 §5), `Page` has no `template` flag, and there is no `AgentRunner` type at all | WP-1.8 | WP-1.7 mints all three; states 24 and "runner offline" cannot be drawn until then |
 | F-V2-26 | Alert evaluation lag (state 28) is unreachable from any fixture: every seeded rule has `cadence: null` by design, and lag is only detectable against a known cadence | WP-1.8 | WP-1.7/WP-5.2 seed a rule with a cadence once the client supports it |

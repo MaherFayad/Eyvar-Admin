@@ -147,9 +147,7 @@ VALUES
   ('trips', 'fixture_trips', 'endedAt', 'riderId', NULL, false,
     '{"endedAt": {"column": "endedAt", "localDay": true}}'::jsonb, '[]'::jsonb),
   ('daily-snapshots', 'daily_snapshots', 'day', NULL, NULL, false,
-    '{"date": "day", "riders": "riders", "drivers": "drivers", "activeSubs": "active_subscriptions", ' ||
-    '"quickRides": "quick_rides", "cancelRatePct": "cancel_rate_pct", "totalRevenueHalalas": "total_revenue_halalas", ' ||
-    '"quickRideRevenueHalalas": "quick_ride_revenue_halalas", "subRevenueHalalas": "sub_revenue_halalas"}'::jsonb,
+    '{"date": "day", "riders": "riders", "drivers": "drivers", "activeSubs": "active_subscriptions", "quickRides": "quick_rides", "cancelRatePct": "cancel_rate_pct", "totalRevenueHalalas": "total_revenue_halalas", "quickRideRevenueHalalas": "quick_ride_revenue_halalas", "subRevenueHalalas": "sub_revenue_halalas"}'::jsonb,
     '[]'::jsonb)
 ON CONFLICT (resource) DO UPDATE SET
   table_name = EXCLUDED.table_name,

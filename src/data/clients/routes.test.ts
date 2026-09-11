@@ -202,13 +202,18 @@ describe('§3.10 — page shapes', () => {
    * §5.0's drawer is *"a surface consulted against the page behind it"*, and at
    * a 45-second first-response promise an operator is in the conversation for
    * twenty minutes.
+   *
+   * **D46 adds two more** — `page` and `analyst-job` — the analytics v2 page
+   * detail and the analyst job detail, each addressing one named record the
+   * same way `report` and `dashboard` already do.
    */
-  it('declares exactly the eleven level-3 routes — §3.4’s five, D1a’s two, D19’s one, S-7’s one, S-8’s two', () => {
+  it('declares exactly the thirteen level-3 routes — §3.4’s five, D1a’s two, D19’s one, S-7’s one, S-8’s two, D46’s two', () => {
     const kinds = [
       ...SUB_TABS.flatMap((r) => r.detailRoutes.map((d) => d.kind)),
       ...SHELL_LAYERS.filter((l) => l.fullPagePath).map(() => 'entity' as const),
     ]
     expect(kinds.sort()).toEqual([
+      'analyst-job',
       'applicant',
       'conversation',
       'corporate',
@@ -217,6 +222,7 @@ describe('§3.10 — page shapes', () => {
       'entity',
       'fairness-case',
       'incident',
+      'page',
       'plan-editor',
       'plan-editor',
       'quick-ride-editor',

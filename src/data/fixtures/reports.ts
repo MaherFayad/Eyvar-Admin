@@ -19,7 +19,7 @@
  * still accepts the v1 shapes — `serialise.v1.fixtures.ts` (WP-1.5) is where
  * those live — but a fixture typed `ReportQuery` has to satisfy the v2 type to
  * compile, and F-V2-9 already logged that ten queries is thin for a library
- * screen. `RPT-10` … `RPT-18` below are new, one per v2 control this file did
+ * screen. `RPT-10` … `RPT-19` below are new, one per v2 control this file did
  * not previously exercise. **Alert rules and firings moved to `alerts.ts`**
  * (D42 split `AlertRule` out of this module's concerns); `ALR_1_ROUTE` stays
  * here because it is derived from `cancellationTrend`, a query this file owns.
@@ -37,7 +37,7 @@
  * | `RPT-7` monthly cohorts, `M0…M3` | `mode: 'cohort'`, over a window long enough to reach `M3` |
  * | `RPT-8` a journey rooted at signup | `mode: 'journey'`, and `mode-not-resolved` on the wire |
  * | `RPT-9` a daily data table | `mode: 'table'` — a real grain and a real split, unlike the other three |
- * | `RPT-10` a formula | G2 — `A / B`, replacing the measure series in the plot |
+ * | `RPT-10` a formula | G2 — `A / B * 100`, a percent-of-count formula |
  * | `RPT-11` two saved segments | G5 — `segments`, compared side by side on one measure |
  * | `RPT-12` two-level split | G4 — `groupBy` of two dimensions, drawn as a table |
  * | `RPT-13` a fixed comparison | G6 — `periodComparison: { kind: 'fixed' }`, equal bucket counts, `percent-change` display |
@@ -46,6 +46,7 @@
  * | `RPT-16` `stacked-100` | G8 |
  * | `RPT-17` `horizontal-bar` | G8 |
  * | `RPT-18` `kpi` | G8 |
+ * | `RPT-19` money over count | G2, WP-1.4b — `A / B`, a currency measure over a count one |
  * | `oneRungFunnel` (not saved) | AC-825's hand-edited URL: legal to link, refused when planned |
  * | `DSH-1` three tiles, the first `span: 'full'` | a rendered dashboard, and §C5's hero-over-grid layout |
  * | `DSH-2` no tiles | §11.4's first-run empty *for that dashboard* |
@@ -264,21 +265,30 @@ export const oneRungFunnel: ReportQuery = {
 
 /* ───────────────────────── v2 queries (WP-1.8) ──────────────────────────── */
 
-/**
- * G2 — replaces the measure series in the plot. `A` and `B` are both `count`,
- * same unit, same temporality, so `plan.ts`'s §6.2 pairing rule (`mixed-unit`)
- * does not fire on the raw pair — `plan.ts` does not yet exempt a query that
- * carries `formula` from that pairing check, and a report whose raw measures
- * were refused could not be a `SavedReport` in the first place (§4.2). See
- * the handoff for the mixed-unit-vs-formula finding this traced.
- *
- * `mode: 'trend'` is written explicitly, unlike `RPT-1` … `RPT-5`: those five
- * are the pre-P7-T1 set `serialise.test.ts` pins to an exact count of legacy,
- * mode-less links (AC-1101); every report seeded after `mode` existed names it.
- */
+/** G2 — percent-of-count (02 §2.2); `revenuePerCompletedTrip` below is the
+ * money-over-count shape. `mode` is explicit, unlike the five pre-P7-T1
+ * reports `serialise.test.ts` pins to an exact mode-less count (AC-1101). */
 const quickRideShareOfTrips: ReportQuery = {
   measures: [{ key: 'trips.quickRides' }, { key: 'trips.completed' }],
   formula: { expression: 'A / B * 100', label: 'Quick rides as a share of completed trips' },
+  groupBy: [],
+  filters: [],
+  window: { kind: 'preset', preset: 'last-30d' },
+  grain: 'day',
+  periodComparison: 'none',
+  chartType: 'line',
+  mode: 'trend',
+}
+
+/**
+ * WP-1.4b — a genuine money-over-count formula: `A` is `revenue.total`
+ * (`money`, `SAR`), `B` is `trips.completed` (`count`). The raw pair disagrees
+ * on unit and would refuse under §6.2 alone; `formulaUnit` (`formula.ts`) is
+ * what legalises `A / B` here, resolving to one `ratio` series — SAR per trip.
+ */
+const revenuePerCompletedTrip: ReportQuery = {
+  measures: [{ key: 'revenue.total' }, { key: 'trips.completed' }],
+  formula: { expression: 'A / B', label: 'Revenue per completed trip' },
   groupBy: [],
   filters: [],
   window: { kind: 'preset', preset: 'last-30d' },
@@ -620,6 +630,18 @@ export const savedReportFixtures: SavedReport[] = [
     createdAt: offsetFromNow({ days: -1 }),
     updatedAt: offsetFromNow({ hours: -12 }),
     lastRunAt: offsetFromNow({ hours: -1 }),
+    pinnedToDashboardIds: [],
+  },
+  {
+    id: 'RPT-19',
+    name: 'Revenue per completed trip',
+    description: 'A / B: money over count, once the raw pair alone would have refused (WP-1.4b).',
+    query: revenuePerCompletedTrip,
+    ownerId: 'USR-2',
+    visibility: 'team',
+    createdAt: offsetFromNow({ days: -1 }),
+    updatedAt: offsetFromNow({ days: -1 }),
+    lastRunAt: offsetFromNow({ hours: -6 }),
     pinnedToDashboardIds: [],
   },
 ]
