@@ -34,7 +34,12 @@ async function shoot(name, { url, arabic = false, dark = false }) {
     const strokes = [...document.querySelectorAll('.recharts-curve')]
       .map((n) => getComputedStyle(n).stroke)
       .filter((v) => v && v !== 'none')
-    const plot = document.querySelector('[role="img"]')
+    /* §2.2 (WP-2.1…2.5) moved the compound plot from `role="img"` to
+       `role="group"` (keyboard-navigable buckets); skip the chart controls
+       row's own `group` to find the plot's. */
+    const plot = [...document.querySelectorAll('[role="group"]')].find(
+      (el) => el.getAttribute('aria-label') !== 'Chart controls',
+    )
     /* Every headline dot, so a hue that failed to resolve shows as a blank. */
     const dots = [...document.querySelectorAll('[data-slot="metric-value"]')]
       .map((n) => n.parentElement?.parentElement?.querySelector('span[aria-hidden]'))

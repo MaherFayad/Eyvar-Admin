@@ -22,8 +22,12 @@ export const INSERTABLE_TYPES: readonly Block['type'][] = [
   'bookmark',
 ]
 
-/** `report`/`metric` hand off to `ReportPickerPanel` instead (§3.2) and are never produced here. */
-export function defaultBlockFor(type: Exclude<Block['type'], 'report' | 'metric'>): Block {
+/**
+ * `report`/`metric` hand off to `ReportPickerPanel` instead (§3.2);
+ * `agent-insight` is written only by the analyst and has no picker row.
+ * Neither is produced here.
+ */
+export function defaultBlockFor(type: Exclude<Block['type'], 'report' | 'metric' | 'agent-insight'>): Block {
   const id = ulid()
   switch (type) {
     case 'heading':

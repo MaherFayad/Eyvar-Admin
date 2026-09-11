@@ -1,9 +1,9 @@
 {
   "totals": {
-    "keys": 7062,
-    "en": 6695,
-    "ar": 7054,
-    "arMissing": 7,
+    "keys": 7379,
+    "en": 7013,
+    "ar": 7379,
+    "arMissing": 0,
     "arExtra": 366,
     "copyFiles": 39,
     "unregisteredKeys": 194,
@@ -28,7 +28,7 @@
       "exports": [
         "REPORTS_EN"
       ],
-      "keys": 717,
+      "keys": 894,
       "notInEN": 0
     },
     {
@@ -134,6 +134,14 @@
         "DISPUTES_EN"
       ],
       "keys": 168,
+      "notInEN": 0
+    },
+    {
+      "file": "src/screens/pages/copy.ts",
+      "exports": [
+        "PAGES_EN"
+      ],
+      "keys": 147,
       "notInEN": 0
     },
     {
@@ -296,14 +304,6 @@
         "ANALYST_EN"
       ],
       "keys": 16,
-      "notInEN": 0
-    },
-    {
-      "file": "src/screens/pages/copy.ts",
-      "exports": [
-        "PAGES_EN"
-      ],
-      "keys": 7,
       "notInEN": 0
     },
     {

@@ -101,12 +101,13 @@ import {
 } from '@/data/clients'
 import type { SavedReport, SubTabRoute } from '@/data/types'
 import { AlertsView } from './AlertsView'
-import { DashboardsView } from './DashboardsView'
+import { PagesView } from '@/screens/pages/PagesView'
 import { ReportBuilder } from './ReportBuilder'
 import { ReportLibrary } from './ReportLibrary'
-import { REPORTS_VIEWS, type ReportsView } from './views'
+import { REPORTS_VIEWS, normaliseReportsView, type ReportsView } from './views'
 import { withFallback } from '../operations/localCopy'
 import { REPORTS_EN } from './copy'
+import { PAGES_EN } from '@/screens/pages/copy'
 
 /**
  * The id the route table carries. **Moved to `./ids.ts`** when route-level code
@@ -131,7 +132,6 @@ export { REPORTS_SUB_TAB_ID } from './ids'
  * `REPORTS_VIEWS` is re-exported unchanged, because `routes.test.ts` imports it
  * from here and the route table is what it is held against.
  */
-const VIEWS: ReportsView[] = [...REPORTS_VIEWS]
 export { REPORTS_VIEWS }
 
 export interface ReportsScreenProps {
@@ -151,7 +151,7 @@ export function ReportsScreen({ row }: ReportsScreenProps) {
        function on every call, and several screens carry `t` in a `deps`
        array — so an unmemoised wrapper re-ran the fetch, which re-rendered,
        which rebuilt the wrapper. Two suites hung outright. */
-    () => withFallback(shell.language.t, REPORTS_EN),
+    () => withFallback(shell.language.t, { ...REPORTS_EN, ...PAGES_EN }),
     [shell.language.t],
   )
   const { dir, language } = shell.language
@@ -159,7 +159,8 @@ export function ReportsScreen({ row }: ReportsScreenProps) {
   /* Passed down, never read from an ambient clock inside a control. */
   const today = now ? localDayOf(now) : EYVAR_TODAY
   const params = new URLSearchParams(location.search)
-  const view = (VIEWS.find((v) => v === params.get('view')) ?? 'reports') as ReportsView
+  /* D46/AC-1210 — `?view=dashboards` still resolves to `pages`. */
+  const view: ReportsView = normaliseReportsView(params.get('view')) ?? 'reports'
 
   /**
    * The composed question, **only when it is one**.
@@ -246,15 +247,13 @@ export function ReportsScreen({ row }: ReportsScreenProps) {
     )
   }
 
-  if (view === 'dashboards') {
+  if (view === 'pages') {
     return (
-      <DashboardsView
+      <PagesView
         title={title}
         activeView={view}
         onSelectView={selectView}
-        /* §3.8 rule 2 — a named record is a LEVEL, not a `?view=`. Opening a
-           dashboard is a navigation, and Back returns to the list. */
-        onOpen={(dashboard) => navigate(`/management/reports/dashboards/${dashboard.id}`)}
+        currentUserId={shell.session?.userId ?? ''}
         t={t}
         language={language}
         dir={dir}

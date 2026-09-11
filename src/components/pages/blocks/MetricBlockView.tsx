@@ -28,7 +28,7 @@ export function MetricBlockView({ block }: { block: MetricBlockData }) {
   const points = series?.points ?? []
   const latest = [...points].reverse().find((v): v is number => v !== null) ?? null
   const latestIndex = latest === null ? -1 : points.lastIndexOf(latest)
-  const previous = latestIndex > 0 ? points[latestIndex - 1] : null
+  const previous = latestIndex > 0 ? (points[latestIndex - 1] ?? null) : null
   const deltaPercent = latest !== null && previous !== null && previous !== 0 ? ((latest - previous) / Math.abs(previous)) * 100 : null
   const measure = series ? measures.find((m) => m.key === series.measureKey) : null
 

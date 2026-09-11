@@ -11,10 +11,13 @@ import { toast } from 'sonner'
 import { DataTable, type RowAction } from '@/components/DataTable'
 import { PageHeader } from '@/components/PageHeader'
 import { SingleColumnPage } from '@/components/PageShell'
+import { StatusBadge } from '@/components/StatusBadge'
 import {
   BarChartIcon,
+  ChartIcon,
   LineChartIcon,
   PieChartIcon,
+  RatingIcon,
   TableChartIcon,
 } from '@/components/icons'
 import { Button } from '@/components/ui/button'
@@ -27,11 +30,21 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import type { DataColumn } from '@/components/table/columns'
 import { useAsync, useIndexTable } from '@/hooks'
-import { EYVAR_TODAY, deleteReport, listReports, listTeamUsers } from '@/data/clients'
+import {
+  EYVAR_TODAY,
+  deleteReport,
+  duplicateReport,
+  listReports,
+  listTeamUsers,
+  starReport,
+} from '@/data/clients'
 import type { ChartType, SavedReport, TeamUser } from '@/data/types'
+import { reportOfficial, reportStarredBy, reportTags } from '@/data/types'
 import { formatDate, isolatedRunProps, type Language, type Translator } from '@/lib'
+import { useShell } from '@/shell/ShellContext'
 import { AlertRuleDialog } from './AlertRuleDialog'
 import { reportsViewTabs, type ReportsView } from './views'
 
@@ -64,19 +77,33 @@ export interface ReportLibraryProps {
 }
 
 /**
- * The row's type glyph, from the registry (X17). Derived from
- * `report.query.chartType` — the saved definition — never stored on the row, so
- * a report re-saved as a pie stops being drawn as a line when it is re-listed.
+ * The row's type glyph (X17), derived from `report.query.chartType`. G8 added
+ * five shapes with no glyph yet in `icons.ts` (another agent's file); they
+ * share the nearest existing one until it is minted, flagged in the handoff.
  */
-const CHART_ICONS: Record<ChartType, typeof LineChartIcon> = {
+const CHART_ICONS: Partial<Record<ChartType, typeof LineChartIcon>> = {
   line: LineChartIcon,
+  area: LineChartIcon,
   bar: BarChartIcon,
+  'stacked-bar': BarChartIcon,
+  'stacked-100': BarChartIcon,
+  'horizontal-bar': BarChartIcon,
   pie: PieChartIcon,
+  kpi: ChartIcon,
   table: TableChartIcon,
 }
 
 /** The `Type` filter's options, over the same closed union the glyphs cover. */
 const CHART_TYPES = Object.keys(CHART_ICONS) as ReadonlyArray<ChartType>
+
+/**
+ * §8's library views — AC-1163. `all` is the default and precedes the five
+ * named ones: it is what `listReports` already returned with no `view` param
+ * (T9.13's own tests fix this list against it), and the mock's `view` switch
+ * has no `'all'` branch, so it falls through to that same base filter.
+ */
+const LIBRARY_VIEWS = ['all', 'mine', 'team', 'starred', 'official', 'recent'] as const
+type LibraryView = (typeof LIBRARY_VIEWS)[number]
 
 interface PendingDelete {
   report: SavedReport
@@ -109,10 +136,15 @@ export function ReportLibrary({
      into the dialog so the dialog's own reset effect is the single place the
      preset is consumed. */
   const [alertFor, setAlertFor] = useState<SavedReport | null>(null)
+  /* §8's own view strip — `mine · team · starred · official · recent` — a
+     control distinct from `table.view`, which is the OUTER `reports · pages ·
+     alerts` switcher (`views.ts`) and shares one `?view=` with it already. */
+  const [libraryView, setLibraryView] = useState<LibraryView>('all')
+  const me = useShell().session?.userId ?? ''
 
-  const reports = useAsync((signal) => listReports({ ...table.params, view: table.view }, signal), {
+  const reports = useAsync((signal) => listReports({ ...table.params, view: libraryView }, signal), {
     /* Both of the fetcher's inputs are here; delete calls `reports.refetch`. */
-    deps: [JSON.stringify(table.params), table.view],
+    deps: [JSON.stringify(table.params), libraryView],
     cacheKey: 'reports.list',
   })
 
@@ -126,7 +158,37 @@ export function ReportLibrary({
   })
   const ownerName = (id: string) => team.data?.find((user) => user.id === id)?.name ?? id
 
+  const toggleStar = async (row: SavedReport) => {
+    await starReport(row.id)
+    reports.refetch()
+  }
+
   const columns: Array<DataColumn<SavedReport>> = [
+    {
+      /* §8 / AC-1164 — a button, `aria-pressed`, persisted through `reports.star`. */
+      id: 'star',
+      header: t('rb.library.col.star'),
+      width: 36,
+      cell: (row) => {
+        const starred = reportStarredBy(row).includes(me)
+        return (
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-xs"
+            aria-pressed={starred}
+            aria-label={t(starred ? 'rb.library.star.remove' : 'rb.library.star.add', { name: row.name })}
+            onClick={() => void toggleStar(row)}
+          >
+            <RatingIcon
+              aria-hidden="true"
+              fill={starred ? 'currentColor' : 'none'}
+              className={starred ? 'size-4 text-foreground' : 'size-4 text-muted-foreground'}
+            />
+          </Button>
+        )
+      },
+    },
     {
       id: 'name',
       header: t('rb.library.col.name'),
@@ -138,7 +200,7 @@ export function ReportLibrary({
          now, and the description reads on hover here and in full on the
          report's own header, where an operator edits it. */
       cell: (row) => {
-        const Glyph = CHART_ICONS[row.query.chartType]
+        const Glyph = CHART_ICONS[row.query.chartType] ?? ChartIcon
         return (
           <span
             className="flex min-w-0 items-center gap-1.5"
@@ -155,6 +217,11 @@ export function ReportLibrary({
             <span {...isolatedRunProps({ className: 'min-w-0 truncate' }).box}>
               <bdi {...isolatedRunProps().run}>{row.name}</bdi>
             </span>
+            {/* §8 / AC-1165 — a NEUTRAL badge; there is no red badge (R5a) and
+                official is a fact, not a warning. */}
+            {reportOfficial(row) && (
+              <StatusBadge tone="neutral">{t('rb.library.official')}</StatusBadge>
+            )}
           </span>
         )
       },
@@ -225,6 +292,28 @@ export function ReportLibrary({
       ),
     },
     {
+      /* §8 — free-text tags. The filter's options are the tags on rows already
+         loaded rather than a fixed vocabulary: there is no catalogue of tags. */
+      id: 'tags',
+      header: t('rb.library.col.tags'),
+      width: 160,
+      filter: {
+        kind: 'multi-select',
+        field: 'tags',
+        options: [...new Set(rows.flatMap((row) => reportTags(row)))].map((tag) => ({
+          value: tag,
+          label: tag,
+        })),
+      },
+      csv: (row) => reportTags(row).join(' '),
+      cell: (row) =>
+        reportTags(row).length === 0 ? null : (
+          <span {...isolatedRunProps({ className: 'min-w-0 truncate' }).box}>
+            <bdi {...isolatedRunProps().run}>{reportTags(row).join(' · ')}</bdi>
+          </span>
+        ),
+    },
+    {
       id: 'updated',
       header: t('rb.library.col.updated'),
       width: 130,
@@ -233,6 +322,13 @@ export function ReportLibrary({
       cell: (row) => <bdi>{formatDate(row.updatedAt, { style: 'day-month-time', language })}</bdi>,
     },
   ]
+
+  /* AC-1166 — a private copy named `<name> (copy)`, opened immediately: the
+     operator asked to work from it, not to admire it in the list. */
+  const duplicate = async (row: SavedReport) => {
+    const outcome = await duplicateReport(row.id)
+    onOpen(outcome.data)
+  }
 
   const rowActions: Array<RowAction<SavedReport>> = [
     /* **P0-2 — the declared row-click target.** `Delete` is the other
@@ -243,6 +339,7 @@ export function ReportLibrary({
       label: t('rb.library.createAlert'),
       onSelect: (row) => setAlertFor(row),
     },
+    { label: t('rb.library.duplicate'), onSelect: (row) => void duplicate(row) },
     {
       label: t('rb.library.delete'),
       onSelect: (row) => setPending({ report: row, dashboards: [], failed: false }),
@@ -285,6 +382,20 @@ export function ReportLibrary({
       }
     >
       <div className="flex flex-col gap-3">
+        {/* §8 / AC-1163 — the library's own views, distinct from the outer
+            `reports · pages · alerts` switcher `DataTable`'s own `tabs` prop
+            below renders. `table.md`: a table has view tabs or a heading,
+            never both, so this sits outside the table entirely. */}
+        <Tabs value={libraryView} onValueChange={(value) => setLibraryView(value as LibraryView)}>
+          <TabsList variant="segmented">
+            {LIBRARY_VIEWS.map((view) => (
+              <TabsTrigger key={view} value={view}>
+                {t(`rb.library.view.${view}`)}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
+
         <DataTable
           table={table}
           rows={rows}

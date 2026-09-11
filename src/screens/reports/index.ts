@@ -27,13 +27,11 @@ export {
 } from './ReportsScreen'
 
 /* `routes.tsx` imports this name from the barrel and dispatches to it on
-   `detail.kind === 'dashboard'`. It moved out of `ReportsScreen.tsx` — where it
-   returned `null` — into a screen of its own; the name did not change, so the
-   route did not have to. */
+   `detail.kind === 'dashboard'`; it is now a redirect to `/pages/:pageId`
+   (D46). `DashboardsView` is gone — `@/screens/pages` carries `PagesView`. */
 export { DashboardDetailScreen } from './DashboardDetailScreen'
-export { DashboardsView, type DashboardsViewProps } from './DashboardsView'
 export { ModeField, ReportModePanel, type ReportModePanelProps } from './ReportModePanel'
 export { ReportModeCanvas, type ReportModeCanvasProps } from './ReportModeCanvas'
-export { REPORTS_VIEWS as REPORTS_VIEW_IDS, reportsViewTabs, type ReportsView } from './views'
+export { REPORTS_VIEWS as REPORTS_VIEW_IDS, normaliseReportsView, reportsViewTabs, type ReportsView } from './views'
 export { SaveReportDialog } from './SaveReportDialog'
 export { downloadCsv, reportCsvToText } from './csv'

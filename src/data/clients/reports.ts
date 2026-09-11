@@ -228,6 +228,10 @@ export async function listReports(
         rows = rows.filter((r) => wanted.includes(r.query.chartType))
       }
       if (filter.field === 'ownerId') rows = rows.filter((r) => wanted.includes(r.ownerId))
+      /* §8's tag facet — a report matches when it carries any of the wanted tags. */
+      if (filter.field === 'tags') {
+        rows = rows.filter((r) => (r.tags ?? []).some((tag) => wanted.includes(tag)))
+      }
       /* A report never run is outside every window, rather than inside all of
          them: `null` is an absence, not a date before time. */
       if (filter.field === 'lastRunAt') {

@@ -17,9 +17,8 @@ import { listReports } from '@/data/clients'
 import { isolatedRunProps } from '@/lib'
 import { collectReportIds } from './blockOps'
 import { usePageBlocks } from './PageBlocksContext'
-import type { Block, MetricBlockFormat, ReportBlockHeight, ReportBlockView } from '@/data/types/page'
 import { ulid } from '@/lib/ids'
-import { useState } from 'react'
+import type { Block, MetricBlockFormat, ReportBlockHeight, ReportBlockView } from '@/data/types/page'
 
 export interface ReportPickerPanelProps {
   kind: 'report' | 'metric'

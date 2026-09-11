@@ -84,6 +84,7 @@ export function TransformControls({
             <Checkbox
               checked={transform.rollingAverage !== null}
               disabled={rollingOff}
+              aria-label={t('rb.control.transform.rollingAverage')}
               aria-describedby={rollingOff ? rollingReasonId : undefined}
               onCheckedChange={(checked) =>
                 setTransform({

@@ -1,92 +1,35 @@
 /**
- * The rule builder — §12.2, and **the half of alerting the client honestly
- * owns.**
- *
- * > **measure** (a series of a saved report) · **comparator** · **threshold** ·
- * > **evaluation grain** · **cadence** · **re-arm**
- *
- * ## An alert watches a SAVED report, and the form says so
- *
- * **AC-874.** A rule over an unsaved query has no stable identity to evaluate,
- * no name to put in a notification and nowhere to send the operator when it
- * fires. So the report picker offers saved reports only, and with none saved
- * the create action is disabled **in place** with that sentence rather than
- * hidden.
- *
- * ## The series list is resolved, not typed
- *
- * A `ReportSeries.id` is `<measureKey>#<group>#<role>` and it is the *result*
- * that decides which exist — a split by district produces nine, a two-measure
- * report four. So choosing a report **runs it** and offers what came back. That
- * is one request the operator asked for by choosing a report, not a poll.
- *
- * ## The threshold's unit is derived and never chosen (AC-876)
- *
- * The unit comes off the series' measure, off the catalogue. The operator types
- * `400` against a money measure meaning 400 SAR, and the wire carries 40 000
- * halalas — converted through `parseMoneyInput`, which does the conversion on
- * the digit string because `19.99 * 100` is `1998.9999999999998` in IEEE-754.
- * A client that could send a unit could send the wrong one, and a money
- * threshold off by a factor of a hundred is off in the direction nobody notices.
- *
- * ## Two fields are unset, and the form refuses to invent them
- *
- * **`cadence` and `minReArmMinutes` are `null` on every seeded rule and stay
- * `null` here.** The business has specified no evaluation schedule and no
- * scheduler exists (Q-RB-7); **AC-453** is this project's standing rule for the
- * case — *an invented window is indistinguishable from a measured one once it
- * ships*. So the field renders **disabled, reading `Not set`, with the
- * consequence stated beside it**: a rule with no cadence keeps its settings and
- * does not run.
- *
- * That is a deliberate departure from **AC-875**, which lists a cadence among
- * the fields required before `Save` is enabled. The criterion and the ruling
- * cannot both hold. The ruling wins, and the departure is named in the handoff
- * rather than absorbed — offering `Hourly`/`Daily` would put a decision nobody
- * made into a saved record, where the next reader would take it for one.
- *
- * ## What is NOT here, and why
- *
- * **The recipient picker.** §13.3's rule is that an operator who cannot see the
- * rule's measure *is not a legal recipient* — and *"can user X see measure M"*
- * has no answer today, because **D4 is open** and every measure's `permission`
- * that is set is one of the thirteen broad keys. A picker that offered everyone
- * would ship the leak the rule exists to close; one that offered nobody would
- * look broken. **AC-891 is blocked on D4** and the field is absent rather than
- * wrong.
- *
- * ## The bell, and the report it arrives with (§A6)
- *
- * Amplitude puts a bell in the chart header, and this dialog is where that path
- * lands. The glyph is on the title — decorative, `aria-hidden`, the words still
- * carrying the name — and the description **names the report** whenever one is
- * chosen, which on the `Create alert` path is the row the operator was standing
- * on. That third branch also closes the copy defect `alerts.corrections.test.tsx`
- * recorded: the *"save this one first"* sentence was the fallback for every
- * incomplete rule, so it rendered over a perfectly well saved one.
- *
- * Rules applied
- *   §3.2        validate by disabling the primary, not by an error after submit.
- *   §8.3        a failed save never closes the dialog it came from, and the
- *               operator's input is preserved.
- *   R3          one primary in the dialog.
- *   §7.2        every control keyboard-reachable with a visible ring; every
- *               disabled control states its reason.
+ * The alert rule composer — v2 (`22-analytics-v2.md` §4). An inline panel,
+ * not a `Dialog` (owner's no-dialog ruling): it replaces the trigger's
+ * surrounding content in place. Four condition kinds; the preview runs the
+ * same `evaluate()` the server runs (AC-1226). `critical` severity stays
+ * disabled (Q-RB-9); D43's recipient filter now runs on `effectivePermissions`.
  */
 
-import { useEffect, useState } from 'react'
-import { AlertRuleIcon } from '@/components/icons'
+import { useEffect, useMemo, useState } from 'react'
+import { toast } from 'sonner'
+import { AlertRuleIcon, CheckIcon, CloseIcon, MutedIcon } from '@/components/icons'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command'
+import { Checkbox } from '@/components/ui/checkbox'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import {
   Select,
   SelectContent,
@@ -94,51 +37,63 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { ErrorState } from '@/components/ErrorState'
-import { LoadingSkeleton } from '@/components/LoadingSkeleton'
 import { Switch } from '@/components/ui/switch'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { ErrorState } from '@/components/ErrorState'
+import { InfoHint, hintLines } from '@/components/InfoHint'
+import { LoadingSkeleton } from '@/components/LoadingSkeleton'
+import { AlertPreviewChart, type AlertPreviewReference } from '@/components/reports/AlertPreviewChart'
 import { useAsync } from '@/hooks'
-import { listReports, runReport, saveAlertRule } from '@/data/clients'
-import { REPORT_NAME_MAX } from '@/data/types'
+import {
+  listMeasures,
+  listReports,
+  listTeamUsers,
+  listWebhookEndpoints,
+  muteAlertRule,
+  runReport,
+  saveAlertRule,
+} from '@/data/clients'
+import { evaluate, type ResolvedSeries } from '@/data/reporting/alerts/evaluate'
+import { effectivePermissions, REPORT_NAME_MAX } from '@/data/types'
 import type {
-  AlertComparator,
+  AlertCadence,
   AlertRule,
+  Measure,
   MeasureGrain,
-  ReportSeries,
+  ReportResult,
   SaveInvalidReason,
   SavedReport,
+  TeamUser,
 } from '@/data/types'
-/* Deep import, NOT the `@/components/metrics` barrel. The barrel also exports
-   `TrendChart`, which pulls recharts -- a 337 kB chunk (104 kB gzip) that then
-   loads on `/management/reports` where no chart renders. `formatMetric.ts` has
-   no React in it. */
+/* `types/index.ts` (shared barrel, not this role's file) does not yet
+   re-export the v2 alert types/helpers `report.ts` already re-exports from
+   `alert.ts` — reached directly rather than editing a file another role owns. */
+import {
+  alertChannels,
+  alertCondition,
+  alertSeverity,
+  type AlertChannel,
+  type AlertCondition,
+  type AlertSeverity,
+} from '@/data/types/alert'
+import type { WebhookEndpoint } from '@/data/types/integrations'
+/* Deep import, NOT the `@/components/metrics` barrel — see `AlertsView.tsx`'s
+   identical note; the barrel drags recharts onto a screen most of whose
+   states never draw a chart. */
 import { formatMetricValue } from '@/components/metrics/formatMetric'
 import { formatDate, parseMoneyInput, parseNumericInput, type Translator } from '@/lib'
 
-/** The four, and deliberately the same four names `FilterOperator` already uses. */
-const COMPARATORS: AlertComparator[] = ['gt', 'gte', 'lt', 'lte']
-/** Which bucket's value is tested. `'hour'` is offered nowhere until a store carries one. */
 const GRAINS: MeasureGrain[] = ['day', 'week', 'month']
+const CONDITION_KINDS: AlertCondition['kind'][] = ['static', 'relative', 'anomaly', 'missing']
+const PREVIEW_WINDOW = 60
 
 export interface AlertRuleDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   /** `null` creates. */
   rule: AlertRule | null
-  /**
-   * **Which report a NEW rule starts on — the report the operator was already
-   * looking at.**
-   *
-   * Alerts were a destination and never an action: the only route in was the
-   * Alerts sub-tab, `New alert`, and then re-picking by name, from a list of up
-   * to 100, the report you had just left. This is the whole fix, and it is one
-   * prop rather than a second dialog.
-   *
-   * **Read only when `rule` is `null`.** An existing rule's `reportId` is on the
-   * record and must win: a preset that could override it would silently
-   * re-point a live rule at a different report on open, which is the one thing
-   * an edit form may never do. Ignored, not merged.
-   */
+  /** Which report a NEW rule starts on — read only when `rule` is `null` (an
+   * edit's `reportId` is on the record and always wins). */
   presetReportId?: string
   onSaved: (rule: AlertRule) => void
   today: string
@@ -159,30 +114,43 @@ export function AlertRuleDialog({
   const [name, setName] = useState(rule?.name ?? '')
   const [reportId, setReportId] = useState<string | null>(rule?.reportId ?? presetReportId ?? null)
   const [seriesId, setSeriesId] = useState<string>(rule?.seriesId ?? '')
-  const [comparator, setComparator] = useState<AlertComparator>(rule?.comparator ?? 'gt')
+
+  /* ── condition — one discriminated draft per kind, so switching kinds
+     discards rather than carries stale fields into the payload (§4.2). ──── */
+  const [kind, setKind] = useState<AlertCondition['kind']>('static')
+  const [comparator, setComparator] = useState<'gt' | 'gte' | 'lt' | 'lte'>('gt')
   const [thresholdText, setThresholdText] = useState('')
+  const [relDirection, setRelDirection] = useState<'up' | 'down' | 'either'>('down')
+  const [relMeasure, setRelMeasure] = useState<'delta' | 'percent'>('percent')
+  const [relAmountText, setRelAmountText] = useState('')
+  const [relAgainst, setRelAgainst] = useState<
+    'previous-bucket' | 'same-bucket-previous-week' | 'previous-period'
+  >('previous-bucket')
+  const [anomalyDirection, setAnomalyDirection] = useState<'above' | 'below' | 'either'>('either')
+  const [confidence, setConfidence] = useState<95 | 99>(95)
+  const [lookbackText, setLookbackText] = useState('')
+  const [missingCountText, setMissingCountText] = useState('3')
+
   const [grain, setGrain] = useState<MeasureGrain>(rule?.evaluationGrain ?? 'day')
+  const [cadence, setCadence] = useState<AlertCadence | null>(rule?.cadence ?? null)
+  const [reArmText, setReArmText] = useState('')
+  const [severity, setSeverity] = useState<AlertSeverity>('high')
+  const [labels, setLabels] = useState<string[]>([])
+  const [labelDraft, setLabelDraft] = useState('')
+
+  const [emailChecked, setEmailChecked] = useState(false)
+  const [emailUserIds, setEmailUserIds] = useState<string[]>([])
+  const [slackChecked, setSlackChecked] = useState(false)
+  const [slackWebhookId, setSlackWebhookId] = useState<string | null>(null)
+  const [recipientIds, setRecipientIds] = useState<string[]>([])
+
   const [enabled, setEnabled] = useState(true)
   const [mutedUntil, setMutedUntil] = useState<string | null>(null)
   const [reasons, setReasons] = useState<readonly SaveInvalidReason[]>([])
   const [failed, setFailed] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [testResult, setTestResult] = useState<string | null>(null)
 
-  /**
-   * **Settled: `reports.list` holds the client's native `Paginated` envelope.**
-   *
-   * This fetcher used to unwrap to `SavedReport[]` while
-   * `DashboardDetailScreen`'s picker stored the envelope under the same
-   * operation id. The cache is untyped — `useAsync` casts the stored `unknown`
-   * to `T` — so one id holding two shapes is a `.find is not a function`
-   * waiting for the two keys to meet. Found by the P3-13 deps audit and left
-   * uncached rather than papered over with a distinguishing dep, which is the
-   * right call: a dep would have hidden the collision, not removed it.
-   *
-   * This side changed because the envelope is what the client actually returns;
-   * unwrapping at the *consumer* keeps one shape per operation id, which is the
-   * invariant the cache needs. The two callers now genuinely share an entry.
-   */
   const reports = useAsync((signal) => listReports({ pageSize: 100 }, signal), {
     cacheKey: 'reports.list',
     deps: [open],
@@ -191,86 +159,259 @@ export function AlertRuleDialog({
   })
   const reportItems = reports.data?.items ?? []
 
-  /* Choosing a report RESOLVES it, because which series exist is a property of
-     the result and not of the query. One request, caused by one choice. */
-  const resolved = useAsync<readonly ReportSeries[]>(
+  const resolved = useAsync<ReportResult | null>(
     async (signal) => {
       const report = reportItems.find((r) => r.id === reportId)
-      if (!report) return []
+      if (!report) return null
       const outcome = await runReport(report.query, { today, signal })
-      return outcome.status === 'ok'
-        ? outcome.result.series.filter((s) => s.role === 'current' && !s.blocked)
-        : []
+      return outcome.status === 'ok' ? outcome.result : null
     },
     {
-      /* P3-13 fix: `today` is threaded into `runReport` above and was NOT a
-         dependency, so the resolved series list did not re-resolve across a
-         midnight rollover - the parent derives `today` from a ticking clock.
-         Deliberately NOT given a `cacheKey`: `reports.data?.length` is a proxy
-         for the report list, and a saved report edited in place keeps the same
-         length and the same id, so the key would collide with the pre-edit
-         series. Needs a memoised `query` dep before it can be cached. */
       deps: [reportId, reportItems.length, today],
-      /* A report that resolves to no readable series is a REAL answer — every
-         series blocked, or a run that returned nothing — and it has to be
-         distinguishable from *still loading*, or the picker sits enabled over
-         an empty list and silently offers nothing. */
-      isEmpty: (rows) => rows.length === 0,
+      isEmpty: (result) =>
+        result === null ||
+        result.series.filter((s) => s.role === 'current' && !s.blocked).length === 0,
       enabled: reportId !== null,
     },
   )
+  const seriesOptions = (resolved.data?.series ?? []).filter(
+    (s) => s.role === 'current' && !s.blocked,
+  )
+  const series = seriesOptions.find((s) => s.id === seriesId) ?? null
 
-  const series = (resolved.data ?? []).find((s) => s.id === seriesId) ?? null
+  /* The measure catalogue, once — the email/recipient pickers filter against
+     `measure.permission` (D43), and a measure is recoverable only from here. */
+  const measures = useAsync((signal) => listMeasures({ pageSize: 200 }, signal), {
+    cacheKey: 'catalogue.measures',
+    deps: [open],
+    isEmpty: () => false,
+    enabled: open,
+  })
+  const measure: Measure | null =
+    measures.data?.items.find((m) => m.key === series?.measureKey) ?? null
+
+  const teamUsers = useAsync((signal) => listTeamUsers(signal), {
+    cacheKey: 'team.users',
+    deps: [open],
+    isEmpty: (rows) => rows.length === 0,
+    enabled: open,
+  })
+  const eligibleUsers: TeamUser[] = (teamUsers.data ?? []).filter(
+    (user) =>
+      measure === null ||
+      measure.permission === null ||
+      effectivePermissions(user.role, user.permissionDelta).includes(measure.permission.key),
+  )
+
+  const webhooks = useAsync((signal) => listWebhookEndpoints(signal), {
+    cacheKey: 'integrations.webhooks.list',
+    deps: [open],
+    isEmpty: (rows) => rows.length === 0,
+    enabled: open,
+  })
+  const webhookOptions: WebhookEndpoint[] = webhooks.data ?? []
 
   useEffect(() => {
     if (!open) return
     setName(rule?.name ?? '')
-    /* The record first, the preset only where there is no record. See
-       `presetReportId`: an edit must not be re-pointed by a caller's default. */
     setReportId(rule?.reportId ?? presetReportId ?? null)
     setSeriesId(rule?.seriesId ?? '')
-    setComparator(rule?.comparator ?? 'gt')
+
+    const c: AlertCondition = rule ? alertCondition(rule) : { kind: 'static', comparator: 'gt', threshold: NaN }
+    setKind(c.kind)
+    if (c.kind === 'static') {
+      setComparator(c.comparator)
+      setThresholdText(
+        rule && rule.thresholdUnit === 'money' ? String(c.threshold / 100) : rule ? String(c.threshold) : '',
+      )
+    } else {
+      setComparator('gt')
+      setThresholdText('')
+    }
+    if (c.kind === 'relative') {
+      setRelDirection(c.direction)
+      setRelMeasure(c.measure)
+      setRelAmountText(String(c.amount))
+      setRelAgainst(c.against)
+    } else {
+      setRelDirection('down')
+      setRelMeasure('percent')
+      setRelAmountText('')
+      setRelAgainst('previous-bucket')
+    }
+    if (c.kind === 'anomaly') {
+      setAnomalyDirection(c.direction)
+      setConfidence(c.confidence)
+      setLookbackText(c.lookback === null ? '' : String(c.lookback))
+    } else {
+      setAnomalyDirection('either')
+      setConfidence(95)
+      setLookbackText('')
+    }
+    setMissingCountText(c.kind === 'missing' ? String(c.bucketsMissing) : '3')
+
     setGrain(rule?.evaluationGrain ?? 'day')
+    setCadence(rule?.cadence ?? null)
+    setReArmText(rule?.minReArmMinutes === null || rule?.minReArmMinutes === undefined ? '' : String(rule.minReArmMinutes))
+    setSeverity(rule ? alertSeverity(rule) : 'high')
+    setLabels(rule?.labels ? [...rule.labels] : [])
+    setLabelDraft('')
+
+    const channels = rule ? alertChannels(rule) : [{ type: 'in-app' as const }]
+    const email = channels.find((ch): ch is Extract<AlertChannel, { type: 'email' }> => ch.type === 'email')
+    const slack = channels.find((ch): ch is Extract<AlertChannel, { type: 'slack' }> => ch.type === 'slack')
+    setEmailChecked(email !== undefined)
+    setEmailUserIds(email?.userIds ?? [])
+    setSlackChecked(slack !== undefined)
+    setSlackWebhookId(slack?.webhookId ?? null)
+    setRecipientIds(rule?.recipientIds ? [...rule.recipientIds] : [])
+
     setEnabled(rule?.enabled ?? true)
     setMutedUntil(rule?.mutedUntil ?? null)
-    /* An existing money threshold is halalas on the record and SAR in the
-       field — the same asymmetry, read the other way. */
-    setThresholdText(
-      rule === null
-        ? ''
-        : rule.thresholdUnit === 'money'
-          ? String(rule.threshold / 100)
-          : String(rule.threshold),
-    )
     setReasons([])
     setFailed(false)
+    setTestResult(null)
   }, [open, rule, presetReportId])
 
-  /** The wire value. Money is halalas; everything else is the number as typed. */
   const threshold =
     series?.unit === 'money' ? parseMoneyInput(thresholdText) : parseNumericInput(thresholdText)
+  const relAmount =
+    relMeasure === 'delta' && series?.unit === 'money'
+      ? parseMoneyInput(relAmountText)
+      : parseNumericInput(relAmountText)
+  const lookback = lookbackText.trim() === '' ? null : parseNumericInput(lookbackText)
+  const missingCount = parseNumericInput(missingCountText)
+  const reArm = reArmText.trim() === '' ? null : parseNumericInput(reArmText)
+
+  /* One condition, built from only the active kind's fields (§4.2). */
+  const condition: AlertCondition | null = useMemo(() => {
+    switch (kind) {
+      case 'static':
+        return threshold === null ? null : { kind: 'static', comparator, threshold }
+      case 'relative':
+        return relAmount === null
+          ? null
+          : { kind: 'relative', direction: relDirection, measure: relMeasure, amount: relAmount, against: relAgainst }
+      case 'anomaly':
+        return { kind: 'anomaly', direction: anomalyDirection, confidence, lookback }
+      case 'missing':
+        return missingCount === null || missingCount < 1 ? null : { kind: 'missing', bucketsMissing: missingCount }
+    }
+  }, [kind, comparator, threshold, relDirection, relMeasure, relAmount, relAgainst, anomalyDirection, confidence, lookback, missingCount])
+
+  const relativeAgainstInvalid = relAgainst === 'same-bucket-previous-week' && grain !== 'day'
+
+  /* ── preview (§4.3) — `evaluate()`, the same function the server runs, over
+     a sliding window so the preview can never disagree with what fires. ──── */
+  const preview = useMemo(() => {
+    if (!series || !resolved.data || condition === null || relativeAgainstInvalid) return null
+    const buckets = resolved.data.buckets
+    const points = series.points
+    const partial = series.partialBucketIndexes
+    const comparisonSeries = resolved.data.series.find(
+      (s) => s.role === 'comparison' && s.measureKey === series.measureKey && s.groupValue === series.groupValue,
+    )
+    const draft: AlertRule = {
+      id: 'draft',
+      name: '',
+      reportId: reportId ?? '',
+      seriesId: series.id,
+      comparator: condition.kind === 'static' ? condition.comparator : 'gt',
+      threshold: condition.kind === 'static' ? condition.threshold : 0,
+      thresholdUnit: series.unit,
+      thresholdCurrency: series.currency,
+      condition,
+      evaluationGrain: grain,
+      cadence: null,
+      minReArmMinutes: null,
+      consecutiveFailuresBeforeError: 5,
+      state: 'armed',
+      enabled: true,
+      mutedUntil: null,
+      recipientIds: [],
+      ownerId: '',
+      notificationPriority: 'high',
+      lastEvaluatedAt: null,
+      lastFiredAt: null,
+      lastValue: null,
+      stateReasonKey: null,
+      createdAt: today,
+      updatedAt: today,
+    }
+    const now = new Date().toISOString()
+    const start = Math.max(0, buckets.length - PREVIEW_WINDOW)
+    const fired: boolean[] = []
+    let lastBand: { low: number; high: number } | null = null
+    for (let i = start; i < buckets.length; i += 1) {
+      if (partial.includes(i)) {
+        fired.push(false)
+        continue
+      }
+      const windowSeries: ResolvedSeries = {
+        buckets: buckets.slice(0, i + 1),
+        points: points.slice(0, i + 1),
+        partialBucketIndexes: partial.filter((p) => p <= i),
+        previousPeriodPoints: comparisonSeries?.points.slice(0, i + 1) ?? null,
+      }
+      const outcome = evaluate(draft, windowSeries, now)
+      fired.push(outcome.outcome === 'would-fire')
+      if (outcome.band) lastBand = outcome.band
+    }
+    const lastOutcome = evaluate(
+      draft,
+      {
+        buckets,
+        points,
+        partialBucketIndexes: partial,
+        previousPeriodPoints: comparisonSeries?.points ?? null,
+      },
+      now,
+    )
+    const usableCount = points.filter((v, i) => v !== null && !partial.includes(i)).length
+    return {
+      buckets: buckets.slice(start),
+      points: points.slice(start),
+      fired,
+      lastOutcome,
+      lastBand,
+      usableCount,
+    }
+  }, [series, resolved.data, condition, grain, reportId, relativeAgainstInvalid, today])
+
+  const previewReference: AlertPreviewReference | null =
+    condition?.kind === 'static' && threshold !== null
+      ? { kind: 'line', value: threshold }
+      : condition?.kind === 'anomaly' && preview?.lastBand
+        ? { kind: 'band', low: preview.lastBand.low, high: preview.lastBand.high }
+        : null
 
   const submit = async () => {
+    if (condition === null) return
     setSaving(true)
     setFailed(false)
     try {
+      const channels: AlertChannel[] = [
+        { type: 'in-app' },
+        ...(emailChecked && emailUserIds.length > 0 ? [{ type: 'email' as const, userIds: emailUserIds }] : []),
+        ...(slackChecked && slackWebhookId ? [{ type: 'slack' as const, webhookId: slackWebhookId }] : []),
+      ]
       const outcome = await saveAlertRule({
         id: rule?.id ?? null,
         name,
         reportId,
         seriesId,
-        comparator,
-        threshold,
+        comparator: condition.kind === 'static' ? condition.comparator : 'gt',
+        threshold: condition.kind === 'static' ? condition.threshold : 0,
         evaluationGrain: grain,
-        /* **Unset, and passed as unset.** See the file header. */
-        cadence: null,
-        /* **Blocked on D4, and passed through rather than reset.** See the
-           file header: *can user X see measure M* has no answer today, so this
-           form may not compose a recipient list. Editing a rule must not
-           silently clear the one it already has. */
-        recipientIds: rule?.recipientIds ?? [],
+        cadence,
+        recipientIds,
         enabled,
         mutedUntil,
+        condition,
+        channels,
+        severity,
+        labels,
+        minReArmMinutes: reArm,
       })
       if (outcome.status === 'invalid') {
         setReasons(outcome.reasons)
@@ -284,343 +425,775 @@ export function AlertRuleDialog({
     }
   }
 
+  const runTest = () => {
+    if (!preview) return
+    setTestResult(describePreviewOutcome(preview.lastOutcome, t, language))
+  }
+
   const noSavedReports = reports.status === 'content' && reportItems.length === 0
-  /**
-   * **The report this rule is on, resolved for the header.** `reportId` is
-   * whatever the picker holds — the record's on an edit, `presetReportId`'s on
-   * a create opened from a library row — so this is the one place that turns it
-   * into something with a name, and it is `null` while the list is still
-   * arriving rather than a guess at what the preset points to.
-   */
   const chosenReport = reportItems.find((report) => report.id === reportId) ?? null
 
+  const conditionInvalid =
+    condition === null ||
+    (kind === 'relative' && relativeAgainstInvalid) ||
+    (kind === 'missing' && (missingCount === null || missingCount < 1))
+
+  if (!open) return null
+
+  const headingId = 'rb-alert-panel-heading'
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent size="lg">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            {/* §A6 — Amplitude puts a bell on the alert affordance in a chart
-                header, and this dialog is where that path lands. Decorative:
-                `aria-hidden`, with the title's own words carrying the name, so
-                `getByRole('heading')` still reads `New alert`. */}
-            <AlertRuleIcon aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
-            {rule ? t('rb.alert.form.edit') : t('rb.alert.form.title')}
-          </DialogTitle>
-          {/* AC-878 — what will happen, in words, as one key with named
-              parameters. It updates as the controls do, so the operator reads
-              the rule rather than reconstructing it from four fields.
-
-              **Three sentences, not two, and the third closes a copy defect.**
-              `rb.alert.form.report.unsaved` used to be the fallback for every
-              incomplete rule, so an operator arriving from `Create alert` on a
-              perfectly well saved report was told *"An alert watches a saved
-              report. Save this one first."* — which is false and unactionable
-              on that path. `alerts.corrections.test.tsx` recorded it rather than
-              working around it. Now the fallback branches on what is actually
-              true: the report is named where one is chosen, the reason is given
-              where none can be, and the instruction is given where one has yet
-              to be picked. */}
-          <DialogDescription>
-            {series && threshold !== null ? (
-              t('rb.alert.sentence', {
-                measure: t(`rb.measure.${series.measureKey}`),
-                comparator: t(`rb.alert.comparator.${comparator}`),
-                threshold: formatMetricValue(threshold, series.unit, language),
-                grain: t(`rb.grainNoun.${grain}`),
-              })
-            ) : chosenReport ? (
-              /* The name is user content inside a translated sentence, so the
-                 whole run is isolated — a right-to-left report name in an
-                 English sentence otherwise drags the trailing punctuation with
-                 it. */
-              <bdi>{t('rb.alert.form.preset', { name: chosenReport.name })}</bdi>
-            ) : noSavedReports ? (
-              t('rb.alert.form.report.unsaved')
-            ) : (
-              t('rb.alert.form.series.unstarted')
-            )}
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="flex flex-col gap-3">
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="rb-alert-name">{t('rb.alert.form.name')}</Label>
-            <Input
-              id="rb-alert-name"
-              autoFocus
-              maxLength={REPORT_NAME_MAX}
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-            />
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="rb-alert-report">{t('rb.alert.form.report')}</Label>
-            {/* **Four states, on a picker.** A trigger that stays enabled
-                while its list is still arriving — or after it failed — opens a
-                menu that silently offers nothing, and the operator reads that
-                as *there are no reports*. The same defect `ManualDispatchModal`
-                fixed for its captain picker. */}
-            {reports.status === 'loading' ? (
-              <LoadingSkeleton pattern="P1" rows={2} label={t('rb.alert.form.report.loading')} />
-            ) : reports.status === 'error' ? (
-              <ErrorState
-                scope="card"
-                card={false}
-                message={t('rb.alert.form.report.error')}
-                action={{
-                  label: t('rb.library.error.retry'),
-                  onClick: reports.refetch,
-                }}
-              />
-            ) : (
-              <Select
-                value={reportId ?? ''}
-                disabled={noSavedReports}
-                onValueChange={(value) => {
-                  setReportId(value)
-                  setSeriesId('')
-                }}
-              >
-                <SelectTrigger id="rb-alert-report" className="w-full">
-                  <SelectValue placeholder={t('rb.alert.form.report')} />
-                </SelectTrigger>
-                <SelectContent>
-                  {reportItems.map((report: SavedReport) => (
-                    <SelectItem key={report.id} value={report.id}>
-                      <bdi>{report.name}</bdi>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-            {/* AC-874 — disabled in place, with the reason. */}
-            {noSavedReports && (
-              <p className="text-xs text-muted-foreground">{t('rb.alert.form.report.unsaved')}</p>
-            )}
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="rb-alert-series">{t('rb.alert.form.series')}</Label>
-            {/* The unstarted case FIRST: with no report chosen the hook is
-                held in `loading` without firing, so branching on status alone
-                would show a skeleton for a request that is not happening. */}
-            {reportId === null ? (
-              <>
-                <Select value="" disabled onValueChange={setSeriesId}>
-                  <SelectTrigger id="rb-alert-series" className="w-full">
-                    <SelectValue placeholder={t('rb.alert.form.series')} />
-                  </SelectTrigger>
-                  <SelectContent />
-                </Select>
-                <p className="text-xs text-muted-foreground">
-                  {t('rb.alert.form.series.unstarted')}
-                </p>
-              </>
-            ) : resolved.status === 'loading' ? (
-              <LoadingSkeleton pattern="P1" rows={2} label={t('rb.alert.form.series.loading')} />
-            ) : resolved.status === 'error' ? (
-              <ErrorState
-                scope="card"
-                card={false}
-                message={t('rb.alert.form.series.error')}
-                action={{
-                  label: t('rb.library.error.retry'),
-                  onClick: resolved.refetch,
-                }}
-              />
-            ) : resolved.status === 'empty' ? (
-              /* Stated, not an empty menu. §13.1's redaction can empty this
-                 list, and *you may not read any of its series* is a different
-                 fact from *it has none*. */
-              <p className="text-xs text-muted-foreground">{t('rb.alert.form.series.empty')}</p>
-            ) : (
-              <Select value={seriesId} onValueChange={setSeriesId}>
-                <SelectTrigger id="rb-alert-series" className="w-full">
-                  <SelectValue placeholder={t('rb.alert.form.series')} />
-                </SelectTrigger>
-                <SelectContent>
-                  {(resolved.data ?? []).map((s) => (
-                    <SelectItem key={s.id} value={s.id}>
-                      {s.groupValue === null ? (
-                        t(`rb.measure.${s.measureKey}`)
-                      ) : (
-                        <bdi>{s.groupValue}</bdi>
-                      )}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="rb-alert-comparator">{t('rb.alert.form.comparator')}</Label>
-            <Select
-              value={comparator}
-              onValueChange={(value) => setComparator(value as AlertComparator)}
-            >
-              <SelectTrigger id="rb-alert-comparator" className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {COMPARATORS.map((value) => (
-                  <SelectItem key={value} value={value}>
-                    {t(`rb.alert.comparator.${value}`)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="rb-alert-threshold">{t('rb.alert.form.threshold')}</Label>
-            <Input
-              id="rb-alert-threshold"
-              inputMode="decimal"
-              value={thresholdText}
-              disabled={series === null}
-              onChange={(event) => setThresholdText(event.target.value)}
-            />
-            {/* AC-876 — the unit is STATED and never selected. */}
-            {series && (
-              <p className="text-xs text-muted-foreground">
-                {t('rb.alert.form.threshold.unit', {
-                  unit: t(`rb.unit.${series.unit}`),
-                })}
-              </p>
-            )}
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="rb-alert-grain">{t('rb.alert.form.grain')}</Label>
-            <Select value={grain} onValueChange={(value) => setGrain(value as MeasureGrain)}>
-              <SelectTrigger id="rb-alert-grain" className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {GRAINS.map((value) => (
-                  <SelectItem key={value} value={value}>
-                    {t(`rb.grain.${value}`)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* **The unset field, rendered as unset.** Disabled because there is
-              nothing to choose between: the business has named no schedule, and
-              a picker offering two invented ones would look like a decision. */}
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="rb-alert-cadence">{t('rb.alert.form.cadence')}</Label>
-            <Input id="rb-alert-cadence" disabled readOnly value={t('rb.alert.cadence.unset')} />
-            <p className="text-xs text-muted-foreground">{t('rb.alert.cadence.explain')}</p>
-          </div>
-
-          {/* **On or off, and it is a real control.** `enabled` is on the
-              record and `alerts.save` takes it; leaving it out meant an
-              operator could not turn a rule off from the form that made it. */}
-          <div className="flex items-center justify-between gap-3">
-            <Label htmlFor="rb-alert-enabled">{t('rb.alert.form.enabled')}</Label>
-            <Switch id="rb-alert-enabled" checked={enabled} onCheckedChange={setEnabled} />
-          </div>
-
-          {/* **Muted, said out loud.** A muted rule keeps evaluating and stops
-              notifying, so a form that did not show the mute would let someone
-              wonder why a firing rule told nobody. Un-muting is here; muting
-              *for a duration* is not, because no durations have been specified
-              and inventing three would be AC-453. */}
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="rb-alert-muted">{t('rb.alert.form.muted')}</Label>
-            <div className="flex items-center gap-2">
-              <Input
-                id="rb-alert-muted"
-                disabled
-                readOnly
-                value={
-                  mutedUntil === null
-                    ? t('rb.alert.form.muted.none')
-                    : t('rb.alert.muted', {
-                        time: formatDate(mutedUntil, {
-                          style: 'day-month-time',
-                          language,
-                        }),
-                      })
-                }
-              />
-              <Button
-                type="button"
-                variant="secondary"
-                /* §11.2 — disabled in place while there is nothing to un-mute,
-                   never hidden. */
-                disabled={mutedUntil === null}
-                onClick={() => setMutedUntil(null)}
-              >
-                {t('rb.alert.form.muted.clear')}
-              </Button>
-            </div>
-          </div>
-
-          {/* **AC-891 is blocked on D4, and the form says so** rather than
-              omitting the field. §13.3's rule is that an operator who cannot
-              see the rule's measure is not a legal recipient, and *can user X
-              see measure M* has no answer today: every measure permission that
-              is set is one of the thirteen broad keys. A picker offering
-              everyone would ship the leak the rule exists to close; one
-              offering nobody would look broken. Whatever the rule already has
-              is preserved on save. */}
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="rb-alert-recipients">{t('rb.alert.form.recipients')}</Label>
-            <Input
-              id="rb-alert-recipients"
-              disabled
-              readOnly
-              value={t('rb.alert.form.recipients.count', {
-                count: rule?.recipientIds.length ?? 0,
-              })}
-            />
-            <p className="text-xs text-muted-foreground">{t('rb.alert.form.recipients.blocked')}</p>
-          </div>
-
-          {reasons.length > 0 && (
-            <ul role="alert" className="flex list-none flex-col gap-0.5">
-              {reasons.map((reason) => (
-                <li key={reason} className="text-xs text-muted-foreground">
-                  {t(`rb.save.invalid.${reason}`, { max: REPORT_NAME_MAX })}
-                </li>
-              ))}
-            </ul>
+    <Card className="border-border">
+      <CardHeader>
+        {/* `CardTitle` renders a plain `div` (`card.tsx`, shared, not this
+           role's file) — `role="heading"` is added here rather than there, so
+           this panel is reachable by heading navigation without changing
+           every other card's semantics. */}
+        <CardTitle id={headingId} role="heading" aria-level={2} className="flex items-center gap-2">
+          <AlertRuleIcon aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
+          {rule ? t('rb.alert.panel.heading.edit') : t('rb.alert.panel.heading.new')}
+        </CardTitle>
+        <CardDescription>
+          {chosenReport ? (
+            <bdi>{t('rb.alert.form.preset', { name: chosenReport.name })}</bdi>
+          ) : noSavedReports ? (
+            t('rb.alert.form.report.unsaved')
+          ) : (
+            t('rb.alert.form.series.unstarted')
           )}
-          {failed && (
-            <p role="alert" className="text-xs text-muted-foreground">
-              {t('rb.alert.form.failed')}
-            </p>
+        </CardDescription>
+      </CardHeader>
+
+      <CardContent className="flex flex-col gap-3">
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="rb-alert-name">{t('rb.alert.form.name')}</Label>
+          <Input
+            id="rb-alert-name"
+            autoFocus
+            maxLength={REPORT_NAME_MAX}
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+          />
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="rb-alert-report">{t('rb.alert.form.report')}</Label>
+          {reports.status === 'loading' ? (
+            <LoadingSkeleton pattern="P1" rows={2} label={t('rb.alert.form.report.loading')} />
+          ) : reports.status === 'error' ? (
+            <ErrorState
+              scope="card"
+              card={false}
+              message={t('rb.alert.form.report.error')}
+              action={{ label: t('rb.library.error.retry'), onClick: reports.refetch }}
+            />
+          ) : (
+            <Select
+              value={reportId ?? ''}
+              disabled={noSavedReports}
+              onValueChange={(value) => {
+                setReportId(value)
+                setSeriesId('')
+              }}
+            >
+              <SelectTrigger id="rb-alert-report" className="w-full">
+                <SelectValue placeholder={t('rb.alert.form.report')} />
+              </SelectTrigger>
+              <SelectContent>
+                {reportItems.map((report: SavedReport) => (
+                  <SelectItem key={report.id} value={report.id}>
+                    <bdi>{report.name}</bdi>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+          {noSavedReports && (
+            <p className="text-xs text-muted-foreground">{t('rb.alert.form.report.unsaved')}</p>
           )}
         </div>
 
-        <DialogFooter>
-          <Button type="button" variant="secondary" onClick={() => onOpenChange(false)}>
-            {t('rb.alert.form.cancel')}
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="rb-alert-series">{t('rb.alert.form.series')}</Label>
+          {reportId === null ? (
+            <>
+              <Select value="" disabled onValueChange={setSeriesId}>
+                <SelectTrigger id="rb-alert-series" className="w-full">
+                  <SelectValue placeholder={t('rb.alert.form.series')} />
+                </SelectTrigger>
+                <SelectContent />
+              </Select>
+              <p className="text-xs text-muted-foreground">{t('rb.alert.form.series.unstarted')}</p>
+            </>
+          ) : resolved.status === 'loading' ? (
+            <LoadingSkeleton pattern="P1" rows={1} label={t('rb.alert.form.series.loading')} />
+          ) : resolved.status === 'error' ? (
+            <ErrorState
+              scope="card"
+              card={false}
+              message={t('rb.alert.form.series.error')}
+              action={{ label: t('rb.library.error.retry'), onClick: resolved.refetch }}
+            />
+          ) : resolved.status === 'empty' ? (
+            <p className="text-xs text-muted-foreground">{t('rb.alert.series.empty')}</p>
+          ) : (
+            <Select value={seriesId} onValueChange={setSeriesId}>
+              <SelectTrigger id="rb-alert-series" className="w-full">
+                <SelectValue placeholder={t('rb.alert.form.series')} />
+              </SelectTrigger>
+              <SelectContent>
+                {seriesOptions.map((s) => (
+                  <SelectItem key={s.id} value={s.id}>
+                    {s.groupValue === null ? t(`rb.measure.${s.measureKey}`) : <bdi>{s.groupValue}</bdi>}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+        </div>
+
+        {/* §4.1 — the condition kind, a segmented control (the MUST case: a
+            mode switch that changes every field below it). */}
+        <div className="flex flex-col gap-1.5">
+          <Label id="rb-alert-condition-label">{t('rb.alert.form.condition')}</Label>
+          <Tabs value={kind} onValueChange={(value) => setKind(value as AlertCondition['kind'])}>
+            <TabsList variant="segmented" aria-labelledby="rb-alert-condition-label">
+              {CONDITION_KINDS.map((k) => (
+                <TabsTrigger key={k} value={k}>
+                  {t(`rb.alert.kind.${k}.name`)}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
+
+          {kind === 'static' && (
+            <div className="flex items-center gap-2">
+              <Select value={comparator} onValueChange={(value) => setComparator(value as typeof comparator)}>
+                <SelectTrigger aria-label={t('rb.alert.form.comparator')} className="w-32">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {(['gt', 'gte', 'lt', 'lte'] as const).map((value) => (
+                    <SelectItem key={value} value={value}>
+                      {t(`rb.alert.comparator.${value}`)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Input
+                aria-label={t('rb.alert.form.threshold')}
+                inputMode="decimal"
+                className="w-28 tabular-nums"
+                disabled={series === null}
+                value={thresholdText}
+                onChange={(event) => setThresholdText(event.target.value)}
+              />
+              {series && (
+                <span className="text-xs text-muted-foreground">{t(`rb.unit.${series.unit}`)}</span>
+              )}
+            </div>
+          )}
+
+          {kind === 'relative' && (
+            <div className="flex flex-col gap-2">
+              <SegmentedField
+                label={t('rb.alert.relative.direction')}
+                value={relDirection}
+                onChange={(v) => setRelDirection(v as typeof relDirection)}
+                options={['up', 'down', 'either']}
+                labelOf={(v) => t(`rb.alert.relative.direction.${v}`)}
+              />
+              <SegmentedField
+                label={t('rb.alert.relative.measure')}
+                value={relMeasure}
+                onChange={(v) => setRelMeasure(v as typeof relMeasure)}
+                options={['delta', 'percent']}
+                labelOf={(v) => t(`rb.alert.relative.measure.${v}`)}
+              />
+              <div className="flex items-center gap-2">
+                <Label htmlFor="rb-alert-rel-amount" className="shrink-0">
+                  {t('rb.alert.relative.amount')}
+                </Label>
+                <Input
+                  id="rb-alert-rel-amount"
+                  inputMode="decimal"
+                  className="w-24 tabular-nums"
+                  value={relAmountText}
+                  onChange={(event) => setRelAmountText(event.target.value)}
+                />
+                <span className="text-xs text-muted-foreground">
+                  {relMeasure === 'percent' ? t('rb.unit.percent') : series ? t(`rb.unit.${series.unit}`) : ''}
+                </span>
+              </div>
+              <div className="flex flex-col gap-1">
+                <Label htmlFor="rb-alert-rel-against">{t('rb.alert.relative.against')}</Label>
+                <Select value={relAgainst} onValueChange={(value) => setRelAgainst(value as typeof relAgainst)}>
+                  <SelectTrigger id="rb-alert-rel-against" className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="previous-bucket">{t('rb.alert.relative.against.previousBucket')}</SelectItem>
+                    <SelectItem value="same-bucket-previous-week" disabled={grain !== 'day'}>
+                      {t('rb.alert.relative.against.sameWeekday')}
+                    </SelectItem>
+                    <SelectItem value="previous-period">{t('rb.alert.relative.against.previousPeriod')}</SelectItem>
+                  </SelectContent>
+                </Select>
+                {relativeAgainstInvalid && (
+                  <p className="text-xs text-muted-foreground">{t('rb.alert.against.weekOnlyAtDay')}</p>
+                )}
+              </div>
+            </div>
+          )}
+
+          {kind === 'anomaly' && (
+            <div className="flex flex-col gap-2">
+              <SegmentedField
+                label={t('rb.alert.anomaly.direction')}
+                value={anomalyDirection}
+                onChange={(v) => setAnomalyDirection(v as typeof anomalyDirection)}
+                options={['above', 'below', 'either']}
+                labelOf={(v) => t(`rb.alert.anomaly.direction.${v}`)}
+              />
+              <SegmentedField
+                label={t('rb.alert.anomaly.confidence')}
+                value={String(confidence)}
+                onChange={(v) => setConfidence(Number(v) as 95 | 99)}
+                options={['95', '99']}
+                labelOf={(v) => t(`rb.alert.anomaly.confidence.${v}`)}
+              />
+              <div className="flex flex-col gap-1">
+                <Label htmlFor="rb-alert-lookback">{t('rb.alert.anomaly.lookback')}</Label>
+                <Input
+                  id="rb-alert-lookback"
+                  inputMode="numeric"
+                  className="w-24 tabular-nums"
+                  placeholder={t('rb.alert.anomaly.lookback.placeholder', {
+                    count: grain === 'day' ? 28 : grain === 'week' ? 12 : 6,
+                  })}
+                  value={lookbackText}
+                  onChange={(event) => setLookbackText(event.target.value)}
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">{t('rb.alert.anomaly.method')}</p>
+            </div>
+          )}
+
+          {kind === 'missing' && (
+            <div className="flex items-center gap-2">
+              <Label htmlFor="rb-alert-missing" className="shrink-0">
+                {t('rb.alert.missing.count')}
+              </Label>
+              <Input
+                id="rb-alert-missing"
+                inputMode="numeric"
+                min={1}
+                className="w-16 tabular-nums"
+                value={missingCountText}
+                onChange={(event) => setMissingCountText(event.target.value)}
+              />
+              <span className="text-xs text-muted-foreground">{t('rb.alert.missing.count.suffix')}</span>
+            </div>
+          )}
+        </div>
+
+        {/* §4.3 — the preview. */}
+        <div className="flex flex-col gap-1.5">
+          <Label>{t('rb.alert.preview.heading')}</Label>
+          {series === null || condition === null || relativeAgainstInvalid ? (
+            <p className="text-xs text-muted-foreground">{t('rb.alert.preview.incomplete')}</p>
+          ) : kind === 'anomaly' &&
+            (preview?.lastOutcome.outcome === 'no-baseline' || preview?.lastOutcome.outcome === 'no-complete-bucket') ? (
+            <p className="text-xs text-muted-foreground">
+              {t('rb.alert.anomaly.noBaseline', { count: preview?.usableCount ?? 0 })}
+            </p>
+          ) : preview ? (
+            <AlertPreviewChart
+              buckets={preview.buckets}
+              points={preview.points}
+              fired={preview.fired}
+              reference={previewReference}
+              unit={series.unit}
+              language={language}
+              description={t('rb.alert.preview.summary', {
+                count: preview.fired.filter(Boolean).length,
+                window: preview.fired.length,
+              })}
+            />
+          ) : (
+            <p className="text-xs text-muted-foreground">{t('rb.alert.preview.incomplete')}</p>
+          )}
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="rb-alert-grain">{t('rb.alert.form.evaluationGrain')}</Label>
+          <Select value={grain} onValueChange={(value) => setGrain(value as MeasureGrain)}>
+            <SelectTrigger id="rb-alert-grain" className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {GRAINS.map((value) => (
+                <SelectItem key={value} value={value}>
+                  {t(`rb.grain.${value}`)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <Label id="rb-alert-cadence-label">{t('rb.alert.form.cadence')}</Label>
+          <Tabs
+            value={cadence ?? 'none'}
+            onValueChange={(value) => setCadence(value === 'none' ? null : (value as AlertCadence))}
+          >
+            <TabsList variant="segmented" aria-labelledby="rb-alert-cadence-label">
+              <TabsTrigger value="hourly">{t('rb.alert.cadence.hourly')}</TabsTrigger>
+              <TabsTrigger value="daily">{t('rb.alert.cadence.daily')}</TabsTrigger>
+              <TabsTrigger value="none">{t('rb.alert.cadence.none')}</TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="rb-alert-rearm">{t('rb.alert.form.reArm')}</Label>
+          <div className="flex items-center gap-2">
+            <Input
+              id="rb-alert-rearm"
+              inputMode="numeric"
+              className="w-20 tabular-nums"
+              value={reArmText}
+              onChange={(event) => setReArmText(event.target.value)}
+            />
+            <span className="text-xs text-muted-foreground">{t('rb.alert.form.reArm.unit')}</span>
+          </div>
+        </div>
+
+        {/* §4.4 — channels. */}
+        <div className="flex flex-col gap-2">
+          <Label>{t('rb.alert.channel.inApp')}</Label>
+          <div className="flex items-center gap-2">
+            <Checkbox checked disabled aria-label={t('rb.alert.channel.inApp')} />
+            <span className="text-sm text-foreground">{t('rb.alert.channel.inApp')}</span>
+            <span className="text-xs text-muted-foreground">{t('rb.alert.channel.inApp.always')}</span>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="rb-alert-email"
+                checked={emailChecked}
+                disabled={eligibleUsers.length === 0}
+                onCheckedChange={(value) => setEmailChecked(value === true)}
+              />
+              <Label htmlFor="rb-alert-email">{t('rb.alert.channel.email')}</Label>
+            </div>
+            {eligibleUsers.length === 0 ? (
+              <p className="text-xs text-muted-foreground">{t('rb.alert.channel.email.empty')}</p>
+            ) : (
+              emailChecked && (
+                <RecipientPicker
+                  selected={emailUserIds}
+                  onChange={setEmailUserIds}
+                  options={eligibleUsers}
+                  t={t}
+                />
+              )
+            )}
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="rb-alert-slack"
+                checked={slackChecked}
+                disabled={webhookOptions.length === 0}
+                onCheckedChange={(value) => setSlackChecked(value === true)}
+              />
+              <Label htmlFor="rb-alert-slack">{t('rb.alert.channel.slack')}</Label>
+            </div>
+            {webhookOptions.length === 0 ? (
+              <p className="text-xs text-muted-foreground">
+                {t('rb.alert.channel.slack.empty')}{' '}
+                <a className="text-info-foreground underline" href="/admin/workspace?pane=integrations">
+                  {t('rb.alert.channel.slack.addLink')}
+                </a>
+              </p>
+            ) : (
+              slackChecked && (
+                <Select value={slackWebhookId ?? ''} onValueChange={setSlackWebhookId}>
+                  <SelectTrigger aria-label={t('rb.alert.channel.slack')} className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {webhookOptions.map((hook) => (
+                      <SelectItem key={hook.id} value={hook.id}>
+                        {hook.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )
+            )}
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <Label>{t('rb.alert.form.recipients')}</Label>
+          {eligibleUsers.length === 0 ? (
+            <p className="text-xs text-muted-foreground">{t('rb.alert.form.recipients.empty')}</p>
+          ) : (
+            <RecipientPicker selected={recipientIds} onChange={setRecipientIds} options={eligibleUsers} t={t} />
+          )}
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <span className="flex items-center gap-1">
+            <Label id="rb-alert-severity-label">{t('rb.alert.form.severity')}</Label>
+            <InfoHint t={t}>{hintLines([t('rb.alert.severity.critical.blocked')])}</InfoHint>
+          </span>
+          <Tabs value={severity} onValueChange={(value) => setSeverity(value as AlertSeverity)}>
+            <TabsList variant="segmented" aria-labelledby="rb-alert-severity-label">
+              <TabsTrigger value="high">{t('rb.alert.severity.high')}</TabsTrigger>
+              <TabsTrigger value="critical" disabled>
+                {t('rb.alert.severity.critical')}
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="rb-alert-label-draft">{t('rb.alert.form.labels')}</Label>
+          <div className="flex flex-wrap items-center gap-1.5">
+            {labels.map((label) => (
+              <span
+                key={label}
+                className="inline-flex items-center gap-1 rounded-control border border-border bg-muted px-1.5 py-0.5 text-xs"
+              >
+                <bdi>{label}</bdi>
+                <button
+                  type="button"
+                  aria-label={t('rb.alert.form.labels.remove', { name: label })}
+                  className="rounded-xs text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  onClick={() => setLabels((current) => current.filter((l) => l !== label))}
+                >
+                  <CloseIcon aria-hidden="true" className="size-3" />
+                </button>
+              </span>
+            ))}
+            <Input
+              id="rb-alert-label-draft"
+              className="h-control w-32"
+              placeholder={t('rb.alert.form.labels.placeholder')}
+              value={labelDraft}
+              onChange={(event) => setLabelDraft(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key !== 'Enter') return
+                event.preventDefault()
+                const value = labelDraft.trim()
+                if (value !== '' && !labels.includes(value)) setLabels((current) => [...current, value])
+                setLabelDraft('')
+              }}
+            />
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between gap-3">
+          <Label htmlFor="rb-alert-enabled">{t('rb.alert.form.enabled')}</Label>
+          <Switch id="rb-alert-enabled" checked={enabled} onCheckedChange={setEnabled} />
+        </div>
+
+        {/* §4.5 — mute, also reachable from the composer for an existing rule. */}
+        {rule && (
+          <MuteMenu
+            rule={{ ...rule, mutedUntil }}
+            t={t}
+            language={language}
+            onChanged={(muted) => setMutedUntil(muted)}
+          />
+        )}
+
+        {testResult && (
+          <p role="status" className="text-sm text-muted-foreground">
+            {testResult}
+          </p>
+        )}
+        {reasons.length > 0 && (
+          <ul role="alert" className="flex list-none flex-col gap-0.5">
+            {reasons.map((reason) => (
+              <li key={reason} className="text-xs text-muted-foreground">
+                {t(`rb.save.invalid.${reason}`, { max: REPORT_NAME_MAX })}
+              </li>
+            ))}
+          </ul>
+        )}
+        {failed && (
+          <p role="alert" className="text-xs text-muted-foreground">
+            {t('rb.alert.form.failed')}
+          </p>
+        )}
+      </CardContent>
+
+      <div className="flex items-center justify-end gap-2 border-t border-border p-3">
+        <Button type="button" variant="secondary" onClick={() => onOpenChange(false)}>
+          {t('rb.alert.form.cancel')}
+        </Button>
+        <Button type="button" variant="secondary" disabled={preview === null} onClick={runTest}>
+          {t('rb.alert.action.test')}
+        </Button>
+        <Button
+          type="button"
+          variant="default"
+          disabled={saving || name.trim() === '' || reportId === null || seriesId === '' || conditionInvalid}
+          onClick={() => void submit()}
+        >
+          {t('rb.alert.action.save')}
+        </Button>
+      </div>
+    </Card>
+  )
+}
+
+/** A small two/three-way segmented control, the shape §4 MUST licenses for a
+ * mode switch — reused across the four condition kinds' own sub-toggles. */
+function SegmentedField({
+  label,
+  value,
+  onChange,
+  options,
+  labelOf,
+}: {
+  label: string
+  value: string
+  onChange: (value: string) => void
+  options: readonly string[]
+  labelOf: (value: string) => string
+}) {
+  return (
+    <div className="flex items-center gap-2">
+      <Label className="shrink-0">{label}</Label>
+      <Tabs value={value} onValueChange={onChange}>
+        <TabsList variant="segmented" aria-label={label}>
+          {options.map((option) => (
+            <TabsTrigger key={option} value={option}>
+              {labelOf(option)}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+      </Tabs>
+    </div>
+  )
+}
+
+/** The email/in-app recipient multi-select (§4.4) — a `Command`-backed
+ * popover, chips shaped like every other removable chip in this product. */
+function RecipientPicker({
+  selected,
+  onChange,
+  options,
+  t,
+}: {
+  selected: readonly string[]
+  onChange: (ids: string[]) => void
+  options: readonly TeamUser[]
+  t: Translator
+}) {
+  const [open, setOpen] = useState(false)
+  const chosen = options.filter((user) => selected.includes(user.id))
+
+  return (
+    <div className="flex flex-wrap items-center gap-1.5">
+      {chosen.map((user) => (
+        <span
+          key={user.id}
+          className="inline-flex items-center gap-1 rounded-control border border-border bg-muted px-1.5 py-0.5 text-xs"
+        >
+          <bdi>{user.name}</bdi>
+          <button
+            type="button"
+            aria-label={t('rb.alert.channel.email.remove', { name: user.name })}
+            className="rounded-xs text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            onClick={() => onChange(selected.filter((id) => id !== user.id))}
+          >
+            <CloseIcon aria-hidden="true" className="size-3" />
+          </button>
+        </span>
+      ))}
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button type="button" variant="secondary" size="xs">
+            {t('rb.alert.channel.email.add')}
           </Button>
-          {/* §3.2 — off until every field the rule needs is present, and
-              carrying no error text while it is. `cadence` is deliberately NOT
-              among them; see the file header. */}
+        </PopoverTrigger>
+        <PopoverContent align="start" className="w-64 p-0">
+          <Command>
+            <CommandInput placeholder={t('rb.alert.channel.email.search')} />
+            <CommandList>
+              <CommandEmpty>{t('rb.alert.channel.email.noMatch')}</CommandEmpty>
+              <CommandGroup>
+                {options.map((user) => {
+                  const isSelected = selected.includes(user.id)
+                  return (
+                    <CommandItem
+                      key={user.id}
+                      value={user.name}
+                      onSelect={() =>
+                        onChange(isSelected ? selected.filter((id) => id !== user.id) : [...selected, user.id])
+                      }
+                    >
+                      <CheckIcon
+                        aria-hidden="true"
+                        className={isSelected ? 'size-3.5 opacity-100' : 'size-3.5 opacity-0'}
+                      />
+                      <bdi>{user.name}</bdi>
+                    </CommandItem>
+                  )
+                })}
+              </CommandGroup>
+            </CommandList>
+          </Command>
+        </PopoverContent>
+      </Popover>
+    </div>
+  )
+}
+
+/** §4.5 — shared by the Rules table's row and the composer's own edit view.
+ * Writes `mutedUntil` directly through `muteAlertRule`, independent of `Save`. */
+export function MuteMenu({
+  rule,
+  t,
+  language,
+  onChanged,
+}: {
+  rule: AlertRule
+  t: Translator
+  language: 'en' | 'ar'
+  onChanged: (mutedUntil: string | null) => void
+}) {
+  const [customOpen, setCustomOpen] = useState(false)
+  const [customValue, setCustomValue] = useState('')
+  const [busy, setBusy] = useState(false)
+
+  const mute = async (until: string) => {
+    setBusy(true)
+    try {
+      const outcome = await muteAlertRule(rule.id, until)
+      onChanged(outcome.data.mutedUntil)
+    } catch {
+      toast.error(t('rb.alert.mute.failed'))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const muted = rule.mutedUntil !== null
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      {muted && (
+        <p className="text-xs text-muted-foreground">
+          {t('rb.alert.mute.rowState', {
+            time: formatDate(rule.mutedUntil as string, { style: 'day-month-time', language }),
+          })}
+        </p>
+      )}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
           <Button
             type="button"
-            variant="default"
-            disabled={
-              saving ||
-              name.trim() === '' ||
-              reportId === null ||
-              seriesId === '' ||
-              threshold === null
-            }
-            onClick={() => void submit()}
+            variant="secondary"
+            size="xs"
+            disabled={busy}
+            aria-label={t('rb.alert.mute.action', { name: rule.name })}
           >
-            {t('rb.alert.form.save')}
+            <MutedIcon aria-hidden="true" className="size-3.5" />
+            {muted ? t('rb.alert.mute.unmute') : t('rb.alert.mute.menu')}
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start">
+          {muted && (
+            <>
+              <DropdownMenuItem onSelect={() => void mute('')}>{t('rb.alert.mute.unmute')}</DropdownMenuItem>
+              <DropdownMenuSeparator />
+            </>
+          )}
+          <DropdownMenuItem onSelect={() => void mute(muteUntilIso('1h'))}>{t('rb.alert.mute.1h')}</DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => void mute(muteUntilIso('8h'))}>{t('rb.alert.mute.8h')}</DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => void mute(muteUntilIso('24h'))}>{t('rb.alert.mute.24h')}</DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => void mute(muteUntilIso('monday'))}>
+            {t('rb.alert.mute.untilMonday')}
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => setCustomOpen(true)}>{t('rb.alert.mute.custom')}</DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+      {customOpen && (
+        <div className="flex items-center gap-2">
+          <Input
+            type="datetime-local"
+            aria-label={t('rb.alert.mute.custom')}
+            className="w-48"
+            value={customValue}
+            onChange={(event) => setCustomValue(event.target.value)}
+          />
+          <Button
+            type="button"
+            variant="secondary"
+            size="xs"
+            disabled={customValue === ''}
+            onClick={() => {
+              void mute(new Date(customValue).toISOString())
+              setCustomOpen(false)
+            }}
+          >
+            {t('rb.alert.mute.custom.apply')}
+          </Button>
+          <Button type="button" variant="ghost" size="xs" onClick={() => setCustomOpen(false)}>
+            {t('rb.alert.mute.custom.cancel')}
+          </Button>
+        </div>
+      )}
+    </div>
   )
+}
+
+/** §4.5's five durations, computed against the real clock — this is a live
+ * operator action, not a seeded fixture, so it does not read `EYVAR_NOW`. */
+function muteUntilIso(option: '1h' | '8h' | '24h' | 'monday'): string {
+  const now = new Date()
+  if (option === 'monday') {
+    const day = now.getUTCDay()
+    const daysAhead = ((8 - day) % 7) || 7
+    const target = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + daysAhead))
+    return target.toISOString()
+  }
+  const hours = option === '1h' ? 1 : option === '8h' ? 8 : 24
+  return new Date(now.getTime() + hours * 3_600_000).toISOString()
+}
+
+function describePreviewOutcome(
+  outcome: import('@/data/reporting/alerts/evaluate').AlertConditionEvaluation,
+  t: Translator,
+  language: 'en' | 'ar',
+): string {
+  switch (outcome.outcome) {
+    case 'would-fire':
+      return t('rb.alert.test.wouldFire', {
+        value: formatMetricValue(outcome.value, 'count', language),
+        bucket: outcome.bucketStart ? formatDate(outcome.bucketStart, { style: 'day-month', language }) : '',
+        grain: t('rb.grainNoun.day'),
+      })
+    case 'would-not-fire':
+      return t('rb.alert.test.wouldNotFire', {
+        value: formatMetricValue(outcome.value, 'count', language),
+        bucket: outcome.bucketStart ? formatDate(outcome.bucketStart, { style: 'day-month', language }) : '',
+        grain: t('rb.grainNoun.day'),
+      })
+    case 'no-complete-bucket':
+      return t('rb.alert.test.noBucket')
+    case 'no-baseline':
+      return t('rb.alert.anomaly.noBaseline', { count: 0 })
+    case 'invalid-condition':
+      return t('rb.alert.against.weekOnlyAtDay')
+  }
 }

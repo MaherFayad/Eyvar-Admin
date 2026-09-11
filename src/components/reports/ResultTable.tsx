@@ -149,6 +149,7 @@
 
 import { useId, useMemo, useState, type ReactNode } from 'react'
 import { SortAscIcon, SortDescIcon, SortNoneIcon, ExportIcon, SearchIcon } from '@/components/icons'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
@@ -161,8 +162,11 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { formatMetricValue } from '@/components/metrics'
-import type { BucketAggregate, Measure, ReportPanel, ReportResult, ReportSeries } from '@/data/types'
-import { formatDate, isolatedRunProps, type Language, type Translator } from '@/lib'
+import type { BucketAggregate, Measure, PermissionKey, ReportPanel, ReportResult, ReportSeries } from '@/data/types'
+/* `TableSpec`/`TableColumn`/`TableFormatBand` are v2-only and not yet in the
+   `@/data/types` barrel — read directly, the same way `DashboardTile.tsx` does. */
+import type { TableColumn, TableFormatBand, TableSpec } from '@/data/types/report'
+import { ABSENT, formatDate, isolatedRunProps, type Language, type Translator } from '@/lib'
 import { panelTitle } from './PanelCard'
 import { declaredAggregate, rollUpSeries } from './rollup'
 
@@ -623,6 +627,260 @@ export function ResultTable({
           </TableBody>
         </Table>
       </div>
+    </div>
+  )
+}
+
+/* ═══════════════════════ §7 — the columns mode (v2) ═══════════════════════ */
+
+/** AC-1176 — the tone set is closed at three. An unrecognised string (a stray `critical` in a fixture) falls back to `neutral` rather than rendering. */
+function bandToneOf(tone: string): 'success' | 'warning' | 'neutral' {
+  return tone === 'success' || tone === 'warning' || tone === 'neutral' ? tone : 'neutral'
+}
+
+/** The first band whose `lte` the value clears, in the order given. `null` when no band matches or the value is a gap. */
+function bandFor(value: number | null, bands: readonly TableFormatBand[]): TableFormatBand | null {
+  if (value === null) return null
+  for (const band of bands) {
+    if (value <= band.lte) return band
+  }
+  return null
+}
+
+/** One row's identity, shared across every column. `''` label is the degenerate `rows: []` case — one synthetic row, the whole result. */
+interface ColumnsRow {
+  key: string
+  label: string
+}
+
+/**
+ * §7's row axis, read off a column's OWN already-resolved result rather than
+ * computed here: `rows: ['time']` walks its `buckets`, a dimension walks the
+ * distinct `groupValue`s its own `groupBy` already produced. No cross-product
+ * is computed in this component — a two-level split already arrives as one
+ * joined `groupValue` per series (`<g1>|<g2>`), the same convention every
+ * other v2 series reads.
+ */
+function columnsRowsOf(result: ReportResult, rows: TableSpec['rows']): ColumnsRow[] {
+  const mode = rows[0] ?? null
+  if (mode === null) return [{ key: '__single__', label: '' }]
+  if (mode === 'time') return result.buckets.map((bucket) => ({ key: bucket, label: bucket }))
+  const seen = new Set<string>()
+  const out: ColumnsRow[] = []
+  for (const series of result.series) {
+    if (series.role !== 'current') continue
+    const key = series.groupValue ?? ''
+    if (seen.has(key)) continue
+    seen.add(key)
+    out.push({ key, label: key })
+  }
+  return out
+}
+
+/** The series and bucket index one row/column cell reads, or `null` when this column has nothing at that row. */
+function columnsCellOf(
+  result: ReportResult,
+  row: ColumnsRow,
+  rows: TableSpec['rows'],
+): { series: ReportSeries; index: number } | null {
+  const mode = rows[0] ?? null
+  const current = result.series.find((s) => s.role === 'current' && s.blocked === null && s.failed === null)
+  if (!current) return null
+  if (mode === 'time') return { series: current, index: result.buckets.indexOf(row.key) }
+  if (mode === null) return { series: current, index: 0 }
+  const grouped = result.series.find(
+    (s) => s.role === 'current' && s.blocked === null && s.failed === null && (s.groupValue ?? '') === row.key,
+  )
+  return grouped ? { series: grouped, index: 0 } : null
+}
+
+/** §13.1 — the permission the viewer lacks on this column's leg, or `null`. Read off the first current series; a blocked leg has exactly one, with no points. */
+function columnsBlockedOf(result: ReportResult): PermissionKey | null {
+  return result.series.find((s) => s.role === 'current')?.blocked ?? null
+}
+
+/** A `TableColumn`'s header text — the caller's own `label`, or the catalogue's for a measure column with none. */
+function columnLabel(column: TableColumn, measuresByKey: Readonly<Record<string, Measure>> | undefined, t: Translator): string {
+  if (column.label) return column.label
+  if (column.kind === 'formula') return column.expression
+  const measure = measuresByKey?.[column.ref.key]
+  return measure ? t(measure.labelKey) : column.ref.key
+}
+
+export interface ResultTableColumnsProps {
+  spec: TableSpec
+  /**
+   * **One resolved leg per `spec.columns[i]`** (§7): each measure or formula
+   * column is its own `ReportResult`, so one blocked or failed column redacts
+   * only its own cells — the table around it stays readable (AC-1174).
+   */
+  columnResults: readonly ReportResult[]
+  measuresByKey?: Readonly<Record<string, Measure>>
+  t: Translator
+  language: Language
+}
+
+/**
+ * §7's data table: measure/formula columns across, row dimensions down.
+ * `ResultTable` above stays the degenerate `rows: ['time']` case a pre-columns
+ * saved report keeps rendering (AC-1100). Reuses `Table`, so AC-1177's
+ * contained scroll is the primitive's guarantee, not a second one here.
+ */
+export function ResultTableColumns({ spec, columnResults, measuresByKey, t, language }: ResultTableColumnsProps) {
+  const [sort, setSort] = useState<{ column: number; descending: boolean } | null>(null)
+
+  const rows = useMemo(() => {
+    /* The union across every column's own rows, first-seen order — columns
+       may carry different filters and so different group values present. */
+    const seen = new Map<string, ColumnsRow>()
+    for (const result of columnResults) {
+      for (const row of columnsRowsOf(result, spec.rows)) {
+        if (!seen.has(row.key)) seen.set(row.key, row)
+      }
+    }
+    const unsorted = [...seen.values()]
+    if (sort === null) return unsorted
+
+    const result = columnResults[sort.column]
+    if (!result) return unsorted
+    const valueOf = (row: ColumnsRow): number | null => {
+      const cell = columnsCellOf(result, row, spec.rows)
+      return cell ? (cell.series.points[cell.index] ?? null) : null
+    }
+    const direction = sort.descending ? -1 : 1
+    /* AC-1178 — a gap sinks to the bottom whichever way the column is sorted,
+       the same rule `ResultTable`'s own sort applies above. */
+    return [...unsorted].sort((a, b) => {
+      const left = valueOf(a)
+      const right = valueOf(b)
+      if (left === null && right === null) return 0
+      if (left === null) return 1
+      if (right === null) return -1
+      return direction * (left - right)
+    })
+  }, [columnResults, spec.rows, sort])
+
+  const toggle = (column: number) =>
+    setSort((current) =>
+      current === null || current.column !== column
+        ? { column, descending: false }
+        : current.descending
+          ? null
+          : { column, descending: true },
+    )
+  const sortState = (column: number): 'ascending' | 'descending' | 'none' =>
+    sort === null || sort.column !== column ? 'none' : sort.descending ? 'descending' : 'ascending'
+
+  if (spec.columns.length === 0 || rows.length === 0) {
+    /* R8's second kind of empty: a table asked for and drawn with nothing to
+       show — never the first-run illustration, which would claim no data
+       exists anywhere. */
+    return <p className="py-10 text-center text-sm text-muted-foreground">{t('rb.table.columns.empty')}</p>
+  }
+
+  return (
+    <div className="rounded-xl border border-card-border bg-card">
+      <Table containerClassName="rounded-xl" className="w-auto min-w-full table-auto">
+        <TableHeader>
+          <TableRow>
+            <TableHead className="text-start whitespace-nowrap">
+              {spec.rows[0] === 'time' ? t('rb.table.columns.rowTime') : t('rb.table.columns.rowLabel')}
+            </TableHead>
+            {spec.columns.map((column, index) => {
+              const label = columnLabel(column, measuresByKey, t)
+              return (
+                <TableHead key={index} className="text-end whitespace-nowrap" aria-sort={sortState(index)}>
+                  <SortableHeader active state={sortState(index)} label={label} onToggle={() => toggle(index)} end t={t}>
+                    {label}
+                  </SortableHeader>
+                </TableHead>
+              )
+            })}
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {rows.map((row) => (
+            <TableRow key={row.key}>
+              <TableCell className="text-start whitespace-nowrap">
+                {spec.rows[0] === 'time' ? (
+                  <bdi>{formatDate(row.key, { style: 'day-month-year', language })}</bdi>
+                ) : (
+                  <bdi>{row.label || t('rb.table.columns.rowLabel')}</bdi>
+                )}
+              </TableCell>
+              {spec.columns.map((_column, index) => {
+                const result = columnResults[index]
+                if (!result) return <TableCell key={index} className="text-end text-muted-foreground">{ABSENT}</TableCell>
+
+                const blocked = columnsBlockedOf(result)
+                if (blocked) {
+                  return (
+                    <TableCell key={index} className="text-end text-muted-foreground">
+                      {ABSENT}
+                      <span className="sr-only">{t('rb.panel.blocked', { permission: blocked })}</span>
+                    </TableCell>
+                  )
+                }
+
+                const cell = columnsCellOf(result, row, spec.rows)
+                const value = cell ? (cell.series.points[cell.index] ?? null) : null
+                const unit = cell?.series.unit ?? 'count'
+                const bands = spec.format.find((f) => f.column === index)?.bands ?? []
+                const band = bandFor(value, bands)
+                const formatted = formatMetricValue(value, unit, language)
+
+                return (
+                  <TableCell key={index} className="text-end tabular-nums">
+                    {/* R7 tones only — `bandToneOf` refuses a sixth. Colour is
+                        never the sole carrier: the number itself is the badge's
+                        content either way. */}
+                    {band ? <Badge tone={bandToneOf(band.tone)}>{formatted}</Badge> : formatted}
+                  </TableCell>
+                )
+              })}
+            </TableRow>
+          ))}
+        </TableBody>
+        {spec.totals && (
+          <tfoot>
+            <TableRow>
+              <TableCell className="text-start font-medium text-foreground">{t('rb.table.columns.totals')}</TableCell>
+              {spec.columns.map((column, index) => {
+                const result = columnResults[index]
+                const measure = column.kind === 'measure' ? measuresByKey?.[column.ref.key] : undefined
+                const series = result?.series.find((s) => s.role === 'current' && s.blocked === null && s.failed === null)
+                if (!result || !series) {
+                  return <TableCell key={index} className="text-end text-muted-foreground">{ABSENT}</TableCell>
+                }
+                /* AC-1175: additive → a real sum (or the catalogue's own
+                   declared combination); anything else names its aggregate
+                   word instead of guessing one — same rule, same helper,
+                   `ResultTable`'s single summary column already applies. */
+                const aggregate = declaredAggregate(series, measure)
+                if (aggregate === null) {
+                  return (
+                    <TableCell key={index} className="text-end">
+                      <span className="flex flex-col items-end">
+                        <span aria-hidden="true">{ABSENT}</span>
+                        <span className="text-xs font-normal text-muted-foreground">{t('rb.table.window.undeclared')}</span>
+                      </span>
+                    </TableCell>
+                  )
+                }
+                const value = rollUpSeries(series, aggregate, result.buckets.length).value
+                return (
+                  <TableCell key={index} className="text-end">
+                    <span className="flex flex-col items-end">
+                      <span className="tabular-nums">{formatMetricValue(value, series.unit, language)}</span>
+                      <span className="text-xs font-normal text-muted-foreground">{t(AGGREGATE_WORD[aggregate])}</span>
+                    </span>
+                  </TableCell>
+                )
+              })}
+            </TableRow>
+          </tfoot>
+        )}
+      </Table>
     </div>
   )
 }

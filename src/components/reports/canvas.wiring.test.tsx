@@ -206,8 +206,17 @@ function failedResult(): ReportResult {
   }
 }
 
-/** The plots on screen, named by what each one says is in it. */
-const plots = () => screen.queryAllByRole('img').map((p) => p.getAttribute('aria-label'))
+/**
+ * The plots on screen, named by what each one says is in it. §2.2 moved the
+ * compound plot from `role="img"` to `role="group"` (keyboard-navigable
+ * buckets), so this filters out the chart controls row's own `group`.
+ */
+const CONTROLS_ROW_LABEL = copy('rb.chart.controlsRow')
+const plots = () =>
+  screen
+    .queryAllByRole('group')
+    .filter((el) => el.getAttribute('aria-label') !== CONTROLS_ROW_LABEL)
+    .map((p) => p.getAttribute('aria-label'))
 
 function renderCanvas(props: Partial<React.ComponentProps<typeof ResultCanvas>> = {}) {
   return render(
@@ -417,7 +426,7 @@ describe('the compound plot groups by what may honestly share one axis', () => {
     /* Eight panels, one unit — a split by district, which is the case the
        compound chart was built for. Still one axis, still one plot. */
     renderCanvas({ result: wideResult() })
-    expect(screen.getAllByRole('img')).toHaveLength(1)
+    expect(plots()).toHaveLength(1)
     expect(plots()[0]).toContain(titleOf('p8'))
   })
 

@@ -48,7 +48,7 @@
  *   §7.2        focus is the dialog's; nothing here kills an outline.
  */
 
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { HistoryIcon } from '@/components/icons'
 import { DataTable } from '@/components/DataTable'
 import { EmptyState } from '@/components/EmptyState'
@@ -62,13 +62,18 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 /* Deep import, NOT the `@/components/metrics` barrel — the barrel pulls
    recharts, and no chart renders on this surface. Same reason `AlertsView`
    reaches past it. */
 import { formatMetricValue } from '@/components/metrics/formatMetric'
 import { useAsync, useIndexTable } from '@/hooks'
-import { listAlertFirings } from '@/data/clients'
+import { getAlertConfigHistory, listAlertFirings, type ConfigHistoryEntry } from '@/data/clients'
 import type { AlertFiring, AlertRule } from '@/data/types'
+/* `types/index.ts` (not this role's file) does not yet re-export this v2
+   helper `report.ts` already re-exports from `alert.ts`; see `AlertRuleDialog.tsx`'s
+   identical note. */
+import { alertDeliveries } from '@/data/types/alert'
 import { formatDate, isolatedRunProps, type Language, type Translator } from '@/lib'
 
 export interface AlertHistoryDialogProps {
@@ -183,7 +188,7 @@ export function AlertHistoryDialog({
     {
       id: 'notification',
       header: t('rb.alert.history.col.notification'),
-      width: 240,
+      width: 220,
       dataType: 'text',
       /* Two ordinary sentences in ordinary ink. `null` is *cleared*, which is a
          normal end for a notification and not a fault — a badge, a tone or a
@@ -196,7 +201,54 @@ export function AlertHistoryDialog({
         </span>
       ),
     },
+    {
+      /* v2 (`04-alerting-v2.md` §5) — the anomaly band this firing evaluated
+         against. `undefined`/`null` for every non-anomaly condition. */
+      id: 'band',
+      header: t('rb.alert.history.col.band'),
+      width: 150,
+      align: 'end',
+      dataType: 'text',
+      cell: (firing) =>
+        firing.band ? (
+          <span className="tabular-nums">
+            {t('rb.alert.history.band', {
+              low: formatMetricValue(firing.band.low, rule?.thresholdUnit ?? 'count', language),
+              high: formatMetricValue(firing.band.high, rule?.thresholdUnit ?? 'count', language),
+            })}
+          </span>
+        ) : null,
+    },
+    {
+      /* AC-1237 — the failed channel names itself and its error in `title`;
+         the firing row itself carries no tone and no destructive ink. */
+      id: 'deliveries',
+      header: t('rb.alert.history.col.deliveries'),
+      width: 200,
+      dataType: 'text',
+      cell: (firing) => (
+        <span className="flex flex-wrap items-center gap-2 text-xs">
+          {alertDeliveries(firing).map((delivery, index) => (
+            <span
+              key={index}
+              title={
+                delivery.status === 'failed'
+                  ? [t('rb.alert.history.delivery.failed', { channel: delivery.channelType }), delivery.error]
+                      .filter(Boolean)
+                      .join(': ')
+                  : t('rb.alert.history.delivery.sent', { channel: delivery.channelType })
+              }
+              className="text-muted-foreground"
+            >
+              {delivery.channelType} {delivery.status === 'sent' ? '✓' : '✗'}
+            </span>
+          ))}
+        </span>
+      ),
+    },
   ]
+
+  const [tab, setTab] = useState<'firings' | 'changes'>('firings')
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -222,6 +274,17 @@ export function AlertHistoryDialog({
           <DialogDescription>{t('rb.alert.history.description')}</DialogDescription>
         </DialogHeader>
 
+        {/* v2 (`04-alerting-v2.md` §5) — `Firings` (this dialog's original
+            content) beside a new `Changes` tab reading `alerts.configHistory`. */}
+        <Tabs value={tab} onValueChange={(value) => setTab(value as 'firings' | 'changes')}>
+          <TabsList variant="segmented" aria-label={t('rb.alert.history.title', { name: rule?.name ?? '' })}>
+            <TabsTrigger value="firings">{t('rb.alert.history.tab.firings')}</TabsTrigger>
+            <TabsTrigger value="changes">{t('rb.alert.history.tab.changes')}</TabsTrigger>
+          </TabsList>
+        </Tabs>
+
+        {tab === 'changes' && rule && <ChangesTab ruleId={rule.id} open={open} t={t} language={language} />}
+
         {/* **A rule that has never fired gets the illustrated state, and the
             table is not rendered at all** (§H).
 
@@ -246,7 +309,7 @@ export function AlertHistoryDialog({
             sentence and a way back — because those two facts are different and
             §11.1's illustration on a search result would claim the rule has
             never fired when it has. */}
-        {history.status === 'empty' ? (
+        {tab === 'firings' && history.status === 'empty' ? (
           <EmptyState
             kind="first-run"
             card={false}
@@ -256,6 +319,7 @@ export function AlertHistoryDialog({
             actions={[]}
           />
         ) : (
+          tab === 'firings' && (
           <DataTable
             table={table}
             rows={rows}
@@ -304,6 +368,7 @@ export function AlertHistoryDialog({
               onRetry: history.refetch,
             }}
           />
+          )
         )}
 
         <DialogFooter>
@@ -314,6 +379,76 @@ export function AlertHistoryDialog({
       </DialogContent>
     </Dialog>
   )
+}
+
+/**
+ * §5's `Changes` tab — every save that changed a field, newest first, as
+ * `field: old → new` with keyed field labels (AC-1239). A rule saved once,
+ * or never edited since seeding, has none: the empty state, not an error.
+ */
+function ChangesTab({
+  ruleId,
+  open,
+  t,
+  language,
+}: {
+  ruleId: string
+  open: boolean
+  t: Translator
+  language: Language
+}) {
+  const history = useAsync<readonly ConfigHistoryEntry[]>(
+    async (signal) => (await getAlertConfigHistory(ruleId, { pageSize: 100 }, signal)).items,
+    { deps: [ruleId, open], isEmpty: (rows) => rows.length === 0, enabled: open },
+  )
+
+  if (history.status === 'loading') {
+    return <p className="py-6 text-center text-sm text-muted-foreground">{t('rb.alert.history.description')}</p>
+  }
+  if (history.status === 'error') {
+    return (
+      <div className="flex flex-col items-center gap-2 py-6 text-center">
+        <p className="text-sm text-muted-foreground">{t('rb.alert.history.changes.error')}</p>
+        <Button type="button" variant="secondary" size="xs" onClick={history.refetch}>
+          {t('rb.library.error.retry')}
+        </Button>
+      </div>
+    )
+  }
+  if (history.status === 'empty') {
+    return <p className="py-6 text-center text-sm text-muted-foreground">{t('rb.alert.history.changes.empty')}</p>
+  }
+
+  return (
+    <ul className="flex list-none flex-col gap-3">
+      {(history.data ?? []).map((entry, index) => (
+        <li key={index} className="flex flex-col gap-1 border-b border-border pb-2 last:border-0">
+          <span className="text-xs text-muted-foreground">
+            {formatDate(entry.at, { style: 'day-month-time', language })} ·{' '}
+            {t('rb.alert.history.changes.by', { who: entry.by })}
+          </span>
+          <ul className="flex list-none flex-col gap-0.5">
+            {entry.diff.map((change) => (
+              <li key={change.field} className="text-sm text-foreground">
+                {t('rb.alert.history.changes.entry', {
+                  field: t(`rb.alert.history.changes.field.${change.field}`),
+                  from: changeValue(change.from, t),
+                  to: changeValue(change.to, t),
+                })}
+              </li>
+            ))}
+          </ul>
+        </li>
+      ))}
+    </ul>
+  )
+}
+
+/** A diff value, in words. `null`/`undefined` is stated, never blank. */
+function changeValue(value: unknown, t: Translator): string {
+  if (value === null || value === undefined) return t('rb.alert.cadence.none')
+  if (typeof value === 'boolean') return value ? t('rb.alert.form.enabled') : t('rb.alert.disabled')
+  return String(value)
 }
 
 /**
@@ -337,7 +472,9 @@ export function AlertHistoryDialog({
  *
  * It does not mirror (§9.5): a bell is an object and has no reading direction.
  */
-function NoFiringsIllustration() {
+/* Exported: `AlertFeedView.tsx`'s own first-run empty (no rule exists at all)
+   is the same drawn bell, not a second hand-rolled illustration (§1.5). */
+export function NoFiringsIllustration() {
   return (
     <svg
       viewBox="0 0 160 96"

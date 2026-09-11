@@ -5,7 +5,6 @@
  * (`page.ts`'s own comment on `ToggleBlock`).
  */
 
-import { useState } from 'react'
 import { ChevronRightIcon } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'

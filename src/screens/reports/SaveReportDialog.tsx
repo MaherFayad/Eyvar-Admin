@@ -122,7 +122,7 @@ import { REPORT_NAME_MAX, reportTags } from '@/data/types'
 import type { ReportQuery, SaveInvalidReason, SavedReport } from '@/data/types'
 /* Not yet in the `@/data/types` barrel — `pages.ts` itself imports the same
    way. Flagged in the handoff for whoever owns that barrel next. */
-import { PAGE_BLOCK_MAX, type Page } from '@/data/types/page'
+import { PAGE_BLOCK_MAX, pageTemplate, type Page } from '@/data/types/page'
 import { isolatedRunProps, type Translator } from '@/lib'
 
 export interface SaveReportDialogProps {
@@ -186,10 +186,20 @@ export function SaveReportDialog({
      cost a request on every builder render. `deps: [open]` keeps the cache key
      distinct from `DashboardsView`'s, which is keyed by its table params.
      D46/§8 — `Dashboard` is gone; a dashboard is a `Page` of `kind: 'dashboard'`
-     now, and the picker offers those, never a `case-study` or a `note`. */
+     now, and the picker offers those, filtered client-side to drop templates
+     (§6: "a shipped template, copied rather than opened" — not a live page an
+     operator pins a report to, and one ships with the same title as its
+     migrated original, which would otherwise make two options answer to one
+     name). */
   const pages = useAsync(
-    (signal) =>
-      listPages({ pageSize: 100, filters: [{ field: 'kind', op: 'eq', value: 'dashboard' }] }, signal),
+    async (signal) => {
+      const result = await listPages(
+        { pageSize: 100, filters: [{ field: 'kind', op: 'eq', value: 'dashboard' }] },
+        signal,
+      )
+      const items = result.items.filter((page) => !pageTemplate(page))
+      return { ...result, items, total: items.length }
+    },
     {
       deps: [open],
       enabled: open,

@@ -1,29 +1,10 @@
 /**
- * The save dialog — Amplitude §B1, principle 6, and the one journey that used
- * to span two screens.
- *
- * Three things are asserted here that a screenshot review would not catch:
- *
- * 1. **The description and the legend are no longer one string.** Both rendered
- *    `rb.save.visibility`, so the sentence under the dialog's title read *"Who
- *    can see it"*. A duplicated key is invisible in a diff and obvious to an
- *    operator, so the test is that the two nodes say different things — not
- *    that a particular string exists somewhere.
- * 2. **The consequence is in the accessibility tree, not in a tooltip.**
- *    `LegalityOptions.tsx` already records why: a tooltip is a reason nobody
- *    can read. So the assertion goes through `aria-describedby` and through the
- *    computed accessible description, which a `title` attribute or a hover card
- *    would both fail.
- * 3. **A failed pin does not un-save a saved report.** The dialog makes two
- *    mutations and the second one can fail on its own. The test reads the
- *    report back **through the client** afterwards, because a screen that says
- *    "saved" over a record the server does not hold is the failure worth
- *    catching — and it asserts the *partial* sentence, not the total one.
- *
- * Disciplines kept from `dashboards.test.tsx`: **no fixture is imported** (every
- * board and every report is read through its client), and **nothing spies on a
- * client namespace** — `mockFailures` is the seam, and a `vi.spyOn` on the
- * barrel's live binding does not intercept it.
+ * The save dialog — Amplitude §B1, principle 6, AC-856…AC-859. Asserts the
+ * description/legend split, the consequence in `aria-describedby` rather than
+ * a tooltip, and that a failed pin does not un-save the report (read back
+ * through the client, never off the screen). D46 moved the picker from
+ * `Dashboard`/`saveDashboard` to `Page`/`savePage`: a pin is now a
+ * `ReportBlock` on `page.blocks`, and `pages.save` is what `mockFailures` rigs.
  */
 
 import { render, screen, waitFor } from '@testing-library/react'
@@ -31,13 +12,14 @@ import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   disableMockLatency,
-  getDashboard,
-  listDashboards,
+  getPage,
+  listPages,
   listReports,
   mockFailures,
   resetDataLayer,
 } from '@/data/clients'
-import type { Dashboard, ReportQuery, SavedReport } from '@/data/types'
+import type { ReportQuery, SavedReport } from '@/data/types'
+import type { Page } from '@/data/types/page'
 import { EN } from '@/i18n/dictionaries'
 import { createTranslator } from '@/lib'
 import { REPORTS_EN } from './copy'
@@ -64,7 +46,7 @@ beforeEach(() => {
 /** A legal trend, composed here rather than read out of the seed. */
 const QUERY: ReportQuery = {
   measures: [{ key: 'captains.registered' }],
-  groupBy: null,
+  groupBy: [],
   filters: [],
   window: { kind: 'preset', preset: 'last-30d' },
   grain: 'day',
@@ -88,20 +70,25 @@ function mount() {
   return { onSaved, onOpenChange }
 }
 
-/** Every board, read through the client rather than out of the seed module. */
-async function boards(): Promise<Dashboard[]> {
-  return (await listDashboards({ pageSize: 100 })).items
+/** Every dashboard-kind page, read through the client rather than out of the seed module. */
+async function pages(): Promise<Page[]> {
+  return (await listPages({ pageSize: 100, filters: [{ field: 'kind', op: 'eq', value: 'dashboard' }] }))
+    .items
 }
 
-async function firstBoard(): Promise<Dashboard> {
-  const all = await boards()
-  expect(all.length, 'the fixtures hold at least one dashboard').toBeGreaterThan(0)
-  return all[0] as Dashboard
+async function firstPage(): Promise<Page> {
+  const all = await pages()
+  expect(all.length, 'the fixtures hold at least one dashboard page').toBeGreaterThan(0)
+  return all[0] as Page
 }
 
 /** The set of report ids pinned anywhere, so "nothing was pinned" is checkable. */
 async function pinnedReportIds(): Promise<string[]> {
-  return (await boards()).flatMap((board) => board.tiles.map((tile) => tile.reportId)).sort()
+  return (await pages())
+    .flatMap((page) => page.blocks)
+    .filter((block) => block.type === 'report')
+    .map((block) => block.reportId)
+    .sort()
 }
 
 async function reportNamed(name: string): Promise<SavedReport | undefined> {
@@ -173,8 +160,8 @@ describe('each visibility option names its consequence', () => {
 
 /* ───── pinning at save time ─────────────────────────────────────────────── */
 
-describe('the dashboard picker', () => {
-  it('defaults to not adding the report to any dashboard', async () => {
+describe('the page picker', () => {
+  it('defaults to not adding the report to any page', async () => {
     const user = userEvent.setup()
     const before = await pinnedReportIds()
     const { onSaved } = mount()
@@ -190,37 +177,32 @@ describe('the dashboard picker', () => {
     const saved = onSaved.mock.calls[0]?.[0] as SavedReport
     expect(saved.name).toBe('Unpinned by default')
 
-    /* Read back through the client: nothing anywhere gained a tile. */
+    /* Read back through the client: nothing anywhere gained a block. */
     expect(await pinnedReportIds()).toEqual(before)
   })
 
-  it('pins the saved report to the chosen dashboard', async () => {
+  it('pins the saved report to the chosen page as a report block', async () => {
     const user = userEvent.setup()
-    const board = await firstBoard()
-    const before = board.tiles.length
+    const page = await firstPage()
+    const before = page.blocks.length
     const { onSaved } = mount()
 
     await typeName(user, 'Pinned at save time')
     await user.click(await screen.findByRole('combobox'))
-    await user.click(await screen.findByRole('option', { name: board.name }))
+    await user.click(await screen.findByRole('option', { name: page.title }))
     await save(user)
 
     await waitFor(() => expect(onSaved).toHaveBeenCalledTimes(1))
     const saved = onSaved.mock.calls[0]?.[0] as SavedReport
 
-    /* The tile is read back through `getDashboard`, not off the screen. A row
+    /* The block is read back through `getPage`, not off the screen. A block
        that appeared in the UI and not on the server is the failure worth
        catching. */
-    const after = (await getDashboard(board.id)).data
-    expect(after.tiles).toHaveLength(before + 1)
-    const tile = after.tiles.find((row) => row.reportId === saved.id)
-    expect(tile, 'the saved report is a tile on the chosen dashboard').toBeTruthy()
-    expect(tile?.pinnedName).toBe('Pinned at save time')
-    /* `saveDashboard` renormalises `order` to 1..n, so the new tile is last and
-       the integers are contiguous. */
-    expect(after.tiles.map((row) => row.order)).toEqual(
-      Array.from({ length: before + 1 }, (_, index) => index + 1),
-    )
+    const after = (await getPage(page.id)).data
+    expect(after.blocks).toHaveLength(before + 1)
+    const block = after.blocks.find((row) => row.type === 'report' && row.reportId === saved.id)
+    expect(block, 'the saved report is a block on the chosen page').toBeTruthy()
+    expect(block?.type === 'report' && block.title).toBe('Pinned at save time')
   })
 })
 
@@ -229,15 +211,15 @@ describe('the dashboard picker', () => {
 describe('a failed pin does not un-save a saved report', () => {
   it('states the partial outcome and leaves the report saved', async () => {
     const user = userEvent.setup()
-    const board = await firstBoard()
+    const page = await firstPage()
     const { onSaved } = mount()
 
     await typeName(user, 'Saved but not pinned')
     await user.click(await screen.findByRole('combobox'))
-    await user.click(await screen.findByRole('option', { name: board.name }))
+    await user.click(await screen.findByRole('option', { name: page.title }))
 
-    /* Rigged AFTER the board list is read, so only the write fails. */
-    mockFailures.always('dashboards.save')
+    /* Rigged AFTER the page list is read, so only the write fails. */
+    mockFailures.always('pages.save')
     await save(user)
 
     /* Both halves, in the order they happened. */
@@ -251,10 +233,12 @@ describe('a failed pin does not un-save a saved report', () => {
     const persisted = await reportNamed('Saved but not pinned')
     expect(persisted, 'the successful save was rolled back').toBeTruthy()
 
-    /* The board did not gain a tile — the dialog is not claiming a pin it
+    /* The page did not gain a block — the dialog is not claiming a pin it
        could not make. */
-    const after = (await getDashboard(board.id)).data
-    expect(after.tiles.some((tile) => tile.reportId === persisted?.id)).toBe(false)
+    const after = (await getPage(page.id)).data
+    expect(
+      after.blocks.some((block) => block.type === 'report' && block.reportId === persisted?.id),
+    ).toBe(false)
 
     /* The dialog stayed open, so the one action that resolves this is reachable
        — and the primary now says what pressing it will do. */
@@ -266,14 +250,14 @@ describe('a failed pin does not un-save a saved report', () => {
 
   it('retries the pin without creating a second report', async () => {
     const user = userEvent.setup()
-    const board = await firstBoard()
+    const page = await firstPage()
     const { onSaved } = mount()
 
     await typeName(user, 'Retried once')
     await user.click(await screen.findByRole('combobox'))
-    await user.click(await screen.findByRole('option', { name: board.name }))
+    await user.click(await screen.findByRole('option', { name: page.title }))
 
-    mockFailures.once('dashboards.save')
+    mockFailures.once('pages.save')
     await save(user)
     await screen.findByText(copy('rb.save.addTo.failed'))
 
@@ -289,8 +273,10 @@ describe('a failed pin does not un-save a saved report', () => {
     )
     expect(all).toHaveLength(1)
 
-    const after = (await getDashboard(board.id)).data
-    expect(after.tiles.some((tile) => tile.reportId === saved.id)).toBe(true)
+    const after = (await getPage(page.id)).data
+    expect(after.blocks.some((block) => block.type === 'report' && block.reportId === saved.id)).toBe(
+      true,
+    )
   })
 })
 

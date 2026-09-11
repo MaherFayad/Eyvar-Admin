@@ -1,8 +1,10 @@
 /**
- * The threshold-alert rule list (§12). Nothing evaluates a rule while the tab
- * is shut, so R10 states that once in the banner and no row repeats it (T9.15).
- * One badge per row; muted and off are tooltipped glyphs, a suspension reason
- * an `InfoHint` (X15). No red: a breach is not one of R5a's four uses (AC-885).
+ * The alert rules list and the firings feed (`?view=alerts`) — v2
+ * (`22-analytics-v2.md` §4, `04-alerting-v2.md` §4). A `ViewTabs` strip (not a
+ * route) switches **Rules** and **Firings**; the composer opens in place of
+ * the list, never as a dialog. One badge per row; a breach is never red
+ * (R5a). Rules applied: R10 (one standing-condition banner), X15 (a hint,
+ * not a hover-only fact), §7.3 (a mute control is a column, not hover-only).
  */
 
 import { useState } from 'react'
@@ -14,10 +16,13 @@ import { InfoHint, hintLines } from '@/components/InfoHint'
 import { PageHeader } from '@/components/PageHeader'
 import { SingleColumnPage } from '@/components/PageShell'
 import { StatusBadge } from '@/components/StatusBadge'
+import { ViewTabs } from '@/components/ViewTabs'
 import {
   ArmedIcon,
+  BreachedIcon,
   CoolingIcon,
   DisabledIcon,
+  EmailIcon,
   FiringIcon,
   MutedIcon,
   NotWorkingIcon,
@@ -29,32 +34,31 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { Area, AreaChart, ReferenceArea, ReferenceLine, YAxis } from 'recharts'
+import { ChartContainer, type ChartConfig } from '@/components/ui/chart'
 import type { DataColumn } from '@/components/table/columns'
 /* Deep import, NOT the `@/components/metrics` barrel. The barrel also exports
    `TrendChart`, which pulls recharts -- a 337 kB chunk (104 kB gzip) that then
-   loads on `/management/reports` where no chart renders. `formatMetric.ts` has
-   no React in it. */
+   loads on `/management/reports` where no chart renders in most states. */
 import { formatMetricValue } from '@/components/metrics/formatMetric'
 import { useAsync, useIndexTable } from '@/hooks'
 import {
   deleteAlertRule,
-  describeAlertRule,
   evaluateAlertRule,
+  getReport,
   listAlertRules,
+  runReport,
 } from '@/data/clients'
 import type { AlertEvaluation, AlertRule } from '@/data/types'
-import { formatDate, isolatedRunProps, type Language, type Translator } from '@/lib'
+import { alertCondition, type AlertCondition } from '@/data/types/alert'
+import { formatDate, formatDuration, isolatedRunProps, type Language, type Translator } from '@/lib'
+import { AlertFeedView } from './AlertFeedView'
 import { AlertHistoryDialog } from './AlertHistoryDialog'
-import { AlertRuleDialog } from './AlertRuleDialog'
+import { AlertRuleDialog, MuteMenu } from './AlertRuleDialog'
 import { reportsViewTabs, type ReportsView } from './views'
 
 export interface AlertsViewProps {
   title: string
-  /**
-   * §A11's view strip, as state plus a callback rather than as markup. Every
-   * view builds its own tabs from `reportsViewTabs`, so the three cannot offer
-   * different sets and a caller cannot supply a parallel strip that drifts.
-   */
   activeView?: ReportsView
   onSelectView?: (view: ReportsView) => void
   /** The day a `Test this rule` and the form's series resolution run against. */
@@ -64,12 +68,6 @@ export interface AlertsViewProps {
   dir: 'ltr' | 'rtl'
 }
 
-/**
- * The state, as a word plus a tone from R7's closed five. `firing` is `warning`
- * and never red (R5a). `suspended` and `error` are neutral: both are inert,
- * terminal facts about the rule rather than about the business, and a rule that
- * stopped working is not a breach.
- */
 const STATE_TONE: Record<AlertRule['state'], 'success' | 'warning' | 'info' | 'neutral'> = {
   armed: 'success',
   firing: 'warning',
@@ -78,11 +76,6 @@ const STATE_TONE: Record<AlertRule['state'], 'success' | 'warning' | 'info' | 'n
   error: 'neutral',
 }
 
-/**
- * A state is a shape before it is a word (§A6/§H), from the registry (X17).
- * Every glyph is `aria-hidden` and the badge keeps the word, so the glyph is
- * redundancy and never the carrier (§7.5).
- */
 const STATE_GLYPH: Record<AlertRule['state'], typeof ArmedIcon> = {
   armed: ArmedIcon,
   firing: FiringIcon,
@@ -91,9 +84,19 @@ const STATE_GLYPH: Record<AlertRule['state'], typeof ArmedIcon> = {
   error: NotWorkingIcon,
 }
 
-/* Derived from the tone map, never typed twice: a sixth state cannot reach the
-   filter without a tone, so no row can vanish from an index nobody touched. */
 const ALERT_STATES = Object.keys(STATE_TONE) as ReadonlyArray<AlertRule['state']>
+
+/** `AlertCondition.relative.against` to its inline sentence key segment. */
+const AGAINST_KEY: Record<Extract<AlertCondition, { kind: 'relative' }>['against'], string> = {
+  'previous-bucket': 'previousBucket',
+  'same-bucket-previous-week': 'sameWeekday',
+  'previous-period': 'previousPeriod',
+}
+
+/** How late an evaluation may run before the row states it (§4.6). */
+function cadenceHours(cadence: NonNullable<AlertRule['cadence']>): number {
+  return cadence === 'hourly' ? 1 : 24
+}
 
 export function AlertsView({
   title,
@@ -104,8 +107,7 @@ export function AlertsView({
   language,
   dir,
 }: AlertsViewProps) {
-  /* `null` creates, a rule edits. One dialog, two modes, and the mode is the
-     value rather than a flag — the same shape `saveReport` uses. */
+  const [alertsTab, setAlertsTab] = useState<'rules' | 'firings'>('rules')
   const [editing, setEditing] = useState<AlertRule | null>(null)
   const [formOpen, setFormOpen] = useState(false)
   const table = useIndexTable<AlertRule>({
@@ -113,28 +115,19 @@ export function AlertsView({
     getRowId: (row) => row.id,
   })
   const rules = useAsync((signal) => listAlertRules(table.params, signal), {
-    /* `table.params` is the fetcher's only input; saving a rule calls
-       `rules.refetch`, which bypasses the cache read. */
     deps: [JSON.stringify(table.params)],
     cacheKey: 'alerts.list',
   })
 
   const rows = rules.data?.items ?? []
   const rulesById = new Map(rows.map((rule) => [rule.id, rule]))
-  /* The banner's `Test a rule` target, and the condition it renders on: a rule
-     nothing checks, that a test is allowed to read (§13.3 refuses a suspended
-     one). Undefined means neither the banner nor the action has a subject. */
-  const testable = rows.find((rule) => rule.cadence === null && rule.state !== 'suspended')
-  /* One condition, read twice: the banner renders on it and the `Checked`
-     column blanks on it, so the cell can never go silent with nothing above
-     it saying why (R10). */
-  const bannerShown = testable !== undefined
 
-  /* `Test this rule`'s answer, per rule. Held on the screen rather than pushed
-     into the row, because a test changes nothing about the rule and a result
-     that looked like row state would read as one. */
+  /* §4.6 list-level banner: every rule IN VIEW has no cadence, so nothing on
+     this page ever runs. The claim is about the view, not about any one row —
+     one rule with a cadence retires the banner even if others are unset. */
+  const bannerShown = rows.length > 0 && rows.every((rule) => rule.cadence === null)
+
   const [tested, setTested] = useState<Record<string, AlertEvaluation | 'failed'>>({})
-
   const runTest = async (rule: AlertRule) => {
     try {
       const evaluation = await evaluateAlertRule(rule.id)
@@ -144,27 +137,17 @@ export function AlertsView({
     }
   }
 
-  /* The firing history. One dialog, one rule at a time; the rule is held rather
-     than the id so the title can name it without a second read. */
   const [historyOf, setHistoryOf] = useState<AlertRule | null>(null)
   const [historyOpen, setHistoryOpen] = useState(false)
 
   const [confirm, setConfirm] = useState<ConfirmRequest | null>(null)
   const [deleting, setDeleting] = useState(false)
 
-  /**
-   * §5.3 — the confirmation NAMES the rule, and its body says what goes and
-   * what stays. `deleteAlertRule` has existed since the client was written and
-   * had no UI caller at all: a rule could be created and edited and never
-   * removed.
-   */
   const askDelete = (rule: AlertRule) => {
     setConfirm({
       title: t('rb.alert.delete.confirm.title', { name: rule.name }),
       body: t('rb.alert.delete.confirm.body'),
       confirmLabel: t('rb.alert.delete.confirm.action'),
-      /* R5a use #1. Nothing in this product restores a deleted rule or its
-         firing history, which is the test the red button has to pass. */
       destructive: true,
       onConfirm: () => void runDelete(rule),
     })
@@ -175,19 +158,47 @@ export function AlertsView({
     try {
       await deleteAlertRule(rule.id)
       setConfirm(null)
-      /* R9 — one line, naming the object. §5.1 wants one for every successful
-         mutation, and a row vanishing from a table is not a confirmation: the
-         operator cannot tell it from a filter change. */
       toast.success(t('rb.alert.toast.deleted', { name: rule.name }))
       rules.refetch()
     } catch {
-      /* §8.3 — a failed mutation never closes the surface it came from. The
-         confirm stays open with the same rule named in it. */
       toast.error(t('rb.alert.delete.failed'))
     } finally {
       setDeleting(false)
     }
   }
+
+  /* The rules table's sparkline (AC-1233) and the anomaly no-baseline row
+     state (§7 state 23) both need each visible rule's own resolved series —
+     no endpoint returns a rolling reading list for a rule at rest, so this
+     runs each row's report once, the same path `evaluateAlertRule` already
+     takes server-side. Bounded to the current page; a failed row is simply
+     omitted rather than failing the whole row. */
+  const ruleIdsKey = rows.map((rule) => rule.id).join(',')
+  const rowSeries = useAsync<Record<string, RowSeriesInfo>>(
+    async (signal) => {
+      const entries = await Promise.all(
+        rows.map(async (rule): Promise<[string, RowSeriesInfo] | null> => {
+          try {
+            const report = await getReport(rule.reportId, signal)
+            const outcome = await runReport(report.data.query, { today, signal })
+            if (outcome.status !== 'ok') return null
+            const series = outcome.result.series.find((s) => s.id === rule.seriesId)
+            if (!series || series.blocked) return null
+            const info: RowSeriesInfo = {
+              buckets: outcome.result.buckets,
+              points: series.points,
+              partialBucketIndexes: series.partialBucketIndexes,
+            }
+            return [rule.id, info]
+          } catch {
+            return null
+          }
+        }),
+      )
+      return Object.fromEntries(entries.filter((e): e is [string, RowSeriesInfo] => e !== null))
+    },
+    { deps: [ruleIdsKey, today], isEmpty: () => false, enabled: rows.length > 0 && alertsTab === 'rules' },
+  )
 
   const columns: Array<DataColumn<AlertRule>> = [
     {
@@ -196,37 +207,32 @@ export function AlertsView({
       csv: (row) => row.name,
       header: t('rb.alerts.col.name'),
       alwaysVisible: true,
-      minWidth: 280,
+      minWidth: 220,
       sortField: 'name',
       dataType: 'text',
-      /* T9.15 — the name on one line. The rule sentence used to wrap to two
-         and truncate mid-clause; it reads in full in the row's `title` and in
-         the rule's own dialog, which is where an operator edits it. */
-      /* `block`, or `overflow-hidden` does not apply: an inline span does not
-         clip, and an Arabic rule name ran across the State column (§5.4). */
       cell: (row) => (
         <span
           {...isolatedRunProps({ className: 'block min-w-0 truncate' }).box}
-          title={alertSentence(row, t, language)}
+          title={conditionSummary(row, t, language)}
         >
           <bdi {...isolatedRunProps().run}>{row.name}</bdi>
         </span>
       ),
     },
     {
+      id: 'condition',
+      emphasis: 'data',
+      header: t('rb.alerts.col.condition'),
+      minWidth: 180,
+      dataType: 'text',
+      cell: (row) => <bdi>{conditionSummary(row, t, language)}</bdi>,
+    },
+    {
       id: 'state',
       emphasis: 'data',
       header: t('rb.alerts.col.state'),
-      /* 160, up from 140: the glyph and its 6px gap are 22px the badge did not
-         have to share the cell with, and `Not working` is the longest of the
-         five words in English. Measured rather than rounded up twice. */
       width: 160,
       dataType: 'enum',
-      /* **The filter that could never fire, made reachable.** It used to live
-         on `params.view` in `alerts.ts`, which `useIndexTable` feeds from
-         `?view=` — always the reports sub-tab id `alerts` on this screen. A
-         `FilterSpec` is keyed on a FIELD, so `state` cannot collide with a view
-         id, and the control and the client branch are now one declaration. */
       filter: {
         kind: 'select',
         field: 'state',
@@ -236,10 +242,6 @@ export function AlertsView({
           label: t(`rb.alert.state.${state}`),
         })),
       },
-      /* T9.15 — ONE badge, on one line. `enabled: false` and `mutedUntil` are
-         not states, so they ride as registry glyphs a tooltip names; the
-         server's suspension reason is an explanation, so it is an `InfoHint`
-         (X15). Nothing here wraps, so the row stays one line tall. */
       cell: (row) => {
         const Glyph = STATE_GLYPH[row.state]
         return (
@@ -253,11 +255,7 @@ export function AlertsView({
               {t(`rb.alert.state.${row.state}`)}
             </StatusBadge>
             {!row.enabled && (
-              <GlyphNote
-                glyph={DisabledIcon}
-                kind="disabled"
-                label={t('rb.alert.disabled')}
-              />
+              <GlyphNote glyph={DisabledIcon} kind="disabled" label={t('rb.alert.disabled')} />
             )}
             {row.mutedUntil && (
               <GlyphNote
@@ -279,68 +277,116 @@ export function AlertsView({
       id: 'cadence',
       header: t('rb.alerts.col.cadence'),
       width: 100,
-      /* R10 — WHILE THE BANNER SHOWS the cell does not repeat it once per row,
-         so it is blank (O9). With no banner nothing else states the absence,
-         and O9 gives it the muted word. */
-      cell: (row) =>
-        row.cadence !== null ? (
-          <span>{row.cadence}</span>
-        ) : bannerShown ? null : (
-          <span className="text-muted-foreground">{t('rb.alert.cadence.unset')}</span>
-        ),
-    },
-    {
-      /* The line, beside the reading tested against it (§H). T9.15 deletes the
-         unit line under it: `formatMetricValue` already prints the unit. */
-      id: 'threshold',
-      emphasis: 'data',
-      header: t('rb.alerts.col.threshold'),
-      width: 130,
-      align: 'end',
-      dataType: 'number',
-      csv: (row) => row.threshold,
+      dataType: 'enum',
       cell: (row) => (
-        <span className="tabular-nums">
-          {formatMetricValue(row.threshold, row.thresholdUnit, language)}
+        <span className={row.cadence === null ? 'text-muted-foreground' : undefined}>
+          {row.cadence === null ? t('rb.alert.cadence.none') : t(`rb.alert.cadence.${row.cadence}`)}
         </span>
       ),
     },
     {
       id: 'lastValue',
       header: t('rb.alerts.col.lastValue'),
-      width: 130,
+      width: 190,
       align: 'end',
       dataType: 'number',
-      /* O9 — a rule nothing has read has no last reading, and that is not a
-         fact the operator acts on: the cell is blank, never a dash. */
-      cell: (row) =>
-        row.lastValue === null ? null : (
-          <span className="tabular-nums">
-            {formatMetricValue(row.lastValue, row.thresholdUnit, language)}
+      /* AC-1233 — the sparkline draws the threshold or the band, never red;
+         a rule with no resolved series yet draws no shape (state pending, not
+         an error — the row's own `lastEvaluatedAt`/`lastValue` still read). */
+      /* O9 — a rule nothing has read has no last reading, and the cell is
+         BLANK, not a dash and not a sparkline for a line nobody drew. */
+      cell: (row) => {
+        if (row.lastValue === null) return null
+        const info = rowSeries.data?.[row.id]
+        const condition = alertCondition(row)
+        const reference: RuleSparklineReference | null =
+          condition.kind === 'static'
+            ? { kind: 'line', value: condition.threshold }
+            : condition.kind === 'anomaly' && row.lastBand
+              ? { kind: 'band', low: row.lastBand.low, high: row.lastBand.high }
+              : null
+        return (
+          <span className="flex items-center justify-end gap-2">
+            <span className="tabular-nums">
+              {formatMetricValue(row.lastValue, row.thresholdUnit, language)}
+            </span>
+            {info && info.points.length > 1 && (
+              <RuleSparkline points={info.points} reference={reference} />
+            )}
           </span>
-        ),
+        )
+      },
     },
     {
       id: 'lastEvaluated',
       emphasis: 'data',
       header: t('rb.alerts.col.lastEvaluated'),
-      width: 140,
+      width: 190,
       dataType: 'date',
-      /* **A word, not a placeholder.** `formatMetricValue(null, …)` rendered the
-         no-data dash, which cannot tell *never checked* from *checked, and the
-         reading was missing*. Every rule on this list is the first of those and
-         the column is entitled to say so. */
+      /* §4.6 — the lag state. `cadence === null` reads plainly as "Not
+         scheduled", never with the warning icon: that would conflate "never
+         runs" with "is late" (states table's explicit warning). */
+      cell: (row) => {
+        if (row.cadence === null) {
+          return <span className="text-muted-foreground">{t('rb.alert.state.notScheduled')}</span>
+        }
+        if (row.lastEvaluatedAt === null) {
+          return <span className="text-muted-foreground">{t('rb.alert.lastEvaluated.never')}</span>
+        }
+        const lagMs = Date.now() - Date.parse(row.lastEvaluatedAt)
+        const breached = lagMs > 2 * cadenceHours(row.cadence) * 3_600_000
+        const sentence = t('rb.alert.state.lag', {
+          duration: formatDuration(lagMs),
+          cadence: t(`rb.alert.cadence.${row.cadence}`).toLowerCase(),
+        })
+        if (!breached) {
+          return <bdi className="text-muted-foreground">{sentence}</bdi>
+        }
+        return (
+          <span className="flex items-center gap-1 text-warning-foreground">
+            <BreachedIcon aria-hidden="true" className="size-3.5 shrink-0 text-warning-graphic" />
+            <bdi>{sentence}</bdi>
+          </span>
+        )
+      },
+    },
+    {
+      id: 'channels',
+      header: t('rb.alerts.col.channels'),
+      width: 90,
+      dataType: 'text',
+      cell: (row) => <ChannelGlyphs rule={row} t={t} />,
+    },
+    {
+      id: 'labels',
+      header: t('rb.alerts.col.labels'),
+      width: 140,
+      dataType: 'text',
       cell: (row) =>
-        row.lastEvaluatedAt === null ? (
-          <span className="text-muted-foreground">{t('rb.alert.lastEvaluated.never')}</span>
-        ) : (
-          <bdi>
-            {formatDate(row.lastEvaluatedAt, {
-              style: 'day-month-time',
-              language,
-            })}
-          </bdi>
+        (row.labels ?? []).length === 0 ? null : (
+          <span className="flex flex-wrap gap-1">
+            {(row.labels ?? []).map((label) => (
+              <span
+                key={label}
+                className="rounded-control border border-border bg-muted px-1.5 py-0.5 text-xs"
+              >
+                <bdi>{label}</bdi>
+              </span>
+            ))}
+          </span>
         ),
+    },
+    {
+      id: 'mute',
+      header: t('rb.alerts.col.mute'),
+      width: 130,
+      dataType: 'text',
+      /* §4.5 / §7.3 — a real, always-rendered control, not a hover-only row
+         action: the shared kebab lane refuses a submenu for a ledger-adjacent
+         index row, so this is its own column. */
+      cell: (row) => (
+        <MuteMenu rule={row} t={t} language={language} onChanged={() => rules.refetch()} />
+      ),
     },
   ]
 
@@ -351,29 +397,15 @@ export function AlertsView({
         setEditing(row)
         setFormOpen(true)
       },
-      /* **P0-2 — the declared row-click target.** It opens the rule's form and
-         writes nothing until the operator saves; `Test` fires a real
-         evaluation and must stay unreachable from a row click. */
       rowClick: true,
     },
     {
       label: t('rb.alert.test'),
       onSelect: (row) => void runTest(row),
-      /* §13.3 — a suspended rule stopped evaluating on purpose, and testing it
-         would read as resuming it. Disabled IN PLACE with the reason the server
-         already gave. */
       disabled: (row) => row.state === 'suspended',
-      /* `null` on purpose. `RowAction.reason` allows it *"where the refusal is
-         self-evident from the row itself"*, and it is: the State column two
-         cells away already carries `Suspended` plus the server's own reason.
-         Repeating a four-line paragraph in the action lane pushes every row to
-         five times its height and says nothing new. */
       reason: () => null,
     },
     {
-      /* The whole `alerts.history` resource's only way in. It opens a record,
-         mutates nothing, and is deliberately NOT the row-click target: `Open`
-         already is, and §11.2 allows exactly one. */
       label: t('rb.alert.history'),
       onSelect: (row) => {
         setHistoryOf(row)
@@ -381,12 +413,15 @@ export function AlertsView({
       },
     },
     {
-      /* R5a use #1. In the row menu, never on the page header, and never
-         reachable from a row click — a stray click must not be able to open a
-         destructive confirm the operator did not ask for. */
       label: t('rb.alert.delete'),
       onSelect: (row) => askDelete(row),
     },
+  ]
+
+  const showComposer = formOpen
+  const alertsTabs = [
+    { id: 'rules', label: t('rb.alerts.tab.rules') },
+    { id: 'firings', label: t('rb.alerts.tab.firings') },
   ]
 
   return (
@@ -395,133 +430,128 @@ export function AlertsView({
         <PageHeader
           title={title}
           meta={null}
-          primaryAction={{
-            label: t('rb.alerts.new'),
-            onClick: () => {
-              setEditing(null)
-              setFormOpen(true)
-            },
-          }}
+          primaryAction={
+            showComposer
+              ? undefined
+              : {
+                  label: t('rb.alerts.new'),
+                  onClick: () => {
+                    setEditing(null)
+                    setFormOpen(true)
+                  },
+                }
+          }
           t={t}
           dir={dir}
         />
       }
     >
       <div className="flex flex-col gap-3">
-        {/* R10 — the standing condition, above the rows it qualifies, and §5.2
-            allows exactly one. T9.15 cuts it to one sentence plus the action
-            that answers it; the re-arm rule is an explanation, so it is an
-            `InfoHint` on the title (X15). `info` and `role="status"`: a decision
-            has not been made, which is true rather than wrong. */}
-        {bannerShown && testable !== undefined && (
-          <Banner
-            role="status"
-            banner={{
-              id: 'management-reports-alerts-no-cadence',
-              tone: 'info',
-              title: t('rb.alerts.banner.title'),
-              actions: [
-                {
-                  label: t('rb.alerts.banner.action'),
-                  onClick: () => void runTest(testable),
-                },
-              ],
+        {!showComposer && (
+          <ViewTabs
+            tabs={alertsTabs}
+            activeTab={alertsTab}
+            onSelectTab={(id) => setAlertsTab(id as 'rules' | 'firings')}
+            label={t('rb.alerts.tab.rules')}
+          />
+        )}
+
+        {showComposer ? (
+          <AlertRuleDialog
+            open={formOpen}
+            onOpenChange={setFormOpen}
+            rule={editing}
+            today={today}
+            onSaved={(rule) => {
+              setFormOpen(false)
+              toast.success(t('rb.alert.toast.saved', { name: rule.name }))
+              rules.refetch()
             }}
-          >
-            {/* The sentence and its hint on ONE line: `body` would put the
-                glyph on a line of its own, and X15 puts it beside what it
-                explains. */}
-            <span className="inline-flex items-center gap-1">
-              {t('rb.alerts.banner.body')}
-              <InfoHint t={t}>{hintLines([t('rb.alert.rearm.explain')])}</InfoHint>
-            </span>
-          </Banner>
-        )}
+            t={t}
+            language={language}
+          />
+        ) : alertsTab === 'firings' ? (
+          <AlertFeedView today={today} t={t} language={language} dir={dir} />
+        ) : (
+          <>
+            {bannerShown && (
+              <Banner
+                role="status"
+                banner={{
+                  id: 'management-reports-alerts-no-cadence',
+                  tone: 'warning',
+                  title: t('rb.alert.banner.noCadence.title'),
+                  actions: [
+                    {
+                      label: t('rb.alert.banner.noCadence.action'),
+                      onClick: () => {
+                        setEditing(rows[0] ?? null)
+                        setFormOpen(true)
+                      },
+                    },
+                  ],
+                }}
+              >
+                {t('rb.alert.banner.noCadence.body')}
+              </Banner>
+            )}
 
-        {/* AC-877 — it reports the bucket, the value and whether it WOULD have
-            fired, and it names the rule, because the banner's `Test a rule` and
-            four row menus write into one list. It never changes the rule and
-            never emits a notification, and the sentence says so. */}
-        {Object.entries(tested).length > 0 && (
-          <ul role="status" className="flex list-none flex-col gap-1">
-            {Object.entries(tested).map(([ruleId, evaluation]) => (
-              <li key={ruleId} className="text-sm text-muted-foreground">
-                <bdi>
-                  {t('rb.alert.test.of', {
-                    name: rulesById.get(ruleId)?.name ?? ruleId,
-                  })}
-                </bdi>{' '}
-                {evaluation === 'failed'
-                  ? t('rb.alert.test.failed')
-                  : describeEvaluation(evaluation, t, language)}{' '}
-                {evaluation !== 'failed' && t('rb.alert.test.noChange')}
-              </li>
-            ))}
-          </ul>
-        )}
+            {Object.entries(tested).length > 0 && (
+              <ul role="status" className="flex list-none flex-col gap-1">
+                {Object.entries(tested).map(([ruleId, evaluation]) => (
+                  <li key={ruleId} className="text-sm text-muted-foreground">
+                    <bdi>
+                      {t('rb.alert.test.of', { name: rulesById.get(ruleId)?.name ?? ruleId })}
+                    </bdi>{' '}
+                    {evaluation === 'failed'
+                      ? t('rb.alert.test.failed')
+                      : describeEvaluation(evaluation, t, language)}{' '}
+                    {evaluation !== 'failed' && t('rb.alert.test.noChange')}
+                  </li>
+                ))}
+              </ul>
+            )}
 
-        <DataTable
-          table={table}
-          rows={rows}
-          columns={columns}
-          getRowId={(row) => row.id}
-          status={rules.status}
-          total={rules.data?.total ?? 0}
-          t={t}
-          language={language}
-          tableId="management-reports-alerts"
-          view={activeView}
-          tabs={reportsViewTabs(t)}
-          activeTab={activeView}
-          onSelectTab={(id) => onSelectView?.(id as ReportsView)}
-          searchPlaceholder={t('rb.alerts.search')}
-          rowActions={rowActions}
-          skeletonPattern="P1"
-          firstRun={{
-            heading: t('rb.alerts.firstRun.heading'),
-            body: t('rb.alerts.firstRun.body'),
-            actions: [
-              {
-                label: t('rb.alerts.firstRun.action'),
-                onClick: () => {
-                  setEditing(null)
-                  setFormOpen(true)
-                },
-                primary: true,
-              },
-            ],
-          }}
-          noMatch={{
-            message: t('rb.alerts.noMatch'),
-            action: {
-              label: t('rb.alerts.noMatch.action'),
-              onClick: table.clearAll,
-            },
-          }}
-          error={{ message: t('rb.alerts.error'), onRetry: rules.refetch }}
-        />
-        {/* The two footnotes that used to sit here are the banner above. R10:
-            a standing condition is a banner; a footnote below pagination is
-            not a place a correction can outrank a badge from. */}
+            <DataTable
+              table={table}
+              rows={rows}
+              columns={columns}
+              getRowId={(row) => row.id}
+              status={rules.status}
+              total={rules.data?.total ?? 0}
+              t={t}
+              language={language}
+              tableId="management-reports-alerts"
+              view={activeView}
+              tabs={reportsViewTabs(t)}
+              activeTab={activeView}
+              onSelectTab={(id) => onSelectView?.(id as ReportsView)}
+              searchPlaceholder={t('rb.alerts.search')}
+              rowActions={rowActions}
+              skeletonPattern="P1"
+              firstRun={{
+                heading: t('rb.alerts.firstRun.heading'),
+                body: t('rb.alerts.firstRun.body'),
+                actions: [
+                  {
+                    label: t('rb.alerts.firstRun.action'),
+                    onClick: () => {
+                      setEditing(null)
+                      setFormOpen(true)
+                    },
+                    primary: true,
+                  },
+                ],
+              }}
+              noMatch={{
+                message: t('rb.alerts.noMatch'),
+                action: { label: t('rb.alerts.noMatch.action'), onClick: table.clearAll },
+              }}
+              error={{ message: t('rb.alerts.error'), onRetry: rules.refetch }}
+            />
+          </>
+        )}
       </div>
-
-      <AlertRuleDialog
-        open={formOpen}
-        onOpenChange={setFormOpen}
-        rule={editing}
-        today={today}
-        onSaved={(rule) => {
-          setFormOpen(false)
-          /* §5.1 — a toast for every successful mutation, INCLUDING one inside
-             a modal. Saving used to close the dialog and refetch in silence,
-             which leaves the operator to infer the write from a list that looks
-             the same either way. R9: one line, naming the object. */
-          toast.success(t('rb.alert.toast.saved', { name: rule.name }))
-          rules.refetch()
-        }}
-        t={t}
-        language={language}
-      />
 
       <AlertHistoryDialog
         open={historyOpen}
@@ -534,6 +564,12 @@ export function AlertsView({
       <ConfirmDialog request={confirm} onClose={() => setConfirm(null)} busy={deleting} t={t} />
     </SingleColumnPage>
   )
+}
+
+interface RowSeriesInfo {
+  buckets: readonly string[]
+  points: readonly (number | null)[]
+  partialBucketIndexes: readonly number[]
 }
 
 /**
@@ -572,34 +608,119 @@ function GlyphNote({
   )
 }
 
-/**
- * What the rule will do, in words — one key with named parameters (AC-878).
- * The measure and the comparator are resolved before interpolation, so the
- * translator assembles the sentence and never `+`.
- */
-function alertSentence(rule: AlertRule, t: Translator, language: Language): string {
-  const described = describeAlertRule(rule)
-  return `${t(described.key, {
-    measure: t(String(described.params['measure'])),
-    comparator: t(`rb.alert.comparator.${String(described.params['comparator'])}`),
-    threshold: formatMetricValue(rule.threshold, rule.thresholdUnit, language),
-    grain: t(`rb.grainNoun.${rule.evaluationGrain}`),
-  })} ${t(
-    crossingIsGoodNews(rule, described.params['higherIsBetter'] === true)
-      ? 'rb.alert.direction.good'
-      : 'rb.alert.direction.bad',
-  )}`
+/** Channel glyphs with `title`, in-app always present (§4.4). */
+function ChannelGlyphs({ rule, t }: { rule: AlertRule; t: Translator }) {
+  const channels = rule.channels ?? [{ type: 'in-app' as const }]
+  return (
+    <span className="flex items-center gap-1 text-muted-foreground">
+      {channels.map((channel, index) => {
+        if (channel.type === 'email') {
+          return <EmailIcon key={index} aria-hidden="true" className="size-3.5" data-title={t('rb.alert.channel.email')} />
+        }
+        if (channel.type === 'slack') {
+          return (
+            <span key={index} title={t('rb.alert.channel.slack')} className="text-xs">
+              Slack
+            </span>
+          )
+        }
+        return null
+      })}
+      <span className="sr-only">{t('rb.alert.channel.inApp')}</span>
+    </span>
+  )
+}
+
+export type RuleSparklineReference =
+  | { kind: 'line'; value: number }
+  | { kind: 'band'; low: number; high: number }
+
+const SPARKLINE_CONFIG = {
+  value: { label: 'value', color: 'var(--chart-series)' },
+} satisfies ChartConfig
+
+/** AC-1233 — the rules table's own sparkline: the threshold line or the
+ * anomaly band, drawn in `--chart-axis`, never a red stroke. */
+function RuleSparkline({
+  points,
+  reference,
+}: {
+  points: readonly (number | null)[]
+  reference: RuleSparklineReference | null
+}) {
+  const rows = points.map((value, index) => ({ index, value }))
+  const readings = points.filter((value): value is number => value !== null)
+  const bandValues = reference?.kind === 'band' ? [reference.low, reference.high] : []
+  const lineValue = reference?.kind === 'line' ? [reference.value] : []
+  const domain = [...readings, ...bandValues, ...lineValue]
+  const min = domain.length > 0 ? Math.min(...domain, 0) : 0
+  const max = domain.length > 0 ? Math.max(...domain, 0) : 0
+
+  return (
+    <div dir="ltr" aria-hidden="true" className="min-w-0">
+      <ChartContainer config={SPARKLINE_CONFIG} className="aspect-auto h-7 w-20">
+        <AreaChart data={rows} margin={{ top: 2, right: 0, bottom: 0, left: 0 }}>
+          <YAxis hide domain={[min, max === min ? min + 1 : max]} />
+          {reference?.kind === 'band' && (
+            <ReferenceArea
+              y1={reference.low}
+              y2={reference.high}
+              fill="var(--chart-fill)"
+              fillOpacity={0.6}
+              stroke="var(--chart-axis)"
+              strokeDasharray="2 2"
+            />
+          )}
+          {reference?.kind === 'line' && (
+            <ReferenceLine y={reference.value} stroke="var(--chart-axis)" strokeDasharray="2 2" />
+          )}
+          <Area
+            dataKey="value"
+            type="monotone"
+            stroke="var(--color-value)"
+            strokeWidth={1.5}
+            fill="var(--chart-fill)"
+            fillOpacity={1}
+            dot={false}
+            activeDot={false}
+            connectNulls={false}
+            isAnimationActive={false}
+          />
+        </AreaChart>
+      </ChartContainer>
+    </div>
+  )
 }
 
 /**
- * Whether crossing this line is good news. `higherIsBetter` is a property of
- * the measure and the comparator is a property of the rule, so neither alone
- * answers it: revenue rising past a line and revenue falling below one are the
- * same measure and opposite news (F-7).
+ * The condition summary (AC-1232) — one short sentence per kind, from
+ * `rb.alert.sentence.<kind>` with named params, never string concatenation.
  */
-function crossingIsGoodNews(rule: AlertRule, higherIsBetter: boolean): boolean {
-  const crossingUpward = rule.comparator === 'gt' || rule.comparator === 'gte'
-  return crossingUpward === higherIsBetter
+function conditionSummary(rule: AlertRule, t: Translator, language: Language): string {
+  const condition = alertCondition(rule)
+  switch (condition.kind) {
+    case 'static':
+      return t('rb.alert.sentence.static', {
+        comparator: t(`rb.alert.comparator.${condition.comparator}`),
+        threshold: formatMetricValue(condition.threshold, rule.thresholdUnit, language),
+      })
+    case 'relative':
+      return t('rb.alert.sentence.relative', {
+        direction: t(`rb.alert.relative.directionWord.${condition.direction}`),
+        amount:
+          condition.measure === 'percent'
+            ? formatMetricValue(condition.amount, 'percent', language)
+            : formatMetricValue(condition.amount, rule.thresholdUnit, language),
+        against: t(`rb.alert.relative.against.${AGAINST_KEY[condition.against]}.inline`),
+      })
+    case 'anomaly':
+      return t('rb.alert.sentence.anomaly', {
+        direction: t(`rb.alert.anomaly.directionWord.${condition.direction}`),
+        confidence: condition.confidence,
+      })
+    case 'missing':
+      return t('rb.alert.sentence.missing', { count: condition.bucketsMissing })
+  }
 }
 
 function describeEvaluation(
@@ -613,15 +734,16 @@ function describeEvaluation(
       return t(evaluation.wouldFire ? 'rb.alert.test.wouldFire' : 'rb.alert.test.wouldNotFire', {
         value: formatMetricValue(evaluation.value, evaluation.unit, language),
         bucket: evaluation.bucketStart
-          ? formatDate(evaluation.bucketStart, {
-              style: 'day-month',
-              language,
-            })
+          ? formatDate(evaluation.bucketStart, { style: 'day-month', language })
           : '',
         grain: t('rb.grainNoun.day'),
       })
     case 'no-complete-bucket':
       return t('rb.alert.test.noBucket')
+    case 'no-baseline':
+      return t('rb.alert.anomaly.noBaseline', { count: 0 })
+    case 'invalid-condition':
+      return t('rb.alert.against.weekOnlyAtDay')
     case 'series-missing':
       return t('rb.alert.test.seriesMissing')
     case 'series-blocked':

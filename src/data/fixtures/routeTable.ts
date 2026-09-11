@@ -350,12 +350,12 @@ export const SUB_TABS: SubTabRoute[] = [
     subtitleKey: 'subtab.management.reports.sub',
     views: views(
       ['reports', 'rb.view.reports'],
-      ['dashboards', 'rb.view.dashboards'],
+      /* D46/WP-4.5 — renamed from `dashboards`; `?view=dashboards` still
+         resolves here via `normaliseReportsView` (AC-1210). */
+      ['pages', 'rb.view.pages'],
       ['alerts', 'rb.view.alerts'],
-      /* D46 — the fourth view. `dashboards` keeps its id here on purpose: the
-         rename to `pages` plus the `dashboards` alias is WP-4.5's, which owns
-         `screens/reports/views.ts` and must land the rename in both files at
-         once (`routes.test.ts` asserts the two lists are identical). `an.index.title`
+      /* D46 — the fourth view, still the analyst work package's to wire into
+         `screens/reports/views.ts` and its own screen. `an.index.title`
          stands in for a `rb.view.analyst` key until that copy exists. */
       ['analyst', 'an.index.title'],
     ),

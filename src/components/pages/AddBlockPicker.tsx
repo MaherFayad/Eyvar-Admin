@@ -16,7 +16,6 @@ import { BookmarkBlockIcon, CalloutBlockIcon, DividerBlockIcon, HeadingBlockIcon
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
 import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover'
 import { INSERTABLE_TYPES, defaultBlockFor } from './blockDefaults'
-import { countBlocks } from './blockOps'
 import { PAGE_BLOCK_MAX } from '@/data/types/page'
 import type { Block } from '@/data/types/page'
 import type { LucideIcon } from 'lucide-react'
@@ -70,7 +69,7 @@ export function AddBlockPicker({
       onPickReport(type)
       return
     }
-    onInsert(defaultBlockFor(type as Exclude<Block['type'], 'report' | 'metric'>))
+    onInsert(defaultBlockFor(type as Exclude<Block['type'], 'report' | 'metric' | 'agent-insight'>))
   }
 
   return (

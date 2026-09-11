@@ -114,7 +114,7 @@ export async function renderChartPng(options: RenderChartPngOptions): Promise<Bl
   let y = height + CAPTION_PAD
   ctx.fillStyle = ink
   ctx.font = '600 13px Inter, "Noto Sans Arabic", sans-serif'
-  ctx.fillText(lines[0], CAPTION_PAD, y)
+  ctx.fillText(lines[0] ?? '', CAPTION_PAD, y)
   y += CAPTION_LINE_H
   ctx.fillStyle = muted
   ctx.font = '400 12px Inter, "Noto Sans Arabic", sans-serif'
@@ -125,7 +125,10 @@ export async function renderChartPng(options: RenderChartPngOptions): Promise<Bl
 
   const pngBlob = await canvasToPngBlob(canvas)
   const bytes = new Uint8Array(await pngBlob.arrayBuffer())
-  return new Blob([insertTextChunk(bytes, QUERY_KEYWORD, query)], { type: 'image/png' })
+  /* Re-wrapped, not passed straight through: `Blob` needs an `ArrayBuffer`-
+     backed view, and this copy is what gives TypeScript that without a cast
+     (same pattern as `DriverDocuments.tsx`). */
+  return new Blob([new Uint8Array(insertTextChunk(bytes, QUERY_KEYWORD, query))], { type: 'image/png' })
 }
 
 /**
@@ -166,7 +169,8 @@ function buildCrcTable(): Uint32Array {
 export function crc32(bytes: Uint8Array): number {
   let crc = 0xffffffff
   for (let i = 0; i < bytes.length; i++) {
-    crc = CRC_TABLE[(crc ^ bytes[i]) & 0xff] ^ (crc >>> 8)
+    const byte = bytes[i] ?? 0
+    crc = (CRC_TABLE[(crc ^ byte) & 0xff] ?? 0) ^ (crc >>> 8)
   }
   return (crc ^ 0xffffffff) >>> 0
 }

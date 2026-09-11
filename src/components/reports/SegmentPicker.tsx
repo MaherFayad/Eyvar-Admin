@@ -17,12 +17,12 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-  CommandSeparator,
 } from '@/components/ui/command'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Separator } from '@/components/ui/separator'
 import { InfoHint, hintLines } from '@/components/InfoHint'
 import { listSegments } from '@/data/clients'
 import type { Dimension, Measure, QueryViolation, ReportQuery } from '@/data/types'
@@ -273,7 +273,10 @@ function SegmentComposer({
         </CommandList>
       </Command>
 
-      <CommandSeparator />
+      {/* A plain divider, not `CommandSeparator` — the form below is not part
+          of this list, and `CommandSeparator` reads a store that only exists
+          inside `Command`'s own subtree. */}
+      <Separator />
 
       {/* ── new segment ──────────────────────────────────────────────────── */}
       <div className="flex flex-col gap-2 p-2">

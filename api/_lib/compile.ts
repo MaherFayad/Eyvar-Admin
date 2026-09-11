@@ -90,9 +90,10 @@ function parseLiveToBounds(json: unknown): LiveToBound[] {
 /* ──────────────────────────── safe SQL building ─────────────────────────── */
 
 /** Postgres identifiers only — letters, digits, `_` and `.` (the dotted catalogue field names double as column names, quoted whole). Refuses anything else rather than guessing. */
-const SAFE_IDENTIFIER = /^[A-Za-z_][A-Za-z0-9_.]*$/
+export const SAFE_IDENTIFIER = /^[A-Za-z_][A-Za-z0-9_.]*$/
 
-function quoteIdent(name: string): string {
+/** Exported for `handlers/agent.ts`'s `sample_rows` (D44) — the same identifier-safety rule, not a second copy of it. */
+export function quoteIdent(name: string): string {
   if (!SAFE_IDENTIFIER.test(name)) {
     throw new Error(`compile.ts: refusing to build SQL from an unsafe identifier "${name}"`)
   }
@@ -106,8 +107,11 @@ function quoteIdent(name: string): string {
  * assembles the same `(strings, values)` pair a literal `` sql`…${x}…` ``
  * would produce, then hands it to `db.sql` unchanged — no second parsing
  * path, no value ever reaches the SQL text itself.
+ *
+ * Exported so `handlers/agent.ts`'s `sample_rows` (D44) reuses this exact
+ * builder for its own dynamic `WHERE` rather than a second copy.
  */
-class SqlBuilder {
+export class SqlBuilder {
   private parts: string[] = ['']
   private params: unknown[] = []
 

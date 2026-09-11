@@ -15,6 +15,7 @@ import type { Dictionary } from '@/lib'
 import { SHELL_AR } from './shell'
 import { SLA_MESSAGES_AR } from './sla'
 import { FILE_SIZE_MESSAGES_AR } from './fileSize'
+import { MARKDOWN_MESSAGES_AR } from './markdown'
 import { DATE_MESSAGES_AR } from './date'
 import { CONFIRM_AR } from './confirm'
 import { PWA_AR } from './pwa'
@@ -64,6 +65,7 @@ export const AR: Dictionary = {
   ...SHELL_AR,
   ...SLA_MESSAGES_AR,
   ...FILE_SIZE_MESSAGES_AR,
+  ...MARKDOWN_MESSAGES_AR,
   ...DATE_MESSAGES_AR,
   ...CONFIRM_AR,
   ...PWA_AR,

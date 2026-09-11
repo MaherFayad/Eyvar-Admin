@@ -19,7 +19,9 @@ export {
   type ChartToolbarProps,
   type VisualisationId,
 } from './ChartToolbar'
-export { DashboardTile, type DashboardTileProps } from './DashboardTile'
+/* `DashboardTile` is gone (D39) — a page's `report` block resolves through
+   `src/components/pages/useResolvedReport.ts` and renders via
+   `ReportBlockView`, both under `src/components/pages/`. */
 export { DistributionCard, type DistributionCardProps } from './DistributionCard'
 /* `InfoHint` and `hintLines` moved to `@/components/InfoHint` (T9.5): the rails
    were the first caller, not the only one, and the accessible name is now the

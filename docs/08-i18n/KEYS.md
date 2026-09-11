@@ -9,10 +9,10 @@ this file is stale or when the `defaultValue` ratchet slips.
 
 | | |
 |---|---:|
-| **Translatable keys, all dictionaries** | **7062** |
-| Reachable from `EN` (what the shell renders) | 6695 |
-| Keys in `AR` | 7054 |
-| **Keys Arabic is missing** | **7** |
+| **Translatable keys, all dictionaries** | **7379** |
+| Reachable from `EN` (what the shell renders) | 7013 |
+| Keys in `AR` | 7379 |
+| **Keys Arabic is missing** | **0** |
 | Keys in `AR` and not in `EN` (plural forms, unregistered screens) | 366 |
 | Plural forms (`key#category`) inside `EN` | 73 |
 | `copy.ts` files | 39 |
@@ -425,7 +425,7 @@ Measured on English only, and a placeholder counts as one word.
 | File | Exports | Keys |
 |---|---|---:|
 | `src/screens/financials/copy.ts` | `FINANCIALS_EN` | 960 |
-| `src/screens/reports/copy.ts` | `REPORTS_EN` | 717 |
+| `src/screens/reports/copy.ts` | `REPORTS_EN` | 894 |
 | `src/commands/copy.ts` | `COMMANDS_EN` | 390 |
 | `src/screens/operations/people/copy.ts` | `PEOPLE_EN` | 338 |
 | `src/components/profile/copy.ts` | `PROFILE_EN` | 275 |
@@ -439,6 +439,7 @@ Measured on English only, and a placeholder counts as one word.
 | `src/screens/support/inbox/copy.ts` | `CONVERSATIONS_EN`, `INBOX_EN` | 172 |
 | `src/screens/admin/policy/copy.ts` | `POLICY_EN` | 170 |
 | `src/screens/support/disputes/copy.ts` | `DISPUTES_EN` | 168 |
+| `src/screens/pages/copy.ts` | `PAGES_EN` | 147 |
 | `src/screens/operations/subscriptions/copy.ts` | `SUBSCRIPTIONS_EN` | 138 |
 | `src/screens/metrics/growth/copy.ts` | `GROWTH_EN` | 123 |
 | `src/screens/operations/assurance/copy.ts` | `ASSURANCE_EN` | 115 |
@@ -459,7 +460,6 @@ Measured on English only, and a placeholder counts as one word.
 | `src/components/profile/subscription/copy.ts` | `SUBSCRIPTION_PROFILE_EN` | 27 |
 | `src/screens/admin/activity/copy.ts` | `ADMIN_ACTIVITY_EN` | 25 |
 | `src/screens/analyst/copy.ts` | `ANALYST_EN` | 16 |
-| `src/screens/pages/copy.ts` | `PAGES_EN` | 7 |
 | `src/pwa/copy.ts` | `PWA_EN` | 4 |
 
 ### Not registered in `src/i18n/dictionaries.ts`

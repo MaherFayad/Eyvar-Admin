@@ -394,6 +394,7 @@ export function ComparisonControl({
   language: Language
 }) {
   const labelId = useId()
+  const FromToArrow = forwardIcon(directionFor(language))
   const [open, setOpen] = useState(false)
   const isFixed = typeof query.periodComparison === 'object'
   const fixedFrom = isFixed && typeof query.periodComparison === 'object' ? query.periodComparison.from : ''
@@ -441,7 +442,11 @@ export function ComparisonControl({
         disabled={disabled}
         onValueChange={(value) => {
           if (value === FIXED) {
-            setOpen(true)
+            /* Deferred one tick: Radix's `Select` is still tearing its own
+               content down in this handler, and opening the `Popover`
+               synchronously has its first outside-dismiss detection read the
+               Select's own close as a click outside itself. */
+            setTimeout(() => setOpen(true), 0)
             return
           }
           onChange({ ...query, periodComparison: value as PeriodComparison })
@@ -453,17 +458,17 @@ export function ComparisonControl({
             opens programmatically from `Fixed range…`'s `onValueChange` above,
             same non-committing branch `WindowControl`'s own custom range uses. */}
         <PopoverAnchor asChild>
-          <SelectTrigger id={id} size="sm" aria-labelledby={labelId} className={cn(isFixed && 'h-auto py-1')}>
+          <SelectTrigger id={id} size="sm" aria-labelledby={labelId}>
             {isFixed ? (
-              <span className="flex flex-col items-start gap-0.5">
-                <span>{t('rb.compare.fixed')}</span>
-                <bdi className="text-2xs font-normal tabular-nums text-muted-foreground">
-                  {t('rb.control.window.range', {
-                    from: formatDate(fixedFrom || resolvedWindow.from, { style: 'day-month', language }),
-                    to: formatDate(fixedTo || resolvedWindow.to, { style: 'day-month', language }),
-                  })}
-                </bdi>
-              </span>
+              /* `rb.compare.fixed` carries its own `{from}`/`{to}` (shared with
+                 the menu row below), so the resolved range is ONE bdi-isolated
+                 sentence rather than a second line. */
+              <bdi className="tabular-nums">
+                {t('rb.compare.fixed', {
+                  from: formatDate(fixedFrom || resolvedWindow.from, { style: 'day-month', language }),
+                  to: formatDate(fixedTo || resolvedWindow.to, { style: 'day-month', language }),
+                })}
+              </bdi>
             ) : (
               <SelectValue />
             )}
@@ -475,7 +480,12 @@ export function ComparisonControl({
               {t(`rb.compare.${value}`)}
             </SelectItem>
           ))}
-          <SelectItem value={FIXED}>{t('rb.compare.fixed')}</SelectItem>
+          <SelectItem value={FIXED}>
+            {t('rb.compare.fixed', {
+              from: formatDate(resolvedWindow.from, { style: 'day-month', language }),
+              to: formatDate(resolvedWindow.to, { style: 'day-month', language }),
+            })}
+          </SelectItem>
         </SelectContent>
       </Select>
 
@@ -494,6 +504,9 @@ export function ComparisonControl({
               onChange={(event) => setDraft((current) => ({ ...current, from: event.target.value }))}
             />
           </div>
+          {/* A reading-order mark, picked by `dir` (§9.5, O10) — same rule as
+              the main custom-range popover above. */}
+          <FromToArrow aria-hidden="true" className="mb-2 size-4 shrink-0 text-muted-foreground" />
           <div className="flex flex-col gap-1.5">
             <Label htmlFor={`${id}-to`} className="text-xs text-muted-foreground">
               {t('rb.control.window.to')}

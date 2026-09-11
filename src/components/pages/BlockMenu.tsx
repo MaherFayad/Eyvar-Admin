@@ -69,14 +69,18 @@ export function BlockMenu({ block, containerId, columnIndex, open, onOpenChange,
                 <DropdownMenuItem disabled>{t('pg.edit.moveToColumn.none')}</DropdownMenuItem>
               ) : (
                 columnsBlocks.map((columnsBlock) =>
-                  columnsBlock.columns.map((column, index) => (
-                    <DropdownMenuItem
-                      key={`${columnsBlock.id}-${index}`}
-                      onSelect={() => actions.onMoveToColumn(block.id, columnsBlock.id, index)}
-                    >
-                      {t('pg.edit.moveToColumn.target', { position: index + 1 })}
-                    </DropdownMenuItem>
-                  )),
+                  columnsBlock.columns
+                    .map((_column, index) => index)
+                    /* The block's own current column is not offered as a target — moving a block into the column it is already in is not a move. */
+                    .filter((index) => !(columnsBlock.id === containerId && index === columnIndex))
+                    .map((index) => (
+                      <DropdownMenuItem
+                        key={`${columnsBlock.id}-${index}`}
+                        onSelect={() => actions.onMoveToColumn(block.id, columnsBlock.id, index)}
+                      >
+                        {t('pg.edit.moveToColumn.target', { position: index + 1 })}
+                      </DropdownMenuItem>
+                    )),
                 )
               )}
             </DropdownMenuSubContent>
@@ -104,7 +108,7 @@ export function BlockMenu({ block, containerId, columnIndex, open, onOpenChange,
 
         {isReport && (
           <DropdownMenuSub>
-            <DropdownMenuSubTrigger>{t('pg.edit.height.menu')}</DropdownMenuSubTrigger>
+            <DropdownMenuSubTrigger>{t('pg.edit.height')}</DropdownMenuSubTrigger>
             <DropdownMenuPortal>
               <DropdownMenuSubContent>
                 <DropdownMenuRadioGroup

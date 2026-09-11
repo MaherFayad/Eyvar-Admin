@@ -34,12 +34,10 @@ import {
   resetDataLayer,
 } from '@/data/clients'
 import type { AlertFiring, AlertRule, SavedReport } from '@/data/types'
-import { EN as SHELL_EN } from '@/i18n/dictionaries'
 import { REPORTS_EN } from './copy'
 import { ReportsScreen } from './ReportsScreen'
 
 const EN = (key: string) => REPORTS_EN[key] as string
-const HINT = SHELL_EN['shell.hint.show'] as string
 
 beforeEach(() => {
   disableMockLatency()
@@ -106,45 +104,25 @@ async function chooseRowAction(
 
 /* ───────────── the correction outranks the badge, not the reverse ───────── */
 
-describe('nothing is checking these rules, said where it is read', () => {
-  it('states it in one banner ABOVE the table, and drops both trailing footnotes', async () => {
+describe('a rule without a cadence never runs, said where it is read (§4.6)', () => {
+  it('states it in one banner ABOVE the table', async () => {
     renderAt('/management/reports?view=alerts')
 
-    const banner = await screen.findByText(EN('rb.alerts.banner.title'))
+    const banner = await screen.findByText(EN('rb.alert.banner.noCadence.title'))
     const table = await screen.findByRole('table')
 
-    /* **Placement is the whole finding.** The two sentences this replaces were
-       already on the page — after the table and below pagination — so a
-       presence check would have passed against the defect. `Node.DOCUMENT_
-       POSITION_FOLLOWING` is the assertion that the banner comes first. */
+    /* **Placement is the whole finding.** `Node.DOCUMENT_POSITION_FOLLOWING`
+       is the assertion that the banner comes first, above every row's own
+       badge (R10). */
     expect(
       banner.compareDocumentPosition(table) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy()
 
-    /* §5.2 — ONE page-level banner, and T9.15 leaves it one sentence: the
-       re-arm rule explains rather than acts, so it is behind the hint (X15). */
     const region = banner.closest('[data-slot="alert"]') ?? banner.parentElement
-    expect(region?.textContent).toContain(EN('rb.alerts.banner.body'))
-    expect(region?.textContent).not.toContain(EN('rb.alert.rearm.explain'))
-
-    /* The old footnote is gone from this screen entirely. It is still a live
-       key — it is the sentence beside the disabled cadence field in the rule
-       form — so this asserts its absence HERE, which is what moved. */
-    expect(screen.queryByText(EN('rb.alert.cadence.explain'))).toBeNull()
+    expect(region?.textContent).toContain(EN('rb.alert.banner.noCadence.body'))
   })
 
-  it('keeps the re-arm rule one keystroke away, on the banner', async () => {
-    const user = userEvent.setup()
-    renderAt('/management/reports?view=alerts')
-    await screen.findByRole('table')
-
-    const banner = screen.getByText(EN('rb.alerts.banner.title'))
-    const region = (banner.closest('[data-slot="alert"]') ?? banner.parentElement) as HTMLElement
-    await user.hover(within(region).getByRole('button', { name: HINT }))
-    expect(await screen.findByRole('tooltip')).toHaveTextContent(EN('rb.alert.rearm.explain'))
-  })
-
-  it('says nothing about the schedule on a row, because the banner says it (R10)', async () => {
+  it('says nothing about the schedule on the state badge, because the banner says it (R10)', async () => {
     const rules = await alertRules()
     expect(rules.some((rule) => rule.cadence === null)).toBe(true)
 
@@ -179,16 +157,27 @@ describe('nothing is checking these rules, said where it is read', () => {
     }
   })
 
-  it('says “never checked” rather than the no-data placeholder', async () => {
+  it('AC-1235 — a cadence-less rule reads "Not scheduled" in Last checked, never blank', async () => {
+    /* §4.6's states table: `cadence === null` is "the honest absence of a lag
+       state," not a lag — it must not also carry the warning icon, and it
+       supersedes `Never checked` for every seeded rule, which all carry
+       `cadence: null` today. A rule with a cadence but no reading yet (not in
+       this fixture set) is the only case that would still reach `Never
+       checked`, and that is `mock-data-engineer`'s fixture to add. */
     const rules = await alertRules()
-    const never = rules.filter((rule) => rule.lastEvaluatedAt === null)
-    expect(never.length).toBeGreaterThan(0)
+    expect(rules.every((rule) => rule.cadence === null)).toBe(true)
 
     renderAt('/management/reports?view=alerts')
-    await screen.findByRole('table')
-    expect((await screen.findAllByText(EN('rb.alert.lastEvaluated.never'))).length).toBe(
-      never.length,
-    )
+    const table = await screen.findByRole('table')
+    const headers = within(table).getAllByRole('columnheader')
+    const index = headers.findIndex((h) => h.textContent?.includes(EN('rb.alerts.col.lastEvaluated')))
+    expect(index).toBeGreaterThan(-1)
+
+    for (const rule of rules) {
+      const row = await rowNamed(rule.name)
+      expect(within(row).getAllByRole('cell')[index]!.textContent).toBe(EN('rb.alert.state.notScheduled'))
+    }
+    expect(screen.queryByText(EN('rb.alert.lastEvaluated.never'))).toBeNull()
   })
 })
 
@@ -303,12 +292,13 @@ describe('Create alert, from the report library', () => {
     renderAt('/management/reports')
     await chooseRowAction(user, await rowNamed(report!.name), EN('rb.library.createAlert'))
 
-    const dialog = await screen.findByRole('dialog')
+    /* AC-1225 — an inline panel, not a dialog. */
+    const heading = await screen.findByRole('heading', { name: EN('rb.alert.panel.heading.new') })
+    const panel = heading.closest('[data-slot="card"]') as HTMLElement
     /* A create, not an edit — and the picker is READ, not the prop: a preset
        the reset effect ignored would still have been passed. */
-    expect(within(dialog).getByRole('heading')).toHaveTextContent(EN('rb.alert.form.title'))
     await waitFor(() =>
-      expect(within(dialog).getByLabelText(EN('rb.alert.form.report'))).toHaveTextContent(
+      expect(within(panel).getByLabelText(EN('rb.alert.form.report'))).toHaveTextContent(
         report!.name,
       ),
     )
@@ -322,7 +312,7 @@ describe('Create alert, from the report library', () => {
        threshold exist — so it renders on a perfectly well-chosen saved report
        and the assertion would be about the wrong thing. Reported as a copy
        defect rather than worked around silently. */
-    expect(within(dialog).getByLabelText(EN('rb.alert.form.report'))).toBeEnabled()
+    expect(within(panel).getByLabelText(EN('rb.alert.form.report'))).toBeEnabled()
   })
 })
 

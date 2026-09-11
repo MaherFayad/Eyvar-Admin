@@ -61,6 +61,7 @@ import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
+  DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { EmptyState } from '@/components/EmptyState'
@@ -76,6 +77,7 @@ import type {
   QueryViolation,
   ReportPanel,
   ReportResult,
+  ReportSeries,
 } from '@/data/types'
 import type { Annotation, AnnotationKind } from '@/data/types/annotation'
 import { serialiseReportQuery } from '@/data/clients'
@@ -464,6 +466,10 @@ function Body({
   measuresByKey,
   coercedFrom,
   effectiveChartType,
+  viewKey,
+  annotations,
+  canAnnotate,
+  onSaveAnnotation,
   onRetrySeries,
   combinedTable,
   framed,
@@ -474,7 +480,11 @@ function Body({
   result: ReportResult
   measuresByKey: Readonly<Record<string, Measure>>
   coercedFrom: string | null
-  effectiveChartType: 'line' | 'bar' | 'pie' | 'table'
+  effectiveChartType: ChartType
+  viewKey: string
+  annotations: readonly Annotation[]
+  canAnnotate: boolean
+  onSaveAnnotation: ((input: { date: string; label: string; kind: AnnotationKind; note: string }) => Promise<void>) | undefined
   onRetrySeries: (measureKey: string) => void
   /**
    * The caller renders the table itself, beneath this body (see `withTable`) —
@@ -513,6 +523,37 @@ function Body({
     )
   }
 
+  /* §4.1 — `kpi` is not Recharts and is never a small multiple: legality
+     (`plan.ts`) caps it at one panel, no split, no segments, so it renders
+     once regardless of grain and never reaches the `grain === 'none'`
+     distribution branch below or the compound-plot branch further down. */
+  if (effectiveChartType === 'kpi') {
+    const panel = result.panels[0]
+    if (panel === undefined) {
+      return (
+        <PanelFrame framed={framed} className="w-full">
+          <CardContent>
+            <p className="py-10 text-center text-sm text-muted-foreground">{noDataSentence}</p>
+          </CardContent>
+        </PanelFrame>
+      )
+    }
+    const title = panelTitle(panel, t).text
+    return (
+      <KpiCard
+        panel={panel}
+        result={result}
+        measure={measureOf(panel.panelId)}
+        title={title}
+        unit={panel.unit}
+        currency={panel.currency}
+        framed={framed}
+        t={t}
+        language={language}
+      />
+    )
+  }
+
   /* **`table` is no longer an early return for the builder.** It used to
      render `ResultTable` INSTEAD of the panels, which made the numbers and the
      picture mutually exclusive — ask for the table and you lose the shape, ask
@@ -533,8 +574,10 @@ function Body({
     )
   }
 
-  /* A single bucket is a distribution, not a set of axes. See the file header. */
-  if (result.query.grain === 'none') {
+  /* A single bucket is a distribution, not a set of axes. See the file header.
+     `horizontal-bar` is the one exception (§4.1): its own legality REQUIRES
+     `grain: 'none'`, and its shape is a `SeriesChart` branch, not `DistributionCard`. */
+  if (result.query.grain === 'none' && effectiveChartType !== 'horizontal-bar') {
     const first = result.panels[0]
     const measure = first ? measureOf(first.panelId) : null
     const blockedOrFailed = result.panels.filter((panel) => {
@@ -782,51 +825,24 @@ function Body({
                 {coercedFrom !== null && (
                   <p className="text-xs text-muted-foreground">
                     {t('rb.warning.chartCoerced', {
-                      chartType: t(`rb.chartType.${effectiveChartType === 'bar' ? 'bar' : 'line'}`),
+                      chartType: t(`rb.chartType.${drawKindFor(effectiveChartType)}`),
                       requested: t(`rb.chartType.${coercedFrom}`),
                     })}
                   </p>
                 )}
-                <SeriesHeadlines
-                  panels={group.panels}
+                <TrendPlotGroup
+                  group={group}
                   result={result}
-                  titles={titles}
-                  colorIndexes={group.colorIndexes}
                   measuresByKey={measuresByKey}
-                  unit={group.unit}
-                  currency={group.currency}
+                  titles={titles}
+                  effectiveChartType={effectiveChartType}
+                  combinedTable={combinedTable}
+                  viewKey={viewKey}
+                  annotations={annotations}
+                  canAnnotate={canAnnotate}
+                  onSaveAnnotation={onSaveAnnotation}
                   t={t}
                   language={language}
-                />
-                <SeriesChart
-                  panels={group.panels}
-                  result={result}
-                  kind={effectiveChartType === 'bar' ? 'bar' : 'line'}
-                  unit={group.unit}
-                  /* The plot's accessible name lists what is in it: the marks
-                     are inert and carry no text of their own. */
-                  description={titles.join(', ')}
-                  titles={titles}
-                  colorIndexes={group.colorIndexes}
-                  /* Taller in the workspace than in a tile. The builder has one
-                     plot where it used to have six, and the height that gives
-                     back belongs to the plot rather than to whitespace. */
-                  heightClass={combinedTable ? 'h-80' : 'h-56'}
-                  t={t}
-                  language={language}
-                />
-                <SeriesLegend
-                  panels={group.panels}
-                  titles={titles}
-                  colorIndexes={group.colorIndexes}
-                  /* The dashed entry appears only where a dashed line does —
-                     `SeriesChart` draws the comparison for at most two series,
-                     and a legend naming a line that is not on the plot is a
-                     legend that lies. */
-                  hasComparison={
-                    result.query.periodComparison !== 'none' && group.panels.length <= 2
-                  }
-                  t={t}
                 />
                 </>
                 )}
@@ -840,63 +856,317 @@ function Body({
   )
 }
 
+/** The v2 shape (`SeriesChart.tsx`) each `ChartType` draws as — `kpi` is `KpiCard`'s alone (§4.1). */
+function drawKindFor(chartType: ChartType): SeriesChartKind {
+  switch (chartType) {
+    case 'area':
+      return 'area'
+    case 'stacked-bar':
+      return 'stacked-bar'
+    case 'stacked-100':
+      return 'stacked-100'
+    case 'horizontal-bar':
+      return 'horizontal-bar'
+    case 'bar':
+      return 'bar'
+    default:
+      return 'line'
+  }
+}
+
 /**
- * §3.7's legend, laid out to §A9 — **a mark and a name per series, centred
- * beneath the plot**, each mark in its series' own hue.
- *
- * The mark is a **line**, not a dot, and that is deliberate: the comparison
- * differs by dash rather than by hue (§3.7), and a dashed dot is not a shape.
- * Drawn as SVG so the dash rhythm matches the plot's exactly — a CSS dashed
- * border and an SVG dash array do not produce the same pattern, and a legend
- * that does not match its own line is worse than no legend.
- *
- * The comparison gets **one** entry rather than one per series: it is a
- * statement about the window, not about a series, and N dashed entries in N
- * hues would read as N more series.
- *
- * Absent entirely for a single series with no comparison — the headline above
- * the plot already names it, in the same hue, and a legend repeating one entry
- * is chrome.
+ * §2 — one axis group's plot, owning the hooks a `.map` callback cannot
+ * (`useChartView`, the brush's local zoom). Composes the controls row
+ * (§2's slim row: zoom chip, `Add annotation`, `View` menu), the headline
+ * row, the plot itself, the button legend and the inline annotation form.
+ */
+function TrendPlotGroup({
+  group,
+  result,
+  measuresByKey,
+  titles,
+  effectiveChartType,
+  combinedTable,
+  viewKey,
+  annotations,
+  canAnnotate,
+  onSaveAnnotation,
+  t,
+  language,
+}: {
+  group: { unit: MetricUnit; currency: CurrencyCode | null; panels: ReportPanel[]; colorIndexes: number[] }
+  result: ReportResult
+  measuresByKey: Readonly<Record<string, Measure>>
+  titles: readonly string[]
+  effectiveChartType: ChartType
+  combinedTable: boolean
+  viewKey: string
+  annotations: readonly Annotation[]
+  canAnnotate: boolean
+  onSaveAnnotation: ((input: { date: string; label: string; kind: AnnotationKind; note: string }) => Promise<void>) | undefined
+  t: Translator
+  language: Language
+}) {
+  const drawKind = drawKindFor(effectiveChartType)
+  const groupKey = `${viewKey}#${group.unit}|${group.currency ?? ''}`
+  const { view, setYScale, setYStartAtZero, setDataLabels, setShowTable, toggleHidden, isolate, showAll } =
+    useChartView(groupKey, effectiveChartType)
+  const [brushRange, setBrushRange] = useState<{ startIndex: number; endIndex: number } | null>(null)
+  const [addingAnnotation, setAddingAnnotation] = useState(false)
+
+  const hasComparison = result.query.periodComparison !== 'none' && group.panels.length <= 2
+  const everyDrawnId = [...group.panels.map((p) => p.panelId), ...(hasComparison ? [COMPARISON_SERIES_ID] : [])]
+
+  /* §2.3 — the log-axis refusal is computed HERE, against resolved values,
+     over the currently VISIBLE (non-hidden) series only. */
+  const visibleSeries = group.panels
+    .filter((p) => !view.hidden.includes(p.panelId))
+    .flatMap((p) => {
+      const current = result.series.find((s) => s.panelId === p.panelId && s.role === 'current')
+      const comparison =
+        hasComparison && !view.hidden.includes(COMPARISON_SERIES_ID)
+          ? result.series.find((s) => s.panelId === p.panelId && s.role === 'comparison')
+          : undefined
+      return [current, comparison].filter((s): s is ReportSeries => s !== undefined)
+    })
+  const hasNonPositive = visibleSeries.some((s) => s.points.some((v) => v !== null && v <= 0))
+  const allGaps = visibleSeries.length > 0 && visibleSeries.every((s) => s.points.every((v) => v === null))
+  const logDisabled = visibleSeries.length === 0 || hasNonPositive || allGaps
+
+  const visibleSeriesCount = group.panels.filter((p) => !view.hidden.includes(p.panelId)).length
+  const dataLabelsDisabled = result.buckets.length * visibleSeriesCount > 60
+
+  const zoomed = brushRange !== null
+
+  return (
+    <div className="flex flex-col gap-3">
+      <div role="group" aria-label={t('rb.chart.controlsRow')} className="flex flex-wrap items-center justify-end gap-2">
+        {zoomed && (
+          <Button
+            type="button"
+            variant="secondary"
+            size="xs"
+            className="me-auto"
+            onClick={() => setBrushRange(null)}
+          >
+            {t('rb.chart.zoomed.reset')}
+          </Button>
+        )}
+        {canAnnotate && onSaveAnnotation && (
+          <Button type="button" variant="ghost" size="xs" onClick={() => setAddingAnnotation((v) => !v)}>
+            {t('rb.chart.addAnnotation')}
+          </Button>
+        )}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button type="button" variant="secondary" size="xs">
+              {t('rb.view.menu')}
+              <ChevronDownIcon aria-hidden="true" className="size-3.5" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuCheckboxItem
+              checked={view.yScale === 'log'}
+              disabled={logDisabled}
+              onSelect={(event) => event.preventDefault()}
+              onCheckedChange={(checked) => setYScale(checked ? 'log' : 'linear')}
+            >
+              <span className="flex flex-col items-start gap-0.5">
+                <span>{t('rb.view.log')}</span>
+                {logDisabled && (
+                  <span className="text-xs text-muted-foreground">{t('rb.view.logNeedsPositive')}</span>
+                )}
+              </span>
+            </DropdownMenuCheckboxItem>
+            <DropdownMenuCheckboxItem
+              checked={view.yStartAtZero}
+              onSelect={(event) => event.preventDefault()}
+              onCheckedChange={(checked) => setYStartAtZero(checked)}
+            >
+              {t('rb.view.startAtZero')}
+            </DropdownMenuCheckboxItem>
+            <DropdownMenuCheckboxItem
+              checked={view.dataLabels}
+              disabled={dataLabelsDisabled}
+              onSelect={(event) => event.preventDefault()}
+              onCheckedChange={(checked) => setDataLabels(checked)}
+            >
+              <span className="flex flex-col items-start gap-0.5">
+                <span>{t('rb.view.dataLabels')}</span>
+                {dataLabelsDisabled && (
+                  <span className="text-xs text-muted-foreground">
+                    {t('rb.view.dataLabels.disabled', { count: result.buckets.length * visibleSeriesCount })}
+                  </span>
+                )}
+              </span>
+            </DropdownMenuCheckboxItem>
+            <DropdownMenuCheckboxItem
+              checked={view.showTable}
+              onSelect={(event) => event.preventDefault()}
+              onCheckedChange={(checked) => setShowTable(checked)}
+            >
+              {t('rb.view.showTable')}
+            </DropdownMenuCheckboxItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+
+      <SeriesHeadlines
+        panels={group.panels}
+        result={result}
+        titles={titles}
+        colorIndexes={group.colorIndexes}
+        measuresByKey={measuresByKey}
+        unit={group.unit}
+        currency={group.currency}
+        t={t}
+        language={language}
+      />
+      <SeriesChart
+        panels={group.panels}
+        result={result}
+        kind={drawKind}
+        unit={group.unit}
+        description={titles.join(', ')}
+        titles={titles}
+        colorIndexes={group.colorIndexes}
+        hidden={view.hidden}
+        yScale={logDisabled ? 'linear' : view.yScale}
+        yStartAtZero={view.yStartAtZero}
+        dataLabels={!dataLabelsDisabled && view.dataLabels}
+        annotations={annotations}
+        brushRange={brushRange}
+        onBrushChange={setBrushRange}
+        heightClass={combinedTable ? 'h-80' : 'h-56'}
+        t={t}
+        language={language}
+      />
+      <SeriesLegend
+        panels={group.panels}
+        titles={titles}
+        colorIndexes={group.colorIndexes}
+        hasComparison={hasComparison}
+        hidden={view.hidden}
+        onToggle={(id) => toggleHidden(id)}
+        onToggleComparison={() => toggleHidden(COMPARISON_SERIES_ID)}
+        onIsolate={(id) => isolate([id], everyDrawnId)}
+        onShowAll={showAll}
+        t={t}
+      />
+      {addingAnnotation && onSaveAnnotation && (
+        <AnnotationForm
+          t={t}
+          onCancel={() => setAddingAnnotation(false)}
+          onSubmit={async (input) => {
+            await onSaveAnnotation(input)
+            setAddingAnnotation(false)
+          }}
+        />
+      )}
+      {view.showTable && (
+        <ResultTable result={result} measuresByKey={measuresByKey} t={t} language={language} />
+      )}
+    </div>
+  )
+}
+
+/**
+ * §2.1 — the legend as real `<button>`s (AC-1138): clicking one toggles its
+ * series into `ChartView.hidden`, struck through but still named — the
+ * picture never lies about what was asked. A kebab per entry isolates it
+ * (AC-1139); the comparison entry toggles as one unit (AC-1140).
  */
 function SeriesLegend({
   panels,
   titles,
   colorIndexes,
   hasComparison,
+  hidden,
+  onToggle,
+  onToggleComparison,
+  onIsolate,
+  onShowAll,
   t,
 }: {
   panels: readonly ReportPanel[]
   titles: readonly string[]
   colorIndexes: readonly number[]
   hasComparison: boolean
+  hidden: readonly string[]
+  onToggle: (panelId: string) => void
+  onToggleComparison: () => void
+  onIsolate: (panelId: string) => void
+  onShowAll: () => void
   t: Translator
 }) {
   if (panels.length < 2 && !hasComparison) return null
+  const anyHidden = hidden.length > 0
 
   return (
     <ul role="list" className="flex list-none flex-wrap items-center justify-center gap-x-4 gap-y-1">
-      {panels.map((panel, index) => (
-        <li key={panel.panelId} className="flex min-w-0 items-center gap-1.5">
-          <Swatch
-            color={seriesColor(colorIndexes[index] ?? index)}
-            /* The legend's mark is the plot's mark, dot pattern included —
-               a legend that does not match its own line is worse than none. */
-            dash={seriesDash(colorIndexes[index] ?? index)}
-          />
-          {/* A group value is user content and carries its own direction. */}
-          <span className="min-w-0 truncate text-xs text-muted-foreground">
-            <bdi>{titles[index] ?? ''}</bdi>
-          </span>
-        </li>
-      ))}
+      {panels.map((panel, index) => {
+        const isHidden = hidden.includes(panel.panelId)
+        return (
+          <li key={panel.panelId} className="flex min-w-0 items-center gap-1">
+            <button
+              type="button"
+              aria-pressed={!isHidden}
+              onClick={() => onToggle(panel.panelId)}
+              className="flex min-w-0 items-center gap-1.5 rounded-control outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            >
+              <Swatch
+                color={seriesColor(colorIndexes[index] ?? index)}
+                dash={seriesDash(colorIndexes[index] ?? index)}
+              />
+              <span
+                className={`min-w-0 truncate text-xs ${isHidden ? 'text-muted-foreground line-through opacity-70' : 'text-muted-foreground'}`}
+              >
+                <bdi>{titles[index] ?? ''}</bdi>
+              </span>
+            </button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-xs"
+                  aria-label={t('rb.legend.isolate')}
+                  className="text-muted-foreground"
+                >
+                  <MoreIcon aria-hidden="true" className="size-3.5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                <DropdownMenuItem onSelect={() => onIsolate(panel.panelId)}>
+                  {t('rb.legend.isolate')}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </li>
+        )
+      })}
       {hasComparison && (
         <li className="flex items-center gap-1.5">
-          <Swatch color="var(--chart-axis)" dash="4 3" />
-          {/* Square brackets are bidi-neutral and would swap ends of an Arabic
-              line unisolated, so the marker is its own isolated run. */}
-          <span className="text-xs text-muted-foreground">
-            <bdi>{t('rb.panel.legend.previous')}</bdi>
-          </span>
+          <button
+            type="button"
+            aria-pressed={!hidden.includes(COMPARISON_SERIES_ID)}
+            onClick={onToggleComparison}
+            className="flex items-center gap-1.5 rounded-control outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          >
+            <Swatch color="var(--chart-axis)" dash="4 3" />
+            <span
+              className={`text-xs ${hidden.includes(COMPARISON_SERIES_ID) ? 'text-muted-foreground line-through opacity-70' : 'text-muted-foreground'}`}
+            >
+              <bdi>{t('rb.panel.legend.previous')}</bdi>
+            </span>
+          </button>
+        </li>
+      )}
+      {anyHidden && (
+        <li>
+          <Button type="button" variant="link" size="xs" onClick={onShowAll}>
+            {t('rb.legend.showAll')}
+          </Button>
         </li>
       )}
     </ul>

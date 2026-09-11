@@ -77,6 +77,7 @@ import {
   JourneyIcon,
   LineChartIcon,
   PieChartIcon,
+  CountIcon,
   RefreshIcon,
   RetentionIcon,
   TableChartIcon,
@@ -104,24 +105,30 @@ import { formatDate, type Language, type Translator } from '@/lib'
 import { WindowControl } from './WindowControl'
 
 /** §6.3's three, in the order the rail offered them. Unchanged by the move. */
-const COMPARISONS: ReportQuery['periodComparison'][] = ['none', 'previous-period', 'previous-year']
+/* Only the string-valued members — §1.4's `{ kind: 'fixed' }` row is the rail
+   v2 owner's addition, not this file's WP; see the `Select`'s own note. */
+const COMPARISONS: Exclude<ReportQuery['periodComparison'], { kind: 'fixed' }>[] = [
+  'none',
+  'previous-period',
+  'previous-year',
+]
 
 /**
- * **The seven shapes, and the `(mode, chartType)` each one is.**
- *
- * `chartType: null` means *this mode decides its own shape* — a retention
- * matrix, a funnel and a journey tree each have exactly one rendering, and
- * `applyReportMode` already fixes their chart type on the way in. Offering
- * `Bar` for a funnel would be a control that lies about itself.
- *
- * The order is Amplitude's own strip order, which is also frequency order for
- * this product: the two shapes a trend is read in, then the exact numbers, then
- * the three specialist questions.
+ * The twelve shapes, and the `(mode, chartType)` each one is. `chartType:
+ * null` means the mode fixes its own shape. **v2 adds five** — `area`,
+ * `stacked-bar`, `stacked-100`, `horizontal-bar`, `kpi` — grouped with `pie`;
+ * icons reuse the registry's nearest glyph rather than minting one (`icons.ts`
+ * is not this WP's file).
  */
 const VISUALISATIONS = [
   { id: 'line', mode: 'trend', chartType: 'line', icon: LineChartIcon },
+  { id: 'area', mode: 'trend', chartType: 'area', icon: LineChartIcon },
   { id: 'bar', mode: 'trend', chartType: 'bar', icon: BarChartIcon },
+  { id: 'stacked-bar', mode: 'trend', chartType: 'stacked-bar', icon: BarChartIcon },
+  { id: 'stacked-100', mode: 'trend', chartType: 'stacked-100', icon: BarChartIcon },
+  { id: 'horizontal-bar', mode: 'trend', chartType: 'horizontal-bar', icon: BarChartIcon },
   { id: 'pie', mode: 'trend', chartType: 'pie', icon: PieChartIcon },
+  { id: 'kpi', mode: 'trend', chartType: 'kpi', icon: CountIcon },
   { id: 'table', mode: 'table', chartType: 'table', icon: TableChartIcon },
   { id: 'cohort', mode: 'cohort', chartType: null, icon: RetentionIcon },
   { id: 'funnel', mode: 'funnel', chartType: null, icon: FunnelIcon },
@@ -144,10 +151,21 @@ export type VisualisationId = (typeof VISUALISATIONS)[number]['id']
  * without the operator having asked for one, and a trigger that renamed itself
  * on a coercion would tell the operator they chose something they did not.
  */
+const TREND_SHAPES: ReadonlyArray<VisualisationId> = [
+  'area',
+  'bar',
+  'stacked-bar',
+  'stacked-100',
+  'horizontal-bar',
+  'pie',
+  'kpi',
+]
+
 export function visualisationOf(query: ReportQuery): VisualisationId {
   const mode = reportMode(query)
   if (mode !== 'trend') return mode
-  return query.chartType === 'bar' ? 'bar' : query.chartType === 'pie' ? 'pie' : 'line'
+  const shape = TREND_SHAPES.find((id) => id === query.chartType)
+  return shape ?? 'line'
 }
 
 export interface ChartToolbarProps {
@@ -389,7 +407,11 @@ export function ChartToolbar({
               {t('rb.control.compare')}
             </Label>
             <Select
-              value={query.periodComparison}
+              /* §1.4 (rail v2, out of this file's WP) adds a fifth, non-string
+                 `{ kind: 'fixed' }` option with its own popover; until that
+                 lands here, a fixed comparison still shows as its own row so
+                 the trigger never renders `[object Object]`. */
+              value={typeof query.periodComparison === 'string' ? query.periodComparison : 'fixed'}
               disabled={unstarted}
               onValueChange={(value) =>
                 onChange({ ...query, periodComparison: value as ReportQuery['periodComparison'] })

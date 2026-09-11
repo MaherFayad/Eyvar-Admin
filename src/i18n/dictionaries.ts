@@ -38,6 +38,9 @@
 
 import type { Dictionary, Language } from '@/lib'
 import { DATE_MESSAGES_EN, FILE_SIZE_MESSAGES_EN, SLA_MESSAGES_EN } from '@/lib'
+/* `src/lib/markdown`'s own message — not yet registered anywhere (its own
+   file header says so); D39's text block is the first reader. */
+import { MARKDOWN_MESSAGES_EN } from '@/lib/markdown'
 /* A Phase 1 screen owns its own copy and exports it as a `Dictionary`; the
    assembly below is the only place they meet. One import and one spread per
    screen, so adding a screen never edits another screen's strings.
@@ -1156,6 +1159,7 @@ export const EN: Dictionary = {
   ...form,
   ...SLA_MESSAGES_EN,
   ...FILE_SIZE_MESSAGES_EN,
+  ...MARKDOWN_MESSAGES_EN,
   ...DATE_MESSAGES_EN,
   ...COMMANDS_EN,
   ...ADMIN_ACTIVITY_EN,

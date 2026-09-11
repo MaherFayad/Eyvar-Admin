@@ -43,7 +43,8 @@ Everything else in the plan stands, including every gate.
 | WP-6.4b Compiler gaps | general-purpose | done — both wrong-number bugs closed, 16/19 reports equal the mock |
 | WP-6.4c Server funnel, cohort, journey | — | queued (orchestrator-opened) |
 | WP-6.6 Alerts and crons | general-purpose | done — 6 tables, 5 crons, 162 api tests |
-| WP-6.7 Agent queue | general-purpose | running |
+| WP-6.7 Agent queue | general-purpose | done — acting-for cannot impersonate, unbacked numbers refused, 181 api tests |
+| WP-6.4c Server funnel, cohort, journey | general-purpose | running |
 | WP-7.1 MCP tool server | general-purpose | running |
 | WP-1.6c Alert evaluator | mock-data-engineer | done — 4 condition kinds, 5-state machine, 40 tests |
 | WP-4.1 Markdown | utilities-engineer | done — parse+render, 151 tests, no dangerouslySetInnerHTML |
@@ -83,6 +84,7 @@ instead; that trades a marked wrong answer for an unmarked slow one.
 | F-V2-2 | Q-RB-3 (week start) and Q-RB-7 (alert cadence) are not in `docs/07-api/OPEN-QUESTIONS.md`; they live in `specs/06-report-builder.md`. D45 and D41 answer them but the spec still poses them | WP-0.1 | Fixed in WP-8.5 |
 | ~~F-V2-30~~ | **Fixed in WP-6.4b** via a real live-window model (`live_to_bounds_json`, combined with `LEAST`), not a special case. `subscriptions.active` and `subscriptions.cancelled` do not equal the mock: the mock's liveness is a three-condition window (`startedOn`, `endsOn`, **and** `cancelledAt`), while `measure_sources.live_to_column` is a two-bound scheme that ignores an early cancellation. A cancelled subscription counts as active on the server | WP-6.4 | **WP-6.4b opened.** This is a wrong number, not a missing feature |
 | ~~F-V2-31~~ | **Fixed in WP-6.4b.** A saved segment resolves against the seeded `segments` table and an unknown id refuses with `segment-not-found` rather than falling through to everyone. Was: the compiler treated a saved segment as a no-op, matching the mock's behaviour before WP-1.7 gave it a real lookup | WP-6.4 | **WP-6.4b**, once the `segments` table is seeded |
+| F-V2-38 | Agent result validation is full-depth for `case-study` and `build-page`; the `ask`, `triage-alert` and `weekly-review` job kinds have no output schema in `types/agent.ts`, so their results are not validated to the same depth | WP-6.7 | Phase 7 specs those shapes, or the kinds are dropped. An unvalidated result kind is a hole in the no-number-without-a-run guarantee |
 | F-V2-36 | On Hobby the hourly cron cannot deploy. If an operator removes that entry, an hourly rule's `lastEvaluatedAt` is simply never advanced — nothing fabricates it — so the rule reads as growing evaluation lag rather than as armed and healthy | WP-6.6 | Correct behaviour: the degradation is visible, not silent |
 | F-V2-37 | Housekeeping decides whether a `report_run` is still referenced by text-scanning `pages.blocks_json` for the run id, because the case-study citation block shape belongs to the agent work package | WP-6.6 | Revisit once WP-6.7 lands the real citation shape; a text scan over-retains rather than deleting a cited run, which is the safe direction |
 | F-V2-33 | `src/data/clients/dashboards.ts` could not simply be deleted: three screens import it and a missing module is a Vite resolve crash, not a type error, which took `routes.test.ts` and `seam.test.ts` down with it. The CRUD is gone; the file survives holding only the pure board-scope maths | WP-1.7 | Accepted. The importing screens move to `pages.ts` in phase 4, and the file goes then |

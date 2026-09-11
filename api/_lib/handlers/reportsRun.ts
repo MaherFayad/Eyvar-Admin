@@ -90,11 +90,18 @@ function emptyModeResult(query: ReportQuery, asOf: string, warnings: ReportWarni
   }
 }
 
-async function persistRun(db: Database, userId: string, query: ReportQuery, result: ReportResult): Promise<void> {
+/** `jobId` is `null` for an ordinary operator run — `0005_runs.sql`'s own comment names this column's one writer: `X-Eyvar-Record-Run: 1` on a run made through `X-Eyvar-Acting-For` (WP-6.7, `05-backend.md` §5). */
+async function persistRun(db: Database, userId: string, query: ReportQuery, result: ReportResult, jobId: string | null): Promise<void> {
   await db.sql`
-    INSERT INTO report_runs (user_id, query_json, result_json, as_of)
-    VALUES (${userId}, ${JSON.stringify(query)}::jsonb, ${JSON.stringify(result)}::jsonb, ${result.asOf})
+    INSERT INTO report_runs (user_id, query_json, result_json, as_of, job_id)
+    VALUES (${userId}, ${JSON.stringify(query)}::jsonb, ${JSON.stringify(result)}::jsonb, ${result.asOf}, ${jobId})
   `
+}
+
+/** `X-Eyvar-Record-Run: 1` plus `X-Eyvar-Job` is how the agent path (WP-6.7) asks a run to carry provenance; absent either header, a run is never job-scoped. */
+function jobIdToRecord(req: Request): string | null {
+  if (req.headers.get('x-eyvar-record-run') !== '1') return null
+  return req.headers.get('x-eyvar-job')
 }
 
 /** G1: a legal `MeasureRef.aggregate` override, or the catalogue's own — `resolveAggregate` in the mock. */
@@ -306,6 +313,7 @@ export function createRunReportHandler(db: Database, deps: RunReportDeps = {}): 
     const query = await parseReportQuery(req)
     const catalogue = await loadCatalogue(db)
     const todayDate = today()
+    const jobId = jobIdToRecord(req)
 
     const plan = planQuery(query, catalogue, todayDate)
     if (plan.violations.length > 0) {
@@ -325,7 +333,7 @@ export function createRunReportHandler(db: Database, deps: RunReportDeps = {}): 
       // `types/report.ts` keeps exactly for a server that has not caught up
       // with a mode the client can ask for.
       const result = emptyModeResult(query, asOf, ['mode-not-resolved'])
-      await persistRun(db, operator.userId, query, result)
+      await persistRun(db, operator.userId, query, result, jobId)
       return jsonResponse(result)
     }
 
@@ -463,7 +471,7 @@ export function createRunReportHandler(db: Database, deps: RunReportDeps = {}): 
       foldedGroupCount,
     }
 
-    await persistRun(db, operator.userId, query, result)
+    await persistRun(db, operator.userId, query, result, jobId)
     return jsonResponse(result)
   }
 }

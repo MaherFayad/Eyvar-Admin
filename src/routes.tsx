@@ -232,6 +232,13 @@ const SavedReportScreen = lazy(() =>
 const DashboardDetailScreen = lazy(() =>
   import('@/screens/reports').then((m) => ({ default: m.DashboardDetailScreen })),
 )
+/* Analytics v2 (D39/D46) — its own chunk, split from `@/screens/reports` for
+   the same reason that barrel already is: `@/screens/pages` pulls in the
+   markdown renderer and the block editor, which a report-only visit should
+   not pay for. */
+const PageDetailScreen = lazy(() =>
+  import('@/screens/pages').then((m) => ({ default: m.PageDetailScreen })),
+)
 
 const EntityPageScreen = lazy(() =>
   import('@/screens/EntityPageScreen').then((m) => ({ default: m.EntityPageScreen })),
@@ -557,6 +564,11 @@ function screenFor(row: SubTabRoute) {
 function detailScreenFor(row: SubTabRoute, detail: DetailRoute) {
   if (detail.kind === 'dashboard') {
     return <DashboardDetailScreen />
+  }
+  /* D39/D46 — a dashboard is one `kind` of `Page` now; `dashboard` above is
+     kept only as the redirect target for a pre-migration link. */
+  if (detail.kind === 'page') {
+    return <PageDetailScreen />
   }
   /**
    * **The conversation pane is a PAGE, and the first answer was a drawer for a

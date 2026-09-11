@@ -108,6 +108,7 @@ import { ErrorState } from '@/components/ErrorState'
 import { LoadingSkeleton } from '@/components/LoadingSkeleton'
 import { InfoHint, hintLines } from '@/components/InfoHint'
 import { LegalityOptions } from '@/components/reports'
+import { bracketsOverlap } from '@/data/reporting/cohorts'
 import {
   MAX_COHORT_HORIZON,
   MAX_FUNNEL_STEPS,
@@ -121,13 +122,19 @@ import {
   type CohortGrain,
   type Dimension,
   type FilterSpec,
+  type FunnelSpec,
   type FunnelStep,
   type Measure,
+  type OptionLegality,
   type QueryPlan,
   type QueryViolation,
   type ReportMode,
   type ReportQuery,
 } from '@/data/types'
+/* `FunnelMode`, `FunnelMeasuredAs` and `CohortMethod` are v2-only and not yet
+   in the `@/data/types` barrel (WP-1's re-export list) — read directly from
+   the module that declares them, the same way `DashboardTile.tsx` already does. */
+import type { CohortMethod, CohortSpec, FunnelMeasuredAs, FunnelMode } from '@/data/types/report'
 import type { Translator } from '@/lib'
 
 /** Shared by both rails, so a mode card and a query card sit on one surface. */
@@ -337,6 +344,29 @@ export function ModeField({ query, onChange, t }: ModeFieldProps) {
 
 /* ────────────────────────────── the funnel ─────────────────────────────── */
 
+/** v2's unstarted default — the same shape `applyReportMode` (`plan.ts`) seeds a fresh funnel with. */
+const EMPTY_FUNNEL_SPEC: FunnelSpec = {
+  steps: [],
+  conversionWindow: null,
+  mode: 'ordered',
+  holdConstant: null,
+  exclude: [],
+  measuredAs: 'conversion',
+  groupBy: null,
+}
+
+/** §5's three, in switcher order. */
+const FUNNEL_MODES: readonly FunnelMode[] = ['ordered', 'unordered', 'sequential']
+const FUNNEL_MEASURED_AS: readonly FunnelMeasuredAs[] = ['conversion', 'conversion-over-time', 'time-to-convert']
+
+/** `{unit}:{value}` — the conversion-window `Select`'s own value encoding, never sent past this component. */
+const windowKeyOf = (cw: FunnelSpec['conversionWindow']): string => (cw === null ? NONE : `${cw.unit}:${cw.value}`)
+const parseWindowKey = (key: string): FunnelSpec['conversionWindow'] => {
+  if (key === NONE) return null
+  const [unit, value] = key.split(':')
+  return { unit: unit as 'day' | 'week', value: Number(value) }
+}
+
 function FunnelFields({
   query,
   onChange,
@@ -352,10 +382,27 @@ function FunnelFields({
   reasons: QueryViolation[]
   t: Translator
 }) {
-  const spec = query.funnel ?? { steps: [], conversionWindowDays: null }
+  const spec = query.funnel ?? EMPTY_FUNNEL_SPEC
   const steps = spec.steps
 
-  const setSteps = (next: FunnelStep[]) => onChange({ ...query, funnel: { ...spec, steps: next } })
+  const set = (patch: Partial<FunnelSpec>) => onChange({ ...query, funnel: { ...spec, ...patch } })
+  const setSteps = (next: FunnelStep[]) => set({ steps: next })
+
+  /* G10 / §5: mirrors `plan.ts`'s own `funnelViolations` predicate — every
+     rung's measure must declare the capability, and no fixture measure ever
+     does, so this reads the SAME catalogue field the planner refuses on
+     rather than inventing a second rule. `exclude` has no capability flag at
+     all: `plan.ts` refuses it unconditionally, so it is not offered a choice. */
+  const supports = (capability: 'sequential' | 'holdConstant'): boolean =>
+    steps.length > 0 &&
+    steps.every((step) => measures.find((m) => m.key === step.measureKey)?.funnelCapabilities?.[capability] === true)
+
+  const modeOptions: OptionLegality<FunnelMode>[] = FUNNEL_MODES.map((value) =>
+    value !== 'sequential' || supports('sequential')
+      ? { value, legal: true, reasonKey: null, reasonParams: {} }
+      : { value, legal: false, reasonKey: 'rb.funnel.needsServer', reasonParams: {} },
+  )
+  const holdConstantSupported = supports('holdConstant')
 
   return (
     <div className="flex flex-col gap-3">
@@ -456,32 +503,114 @@ function FunnelFields({
           <Label htmlFor="rb-funnel-window">{t('rb.funnel.window')}</Label>
           <InfoHint t={t}>{t('rb.funnel.window.explain')}</InfoHint>
         </div>
-        <Select
-          value={spec.conversionWindowDays === null ? NONE : String(spec.conversionWindowDays)}
-          onValueChange={(value) =>
-            onChange({
-              ...query,
-              funnel: {
-                ...spec,
-                conversionWindowDays: value === NONE ? null : Number(value),
-              },
-            })
-          }
-        >
+        <Select value={windowKeyOf(spec.conversionWindow)} onValueChange={(value) => set({ conversionWindow: parseWindowKey(value) })}>
           <SelectTrigger id="rb-funnel-window" className="w-full">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
             {/* `null` first, because it is the default and the only one that
-                needs no business decision (`FunnelSpec`). */}
+                needs no business decision (`FunnelSpec`). §5 adds a unit: the
+                same control now offers day- and week-length windows rather
+                than a bare day count. */}
             <SelectItem value={NONE}>{t('rb.funnel.window.range')}</SelectItem>
             {[1, 7, 30, 90].map((days) => (
-              <SelectItem key={days} value={String(days)}>
+              <SelectItem key={`day:${days}`} value={`day:${days}`}>
                 {t('rb.funnel.window.days', { days })}
+              </SelectItem>
+            ))}
+            {[1, 4, 12].map((weeks) => (
+              <SelectItem key={`week:${weeks}`} value={`week:${weeks}`}>
+                {t('rb.funnel.window.weeks', { weeks })}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
+      </div>
+
+      {/* §5 — order. `sequential` needs event-level data no fixture here
+          declares; it stays on screen, disabled, saying so (D9 CQ-3). */}
+      <LegalityOptions
+        label={t('rb.funnel.mode')}
+        options={modeOptions}
+        value={spec.mode}
+        onChange={(mode: FunnelMode) => set({ mode })}
+        labelFor={(value) => t(`rb.funnel.mode.${value}`)}
+        t={t}
+      />
+
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="rb-funnel-measured-as">{t('rb.funnel.measuredAs')}</Label>
+        <Select value={spec.measuredAs} onValueChange={(value) => set({ measuredAs: value as FunnelMeasuredAs })}>
+          <SelectTrigger id="rb-funnel-measured-as" className="w-full">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {FUNNEL_MEASURED_AS.map((value) => (
+              <SelectItem key={value} value={value}>
+                {t(`rb.funnel.measuredAs.${value}`)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <div className="flex items-center gap-1.5">
+          <Label htmlFor="rb-funnel-groupby">{t('rb.funnel.groupBy')}</Label>
+          <InfoHint t={t}>{t('rb.funnel.groupBy.explain')}</InfoHint>
+        </div>
+        <Select value={spec.groupBy ?? NONE} onValueChange={(value) => set({ groupBy: value === NONE ? null : value })}>
+          <SelectTrigger id="rb-funnel-groupby" className="w-full">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={NONE}>{t('rb.funnel.groupBy.none')}</SelectItem>
+            {dimensions.map((dimension) => (
+              <SelectItem key={dimension.key} value={dimension.key}>
+                {t(dimension.labelKey)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="rb-funnel-hold-constant">{t('rb.funnel.holdConstant')}</Label>
+        <Select
+          disabled={!holdConstantSupported}
+          value={spec.holdConstant ?? NONE}
+          onValueChange={(value) => set({ holdConstant: value === NONE ? null : value })}
+        >
+          <SelectTrigger id="rb-funnel-hold-constant" className="w-full" aria-describedby={holdConstantSupported ? undefined : 'rb-funnel-hold-constant-reason'}>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={NONE}>{t('rb.funnel.holdConstant.none')}</SelectItem>
+            {dimensions.map((dimension) => (
+              <SelectItem key={dimension.key} value={dimension.key}>
+                {t(dimension.labelKey)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {/* D9 CQ-3 — the whole control is off, so the reason stays on the page
+            rather than behind a tooltip pointer events cannot reach. */}
+        {!holdConstantSupported && (
+          <p id="rb-funnel-hold-constant-reason" className="text-xs text-muted-foreground">
+            {t('rb.funnel.needsServer')}
+          </p>
+        )}
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="rb-funnel-exclude">{t('rb.funnel.exclude')}</Label>
+        {/* §5: refused unconditionally — no catalogue capability could ever
+            satisfy it (`plan.ts`'s `funnelViolations`), so this is not a
+            picker with every option disabled, it is one disabled control. */}
+        <Button id="rb-funnel-exclude" type="button" variant="secondary" disabled>
+          {t('rb.funnel.exclude.add')}
+        </Button>
+        <p className="text-xs text-muted-foreground">{t('rb.funnel.needsServer')}</p>
       </div>
     </div>
   )
@@ -585,6 +714,22 @@ function StepFilters({
 
 /* ────────────────────────────── the cohort ─────────────────────────────── */
 
+/** v2's unstarted default — the same shape `applyReportMode` (`plan.ts`) seeds a fresh cohort with. */
+const EMPTY_COHORT_SPEC: CohortSpec = {
+  anchorMeasureKey: null,
+  returnMeasureKeys: [],
+  cohortGrain: 'month' as CohortGrain,
+  method: 'rolling',
+  brackets: null,
+  horizon: 3,
+}
+
+/** §6's three, in switcher order. */
+const COHORT_METHODS: readonly CohortMethod[] = ['rolling', 'nday', 'bracket']
+
+/** A client-side ceiling on how many `[lo, hi)` rows the editor holds — the matrix reads at most this many columns before it stops being a matrix (same spirit as `MAX_COHORT_HORIZON`). */
+const MAX_COHORT_BRACKETS = 6
+
 function CohortFields({
   query,
   onChange,
@@ -600,13 +745,9 @@ function CohortFields({
   reasons: QueryViolation[]
   t: Translator
 }) {
-  const spec = query.cohort ?? {
-    anchorMeasureKey: null,
-    returnMeasureKey: null,
-    cohortGrain: 'month' as CohortGrain,
-    horizon: 3,
-  }
-  const set = (patch: Partial<typeof spec>) => onChange({ ...query, cohort: { ...spec, ...patch } })
+  const spec = query.cohort ?? EMPTY_COHORT_SPEC
+  const set = (patch: Partial<CohortSpec>) => onChange({ ...query, cohort: { ...spec, ...patch } })
+  const returnKeys = spec.returnMeasureKeys ?? []
 
   return (
     <div className="flex flex-col gap-3">
@@ -631,19 +772,41 @@ function CohortFields({
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="rb-cohort-return">{t('rb.cohort.return')}</Label>
+        <Label htmlFor="rb-cohort-return-add">{t('rb.cohort.return')}</Label>
+        {/* §6: OR-combined, so this is a list like the funnel's steps rather
+            than one `Select` — `[]` still reads as a sentence (rule 10), not
+            as a blank. */}
+        {returnKeys.length === 0 ? (
+          <p className="text-xs text-muted-foreground">{t('rb.cohort.return.own')}</p>
+        ) : (
+          <ul className="flex list-none flex-wrap gap-1">
+            {returnKeys.map((key) => {
+              const measure = measures.find((m) => m.key === key)
+              return (
+                <li key={key}>
+                  <Button
+                    type="button"
+                    size="xs"
+                    variant="secondary"
+                    aria-label={t('rb.cohort.return.remove', { measure: measure ? t(measure.labelKey) : key })}
+                    onClick={() => set({ returnMeasureKeys: returnKeys.filter((k) => k !== key) })}
+                  >
+                    {measure ? t(measure.labelKey) : key}
+                  </Button>
+                </li>
+              )
+            })}
+          </ul>
+        )}
         <Select
-          value={spec.returnMeasureKey ?? NONE}
-          onValueChange={(key) => set({ returnMeasureKey: key === NONE ? null : key })}
+          value={NONE}
+          onValueChange={(key) => set({ returnMeasureKeys: [...returnKeys, key] })}
         >
-          <SelectTrigger id="rb-cohort-return" className="w-full">
-            <SelectValue />
+          <SelectTrigger id="rb-cohort-return-add" className="w-full">
+            <SelectValue placeholder={t('rb.cohort.return.add')} />
           </SelectTrigger>
           <SelectContent>
-            {/* The default reads as a sentence, not as a blank: *still here*
-                means the person did anything at all (`copy.md` rule 10). */}
-            <SelectItem value={NONE}>{t('rb.cohort.return.own')}</SelectItem>
-            <MeasureItems measures={measures} t={t} />
+            <MeasureItems measures={measures.filter((m) => !returnKeys.includes(m.key))} t={t} />
           </SelectContent>
         </Select>
       </div>
@@ -666,12 +829,36 @@ function CohortFields({
       />
 
       <div className="flex flex-col gap-1.5">
+        <Label htmlFor="rb-cohort-method">{t('rb.cohort.method')}</Label>
+        <Select value={spec.method} onValueChange={(method) => set({ method: method as CohortMethod })}>
+          <SelectTrigger id="rb-cohort-method" className="w-full">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {COHORT_METHODS.map((value) => (
+              <SelectItem key={value} value={value}>
+                {t(`rb.cohort.method.${value}`)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {spec.method === 'bracket' && (
+        <CohortBrackets brackets={spec.brackets ?? []} onChange={(brackets) => set({ brackets })} t={t} />
+      )}
+
+      <div className="flex flex-col gap-1.5">
         <div className="flex items-center gap-1.5">
           <Label htmlFor="rb-cohort-horizon">{t('rb.cohort.horizon')}</Label>
           <InfoHint t={t}>{t('rb.cohort.horizon.explain')}</InfoHint>
         </div>
-        <Select value={String(spec.horizon)} onValueChange={(v) => set({ horizon: Number(v) })}>
-          <SelectTrigger id="rb-cohort-horizon" className="w-full">
+        <Select
+          disabled={spec.method === 'bracket'}
+          value={String(spec.horizon)}
+          onValueChange={(v) => set({ horizon: Number(v) })}
+        >
+          <SelectTrigger id="rb-cohort-horizon" className="w-full" aria-describedby={spec.method === 'bracket' ? 'rb-cohort-horizon-reason' : undefined}>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -688,7 +875,98 @@ function CohortFields({
             ))}
           </SelectContent>
         </Select>
+        {spec.method === 'bracket' && (
+          <p id="rb-cohort-horizon-reason" className="text-xs text-muted-foreground">
+            {t('rb.cohort.horizon.notUsedForBracket')}
+          </p>
+        )}
       </div>
+    </div>
+  )
+}
+
+/**
+ * §6's custom `[lo, hi)` windows. An overlapping candidate is refused where it
+ * is proposed — `Add` stays disabled with the reason — rather than accepted
+ * and reported as a violation elsewhere: `bracketsOverlap` (`reporting/cohorts.ts`)
+ * is the one place this rule is decided, read here and by the resolver.
+ */
+function CohortBrackets({
+  brackets,
+  onChange,
+  t,
+}: {
+  brackets: readonly [number, number][]
+  onChange: (brackets: [number, number][]) => void
+  t: Translator
+}) {
+  const [lo, setLo] = useState('')
+  const [hi, setHi] = useState('')
+  const loNum = Number(lo)
+  const hiNum = Number(hi)
+  const candidateValid = lo !== '' && hi !== '' && Number.isFinite(loNum) && Number.isFinite(hiNum) && loNum >= 0 && hiNum > loNum
+  const overlaps = candidateValid && bracketsOverlap([...brackets, [loNum, hiNum]])
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      <div className="flex items-center gap-1.5">
+        <Label htmlFor="rb-cohort-bracket-lo">{t('rb.cohort.brackets')}</Label>
+        <InfoHint t={t}>{t('rb.cohort.brackets.explain')}</InfoHint>
+      </div>
+
+      {brackets.length === 0 ? (
+        <p className="text-xs text-muted-foreground">{t('rb.cohort.brackets.unstarted')}</p>
+      ) : (
+        <ul className="flex list-none flex-wrap gap-1">
+          {brackets.map(([blo, bhi], index) => (
+            <li key={`${blo}-${bhi}`}>
+              <Button
+                type="button"
+                size="xs"
+                variant="secondary"
+                aria-label={t('rb.cohort.brackets.remove', { lo: blo, hi: bhi })}
+                onClick={() => onChange(brackets.filter((_, i) => i !== index))}
+              >
+                {blo}–{bhi}
+              </Button>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <div className="flex items-center gap-1.5">
+        <Input
+          id="rb-cohort-bracket-lo"
+          type="number"
+          min={0}
+          value={lo}
+          aria-label={t('rb.cohort.brackets.lo')}
+          placeholder={t('rb.cohort.brackets.lo')}
+          onChange={(event) => setLo(event.target.value)}
+        />
+        <Input
+          type="number"
+          min={0}
+          value={hi}
+          aria-label={t('rb.cohort.brackets.hi')}
+          placeholder={t('rb.cohort.brackets.hi')}
+          onChange={(event) => setHi(event.target.value)}
+        />
+        <Button
+          type="button"
+          size="xs"
+          variant="secondary"
+          disabled={!candidateValid || overlaps || brackets.length >= MAX_COHORT_BRACKETS}
+          onClick={() => {
+            onChange([...brackets, [loNum, hiNum]])
+            setLo('')
+            setHi('')
+          }}
+        >
+          {t('rb.cohort.brackets.add')}
+        </Button>
+      </div>
+      {overlaps && <p className="text-xs text-muted-foreground">{t('rb.cohort.brackets.overlap')}</p>}
     </div>
   )
 }

@@ -162,13 +162,16 @@ describe('every alert state carries a glyph beside its word', () => {
     }
   })
 
-  it('T9.15 — states the threshold once, with no unit line repeating it', async () => {
+  it('AC-1232 — the Condition column carries the summary sentence, and the threshold has no separate unit line', async () => {
     renderAt('/management/reports?view=alerts')
     await screen.findByRole('table')
 
+    /* v2 folds the standalone `Threshold` column into `Condition`, one
+       sentence per kind from `rb.alert.sentence.<kind>` (AC-1232). */
     expect(
-      await screen.findByRole('columnheader', { name: EN('rb.alerts.col.threshold') }),
+      await screen.findByRole('columnheader', { name: EN('rb.alerts.col.condition') }),
     ).toBeInTheDocument()
+    expect(screen.queryByRole('columnheader', { name: EN('rb.alerts.col.threshold') })).toBeNull()
     /* The value carries its own unit, so the 12px line under it was a second
        reading of one fact and half the row's height (X15). */
     expect(
@@ -242,54 +245,26 @@ describe('every alert state carries a glyph beside its word', () => {
 
 /* ──────────── the recorded decision the visual pass may not lose ─────────── */
 
-describe('“nothing is checking these rules” survives the chrome', () => {
-  it('still renders while any rule carries a null cadence', async () => {
+describe('“a rule without a cadence never runs” survives the chrome (§4.6)', () => {
+  it('still renders while every rule in view carries a null cadence', async () => {
     const rules = await alertRules()
-    expect(rules.some((rule) => rule.cadence === null)).toBe(true)
+    expect(rules.every((rule) => rule.cadence === null)).toBe(true)
 
     renderAt('/management/reports?view=alerts')
 
     /* R10 — a standing condition is a banner, and this one is the honest
        surface for `cadence: null`. It is asserted with its body, because a
        title alone would pass against a banner reduced to a heading. */
-    const banner = await screen.findByText(EN('rb.alerts.banner.title'))
-    expect(screen.getByText(EN('rb.alerts.banner.body'))).toBeInTheDocument()
+    const banner = await screen.findByText(EN('rb.alert.banner.noCadence.title'))
+    expect(screen.getByText(EN('rb.alert.banner.noCadence.body'))).toBeInTheDocument()
 
     /* And still ABOVE the table, which is the placement the correction needs to
        outrank a badge on every row. */
     const table = await screen.findByRole('table')
     expect(banner.compareDocumentPosition(table) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-
-    /* T9.15/R10 — the banner says it once, so no row repeats it. */
-    expect(rules.some((rule) => rule.cadence === null)).toBe(true)
-    expect(screen.queryByText(EN('rb.alert.cadence.unset'))).toBeNull()
   })
 
-  it('T9.15 — offers Test a rule on the banner and answers by name', async () => {
-    const user = userEvent.setup()
-    const rules = await alertRules()
-    /* The banner's action reads the first rule nothing checks that §13.3 lets
-       it read — the same rule the screen picks. */
-    const target = rules.find((rule) => rule.cadence === null && rule.state !== 'suspended')
-    expect(target, 'no seeded rule the banner could test').toBeDefined()
-
-    renderAt('/management/reports?view=alerts')
-    await screen.findByRole('table')
-
-    await user.click(
-      await screen.findByRole('button', { name: EN('rb.alerts.banner.action') }),
-    )
-
-    /* One list, several writers, so every outcome names the rule it answers
-       for. AC-877: a test changes nothing and tells nobody. */
-    const answers = await screen.findAllByRole('status')
-    const list = answers.find((node) => node.tagName.toLowerCase() === 'ul')
-    expect(list, 'no test-result list').toBeDefined()
-    expect(within(list as HTMLElement).getAllByRole('listitem')).toHaveLength(1)
-    expect(list!.textContent).toContain(target!.name)
-  })
-
-  it('T9.15 — leaves the Checked cell blank while the banner is showing', async () => {
+  it('AC-1235 — names each rule’s own cadence word on its row, never blank', async () => {
     const rules = await alertRules()
     const unset = rules.find((rule) => rule.cadence === null)
     expect(unset).toBeDefined()
@@ -302,9 +277,27 @@ describe('“nothing is checking these rules” survives the chrome', () => {
     expect(index).toBeGreaterThan(-1)
 
     const row = await rowNamed(unset!.name)
-    /* O9 — an absence the banner already states is blank, never a dash and
-       never a repeated word. */
-    expect(within(row).getAllByRole('cell')[index]!.textContent).toBe('')
+    /* v2 — the cadence cell always states the fact in words (`Not scheduled`),
+       never blank: the banner's claim is about the VIEW, a row's own cadence
+       is still a fact worth stating even where the banner also says so. */
+    expect(within(row).getAllByRole('cell')[index]!.textContent).toBe(EN('rb.alert.cadence.none'))
+  })
+
+  it('§4.6 — the banner’s `Set cadence` opens the composer in place of the table', async () => {
+    const user = userEvent.setup()
+    renderAt('/management/reports?view=alerts')
+    await screen.findByRole('table')
+
+    await user.click(
+      await screen.findByRole('button', { name: EN('rb.alert.banner.noCadence.action') }),
+    )
+
+    /* The composer is an INLINE PANEL (AC-1225), not a dialog — it replaces
+       the table rather than layering over it. */
+    expect(
+      await screen.findByRole('heading', { name: EN('rb.alert.panel.heading.edit') }),
+    ).toBeInTheDocument()
+    expect(screen.queryByRole('table')).toBeNull()
   })
 })
 
@@ -460,11 +453,10 @@ describe('the alert path from a report is first-class', () => {
     await openRowOverflow(user, await rowNamed(report!.name))
     await user.click(await screen.findByRole('menuitem', { name: EN('rb.library.createAlert') }))
 
-    const dialog = await screen.findByRole('dialog')
-    /* A create, not an edit — and the glyph does not change the heading's
-       accessible name, because it is `aria-hidden`. */
-    const heading = within(dialog).getByRole('heading')
-    expect(heading).toHaveTextContent(EN('rb.alert.form.title'))
+    /* AC-1225 — the composer is an INLINE PANEL (no dialog role). */
+    const heading = await screen.findByRole('heading', { name: EN('rb.alert.panel.heading.new') })
+    const panel = heading.closest('[data-slot="card"]') as HTMLElement
+    expect(panel).not.toBeNull()
     const bell = heading.querySelector('svg')
     expect(bell).not.toBeNull()
     expect(bell!.getAttribute('aria-hidden')).toBe('true')
@@ -476,11 +468,9 @@ describe('the alert path from a report is first-class', () => {
        ignored would still have been passed. */
     await waitFor(() =>
       expect(
-        within(dialog).getByText(
-          EN('rb.alert.form.preset').replace('{name}', report!.name),
-        ),
+        within(panel).getByText(EN('rb.alert.form.preset').replace('{name}', report!.name)),
       ).toBeInTheDocument(),
     )
-    expect(within(dialog).queryByText(EN('rb.alert.form.report.unsaved'))).toBeNull()
+    expect(within(panel).queryByText(EN('rb.alert.form.report.unsaved'))).toBeNull()
   })
 })

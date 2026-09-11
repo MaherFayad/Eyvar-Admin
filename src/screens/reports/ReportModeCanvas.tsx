@@ -50,6 +50,7 @@
  *               numbers are navigable and announced.
  */
 
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 /* Deep import, not the `@/components/reports` barrel, which does not export it.
@@ -63,13 +64,14 @@ import { ErrorState } from '@/components/ErrorState'
 import { LoadingSkeleton } from '@/components/LoadingSkeleton'
 import type { CanvasStatus } from '@/components/reports'
 import { OTHER_GROUP } from '@/data/clients'
-import { reportMode, type Measure, type QueryViolation, type ReportResult } from '@/data/types'
+import { reportMode, type Measure, type QueryViolation, type ReportResult, type ReportSeries } from '@/data/types'
 /* Deep import, NOT the `@/components/metrics` barrel. The barrel also exports
    `TrendChart`, which pulls recharts -- a 337 kB chunk (104 kB gzip) that then
    loads on `/management/reports` where no chart renders. `formatMetric.ts` has
    no React in it. */
 import { formatMetricValue } from '@/components/metrics/formatMetric'
 import { formatDate, type Language, type Translator } from '@/lib'
+import { cn } from '@/lib/utils'
 import { Reasons } from './ReportModePanel'
 
 /** The resolver's sentinel for *this subject did nothing after the root event*. */
@@ -320,6 +322,10 @@ function NoData({
  * get quoted wrongly. The bar's length is the conversion against the first
  * rung, so the picture and the right-hand number are the same fact.
  */
+/** The header row's own focus ring — a raw `<button>` here, not the `Button` primitive, because its layout is the step's own two-ended row. */
+const STEP_HEADER =
+  'flex w-full flex-wrap items-baseline justify-between gap-x-3 gap-y-1 rounded-sm text-start outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background'
+
 function FunnelCascade({
   result,
   measuresByKey,
@@ -333,6 +339,11 @@ function FunnelCascade({
 }) {
   const rungs = result.series.filter((s) => s.blocked === null)
   const first = Number(rungs[0]?.points[0] ?? 0)
+  /* AC-1170 — the split a click opens. `result.query` is the query that
+     PRODUCED this result, not whatever the panel holds now, so the button
+     never opens a table for a split the operator has since changed. */
+  const groupBy = result.query.mode === 'funnel' ? (result.query.funnel?.groupBy ?? null) : null
+  const [openId, setOpenId] = useState<string | null>(null)
 
   return (
     <ol className="flex list-none flex-col gap-4">
@@ -351,33 +362,55 @@ function FunnelCascade({
           value === null || previous === null || previous === 0
             ? null
             : Math.round((1 - value / previous) * 100)
+        const panelId = `funnel-dropoff-${series.id}`
+        const open = openId === series.id
+
+        const header = (
+          <>
+            <span className="text-sm font-medium text-foreground">
+              {t('rb.funnel.step', { position: index + 1 })}
+              {' · '}
+              {measure ? t(measure.labelKey) : series.measureKey}
+            </span>
+            <span className="flex items-baseline gap-3 text-sm">
+              {/* The product's ONE value formatter — the same function a
+                  metric tile, an axis tick and the result table use, so a
+                  rung's number is formatted like every other number in the
+                  product and `null` renders as the em dash rather than as a
+                  zero (§8.3.1). */}
+              <span className="font-medium text-foreground">
+                {formatMetricValue(value ?? null, series.unit, language)}
+              </span>
+              <span className="text-muted-foreground">
+                {conversion === null
+                  ? t('rb.funnel.conversion.none')
+                  : t('rb.funnel.conversion', {
+                      percent: formatMetricValue(conversion, 'percent', language),
+                    })}
+              </span>
+            </span>
+          </>
+        )
 
         return (
           <li key={series.id} className="flex flex-col gap-1.5">
-            <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-              <span className="text-sm font-medium text-foreground">
-                {t('rb.funnel.step', { position: index + 1 })}
-                {' · '}
-                {measure ? t(measure.labelKey) : series.measureKey}
-              </span>
-              <span className="flex items-baseline gap-3 text-sm">
-                {/* The product's ONE value formatter — the same function a
-                    metric tile, an axis tick and the result table use, so a
-                    rung's number is formatted like every other number in the
-                    product and `null` renders as the em dash rather than as a
-                    zero (§8.3.1). */}
-                <span className="font-medium text-foreground">
-                  {formatMetricValue(value ?? null, series.unit, language)}
-                </span>
-                <span className="text-muted-foreground">
-                  {conversion === null
-                    ? t('rb.funnel.conversion.none')
-                    : t('rb.funnel.conversion', {
-                        percent: formatMetricValue(conversion, 'percent', language),
-                      })}
-                </span>
-              </span>
-            </div>
+            {/* A step is only a `<button>` where clicking it has an effect
+               (AC-1170): with no split chosen there is no group table to
+               open, and a control that does nothing on activation is worse
+               than none (R6's own reasoning, applied to a no-op). */}
+            {groupBy ? (
+              <button
+                type="button"
+                className={STEP_HEADER}
+                aria-expanded={open}
+                aria-controls={panelId}
+                onClick={() => setOpenId(open ? null : series.id)}
+              >
+                {header}
+              </button>
+            ) : (
+              <div className={STEP_HEADER}>{header}</div>
+            )}
 
             {/* The track keeps its full width so the bars are comparable to one
                 another and not just to themselves. */}
@@ -400,6 +433,16 @@ function FunnelCascade({
                 })}
               </p>
             )}
+
+            {groupBy && open && (
+              /* The mock resolves the cascade, not a per-group breakdown of
+                 it — see the handoff. The region opens and says so, rather
+                 than the button doing nothing or the split silently going
+                 unhonoured. */
+              <div id={panelId} role="region" aria-label={t('rb.funnel.dropoff.region')} className="rounded-md border border-border p-2">
+                <p className="text-xs text-muted-foreground">{t('rb.funnel.dropoff.needsServer')}</p>
+              </div>
+            )}
           </li>
         )
       })}
@@ -408,6 +451,17 @@ function FunnelCascade({
 }
 
 /* ─────────────────────────── the retention matrix ──────────────────────── */
+
+/** AC-1173 — the four heat tokens only, chosen by quartile. No arbitrary opacity. */
+function heatClassOf(percent: number): string {
+  if (percent <= 25) return 'bg-heat-1'
+  if (percent <= 50) return 'bg-heat-2'
+  if (percent <= 75) return 'bg-heat-3'
+  return 'bg-heat-4'
+}
+
+/** §6's curve folds past this many cohorts — the same "eight is a legend, nine is a spreadsheet" rule §7.4 already applies to groups. */
+const COHORT_CURVE_FOLD_AT = 8
 
 /**
  * **Cohorts down, age across.** One row per cohort, one column per interval.
@@ -427,93 +481,227 @@ function CohortMatrix({
   t: Translator
   language: Language
 }) {
+  const [view, setView] = useState<'matrix' | 'curve'>('matrix')
   const columns = result.series.filter((s) => s.blocked === null)
   const sizes = result.cohortSizes ?? []
+  const grain = result.query.mode === 'cohort' ? (result.query.cohort?.cohortGrain ?? 'month') : 'month'
 
   if (result.buckets.length === 0) {
     return <p className="py-10 text-center text-sm text-muted-foreground">{noDataSentence}</p>
   }
 
-  /* Σ(size × M1 %) ÷ Σ size — derived here rather than sent, so it cannot
-     disagree with the matrix it summarises. */
-  const m1 = columns.find((s) => s.groupValue === 'M1')
+  /* Σ(size × second-column %) ÷ Σ size — derived here rather than sent, so it
+     cannot disagree with the matrix it summarises. The SECOND column, not a
+     literal `M1`: `bracket` names its columns `{lo}-{hi}`, not `M`, and the
+     "one period in" reading is the same fact under either name. */
+  const second = columns[1] ?? null
   const totalSize = sizes.reduce((sum, n) => sum + n, 0)
-  const survived = m1
-    ? sizes.reduce((sum, size, row) => sum + ((m1.points[row] ?? 0) / 100) * size, 0)
+  const survived = second
+    ? sizes.reduce((sum, size, row) => sum + ((second.points[row] ?? 0) / 100) * size, 0)
     : 0
-  const overall = totalSize > 0 && m1 ? Math.round((survived / totalSize) * 100) : null
+  const overall = totalSize > 0 && second ? Math.round((survived / totalSize) * 100) : null
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="w-full overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-border">
-              <th scope="col" className="p-2 text-start font-medium text-muted-foreground">
-                {t('rb.cohort.col.cohort')}
-              </th>
-              <th scope="col" className="p-2 text-end font-medium text-muted-foreground">
-                {t('rb.cohort.col.size')}
-              </th>
-              {columns.map((series) => (
-                <th
-                  key={series.id}
-                  scope="col"
-                  className="p-2 text-end font-medium text-muted-foreground"
-                >
-                  {series.groupValue}
+      <div role="group" aria-label={t('rb.cohort.view')} className="flex flex-wrap gap-1">
+        <Button type="button" size="xs" variant={view === 'matrix' ? 'secondary' : 'ghost'} aria-pressed={view === 'matrix'} onClick={() => setView('matrix')}>
+          {t('rb.cohort.view.matrix')}
+        </Button>
+        <Button type="button" size="xs" variant={view === 'curve' ? 'secondary' : 'ghost'} aria-pressed={view === 'curve'} onClick={() => setView('curve')}>
+          {t('rb.cohort.view.curve')}
+        </Button>
+      </div>
+
+      {view === 'matrix' ? (
+        <div className="w-full overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-border">
+                <th scope="col" className="p-2 text-start font-medium text-muted-foreground">
+                  {t('rb.cohort.col.cohort')}
                 </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {result.buckets.map((bucket, row) => (
-              <tr key={bucket} className="border-b border-border last:border-b-0">
-                <th scope="row" className="p-2 text-start font-medium text-foreground">
-                  {formatDate(bucket, { style: 'day-month-year', language })}
+                <th scope="col" className="p-2 text-end font-medium text-muted-foreground">
+                  {t('rb.cohort.col.size')}
                 </th>
-                <td className="p-2 text-end tabular-nums text-muted-foreground">
-                  {formatMetricValue(sizes[row] ?? null, 'count', language)}
-                </td>
-                {columns.map((series) => {
-                  const value = series.points[row] ?? null
-                  return (
-                    <td key={series.id} className="p-2 align-middle">
-                      {value === null ? (
-                        /* A cell nobody measured. `copy.md` rule 10: stated in
-                           words, never left blank. */
-                        <span className="block text-end text-xs text-muted-foreground">
-                          {t('rb.cohort.cell.none')}
-                        </span>
-                      ) : (
-                        <span className="flex flex-col items-end gap-1">
-                          <span className="tabular-nums text-foreground">
+                {columns.map((series) => (
+                  <th
+                    key={series.id}
+                    scope="col"
+                    className="p-2 text-end font-medium text-muted-foreground"
+                  >
+                    {series.groupValue}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {result.buckets.map((bucket, row) => (
+                <tr key={bucket} className="border-b border-border last:border-b-0">
+                  <th scope="row" className="p-2 text-start font-medium text-foreground">
+                    {formatDate(bucket, { style: 'day-month-year', language })}
+                  </th>
+                  <td className="p-2 text-end tabular-nums text-muted-foreground">
+                    {formatMetricValue(sizes[row] ?? null, 'count', language)}
+                  </td>
+                  {columns.map((series) => {
+                    const value = series.points[row] ?? null
+                    return (
+                      <td key={series.id} className="p-2 align-middle">
+                        {value === null ? (
+                          /* A cell nobody measured. `copy.md` rule 10: stated in
+                             words, never left blank. */
+                          <span className="block text-end text-xs text-muted-foreground">
+                            {t('rb.cohort.cell.none')}
+                          </span>
+                        ) : (
+                          <span
+                            className={cn(
+                              'flex items-center justify-end rounded-sm px-1.5 py-1 tabular-nums text-foreground',
+                              heatClassOf(value),
+                            )}
+                          >
                             {formatMetricValue(value, 'percent', language)}
                           </span>
-                          <span className="h-1 w-12 overflow-hidden rounded-sm bg-chart-fill">
-                            <span
-                              className="block h-full bg-chart-series"
-                              style={{ inlineSize: `${Math.max(0, Math.min(100, value))}%` }}
-                            />
-                          </span>
-                        </span>
-                      )}
-                    </td>
-                  )
-                })}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+                        )}
+                      </td>
+                    )
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <CohortCurve result={result} columns={columns} t={t} />
+      )}
 
       {overall !== null && (
         <p className="text-xs text-muted-foreground">
           {t('rb.cohort.survival', {
             percent: formatMetricValue(overall, 'percent', language),
+            unit: t(`rb.grainNoun.${grain}`),
           })}
         </p>
       )}
+    </div>
+  )
+}
+
+/**
+ * §6's curve: one line per cohort, folded at `COHORT_CURVE_FOLD_AT` (most
+ * recent kept), with the size-weighted average bold. Hand-rolled SVG, not
+ * Recharts — this file's own deep-`formatMetric` import keeps the 337 kB
+ * Recharts chunk off every mode drawn here; one small static chart is not
+ * worth reversing that.
+ */
+function CohortCurve({
+  result,
+  columns,
+  t,
+}: {
+  result: ReportResult
+  columns: readonly ReportSeries[]
+  t: Translator
+}) {
+  const sizes = result.cohortSizes ?? []
+  const rows = result.buckets.map((bucket, i) => ({
+    bucket,
+    size: sizes[i] ?? 0,
+    values: columns.map((c) => c.points[i] ?? null),
+  }))
+  const folded = rows.length > COHORT_CURVE_FOLD_AT
+  const shown = folded ? rows.slice(-COHORT_CURVE_FOLD_AT) : rows
+  const labels = columns.map((c) => c.groupValue ?? '')
+  const n = labels.length
+
+  const average: (number | null)[] = labels.map((_label, xi) => {
+    let sum = 0
+    let weight = 0
+    rows.forEach((row) => {
+      const v = row.values[xi]
+      if (v !== null && v !== undefined) {
+        sum += v * row.size
+        weight += row.size
+      }
+    })
+    return weight > 0 ? Math.round((sum / weight) * 10) / 10 : null
+  })
+
+  /* A 100×100 viewBox scaled to the container by CSS — percent in, percent
+     out, so `yAt` needs no axis domain to agree with. */
+  const xAt = (i: number) => (n <= 1 ? 50 : (i / (n - 1)) * 100)
+  const yAt = (value: number) => 100 - Math.max(0, Math.min(100, value))
+
+  /* One or more point strings, split at every gap so a `null` reading draws a
+     break rather than a straight line across the missing period (§3.5's rule
+     for a series, applied to this hand-rolled polyline). */
+  const segmentsOf = (values: readonly (number | null)[]): string[] => {
+    const segments: string[] = []
+    let current: string[] = []
+    values.forEach((value, i) => {
+      if (value === null) {
+        if (current.length > 1) segments.push(current.join(' '))
+        current = []
+        return
+      }
+      current.push(`${xAt(i)},${yAt(value)}`)
+    })
+    if (current.length > 1) segments.push(current.join(' '))
+    return segments
+  }
+
+  return (
+    <div className="flex flex-col gap-2">
+      {folded && (
+        <p className="text-xs text-muted-foreground">
+          {t('rb.cohort.curve.folded', { count: rows.length - COHORT_CURVE_FOLD_AT })}
+        </p>
+      )}
+      <div dir="ltr" role="img" aria-label={t('rb.cohort.curve.label')} className="flex flex-col gap-1">
+        <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="h-40 w-full" aria-hidden="true">
+          {[0, 25, 50, 75, 100].map((gridline) => (
+            <line
+              key={gridline}
+              x1={0}
+              x2={100}
+              y1={yAt(gridline)}
+              y2={yAt(gridline)}
+              stroke="var(--chart-grid)"
+              strokeWidth={0.5}
+              vectorEffect="non-scaling-stroke"
+            />
+          ))}
+          {shown.map((row, ri) =>
+            segmentsOf(row.values).map((points, si) => (
+              <polyline
+                key={`${ri}-${si}`}
+                points={points}
+                fill="none"
+                stroke="var(--chart-series)"
+                strokeOpacity={0.35}
+                strokeWidth={1}
+                vectorEffect="non-scaling-stroke"
+              />
+            )),
+          )}
+          {/* The average, bold and opaque — drawn last so it sits over every cohort's own line. */}
+          {segmentsOf(average).map((points, si) => (
+            <polyline
+              key={`avg-${si}`}
+              points={points}
+              fill="none"
+              stroke="var(--chart-series)"
+              strokeWidth={2}
+              vectorEffect="non-scaling-stroke"
+            />
+          ))}
+        </svg>
+        <div className="flex justify-between text-xs text-muted-foreground">
+          {labels.map((label, i) => (
+            <span key={`${label}-${i}`}>{label}</span>
+          ))}
+        </div>
+      </div>
     </div>
   )
 }

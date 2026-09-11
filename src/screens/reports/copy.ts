@@ -83,7 +83,10 @@ export const REPORTS_EN: Dictionary = {
 
   'rb.page.title': 'Reports',
   'rb.view.reports': 'Reports',
+  /* D46 — the pre-rename id `dashboards` is kept below so any leftover call
+     site still resolves; `pages` is what `views.ts` names now. */
   'rb.view.dashboards': 'Dashboards',
+  'rb.view.pages': 'Pages',
   'rb.view.alerts': 'Alerts',
 
   /* ───────────────────────────── measures ───────────────────────────────── */
@@ -308,8 +311,13 @@ export const REPORTS_EN: Dictionary = {
      them supplies the noun. */
   'rb.viz.label': 'Chart type',
   'rb.viz.line': 'Line chart',
+  'rb.viz.area': 'Area chart',
   'rb.viz.bar': 'Bar chart',
+  'rb.viz.stacked-bar': 'Stacked bar chart',
+  'rb.viz.stacked-100': '100% stacked bar chart',
+  'rb.viz.horizontal-bar': 'Horizontal bar chart',
   'rb.viz.pie': 'Pie chart',
+  'rb.viz.kpi': 'KPI tile',
   'rb.viz.table': 'Data table',
   'rb.viz.cohort': 'Retention',
   'rb.viz.funnel': 'Funnel',
@@ -333,11 +341,17 @@ export const REPORTS_EN: Dictionary = {
   'rb.preset.last-month': 'Last month',
   'rb.preset.last-12-months': 'Last 12 months',
   'rb.preset.last-year': 'Last year',
+  /* 02 §2.7 — matches Amplitude's list without a custom range. */
+  'rb.preset.this-quarter': 'This quarter',
+  'rb.preset.last-quarter': 'Last quarter',
+  'rb.preset.this-year': 'This year',
+  'rb.preset.year-to-date': 'Year to date',
 
   'rb.grain.hour': 'Hour',
   'rb.grain.day': 'Day',
   'rb.grain.week': 'Week',
   'rb.grain.month': 'Month',
+  'rb.grain.quarter': 'Quarter',
   'rb.grain.none': 'Whole range',
 
   /* The same five as nouns inside a sentence. `Day` is a control label and
@@ -377,6 +391,16 @@ export const REPORTS_EN: Dictionary = {
   'rb.chart.lineNeedsGrain': 'A line needs a grain. This range is collapsed to one bucket.',
   'rb.chart.lineNeedsTwoPoints': 'A line needs at least two points and this range has {buckets}.',
   'rb.chart.barNeedsGrainOrSplit': 'A bar needs either a grain or a split.',
+  /* G8, `02-report-builder-v2.md` §3 — the five v2 chart types' legality reasons. */
+  'rb.chart.twoLevelsNeedStack': 'A two-level split draws as a stacked bar or a table, not this shape.',
+  'rb.chart.areaOneMeasure': 'An area shows one measure. This report has two.',
+  'rb.chart.stackNeedsAdditive': 'A stacked bar needs a measure that adds up, like a count or a total.',
+  'rb.chart.stackNeedsParts': 'A stacked bar needs a split or two measures of the same unit, so it has parts to stack.',
+  'rb.chart.stackUnit': 'A stacked bar of a {unit} does not add up to a whole.',
+  'rb.chart.stack100NeedsParts': 'A 100% stacked bar needs at least two parts and this split has {parts}.',
+  'rb.chart.hbarNeedsSplit': 'A horizontal bar needs a split, so it has bars to draw.',
+  'rb.chart.hbarSinglePeriod': 'A horizontal bar needs the whole range as one bucket.',
+  'rb.chart.kpiOneSeries': 'A KPI shows one measure with no split and no segments.',
   'rb.chart.pieOneMeasure': 'A pie shows one measure. This report has two.',
   'rb.chart.pieUnit': 'A pie of a {unit} does not add up to a whole.',
   'rb.chart.pieNotAdditive':
@@ -394,6 +418,7 @@ export const REPORTS_EN: Dictionary = {
   'rb.violation.illegalDimension': 'These measures cannot be split by {dimension}.',
   'rb.violation.filterFieldNotShared': 'Both measures must be filterable on {field}.',
   'rb.violation.windowInverted': '{to} is before {from}.',
+  'rb.violation.comparisonLength': 'The comparison range has {got} buckets. The current window needs {required}.',
 
   /* ────────────────────── the five modes (P7-T3) ────────────────────────── */
 
@@ -464,8 +489,38 @@ export const REPORTS_EN: Dictionary = {
   'rb.funnel.window': 'Time to convert',
   'rb.funnel.window.range': 'The whole date range',
   'rb.funnel.window.days': '{days} days',
+  /* §5 (v2) — the same control now offers week-length windows too. */
+  'rb.funnel.window.weeks': '{weeks} weeks',
   'rb.funnel.window.explain':
     'How long one person has to reach the last step from the first. The whole range means anyone who started inside it and finished inside it.',
+
+  /* ─────────────────────────── funnel v2 (§5, G10) ───────────────────────── */
+
+  'rb.funnel.mode': 'Order',
+  'rb.funnel.mode.ordered': 'In order',
+  'rb.funnel.mode.unordered': 'In any order',
+  'rb.funnel.mode.sequential': 'Strictly in sequence',
+  /* D9 CQ-3 — the shared reason for `sequential`, `holdConstant` and
+     `exclude`: none of them is computable without event-level data no source
+     here has, and the sentence says the server, not this option, is what is
+     missing. */
+  'rb.funnel.needsServer':
+    'This needs a history of individual events, which this server does not have yet. It will run once the server supports it.',
+  'rb.funnel.measuredAs': 'Measured as',
+  'rb.funnel.measuredAs.conversion': 'Conversion',
+  'rb.funnel.measuredAs.conversion-over-time': 'Conversion over time',
+  'rb.funnel.measuredAs.time-to-convert': 'Time to convert',
+  'rb.funnel.groupBy': 'Split drop-off by',
+  'rb.funnel.groupBy.none': "Don't split",
+  'rb.funnel.groupBy.explain': 'Opens a breakdown of who dropped off at each step, by this field.',
+  'rb.funnel.holdConstant': 'Hold constant',
+  'rb.funnel.holdConstant.none': 'Nothing',
+  'rb.funnel.exclude': 'Exclude',
+  'rb.funnel.exclude.add': 'Add an exclusion',
+  'rb.funnel.timeToConvert.percentile': 'P{percentile}',
+  'rb.funnel.dropoff.region': 'Drop-off by group',
+  'rb.funnel.dropoff.needsServer':
+    'A breakdown by group needs computation this server does not do yet. The cascade above is unaffected.',
 
   /* ────────────────────── composing a retention report ──────────────────── */
 
@@ -483,6 +538,29 @@ export const REPORTS_EN: Dictionary = {
   'rb.cohort.horizon.value': 'M0 to M{horizon}',
   'rb.cohort.horizon.explain':
     'How far past joining the matrix reaches. The date range has to be long enough to hold every column.',
+  'rb.cohort.horizon.notUsedForBracket': 'The windows above decide the columns; this is not used.',
+
+  /* ───────────────────────── retention v2 (§6, G11) ──────────────────────── */
+
+  'rb.cohort.return.add': 'Add a return event',
+  'rb.cohort.return.remove': 'Remove {measure}',
+  'rb.cohort.method': 'Method',
+  'rb.cohort.method.rolling': 'Still active at or after',
+  'rb.cohort.method.nday': 'Returned on exactly',
+  'rb.cohort.method.bracket': 'Returned within a window',
+  'rb.cohort.brackets': 'Windows',
+  'rb.cohort.brackets.explain': 'Custom periods after joining, in the grain chosen above. For example, 0 to 7, then 7 to 14.',
+  'rb.cohort.brackets.unstarted': 'No windows yet. Add one to measure retention within it.',
+  'rb.cohort.brackets.lo': 'From',
+  'rb.cohort.brackets.hi': 'To',
+  'rb.cohort.brackets.add': 'Add a window',
+  'rb.cohort.brackets.remove': 'Remove the {lo}–{hi} window',
+  'rb.cohort.brackets.overlap': 'This window overlaps one already added. Windows cannot share a period.',
+  'rb.cohort.view': 'View',
+  'rb.cohort.view.matrix': 'Matrix',
+  'rb.cohort.view.curve': 'Curve',
+  'rb.cohort.curve.folded': 'The {count} oldest cohorts are left out of the curve, but still count toward the average.',
+  'rb.cohort.curve.label': 'Retention curve, one line per cohort, average in bold',
 
   /* ────────────────────── composing a journey report ────────────────────── */
 
@@ -508,8 +586,9 @@ export const REPORTS_EN: Dictionary = {
   /* R5-15 — the base travels with the percentage. */
   'rb.cohort.col.size': 'People',
   'rb.cohort.cell.none': 'No reading',
+  /* v2: grain-generic — {unit} is `rb.grainNoun.*`, never a raw enum (AC-1171). */
   'rb.cohort.survival':
-    '{percent} of everyone counted here was still active a month after joining.',
+    '{percent} of everyone counted here was still active one {unit} after joining.',
   'rb.journey.entered': '{subjects} people started here.',
   'rb.journey.allStopped': 'Nobody did anything else inside this range.',
   'rb.journey.stopped': '{subjects} ({percent}) did nothing else inside this range.',
@@ -689,6 +768,12 @@ export const REPORTS_EN: Dictionary = {
      cell: what kind of number is this. Here, the honest answer is none. */
   'rb.table.window.undeclared': 'no stated way to combine these',
 
+  /* §7 (v2) — the columns mode: measures across, a row dimension down. */
+  'rb.table.columns.empty': 'No columns to show.',
+  'rb.table.columns.rowTime': 'Date',
+  'rb.table.columns.rowLabel': 'Group',
+  'rb.table.columns.totals': 'Total',
+
   'rb.legend.range': '{from} – {to}',
   'rb.legend.noCompare': 'No comparison period',
 
@@ -774,13 +859,34 @@ export const REPORTS_EN: Dictionary = {
   'rb.header.dashboards#one': 'On 1 dashboard',
   'rb.header.dashboards#other': 'On {count} dashboards',
 
-  /* §A6 / B4 — the overflow's export submenu. §11.2: gate at RENDER. PNG and
-     PDF are listed, off, and say why; hiding them would leave an operator
-     hunting for an export this product does not have. */
+  /* §A6 / B4 — the overflow's export submenu. §11.2: gate at RENDER. PDF is
+     listed, off, and says why; hiding it would leave an operator hunting for
+     an export this product does not have. AC-1159 — PNG works now. */
   'rb.export.menu': 'Export',
   'rb.export.png': 'Export PNG',
   'rb.export.pdf': 'Export PDF',
   'rb.export.blocked': 'Image export isn’t built. Export CSV instead.',
+  'rb.export.pdf.blocked': 'PDF export isn’t built. Export PNG or CSV instead.',
+
+  /* §8 — the overflow's five new actions. All five need a saved report. */
+  'rb.overflow.pin': 'Pin to a page…',
+  'rb.overflow.pin.loading': 'Loading the pages',
+  'rb.overflow.pin.error': 'The pages didn’t load.',
+  'rb.overflow.pin.empty': 'There are no dashboard pages yet.',
+  'rb.overflow.pin.toast': 'Pinned to “{page}”.',
+  'rb.overflow.pin.failed': 'Wasn’t pinned. Try again.',
+  'rb.overflow.createAlert': 'Create alert…',
+  'rb.overflow.ask': 'Ask the analyst',
+  'rb.overflow.versions': 'Version history',
+  'rb.overflow.versions.heading': 'Version history',
+  'rb.overflow.versions.close': 'Close',
+  'rb.overflow.versions.loading': 'Loading the version history',
+  'rb.overflow.versions.error': 'The version history didn’t load.',
+  'rb.overflow.versions.empty': 'No earlier versions yet.',
+  'rb.overflow.versions.restore': 'Restore',
+  /* AC-1162 — restoring loads the query into the DRAFT; nothing is saved. */
+  'rb.overflow.versions.restored': 'Loaded the {time} version into the draft. Nothing is saved yet.',
+  'rb.overflow.versions.savedBy': '{by} · {at}',
 
   /* §8.3 states 11 and 12. */
   'rb.report.deleted': 'This report was deleted. You can still save what you have as a new one.',
@@ -789,6 +895,20 @@ export const REPORTS_EN: Dictionary = {
 
   'rb.library.new': 'New report',
   'rb.library.search': 'Search reports',
+  /* §8 / AC-1163 — the library's own view strip, distinct from the outer
+     `reports · pages · alerts` switcher. `all` is the default. */
+  'rb.library.view.all': 'All',
+  'rb.library.view.mine': 'Mine',
+  'rb.library.view.team': 'Team',
+  'rb.library.view.starred': 'Starred',
+  'rb.library.view.official': 'Official',
+  'rb.library.view.recent': 'Recent',
+  'rb.library.col.star': 'Star',
+  'rb.library.star.add': 'Star {name}',
+  'rb.library.star.remove': 'Unstar {name}',
+  /* R7/R5a — a neutral fact, not a warning; there is no red badge. */
+  'rb.library.official': 'Official',
+  'rb.library.col.tags': 'Tags',
   'rb.library.col.name': 'Report',
   /* T9.13 — Amplitude's library shape. Three facts an operator narrows on, as
      columns with filters, rather than prose under every name. */
@@ -802,6 +922,7 @@ export const REPORTS_EN: Dictionary = {
      only route in is the Alerts sub-tab, which then asks the operator to
      re-pick by name the report they had just left. */
   'rb.library.createAlert': 'Create alert',
+  'rb.library.duplicate': 'Duplicate',
   'rb.library.delete': 'Delete',
   'rb.library.firstRun.heading': 'Ask a question',
   'rb.library.firstRun.body':
@@ -1150,8 +1271,6 @@ export const REPORTS_EN: Dictionary = {
      and on this list every rule is the first of those. */
   'rb.alert.lastEvaluated.never': 'Never checked',
 
-  'rb.alert.form.title': 'New alert',
-  'rb.alert.form.edit': 'Edit alert',
   'rb.alert.form.name': 'Name',
   'rb.alert.form.report': 'Report',
   'rb.alert.form.report.unsaved': 'An alert watches a saved report. Save this one first.',
@@ -1421,4 +1540,34 @@ export const REPORTS_EN: Dictionary = {
   'rb.alert.feed.error': 'The firings didn’t load.',
   'rb.alert.feed.acknowledged.toast': 'Firing acknowledged',
   'rb.alert.feed.acknowledge.failed': 'The firing wasn’t acknowledged. Nothing was changed.',
+
+  /* ── WP-2.1…2.5 — the chart surface, `22-analytics-v2.md` §2 ──────────── */
+  'rb.chart.controlsRow': 'Chart controls',
+  'rb.chart.addAnnotation': 'Add annotation',
+  'rb.chart.zoomed.reset': 'Zoomed · reset',
+  'rb.chart.kpi.sparkline': '{title} over the window',
+  'rb.chart.tooltip.partial': 'partial',
+  'rb.chart.tooltip.vs': 'vs {date}',
+  'rb.chart.tooltip.share': 'share of total',
+  'rb.legend.isolate': 'Isolate',
+  'rb.legend.showAll': 'Show all',
+  'rb.view.menu': 'View',
+  'rb.view.log': 'Log scale',
+  'rb.view.logNeedsPositive': 'Log scale needs every value above zero.',
+  'rb.view.startAtZero': 'Start at zero',
+  'rb.view.dataLabels': 'Data labels',
+  'rb.view.dataLabels.disabled': 'Too many points to label · {count} would overlap.',
+  'rb.view.showTable': 'Show table',
+  'rb.annotation.form.date': 'Date',
+  'rb.annotation.form.label': 'Label',
+  'rb.annotation.form.kind': 'Kind',
+  'rb.annotation.form.note': 'Note (optional)',
+  'rb.annotation.form.cancel': 'Cancel',
+  'rb.annotation.form.submit': 'Add annotation',
+  'rb.annotation.form.failed': 'The annotation wasn’t saved. Nothing was changed.',
+  'rb.annotation.kind.launch': 'Launch',
+  'rb.annotation.kind.price': 'Price change',
+  'rb.annotation.kind.incident': 'Incident',
+  'rb.annotation.kind.campaign': 'Campaign',
+  'rb.annotation.kind.other': 'Other',
 }

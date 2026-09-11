@@ -159,10 +159,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import {
+  AlertRuleIcon,
+  ChatIcon,
   CopyIcon,
   CsvIcon,
+  DashboardIcon,
   DeleteIcon,
   ExportIcon,
+  HistoryIcon,
   ImageIcon,
   LinkIcon,
   MoreIcon,
@@ -197,12 +201,17 @@ import {
   REPORT_QUERY_PARAM,
   deleteReport,
   deserialiseReportQuery,
+  duplicateReport,
   exportReport,
   listDimensions,
   listMeasures,
+  listPages,
+  listReportVersions,
   localDayOf,
   planReportQuery,
+  resolveWindow,
   runReport,
+  savePage,
   serialiseReportQuery,
 } from '@/data/clients'
 import type {
@@ -213,11 +222,15 @@ import type {
   ReportQuery,
   ReportResult,
   SavedReport,
+  SavedReportVersion,
 } from '@/data/types'
 import { applyReportMode } from '@/data/clients/reports'
 import { normaliseReportQuery, reportMode, type ReportMode } from '@/data/types'
-import { isDeepEqual, type Language, type Translator } from '@/lib'
-import { downloadCsv, reportCsvToText } from './csv'
+import type { Page } from '@/data/types/page'
+import { formatDate, isDeepEqual, type Language, type Translator } from '@/lib'
+import { downloadPng, renderChartPng, type ChartPngCaption } from '@/lib/chartPng'
+import { auditExport, downloadCsv, reportCsvToText } from './export'
+import { AlertRuleDialog } from './AlertRuleDialog'
 import { SaveReportDialog } from './SaveReportDialog'
 import { ReportModePanel } from './ReportModePanel'
 import { ReportModeCanvas } from './ReportModeCanvas'
@@ -230,7 +243,8 @@ import { ReportModeCanvas } from './ReportModeCanvas'
  */
 export const EMPTY_QUERY: ReportQuery = {
   measures: [],
-  groupBy: null,
+  /* G4, `02-report-builder-v2.md` §2.4 — `groupBy` is now `DimensionKey[]`, ≤ 2; `[]` is the v2 default that replaces v1's `null`. */
+  groupBy: [],
   filters: [],
   window: { kind: 'preset', preset: 'last-30d' },
   grain: 'day',
@@ -417,6 +431,15 @@ export function ReportBuilder({
     dashboards: Array<{ id: string; name: string }>
     failed: boolean
   } | null>(null)
+
+  /* §8's overflow — WP-2.7. `alertOpen` reuses the library's own dialog so a
+     rule created from either surface is one component, one behaviour. */
+  const [alertOpen, setAlertOpen] = useState(false)
+  const [versionsOpen, setVersionsOpen] = useState(false)
+  /* The chart's own DOM node, for PNG export (`chartPng.ts` rasterises the
+     `<svg>` it finds inside). A ref rather than a prop into `ResultCanvas`:
+     that component is another agent's file right now. */
+  const chartContainerRef = useRef<HTMLDivElement | null>(null)
 
   /**
    * **§A5 — the report names itself, in the header, editable in place.**
@@ -791,7 +814,52 @@ export function ReportBuilder({
     const target = ranQuery ?? query
     const csv = await exportReport(target, { reportName: report?.name ?? null, today })
     downloadCsv(`${report?.name ?? 'report'}.csv`, reportCsvToText(csv))
+    /* AC-1160 — one audit entry per export. */
+    auditExport({
+      format: 'csv',
+      reportName: report?.name ?? null,
+      windowFrom: csv.header.windowFrom,
+      windowTo: csv.header.windowTo,
+      filters: target.filters,
+    })
   }, [ranQuery, query, report, today])
+
+  /**
+   * AC-1159 — the chart's own `<svg>` in `chartContainerRef`, rasterised at 2×
+   * with a caption band and the same text in a `tEXt` chunk (`chartPng.ts`).
+   * `table` and the mode canvases have no plot yet, so `pngExportable` below
+   * keeps this disabled in place rather than exporting a blank image.
+   */
+  const exportPng = useCallback(async () => {
+    const target = ranQuery ?? query
+    if (!result) return
+    const svg = chartContainerRef.current?.querySelector<SVGSVGElement>('svg')
+    if (!svg) return
+    const win = resolveWindow(target.window, today)
+    const caption: ChartPngCaption = {
+      title: (report?.name ?? draftName).trim() || t('rb.title.placeholder'),
+      window: t('rb.control.window.range', { from: win.from, to: win.to }),
+      grain: t(`rb.grain.${target.grain}`),
+      comparison:
+        typeof target.periodComparison === 'string'
+          ? t(`rb.compare.${target.periodComparison}`)
+          : t('rb.compare.fixed', { from: target.periodComparison.from, to: target.periodComparison.to }),
+      filters: target.filters.map((filter) => `${filter.field} ${filter.op} ${String(filter.value)}`),
+      asOf: t('rb.canvas.asOf', {
+        time: formatDate(result.asOf, { style: 'day-month-time', language }),
+      }),
+      pageUrl: `${window.location.origin}${location.pathname}?${REPORT_QUERY_PARAM}=${serialiseReportQuery(target)}`,
+    }
+    const blob = await renderChartPng({ svg, caption, query: serialiseReportQuery(target) })
+    downloadPng(`${report?.name ?? 'report'}.png`, blob)
+    auditExport({
+      format: 'png',
+      reportName: report?.name ?? null,
+      windowFrom: win.from,
+      windowTo: win.to,
+      filters: target.filters,
+    })
+  }, [ranQuery, query, result, report, draftName, today, language, location.pathname, t])
 
   /* Dirty means *the numbers on screen answer a different question*. Redrawing
      the same numbers as bars is not that — see `askedOf`. */
@@ -868,6 +936,88 @@ export function ReportBuilder({
       }
     },
     [report, navigate],
+  )
+
+  /* A `table` chart and the three mode canvases (funnel/cohort/journey) have
+     no `<svg>` plot yet — `pngExportable` keeps the PNG item disabled in place
+     rather than rasterising a blank container. */
+  const pngExportable = isSeriesMode(reportMode(query)) && query.chartType !== 'table'
+
+  /** AC-1166 — a private copy named `<name> (copy)`, opened immediately. */
+  const duplicate = useCallback(async () => {
+    if (!report) return
+    const outcome = await duplicateReport(report.id)
+    onSaved?.(outcome.data)
+  }, [report, onSaved])
+
+  /* §8's `Pin to a page…` — pages of `kind: 'dashboard'` only, mirroring
+     `SaveReportDialog`'s own picker. Fetched only once the overflow's submenu
+     is open, so a builder that is never pinned costs no extra request. */
+  const [pinMenuOpen, setPinMenuOpen] = useState(false)
+  const pinPages = useAsync(
+    (signal) =>
+      listPages({ pageSize: 100, filters: [{ field: 'kind', op: 'eq', value: 'dashboard' }] }, signal),
+    {
+      deps: [pinMenuOpen],
+      enabled: pinMenuOpen,
+      cacheKey: 'pages.list.dashboard',
+      isEmpty: (res) => res.items.length === 0,
+    },
+  )
+  const pinToPage = useCallback(
+    async (page: Page) => {
+      if (!report) return
+      try {
+        const outcome = await savePage({
+          id: page.id,
+          kind: page.kind,
+          title: page.title,
+          icon: page.icon,
+          description: page.description,
+          visibility: page.visibility,
+          tags: page.tags,
+          scope: page.scope,
+          blocks: [
+            ...page.blocks,
+            { id: `RPB-${page.id}-${report.id}`, type: 'report', reportId: report.id, view: 'chart', height: 'M', title: report.name },
+          ],
+          version: page.version,
+        })
+        if (outcome.status !== 'saved') throw new Error('pin failed')
+        toast.success(t('rb.overflow.pin.toast', { page: page.title }))
+      } catch {
+        toast.error(t('rb.overflow.pin.failed'))
+      }
+    },
+    [report, t],
+  )
+
+  /* §8's `Version history` — a panel under the header, not a dialog: an
+     operator looks at an old version and walks away, so `Restore` loads the
+     query into the DRAFT and never calls `saveReport` (AC-1162). */
+  const versions = useAsync<readonly SavedReportVersion[]>(
+    async (signal) => {
+      if (!report) return []
+      const page = await listReportVersions(report.id, { pageSize: 20 }, signal)
+      return page.items
+    },
+    {
+      deps: [report?.id, versionsOpen],
+      enabled: versionsOpen && report !== null,
+      cacheKey: `reports.versions.${report?.id ?? 'none'}`,
+      isEmpty: (rows) => rows.length === 0,
+    },
+  )
+  const restoreVersion = useCallback(
+    (version: SavedReportVersion) => {
+      setQuery(version.query)
+      toast.success(
+        t('rb.overflow.versions.restored', {
+          time: formatDate(version.at, { style: 'day-month-time', language }),
+        }),
+      )
+    },
+    [t, language],
   )
 
   /**
@@ -1012,7 +1162,61 @@ export function ReportBuilder({
                 {t('rb.saveAs')}
               </DropdownMenuItem>
 
-              {/* §B4's `Export ▸`. Three formats, one of which exists. */}
+              {/* §8 — Duplicate, Pin to a page, Create alert, Ask the analyst,
+                  Version history. All five need a SAVED report; a draft has
+                  nothing yet for any of them to point at. */}
+              <DropdownMenuItem onSelect={() => void duplicate()} disabled={report === null}>
+                <CopyIcon aria-hidden="true" className="size-4" />
+                {t('rb.library.duplicate')}
+              </DropdownMenuItem>
+
+              <DropdownMenuSub onOpenChange={setPinMenuOpen}>
+                <DropdownMenuSubTrigger disabled={report === null}>
+                  <DashboardIcon aria-hidden="true" className="size-4" />
+                  {t('rb.overflow.pin')}
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent>
+                  {pinPages.status === 'loading' && (
+                    <p className="px-1.5 py-1 text-xs text-muted-foreground">
+                      {t('rb.overflow.pin.loading')}
+                    </p>
+                  )}
+                  {pinPages.status === 'error' && (
+                    <p className="px-1.5 py-1 text-xs text-muted-foreground">
+                      {t('rb.overflow.pin.error')}
+                    </p>
+                  )}
+                  {pinPages.status === 'empty' && (
+                    <p className="px-1.5 py-1 text-xs text-muted-foreground">
+                      {t('rb.overflow.pin.empty')}
+                    </p>
+                  )}
+                  {(pinPages.data?.items ?? []).map((page) => (
+                    <DropdownMenuItem key={page.id} onSelect={() => void pinToPage(page)}>
+                      <bdi>{page.title}</bdi>
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
+
+              <DropdownMenuItem onSelect={() => setAlertOpen(true)} disabled={report === null}>
+                <AlertRuleIcon aria-hidden="true" className="size-4" />
+                {t('rb.overflow.createAlert')}
+              </DropdownMenuItem>
+
+              <DropdownMenuItem
+                onSelect={() => navigate('/management/reports?view=analyst')}
+              >
+                <ChatIcon aria-hidden="true" className="size-4" />
+                {t('rb.overflow.ask')}
+              </DropdownMenuItem>
+
+              <DropdownMenuItem onSelect={() => setVersionsOpen(true)} disabled={report === null}>
+                <HistoryIcon aria-hidden="true" className="size-4" />
+                {t('rb.overflow.versions')}
+              </DropdownMenuItem>
+
+              {/* §B4's `Export ▸`. PNG works now (AC-1159); PDF stays blocked. */}
               <DropdownMenuSub>
                 <DropdownMenuSubTrigger>
                   <ExportIcon aria-hidden="true" className="size-4" />
@@ -1023,20 +1227,23 @@ export function ReportBuilder({
                     <CsvIcon aria-hidden="true" className="size-4" />
                     {t('rb.export')}
                   </DropdownMenuItem>
-                  {/* **Blocked, and rendered anyway.** §11.2 gates at render and
-                      D9 CQ-3 disables in place with a reason. Amplitude greys
-                      these out and says nothing; the sentence beneath them is
-                      the whole difference. */}
-                  <DropdownMenuItem disabled>
+                  <DropdownMenuItem
+                    onSelect={() => void exportPng()}
+                    disabled={result === null || !pngExportable}
+                  >
                     <ImageIcon aria-hidden="true" className="size-4" />
                     {t('rb.export.png')}
                   </DropdownMenuItem>
+                  {/* **Blocked, and rendered anyway.** §11.2 gates at render and
+                      D9 CQ-3 disables in place with a reason. Amplitude greys
+                      these out and says nothing; the sentence beneath it is
+                      the whole difference. */}
                   <DropdownMenuItem disabled>
                     <ImageIcon aria-hidden="true" className="size-4" />
                     {t('rb.export.pdf')}
                   </DropdownMenuItem>
                   <p className="px-1.5 py-1 text-xs text-muted-foreground">
-                    {t('rb.export.blocked')}
+                    {t('rb.export.pdf.blocked')}
                   </p>
                 </DropdownMenuSubContent>
               </DropdownMenuSub>
@@ -1274,6 +1481,49 @@ export function ReportBuilder({
         </p>
       )}
 
+      {/* §8's `Version history` — a panel UNDER the header, not a dialog:
+          `Restore` loads the query into the draft and never saves (AC-1162),
+          so an operator can look at an old version and walk away. */}
+      {versionsOpen && (
+        <div className="mb-3 flex shrink-0 flex-col gap-2 rounded-xl border border-border bg-card p-3">
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="text-sm font-medium text-foreground">{t('rb.overflow.versions.heading')}</h2>
+            <Button type="button" variant="ghost" size="xs" onClick={() => setVersionsOpen(false)}>
+              {t('rb.overflow.versions.close')}
+            </Button>
+          </div>
+          {versions.status === 'loading' && (
+            <p className="text-sm text-muted-foreground">{t('rb.overflow.versions.loading')}</p>
+          )}
+          {versions.status === 'error' && (
+            <p className="text-sm text-muted-foreground">{t('rb.overflow.versions.error')}</p>
+          )}
+          {versions.status === 'empty' && (
+            <p className="text-sm text-muted-foreground">{t('rb.overflow.versions.empty')}</p>
+          )}
+          {versions.status === 'content' && (
+            <ul className="flex list-none flex-col gap-1">
+              {(versions.data ?? []).map((version) => (
+                <li
+                  key={version.at}
+                  className="flex items-center justify-between gap-2 rounded-lg border border-border-control bg-background px-2 py-1.5 text-sm"
+                >
+                  <span className="text-foreground">
+                    {t('rb.overflow.versions.savedBy', {
+                      by: version.by,
+                      at: formatDate(version.at, { style: 'day-month-time', language }),
+                    })}
+                  </span>
+                  <Button type="button" variant="secondary" size="xs" onClick={() => restoreVersion(version)}>
+                    {t('rb.overflow.versions.restore')}
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+
       <div className="flex min-h-0 flex-1 gap-4">
         {/* The rail: the panel the chosen shape is asked in. One `Refresh`,
             one primary, whichever panel is below it (R3). */}
@@ -1342,32 +1592,37 @@ export function ReportBuilder({
           {/* The canvas the mode's answer has a shape for. Both take the same
               `status`, so loading, error and empty look identical in all five. */}
           {seriesMode ? (
-            <ResultCanvas
-              status={shownStatus}
-              result={shownResult}
-              stale={stale}
-              violations={violations}
-              measuresByKey={measuresByKey}
-              coercedFrom={plan.chartTypeCoerced ? query.chartType : null}
-              effectiveChartType={plan.effectiveChartType}
-              onRetry={() => void run(ranQuery ?? query, 'auto')}
-              onRetrySeries={(key) => void retrySeries(key)}
-              /* The builder is a workspace, so it takes the workspace chrome:
-                 the numbers beneath the picture. The freshness line and its
-                 refresh are the TOOLBAR's now, which is why `withMeta` is off —
-                 it carries both, and a dashboard tile has no toolbar and keeps
-                 them. */
-              withTable
-              withMeta={false}
-              /* §A11 puts the export beside the thing it exports. The SAME
-                 `exportCsv` the page overflow calls, so the header-row button
-                 and the menu item write one file rather than two that agree
-                 today. */
-              onExport={() => void exportCsv()}
-              noDataSentence={noDataSentence}
-              t={t}
-              language={language}
-            />
+            /* AC-1159 — the chart's own `<svg>` lives inside this node;
+               `exportPng` queries it directly rather than taking a ref prop
+               through `ResultCanvas`, another agent's file right now. */
+            <div ref={chartContainerRef} className="flex min-h-0 flex-1 flex-col">
+              <ResultCanvas
+                status={shownStatus}
+                result={shownResult}
+                stale={stale}
+                violations={violations}
+                measuresByKey={measuresByKey}
+                coercedFrom={plan.chartTypeCoerced ? query.chartType : null}
+                effectiveChartType={plan.effectiveChartType}
+                onRetry={() => void run(ranQuery ?? query, 'auto')}
+                onRetrySeries={(key) => void retrySeries(key)}
+                /* The builder is a workspace, so it takes the workspace chrome:
+                   the numbers beneath the picture. The freshness line and its
+                   refresh are the TOOLBAR's now, which is why `withMeta` is off —
+                   it carries both, and a dashboard tile has no toolbar and keeps
+                   them. */
+                withTable
+                withMeta={false}
+                /* §A11 puts the export beside the thing it exports. The SAME
+                   `exportCsv` the page overflow calls, so the header-row button
+                   and the menu item write one file rather than two that agree
+                   today. */
+                onExport={() => void exportCsv()}
+                noDataSentence={noDataSentence}
+                t={t}
+                language={language}
+              />
+            </div>
           ) : (
             <ReportModeCanvas
               status={shownStatus}
@@ -1407,6 +1662,24 @@ export function ReportBuilder({
         }}
         t={t}
       />
+
+      {/* §8's `Create alert…` — the same dialog `ReportLibrary`'s row action
+          opens, so a rule created from either surface is one component. */}
+      {alertOpen && report !== null && (
+        <AlertRuleDialog
+          open
+          onOpenChange={(open) => !open && setAlertOpen(false)}
+          rule={null}
+          presetReportId={report.id}
+          today={today}
+          onSaved={(saved) => {
+            setAlertOpen(false)
+            toast.success(t('rb.alert.toast.saved', { name: saved.name }))
+          }}
+          t={t}
+          language={language}
+        />
+      )}
 
       {/* §11.3 — the same confirmation the library gives, from the same keys,
           because deleting a report is one action and it must not have two

@@ -13,6 +13,7 @@
 import { createRouter } from '../_lib/router'
 import { errorResponse } from '../_lib/errors'
 import { authenticate, DbSessionStore, readSessionSecret, type RequestContext } from '../_lib/auth'
+import { resolveOperator } from '../_lib/agentAuth'
 import { withIdempotency, DbIdempotencyStore } from '../_lib/idempotency'
 import { single } from '../_lib/envelope'
 import { createDatabaseFromEnv, type Database } from '../_lib/db'
@@ -95,6 +96,20 @@ import {
   createUpdateAlertRuleHandler,
 } from '../_lib/handlers/alerts'
 import { createCreateWebhookHandler, createDeleteWebhookHandler, createListWebhooksHandler } from '../_lib/handlers/webhooks'
+import {
+  createAgentHeartbeatHandler,
+  createClaimAgentJobHandler,
+  createCreateAgentJobHandler,
+  createGetAgentJobHandler,
+  createGetAgentStatusHandler,
+  createListAgentJobEventsHandler,
+  createListAgentJobsHandler,
+  createPostAgentJobEventsHandler,
+  createPostAgentJobFailHandler,
+  createPostAgentJobFindingHandler,
+  createPostAgentJobResultHandler,
+  createSampleRowsHandler,
+} from '../_lib/handlers/agent'
 import { createSecretsAdapterFromEnv, type SecretsAdapter } from '../_lib/secrets'
 import type { IsoDate, IsoDateTime } from '@/data/types/common'
 
@@ -235,10 +250,32 @@ export function createApiHandler(deps: ApiDeps): (req: Request) => Promise<Respo
   router.post('/webhooks', createCreateWebhookHandler(deps.db, secrets))
   router.delete('/webhooks/:id', createDeleteWebhookHandler(deps.db))
 
+  // agent.* — see handlers/agent.ts — WP-6.7 (AC-1287, AC-1288). `/agent/jobs/claim`
+  // must be registered before `/agent/jobs/:id` — both are two segments, and
+  // `router.ts` matches by registration order (see `alerts.ts`'s own note
+  // about `/alerts/firings` for the same reason).
+  router.post('/agent/jobs/claim', createClaimAgentJobHandler(deps.db))
+  router.get('/agent/jobs', createListAgentJobsHandler(deps.db))
+  router.post('/agent/jobs', createCreateAgentJobHandler(deps.db))
+  router.get('/agent/jobs/:id', createGetAgentJobHandler(deps.db))
+  router.get('/agent/jobs/:id/events', createListAgentJobEventsHandler(deps.db))
+  router.post('/agent/jobs/:id/events', createPostAgentJobEventsHandler(deps.db))
+  router.post('/agent/jobs/:id/findings', createPostAgentJobFindingHandler(deps.db))
+  router.post('/agent/jobs/:id/result', createPostAgentJobResultHandler(deps.db))
+  router.post('/agent/jobs/:id/fail', createPostAgentJobFailHandler(deps.db))
+  router.get('/agent/status', createGetAgentStatusHandler(deps.db))
+  router.post('/agent/heartbeat', createAgentHeartbeatHandler(deps.db))
+
+  // reports.sample (T10, D44) — see handlers/agent.ts's own header for why it lives there.
+  router.post('/reports/sample', createSampleRowsHandler(deps.db))
+
   return async function handler(req: Request): Promise<Response> {
     const requestId = req.headers.get('x-vercel-id') ?? crypto.randomUUID()
     try {
-      const operator = await authenticate(req, sessionStore, readSessionSecret())
+      // WP-6.7: a runner-token request carrying `X-Eyvar-Acting-For`/`X-Eyvar-Job`
+      // resolves to that operator's own permissions (AC-1287); anything else
+      // falls back to the ordinary cookie session — see `agentAuth.ts`.
+      const operator = await resolveOperator(req, deps.db, () => authenticate(req, sessionStore, readSessionSecret()))
       const ctx: RequestContext = { operator, requestId }
       const userId = operator?.userId ?? 'anonymous'
       const response = await withIdempotency(req, userId, idempotencyStore, () => router.dispatch(req, ctx))
