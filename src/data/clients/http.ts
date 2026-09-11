@@ -66,6 +66,19 @@ export function buildUrl(path: string, params?: RequestParams): string {
   return qs ? `${base}?${qs}` : base
 }
 
+/**
+ * `Idempotency-Key` on every non-GET (`05-backend.md` §2 Q3): the server
+ * stores `(user, key) → response` for 24 h and replays a retried mutation
+ * rather than double-applying it. Minted fresh per call, not per request
+ * object, so a genuine retry (a new `fetch`) still carries its own key —
+ * only an explicit caller header (a replay the caller controls) overrides it.
+ */
+function idempotencyHeader(method: string, callerHeaders?: Record<string, string>): Record<string, string> {
+  if (method === 'GET') return {}
+  if (callerHeaders && 'Idempotency-Key' in callerHeaders) return {}
+  return { 'Idempotency-Key': crypto.randomUUID() }
+}
+
 async function request<T>(
   method: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE',
   path: string,
@@ -81,6 +94,7 @@ async function request<T>(
       headers: {
         Accept: 'application/json',
         ...(init.body === undefined ? {} : { 'Content-Type': 'application/json' }),
+        ...idempotencyHeader(method, init.headers),
         ...init.headers,
       },
       body: init.body === undefined ? undefined : JSON.stringify(init.body),

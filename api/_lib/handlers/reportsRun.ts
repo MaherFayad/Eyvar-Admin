@@ -43,7 +43,7 @@ import { bucketStarts, comparisonWindow, localDayOf, partialBucketIndexes, resol
 import type { FilterSpec, IsoDate } from '@/data/types/common'
 import type { BucketAggregate, Measure } from '@/data/types/measure'
 import type { PermissionKey } from '@/data/types/navigation'
-import type { SegmentRef } from '@/data/types/segment'
+import type { PerformedSpec, SegmentRef } from '@/data/types/segment'
 import { DEFAULT_ROW_CAP, fetchMeasureRows, loadCatalogue, subjectsMeetingPerformed } from '../compile'
 import { validationError } from '../errors'
 import { jsonResponse } from '../envelope'
@@ -216,18 +216,25 @@ interface SegmentResolution {
   failed: { code: string; retryable: boolean } | null
 }
 
+/** `JSONB` column → typed value, `NULL` and the JS-`undefined`-as-`'null'::jsonb` case both falling back (`handlers/segments.ts`'s `parseJsonColumn`, same shape). */
+function parseJsonColumn<T>(value: unknown, fallback: T): T {
+  if (value === null || value === undefined) return fallback
+  return (typeof value === 'string' ? JSON.parse(value) : value) as T
+}
+
+interface SavedSegmentRow {
+  name: string
+  filters_json: unknown
+  performed_json: unknown
+}
+
 /**
- * `resolveSegment` in the mock — **partially**, and the gap is named in
- * WP-6.4's final report rather than papered over:
+ * `resolveSegment` in the mock (`src/data/mock/resolveReport.ts`):
  *   - `null` → "everyone".
- *   - `'saved'` → **also** "everyone" (no-op) here. The mock's own
- *     `resolveSegment` resolved this the same way when this WP started; a
- *     concurrent agent has since given it a real lookup against
- *     `segmentFixtures` (`src/data/mock/resolveReport.ts`). Matching that
- *     needs a `segments` table and seed — a different WP's migration
- *     (`handlers/segments.ts`, already in progress) — so a saved report
- *     naming a saved segment (`RPT-11`) is excluded from AC-1276's equality
- *     test rather than asserted against a mock this file cannot yet match.
+ *   - `'saved'` → a real lookup against `segments` (WP-6.5's `0006_pages.sql`),
+ *     re-run as `'inline'` with the saved row's own filters/performed —
+ *     exactly the mock's own recursion. An unknown id is `segment-not-found`,
+ *     never a silent fall-through to "everyone" (WP-6.4b Gap 2).
  *   - `'inline'` with `performed` → needs a subject on both the segmented
  *     measures and the performed measure (`subjectKindOf`, mirrored below via
  *     `measure_sources.subject_column`), or `segment-performed-unsupported`.
@@ -240,7 +247,25 @@ async function resolveSegment(
   window: { from: IsoDate; to: IsoDate },
 ): Promise<SegmentResolution> {
   if (!segment) return { filters: [], subjectAllow: null, failed: null }
-  if (segment.kind === 'saved') return { filters: [], subjectAllow: null, failed: null }
+  if (segment.kind === 'saved') {
+    const rows = await db.sql<SavedSegmentRow>`
+      SELECT name, filters_json, performed_json FROM segments WHERE id = ${segment.id}
+    `
+    const saved = rows[0]
+    if (!saved) return { filters: [], subjectAllow: null, failed: { code: 'segment-not-found', retryable: false } }
+    return resolveSegment(
+      db,
+      {
+        kind: 'inline',
+        label: saved.name,
+        filters: parseJsonColumn<FilterSpec[]>(saved.filters_json, []),
+        performed: parseJsonColumn<PerformedSpec | null>(saved.performed_json, null) ?? undefined,
+      },
+      measures,
+      measureSubjectKinds,
+      window,
+    )
+  }
 
   const filters = segment.filters ?? []
   if (!segment.performed) return { filters, subjectAllow: null, failed: null }

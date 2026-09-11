@@ -8,7 +8,17 @@ The source of truth is the docblock above each exported function in
 client and regenerate. Conventions, envelopes, auth and error shapes live in
 [CONTRACT.md](CONTRACT.md); this file is only *what exists*.
 
-**348 endpoints across 49 client modules.**
+**377 endpoints across 53 client modules.**
+
+## `src/data/clients/agent.ts`
+
+| Method | Path | Returns | Request | Fails with | Function |
+|---|---|---|---|---|---|
+| GET | `/api/v1/agent/jobs` | `Paginated<AgentJob>` | `q · view=mine\|team · filters[state\|kind] · page · pageSize` | - | `listAgentJobs()` |
+| POST | `/api/v1/agent/jobs` | `Single<AgentJob>` | `CreateAgentJobInput` | - | `createAgentJob()` |
+| GET | `/api/v1/agent/jobs/:id` | `Single<AgentJob>` | - | - | `getAgentJob()` |
+| GET | `/api/v1/agent/jobs/:id/events?after=seq` | `AgentEvent[]` | - | - | `listAgentJobEvents()` |
+| GET | `/api/v1/agent/status` | `AgentRunner` | - | - | `getAgentStatus()` |
 
 ## `src/data/clients/alerts.ts`
 
@@ -19,8 +29,21 @@ client and regenerate. Conventions, envelopes, auth and error shapes live in
 | DELETE | `/api/v1/alerts/:id` | `204` | - | - | `deleteAlertRule()` |
 | GET | `/api/v1/alerts/:id` | `Single<AlertRule>` | - | - | `getAlertRule()` |
 | PATCH | `/api/v1/alerts/:id` | `Single<AlertRule>` | `SaveAlertInput` | - | `saveAlertRule()` |
+| GET | `/api/v1/alerts/:id/config-history` | `Paginated<ConfigHistoryEntry>` | - | - | `getAlertConfigHistory()` |
 | POST | `/api/v1/alerts/:id/evaluate` | `AlertEvaluation` | - | - | `evaluateAlertRule()` |
 | GET | `/api/v1/alerts/:id/history` | `Paginated<AlertFiring>` | `page · pageSize` | - | `listAlertFirings()` |
+| POST | `/api/v1/alerts/:id/mute` | `Single<AlertRule>` | `{ until: IsoDateTime }` | - | `muteAlertRule()` |
+| GET | `/api/v1/alerts/firings` | `Paginated<AlertFiring>` | `q · filters[ruleId\|severity\|acknowledged] · page · pageSize` | - | `listFirings()` |
+| POST | `/api/v1/alerts/firings/:id/acknowledge` | `AlertFiring` | - | - | `acknowledgeFiring()` |
+
+## `src/data/clients/annotations.ts`
+
+| Method | Path | Returns | Request | Fails with | Function |
+|---|---|---|---|---|---|
+| GET | `/api/v1/annotations` | `Annotation[]` | `from · to` | - | `listAnnotations()` |
+| POST | `/api/v1/annotations` | `Annotation` | `SaveAnnotationInput` | - | `saveAnnotation()` |
+| DELETE | `/api/v1/annotations/:id` | `204` | - | - | `deleteAnnotation()` |
+| PATCH | `/api/v1/annotations/:id` | `Annotation` | `SaveAnnotationInput` | - | `saveAnnotation()` |
 
 ## `src/data/clients/applicants.ts`
 
@@ -145,16 +168,6 @@ client and regenerate. Conventions, envelopes, auth and error shapes live in
 | POST | `/api/v1/corporate-accounts/:id/invoice` | `CorporateAccount  (with `lastInvoiceGeneratedAt` and `nextInvoiceOn` moved)` | - | **404** when the account does not exist<br>**409** `account_not_active` when the account is pending or suspended<br>**422** `prepaid_account` when the account is not invoiced at all<br>**422** `no_billable_spend` when there is nothing to invoice | `sendCorporateInvoice()` |
 | PATCH | `/api/v1/corporate-accounts/:id/usage-policy` | `CorporateAccount` | `Partial<CorporateUsagePolicy>` | - | `updateCorporateUsagePolicy()` |
 | GET | `/api/v1/corporate-accounts/facets` | `Facets — field name -> [{ value, count }], count-descending` | `view` | - | `getCorporateFacets()` |
-
-## `src/data/clients/dashboards.ts`
-
-| Method | Path | Returns | Request | Fails with | Function |
-|---|---|---|---|---|---|
-| GET | `/api/v1/dashboards` | `Paginated<Dashboard>` | `q · page · pageSize` | - | `listDashboards()` |
-| POST | `/api/v1/dashboards` | `Single<Dashboard>` | `{ name, tiles }` | - | `saveDashboard()` |
-| DELETE | `/api/v1/dashboards/:id` | `204` | - | - | `deleteDashboard()` |
-| GET | `/api/v1/dashboards/:id` | `Single<Dashboard>` | - | - | `getDashboard()` |
-| PATCH | `/api/v1/dashboards/:id` | `Single<Dashboard>` | `{ name, tiles }` | - | `saveDashboard()` |
 
 ## `src/data/clients/dispatch.ts`
 
@@ -336,6 +349,19 @@ client and regenerate. Conventions, envelopes, auth and error shapes live in
 | POST | `/api/v1/me/onboarding/steps/:stepId/complete` | `OnboardingChecklist` | `{ source: 'manual' \| 'auto' }` | - | `completeStep()` |
 | POST | `/api/v1/me/onboarding/steps/:stepId/skip` | `OnboardingChecklist` | `{ skipped: boolean }   ← `false` is AC-633's `Do this step`` | - | `skipStep()` |
 
+## `src/data/clients/pages.ts`
+
+| Method | Path | Returns | Request | Fails with | Function |
+|---|---|---|---|---|---|
+| GET | `/api/v1/pages` | `Paginated<Page>` | `q · view=mine\|team\|starred\|drafts\|templates · filters[kind\|ownerId] · page · pageSize` | - | `listPages()` |
+| POST | `/api/v1/pages` | `Single<Page>, or 409 { kind: 'conflict', details: [{ field: 'version', code: 'stale' }] }` | `{ title, icon, description, visibility, tags, scope, blocks, version }` | - | `savePage()` |
+| DELETE | `/api/v1/pages/:id` | `204` | - | - | `deletePage()` |
+| GET | `/api/v1/pages/:id` | `Single<Page>` | - | - | `getPage()` |
+| PATCH | `/api/v1/pages/:id` | `Single<Page>, or 409 { kind: 'conflict', details: [{ field: 'version', code: 'stale' }] }` | `{ title, icon, description, visibility, tags, scope, blocks, version }` | - | `savePage()` |
+| POST | `/api/v1/pages/:id/duplicate` | `Single<Page>` | - | - | `duplicatePage()` |
+| POST | `/api/v1/pages/:id/publish` | `Single<Page>` | - | - | `publishPage()` |
+| POST | `/api/v1/pages/:id/star` | `Single<Page>` | - | - | `starPage()` |
+
 ## `src/data/clients/payments.ts`
 
 | Method | Path | Returns | Request | Fails with | Function |
@@ -428,8 +454,14 @@ client and regenerate. Conventions, envelopes, auth and error shapes live in
 | DELETE | `/api/v1/reports/:id` | `204, or 409 with the dashboards that pin it` | - | - | `deleteReport()` |
 | GET | `/api/v1/reports/:id` | `Single<SavedReport>` | - | - | `getReport()` |
 | PATCH | `/api/v1/reports/:id` | `Single<SavedReport>` | `{ name, description, query, visibility }` | - | `saveReport()` |
+| POST | `/api/v1/reports/:id/duplicate` | `Single<SavedReport>` | - | - | `duplicateReport()` |
+| POST | `/api/v1/reports/:id/star` | `Single<SavedReport>` | - | - | `starReport()` |
+| GET | `/api/v1/reports/:id/versions` | `Paginated<SavedReportVersion>` | - | - | `listReportVersions()` |
+| POST | `/api/v1/reports/contribution` | `ContributionResult` | `ContributionInput` | - | `contribution()` |
 | POST | `/api/v1/reports/export` | `ReportCsv` | `ReportQuery` | - | `exportReport()` |
 | POST | `/api/v1/reports/run` | `ReportResult` | `ReportQuery` | - | `runReport()` |
+| POST | `/api/v1/reports/runs/:runId/describe` | `DescribeResult` | `{ seriesId }` | - | `describeSeries()` |
+| POST | `/api/v1/reports/sample` | `Record<string, unknown>[]` | `SampleRowsInput` | - | `sampleRows()` |
 
 ## `src/data/clients/requests.ts`
 
@@ -480,6 +512,13 @@ client and regenerate. Conventions, envelopes, auth and error shapes live in
 |---|---|---|---|---|---|
 | GET | `/api/v1/routes` | `RouteTable` | `none` | - | `fetchRouteTable()` |
 
+## `src/data/clients/runs.ts`
+
+| Method | Path | Returns | Request | Fails with | Function |
+|---|---|---|---|---|---|
+| POST | `/api/v1/reports/run,` | `{ runId, result, summary }` | `ReportQuery` | - | `recordRun()` |
+| GET | `/api/v1/reports/runs/:runId` | `Single<ReportRun>` | - | - | `getRun()` |
+
 ## `src/data/clients/safety.ts`
 
 | Method | Path | Returns | Request | Fails with | Function |
@@ -499,6 +538,16 @@ client and regenerate. Conventions, envelopes, auth and error shapes live in
 |---|---|---|---|---|---|
 | GET | `/api/v1/security-policy` | `SecurityPolicy` | - | - | `getSecurityPolicy()` |
 | PATCH | `/api/v1/security-policy` | `SecurityPolicy` | `Partial<SecurityPolicy>` | - | `updateSecurityPolicy()` |
+
+## `src/data/clients/segments.ts`
+
+| Method | Path | Returns | Request | Fails with | Function |
+|---|---|---|---|---|---|
+| GET | `/api/v1/segments` | `Paginated<Segment>` | `q · page · pageSize` | - | `listSegments()` |
+| POST | `/api/v1/segments` | `Single<Segment>` | `SaveSegmentInput` | - | `saveSegment()` |
+| DELETE | `/api/v1/segments/:id` | `204` | - | - | `deleteSegment()` |
+| GET | `/api/v1/segments/:id` | `Single<Segment>` | - | - | `getSegment()` |
+| PATCH | `/api/v1/segments/:id` | `Single<Segment>` | `SaveSegmentInput` | - | `saveSegment()` |
 
 ## `src/data/clients/session.ts`
 

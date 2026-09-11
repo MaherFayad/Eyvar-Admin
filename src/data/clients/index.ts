@@ -35,8 +35,12 @@ import { resetZones as resetZoneState } from './zones'
 import { resetAuth as resetAuthState } from './auth'
 import { resetOnboarding as resetOnboardingState } from './onboarding'
 import { resetReports as resetReportState } from './reports'
-import { resetDashboards as resetDashboardState } from './dashboards'
 import { resetAlerts as resetAlertState } from './alerts'
+import { resetSegments as resetSegmentState } from './segments'
+import { resetAnnotations as resetAnnotationState } from './annotations'
+import { resetPages as resetPageState } from './pages'
+import { resetAgent as resetAgentState } from './agent'
+import { resetRuns as resetRunState } from './runs'
 import { resetConversations as resetConversationState } from './conversations'
 import { resetTeam as resetTeamState } from './team'
 import { resetSecurityPolicy as resetSecurityPolicyState } from './securityPolicy'
@@ -532,25 +536,21 @@ export {
   deleteReport,
   exportReport,
   reportToCsv,
+  duplicateReport,
+  starReport,
+  listReportVersions,
+  sampleRows,
+  contribution,
+  describeSeries,
   useTruncatedReports,
   serialiseReportQuery,
   resetReports,
   type RunReportOptions,
   type SaveReportInput,
   type SavedReportQuery,
+  type SampleRowsInput,
+  type ContributionInput,
 } from './reports'
-
-export {
-  DASHBOARD_OPERATIONS,
-  listDashboards,
-  getDashboard,
-  saveDashboard,
-  deleteDashboard,
-  moveTile,
-  moveTileTo,
-  resetDashboards,
-  type SaveDashboardInput,
-} from './dashboards'
 
 export {
   ALERT_OPERATIONS,
@@ -560,10 +560,92 @@ export {
   deleteAlertRule,
   evaluateAlertRule,
   listAlertFirings,
+  listFirings,
+  acknowledgeFiring,
+  muteAlertRule,
+  getAlertConfigHistory,
   describeAlertRule,
   resetAlerts,
   type SaveAlertInput,
+  type ConfigHistoryEntry,
 } from './alerts'
+
+/* `dashboards.ts` keeps only the pure board-scope arithmetic three files
+   outside this WP's allow-list still import by that path (see the file). */
+export {
+  OPEN_BOARD_SCOPE,
+  applyBoardScope,
+  boardFilterFields,
+  moveTile,
+  moveTileTo,
+  type BoardScope,
+  type ScopedTileQuery,
+} from './dashboards'
+
+/* ── the report builder v2 — segments, annotations, pages, the analyst ───
+   `pages.ts` replaces `dashboards.ts` (D39): a `Dashboard` was tiles, a
+   `Page` is blocks, and `resetDataLayer()` below resets every one of these
+   five new resources beside the ones above. */
+export {
+  SEGMENT_OPERATIONS,
+  listSegments,
+  getSegment,
+  saveSegment,
+  deleteSegment,
+  resetSegments,
+  type SaveSegmentInput,
+} from './segments'
+
+export {
+  ANNOTATION_OPERATIONS,
+  listAnnotations,
+  saveAnnotation,
+  deleteAnnotation,
+  resetAnnotations,
+  type AnnotationQuery,
+  type SaveAnnotationInput,
+} from './annotations'
+
+export {
+  PAGE_OPERATIONS,
+  listPages,
+  getPage,
+  savePage,
+  deletePage,
+  publishPage,
+  duplicatePage,
+  starPage,
+  resetPages,
+  type PageQuery,
+  type SavePageInput,
+  type SavePageOutcome,
+} from './pages'
+
+export {
+  AGENT_OPERATIONS,
+  listAgentJobs,
+  getAgentJob,
+  listAgentJobEvents,
+  createAgentJob,
+  getAgentStatus,
+  useOfflineRunner,
+  resetAgent,
+  type AgentJobQuery,
+  type CreateAgentJobInput,
+} from './agent'
+
+export {
+  RUN_OPERATIONS,
+  recordRun,
+  getRun,
+  compareWindows,
+  resetRuns,
+  type ReportRun,
+  type RecordRunOutcome,
+  type RunSeriesSummary,
+  type CompareWindowsResult,
+  type SeriesDelta,
+} from './runs'
 
 export {
   TICKET_OPERATIONS,
@@ -739,8 +821,15 @@ export function resetDataLayer(): void {
   resetAuthState()
   resetOnboardingState()
   resetReportState()
-  resetDashboardState()
   resetAlertState()
+  /* WP-1.7 — the five analytics v2 resources `pages.ts` and its siblings
+     added: segments, annotations, pages (replaces `dashboards.ts`), the
+     analyst's jobs and its provenance runs. */
+  resetSegmentState()
+  resetAnnotationState()
+  resetPageState()
+  resetAgentState()
+  resetRunState()
   resetConversationState()
   resetPolicyState()
   resetEmailState()

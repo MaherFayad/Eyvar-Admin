@@ -174,6 +174,9 @@ export interface AlertFiring {
   deliveries?: AlertDelivery[]
   /** v2 — the anomaly band this firing evaluated against, mirroring `AlertRule.lastBand`. `undefined` for a non-anomaly condition. */
   band?: { low: number; high: number } | null
+  /** §7 state 27, mirrored on `AlertRule` too. `undefined`/`null` until `acknowledgeFiring` writes it. */
+  acknowledgedAt?: IsoDateTime | null
+  acknowledgedBy?: string | null
 }
 
 /** The **one** reader of `firing.deliveries`. See `AlertFiring.deliveries`. */

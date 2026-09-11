@@ -2,6 +2,56 @@
   "endpoints": [
     {
       "method": "GET",
+      "path": "/api/v1/agent/jobs",
+      "client": "src/data/clients/agent.ts",
+      "function": "listAgentJobs",
+      "params": "q · view=mine|team · filters[state|kind] · page · pageSize",
+      "body": null,
+      "returns": "Paginated<AgentJob>",
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/agent/jobs",
+      "client": "src/data/clients/agent.ts",
+      "function": "createAgentJob",
+      "params": null,
+      "body": "CreateAgentJobInput",
+      "returns": "Single<AgentJob>",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/agent/jobs/:id",
+      "client": "src/data/clients/agent.ts",
+      "function": "getAgentJob",
+      "params": null,
+      "body": null,
+      "returns": "Single<AgentJob>",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/agent/jobs/:id/events?after=seq",
+      "client": "src/data/clients/agent.ts",
+      "function": "listAgentJobEvents",
+      "params": null,
+      "body": null,
+      "returns": "AgentEvent[]",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/agent/status",
+      "client": "src/data/clients/agent.ts",
+      "function": "getAgentStatus",
+      "params": null,
+      "body": null,
+      "returns": "AgentRunner",
+      "statuses": []
+    },
+    {
+      "method": "GET",
       "path": "/api/v1/alerts",
       "client": "src/data/clients/alerts.ts",
       "function": "listAlertRules",
@@ -51,6 +101,16 @@
       "statuses": []
     },
     {
+      "method": "GET",
+      "path": "/api/v1/alerts/:id/config-history",
+      "client": "src/data/clients/alerts.ts",
+      "function": "getAlertConfigHistory",
+      "params": null,
+      "body": null,
+      "returns": "Paginated<ConfigHistoryEntry>",
+      "statuses": []
+    },
+    {
       "method": "POST",
       "path": "/api/v1/alerts/:id/evaluate",
       "client": "src/data/clients/alerts.ts",
@@ -68,6 +128,76 @@
       "params": "page · pageSize",
       "body": null,
       "returns": "Paginated<AlertFiring>",
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/alerts/:id/mute",
+      "client": "src/data/clients/alerts.ts",
+      "function": "muteAlertRule",
+      "params": null,
+      "body": "{ until: IsoDateTime }",
+      "returns": "Single<AlertRule>",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/alerts/firings",
+      "client": "src/data/clients/alerts.ts",
+      "function": "listFirings",
+      "params": "q · filters[ruleId|severity|acknowledged] · page · pageSize",
+      "body": null,
+      "returns": "Paginated<AlertFiring>",
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/alerts/firings/:id/acknowledge",
+      "client": "src/data/clients/alerts.ts",
+      "function": "acknowledgeFiring",
+      "params": null,
+      "body": null,
+      "returns": "AlertFiring",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/annotations",
+      "client": "src/data/clients/annotations.ts",
+      "function": "listAnnotations",
+      "params": "from · to",
+      "body": null,
+      "returns": "Annotation[]",
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/annotations",
+      "client": "src/data/clients/annotations.ts",
+      "function": "saveAnnotation",
+      "params": null,
+      "body": "SaveAnnotationInput",
+      "returns": "Annotation",
+      "statuses": []
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v1/annotations/:id",
+      "client": "src/data/clients/annotations.ts",
+      "function": "deleteAnnotation",
+      "params": null,
+      "body": null,
+      "returns": "204",
+      "statuses": []
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/annotations/:id",
+      "client": "src/data/clients/annotations.ts",
+      "function": "saveAnnotation",
+      "params": null,
+      "body": "SaveAnnotationInput",
+      "returns": "Annotation",
       "statuses": []
     },
     {
@@ -1081,56 +1211,6 @@
       "params": "q · page · pageSize · sort · filter · view=all|unlinked",
       "body": null,
       "returns": "Paginated<CreditNote>",
-      "statuses": []
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/dashboards",
-      "client": "src/data/clients/dashboards.ts",
-      "function": "listDashboards",
-      "params": "q · page · pageSize",
-      "body": null,
-      "returns": "Paginated<Dashboard>",
-      "statuses": []
-    },
-    {
-      "method": "POST",
-      "path": "/api/v1/dashboards",
-      "client": "src/data/clients/dashboards.ts",
-      "function": "saveDashboard",
-      "params": null,
-      "body": "{ name, tiles }",
-      "returns": "Single<Dashboard>",
-      "statuses": []
-    },
-    {
-      "method": "DELETE",
-      "path": "/api/v1/dashboards/:id",
-      "client": "src/data/clients/dashboards.ts",
-      "function": "deleteDashboard",
-      "params": null,
-      "body": null,
-      "returns": "204",
-      "statuses": []
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/dashboards/:id",
-      "client": "src/data/clients/dashboards.ts",
-      "function": "getDashboard",
-      "params": null,
-      "body": null,
-      "returns": "Single<Dashboard>",
-      "statuses": []
-    },
-    {
-      "method": "PATCH",
-      "path": "/api/v1/dashboards/:id",
-      "client": "src/data/clients/dashboards.ts",
-      "function": "saveDashboard",
-      "params": null,
-      "body": "{ name, tiles }",
-      "returns": "Single<Dashboard>",
       "statuses": []
     },
     {
@@ -2584,6 +2664,86 @@
     },
     {
       "method": "GET",
+      "path": "/api/v1/pages",
+      "client": "src/data/clients/pages.ts",
+      "function": "listPages",
+      "params": "q · view=mine|team|starred|drafts|templates · filters[kind|ownerId] · page · pageSize",
+      "body": null,
+      "returns": "Paginated<Page>",
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/pages",
+      "client": "src/data/clients/pages.ts",
+      "function": "savePage",
+      "params": null,
+      "body": "{ title, icon, description, visibility, tags, scope, blocks, version }",
+      "returns": "Single<Page>, or 409 { kind: 'conflict', details: [{ field: 'version', code: 'stale' }] }",
+      "statuses": []
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v1/pages/:id",
+      "client": "src/data/clients/pages.ts",
+      "function": "deletePage",
+      "params": null,
+      "body": null,
+      "returns": "204",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/pages/:id",
+      "client": "src/data/clients/pages.ts",
+      "function": "getPage",
+      "params": null,
+      "body": null,
+      "returns": "Single<Page>",
+      "statuses": []
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/pages/:id",
+      "client": "src/data/clients/pages.ts",
+      "function": "savePage",
+      "params": null,
+      "body": "{ title, icon, description, visibility, tags, scope, blocks, version }",
+      "returns": "Single<Page>, or 409 { kind: 'conflict', details: [{ field: 'version', code: 'stale' }] }",
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/pages/:id/duplicate",
+      "client": "src/data/clients/pages.ts",
+      "function": "duplicatePage",
+      "params": null,
+      "body": null,
+      "returns": "Single<Page>",
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/pages/:id/publish",
+      "client": "src/data/clients/pages.ts",
+      "function": "publishPage",
+      "params": null,
+      "body": null,
+      "returns": "Single<Page>",
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/pages/:id/star",
+      "client": "src/data/clients/pages.ts",
+      "function": "starPage",
+      "params": null,
+      "body": null,
+      "returns": "Single<Page>",
+      "statuses": []
+    },
+    {
+      "method": "GET",
       "path": "/api/v1/payments",
       "client": "src/data/clients/payments.ts",
       "function": "listPayments",
@@ -3134,6 +3294,46 @@
     },
     {
       "method": "POST",
+      "path": "/api/v1/reports/:id/duplicate",
+      "client": "src/data/clients/reports.ts",
+      "function": "duplicateReport",
+      "params": null,
+      "body": null,
+      "returns": "Single<SavedReport>",
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/reports/:id/star",
+      "client": "src/data/clients/reports.ts",
+      "function": "starReport",
+      "params": null,
+      "body": null,
+      "returns": "Single<SavedReport>",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/reports/:id/versions",
+      "client": "src/data/clients/reports.ts",
+      "function": "listReportVersions",
+      "params": null,
+      "body": null,
+      "returns": "Paginated<SavedReportVersion>",
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/reports/contribution",
+      "client": "src/data/clients/reports.ts",
+      "function": "contribution",
+      "params": null,
+      "body": "ContributionInput",
+      "returns": "ContributionResult",
+      "statuses": []
+    },
+    {
+      "method": "POST",
       "path": "/api/v1/reports/export",
       "client": "src/data/clients/reports.ts",
       "function": "exportReport",
@@ -3150,6 +3350,46 @@
       "params": null,
       "body": "ReportQuery",
       "returns": "ReportResult",
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/reports/run,",
+      "client": "src/data/clients/runs.ts",
+      "function": "recordRun",
+      "params": null,
+      "body": "ReportQuery",
+      "returns": "{ runId, result, summary }",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/reports/runs/:runId",
+      "client": "src/data/clients/runs.ts",
+      "function": "getRun",
+      "params": null,
+      "body": null,
+      "returns": "Single<ReportRun>",
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/reports/runs/:runId/describe",
+      "client": "src/data/clients/reports.ts",
+      "function": "describeSeries",
+      "params": null,
+      "body": "{ seriesId }",
+      "returns": "DescribeResult",
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/reports/sample",
+      "client": "src/data/clients/reports.ts",
+      "function": "sampleRows",
+      "params": null,
+      "body": "SampleRowsInput",
+      "returns": "Record<string, unknown>[]",
       "statuses": []
     },
     {
@@ -3359,6 +3599,56 @@
       "params": null,
       "body": "Partial<SecurityPolicy>",
       "returns": "SecurityPolicy",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/segments",
+      "client": "src/data/clients/segments.ts",
+      "function": "listSegments",
+      "params": "q · page · pageSize",
+      "body": null,
+      "returns": "Paginated<Segment>",
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/segments",
+      "client": "src/data/clients/segments.ts",
+      "function": "saveSegment",
+      "params": null,
+      "body": "SaveSegmentInput",
+      "returns": "Single<Segment>",
+      "statuses": []
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v1/segments/:id",
+      "client": "src/data/clients/segments.ts",
+      "function": "deleteSegment",
+      "params": null,
+      "body": null,
+      "returns": "204",
+      "statuses": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/segments/:id",
+      "client": "src/data/clients/segments.ts",
+      "function": "getSegment",
+      "params": null,
+      "body": null,
+      "returns": "Single<Segment>",
+      "statuses": []
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/segments/:id",
+      "client": "src/data/clients/segments.ts",
+      "function": "saveSegment",
+      "params": null,
+      "body": "SaveSegmentInput",
+      "returns": "Single<Segment>",
       "statuses": []
     },
     {

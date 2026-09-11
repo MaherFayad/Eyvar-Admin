@@ -29,7 +29,8 @@
 --     by any seeded saved report (WP-6.4's report names the two measures this
 --     affects — `subscriptions.active`, `subscriptions.cancelled` — as not
 --     verified), and left for the WP that needs them rather than widened
---     speculatively here.
+--     speculatively here. Resolved by `0008_live_window.sql` (WP-6.4b),
+--     which replaces this column with `live_to_bounds_json`.
 --   * `supports_stock` — resource-level, matching `RowSource.liveAt !== null`
 --     in `src/data/mock/resolveReport.ts`: whether *any* stock read is
 --     answerable for this resource at all, independent of which measure asks.

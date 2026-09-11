@@ -51,9 +51,15 @@ interface MeasureSourceRow {
   table_name: string
   time_column: string | null
   subject_column: string | null
-  live_to_column: string | null
+  live_to_bounds_json: unknown
   supports_stock: boolean
   field_columns_json: unknown
+}
+
+/** One upper bound on a stock row's liveness window (`0008_live_window.sql`). `exclusive` shifts the bound back one calendar day — the mock's `day < localDayOf(cancelledAt)`, not `day <= `. */
+interface LiveToBound {
+  field: string
+  exclusive?: boolean
 }
 
 /** A field's real column, and whether reading it needs the Riyadh-local-day conversion (`0005_runs.sql`'s `field_columns_json`). */
@@ -73,6 +79,12 @@ function parseFieldColumns(json: unknown): Record<string, FieldColumnEntry> {
   if (json === null || json === undefined) return {}
   const parsed = typeof json === 'string' ? (JSON.parse(json) as unknown) : json
   return (parsed ?? {}) as Record<string, FieldColumnEntry>
+}
+
+function parseLiveToBounds(json: unknown): LiveToBound[] {
+  if (json === null || json === undefined) return []
+  const parsed = typeof json === 'string' ? (JSON.parse(json) as unknown) : json
+  return Array.isArray(parsed) ? (parsed as LiveToBound[]) : []
 }
 
 /* ──────────────────────────── safe SQL building ─────────────────────────── */
@@ -149,6 +161,34 @@ function localDayExpr(columnSql: string): string {
 function timeExprSql(resolved: ResolvedField): string {
   const col = quoteIdent(resolved.column)
   return resolved.localDay ? localDayExpr(col) : `${col}::text`
+}
+
+/** One resolved `LiveToBound` as SQL text: the field's own date expression, or one calendar day earlier when `exclusive` (`0008_live_window.sql`). */
+function liveToBoundSql(resolved: ResolvedField, exclusive: boolean): string {
+  const dateExpr = timeExprSql(resolved)
+  return exclusive ? `to_char((${dateExpr})::date - interval '1 day', 'YYYY-MM-DD')` : dateExpr
+}
+
+/**
+ * Every configured bound, resolved against real columns — a bound naming a
+ * column this resource cannot read is dropped, never forced-empty (mirrors
+ * the old `live_to_column`'s trust of the catalogue's own row). Combined
+ * with SQL `LEAST(...)`, which ignores a NULL argument, so an unresolved or
+ * never-cancelled bound simply does not constrain the window.
+ */
+async function liveToExprSql(
+  db: Database,
+  table: string,
+  fieldColumns: Record<string, FieldColumnEntry>,
+  bounds: readonly LiveToBound[],
+): Promise<string> {
+  const exprs: string[] = []
+  for (const bound of bounds) {
+    const resolved = await resolveColumn(db, table, fieldColumns, bound.field)
+    if (!resolved) continue
+    exprs.push(liveToBoundSql(resolved, Boolean(bound.exclusive)))
+  }
+  return exprs.length > 0 ? `LEAST(${exprs.join(', ')})` : 'NULL'
 }
 
 /* ─────────────────────────────── filters ─────────────────────────────────── */
@@ -307,7 +347,9 @@ export async function fetchMeasureRows(
   const dateExpr = timeExprSql(timeField)
   const valueExpr = valueField ? `(${quoteIdent(valueField.column)})::double precision` : '1'
   const liveFromExpr = source.supports_stock ? `${quoteIdent(source.time_column ?? timeField.column)}::text` : 'NULL'
-  const liveToExpr = source.supports_stock && source.live_to_column ? `${quoteIdent(source.live_to_column)}::text` : 'NULL'
+  const liveToExpr = source.supports_stock
+    ? await liveToExprSql(db, source.table_name, fieldColumns, parseLiveToBounds(source.live_to_bounds_json))
+    : 'NULL'
   const group0Expr = groupColumns[0] ? `COALESCE((${quoteIdent(groupColumns[0].column)})::text, '')` : 'NULL'
   const group1Expr = groupColumns[1] ? `COALESCE((${quoteIdent(groupColumns[1].column)})::text, '')` : 'NULL'
 

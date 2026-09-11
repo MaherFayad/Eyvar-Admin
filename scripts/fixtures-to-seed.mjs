@@ -208,6 +208,46 @@ function dailySnapshotsSeed(snapshots) {
   return statements.join('\n')
 }
 
+/**
+ * `Segment` → `segments` (`0006_pages.sql`, WP-6.4b Gap 2) — so a saved
+ * report naming `{ kind: 'saved' }` resolves against real rows the same way
+ * the mock's `resolveSegment` does. `owner_id` is a real `FOREIGN KEY` to
+ * `users(id)`; the fixtures' `USR-*` ids are not seeded users anywhere else
+ * in this suite, so this seeder inserts one placeholder user per referenced
+ * owner first (`ON CONFLICT (id) DO NOTHING`, safe to re-run or to collide
+ * with a real team seed landing the same ids later).
+ */
+function segmentsSeed(segments) {
+  const ownerIds = [...new Set(segments.map((s) => s.ownerId))]
+  const userStatements = ownerIds.map((id) => {
+    const values = [
+      sqlString(id),
+      sqlString(`${id.toLowerCase()}@fixture.eyvar.test`),
+      sqlString(id),
+      sqlString(id),
+      sqlString('fixture-placeholder-not-a-real-hash'),
+      sqlString('Owner'),
+    ].join(', ')
+    return `INSERT INTO users (id, email, name_en, name_ar, password_hash, role_id) VALUES (${values}) ON CONFLICT (id) DO NOTHING;`
+  })
+
+  const columns = ['id', 'name', 'description', 'filters_json', 'performed_json', 'owner_id', 'visibility']
+  const segmentStatements = segments.map((s) => {
+    const values = [
+      sqlString(s.id),
+      sqlString(s.name),
+      sqlNullable(s.description),
+      sqlJson(s.filters),
+      s.performed === null ? 'null' : sqlJson(s.performed),
+      sqlString(s.ownerId),
+      sqlString(s.visibility),
+    ]
+    return `INSERT INTO segments (${columns.join(', ')}) VALUES (${values.join(', ')}) ON CONFLICT (id) DO NOTHING;`
+  })
+
+  return [...userStatements, ...segmentStatements].join('\n')
+}
+
 const SEEDERS = {
   measures: {
     fixture: 'src/data/fixtures/measures.ts',
@@ -236,6 +276,10 @@ const SEEDERS = {
   dailySnapshots: {
     fixture: 'src/data/fixtures/dailySnapshots.ts',
     build: (mod) => dailySnapshotsSeed(mod.dailySnapshotFixtures),
+  },
+  segments: {
+    fixture: 'src/data/fixtures/segments.ts',
+    build: (mod) => segmentsSeed(mod.segmentFixtures),
   },
 }
 

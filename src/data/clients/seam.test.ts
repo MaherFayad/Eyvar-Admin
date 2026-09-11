@@ -46,6 +46,10 @@ import {
 import { getPreferences, getSession, listTeamUsers, resetMockSession, switchMockUser } from './session'
 import { listSubscriptions } from './subscriptions'
 import { listTrips } from './trips'
+import { listSegments } from './segments'
+import { listAnnotations } from './annotations'
+import { listPages } from './pages'
+import { getAgentStatus, listAgentJobs } from './agent'
 
 /** Every read the shell and wave 1 make, with the operation id that fails it. */
 const CLIENTS: Array<{ op: string; call: () => Promise<unknown> }> = [
@@ -100,6 +104,14 @@ const CLIENTS: Array<{ op: string; call: () => Promise<unknown> }> = [
   { op: 'metrics.list', call: () => listMetrics() },
   { op: 'metrics.board', call: () => getMetricBoard('management-overview') },
   { op: 'metrics.series', call: () => getMetricSeries('management.overview.quickRideRevenue') },
+
+  /* analytics v2 (WP-1.7) — one read per new resource, the same reason as
+     every block above: a client absent from this list is a client nobody checked. */
+  { op: 'segments.list', call: () => listSegments() },
+  { op: 'annotations.list', call: () => listAnnotations() },
+  { op: 'pages.list', call: () => listPages() },
+  { op: 'agent.jobs.list', call: () => listAgentJobs() },
+  { op: 'agent.status', call: () => getAgentStatus() },
 ]
 
 beforeEach(() => {

@@ -67,6 +67,7 @@ async function seedAll(): Promise<void> {
     'subscriptions.seed.sql',
     'trips.seed.sql',
     'dailySnapshots.seed.sql',
+    'segments.seed.sql',
   ]
   for (const file of files) {
     const sql = await readFile(path.join(EXAMPLES_DIR, file), 'utf8')
@@ -108,24 +109,17 @@ function run(query: unknown, cookie: string): Request {
 
 /**
  * `RPT-6`/`RPT-7`/`RPT-8` are `funnel`/`cohort`/`journey` — a different WP
- * (see `reportsRun.ts`'s header). The other two exclusions are documented,
- * honest gaps this WP's final report names, not silently skipped:
+ * (see `reportsRun.ts`'s header), the only remaining exclusion.
  *
- *   `RPT-11` (`tripsQuickVsSubscription`) needs two *saved* segments
- *   (`SEG-1`/`SEG-2`). While this WP was running, a concurrent agent gave the
- *   mock's own `resolveSegment` a real lookup against `segmentFixtures`
- *   (`src/data/mock/resolveReport.ts`, currently mid-flight — it fails
- *   `npm run typecheck` with an unused import right now). `reportsRun.ts`'s
- *   `resolveSegment` still treats `'saved'` as "everyone", matching the
- *   mock's *pre*-change behaviour: a `segments` table and its seed are a
- *   different WP's migration (`handlers/segments.ts`, already in progress).
- *
- *   `RPT-14` (`activeSubscriptionsArea`) reads `subscriptions.active`, a
- *   stock measure whose true `liveAt` depends on `cancelledAt` as well as
- *   `startedOn`/`endsOn` — `0005_runs.sql`'s own documented gap for
- *   `measure_sources.live_to_column`'s two-bound scheme.
+ * WP-6.4b closed the other two gaps this list used to carry:
+ *   - `RPT-11` (`tripsQuickVsSubscription`, two saved segments) — `segments`
+ *     is seeded (`segments.seed.sql`) and `reportsRun.ts`'s `resolveSegment`
+ *     now looks `'saved'` up for real, same as the mock.
+ *   - `RPT-14` (`activeSubscriptionsArea`, `subscriptions.active`) —
+ *     `measure_sources.live_to_bounds_json` (`0008_live_window.sql`) now
+ *     carries the three-bound live window `cancelledAt` needs.
  */
-const EXCLUDED_REPORT_IDS = new Set(['RPT-6', 'RPT-7', 'RPT-8', 'RPT-11', 'RPT-14'])
+const EXCLUDED_REPORT_IDS = new Set(['RPT-6', 'RPT-7', 'RPT-8'])
 const trendAndTableReports = savedReportFixtures.filter((r) => !EXCLUDED_REPORT_IDS.has(r.id))
 
 describe('reports.run (AC-1276): server equals the mock, bucket for bucket', () => {
