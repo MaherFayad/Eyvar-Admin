@@ -375,3 +375,62 @@ describe('5 — the two modes that always resolved', () => {
     )
   })
 })
+
+/* ───────────────── 6 — v2: two-level splits and segments ───────────────── */
+
+describe('6 — v2 (WP-1.6): two-level splits and segments', () => {
+  it('two-level series ids are <measure>#<g1>|<g2>#<role>, and groupValue is the joined display value (AC-1123)', () => {
+    const twoLevel: ReportQuery = {
+      ...trend,
+      measures: [{ key: 'trips.completed' }],
+      groupBy: ['trip.pickup', 'trip.kind'],
+    }
+    const result = run(twoLevel)
+    expect(result.series.length).toBeGreaterThan(0)
+    for (const series of result.series) {
+      expect(series.groupValue).toMatch(/^[^#]+\|[^#]+$/)
+      expect(series.id).toBe(`trips.completed#${series.groupValue}#current`)
+    }
+  })
+
+  it('refuses a performed segment on a measure with no subject (AC-1122)', () => {
+    /* `trips.quickRides` reads `daily-snapshots` — one row is one day's number,
+       naming nobody, so "performed" has no subject to check it against. */
+    const segmented: ReportQuery = {
+      ...trend,
+      measures: [{ key: 'trips.quickRides' }],
+      groupBy: [],
+      segments: [
+        {
+          kind: 'inline',
+          label: 'active riders',
+          filters: [],
+          performed: { measureKey: 'trips.completed', op: 'gte', count: 1, window: 'each-bucket' },
+        },
+      ],
+    }
+    const result = run(segmented)
+    expect(result.series).toHaveLength(1)
+    expect(result.series[0]?.failed).toEqual({ code: 'segment-performed-unsupported', retryable: false })
+    /* No points, same rule §13.1 states for a blocked series (AC-888's shape). */
+    expect(result.series[0]?.points).toEqual([])
+  })
+
+  it('resolves a performed segment on a subject-shaped measure, and does not carry the refusal', () => {
+    const segmented: ReportQuery = {
+      ...trend,
+      measures: [{ key: 'trips.completed' }],
+      groupBy: [],
+      segments: [
+        {
+          kind: 'inline',
+          label: 'riders who joined',
+          filters: [],
+          performed: { measureKey: 'riders.joined', op: 'gte', count: 1, window: 'each-bucket' },
+        },
+      ],
+    }
+    const result = run(segmented)
+    expect(result.series[0]?.failed).toBeNull()
+  })
+})

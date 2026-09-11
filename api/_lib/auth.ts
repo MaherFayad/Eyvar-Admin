@@ -159,6 +159,24 @@ export function clearSessionCookieHeader(): string {
   return `${SESSION_COOKIE_NAME}=; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=0`
 }
 
+/** Reads `DEVICE_COOKIE_NAME` out of the `Cookie` header. Same shape as `readSessionCookie`, kept separate so a device id is never mistaken for a session id. */
+export function readDeviceCookie(req: Request): string | null {
+  const header = req.headers.get('cookie')
+  if (!header) return null
+  for (const part of header.split(';')) {
+    const eq = part.indexOf('=')
+    if (eq === -1) continue
+    const name = part.slice(0, eq).trim()
+    if (name === DEVICE_COOKIE_NAME) return decodeURIComponent(part.slice(eq + 1).trim())
+  }
+  return null
+}
+
+/** Set on `verifyCode` when `rememberDevice` is `true` and the code was correct — never on `signIn`, which has not proved the second factor yet. */
+export function deviceCookieHeader(signedValue: string, maxAgeSeconds: number = DEVICE_TRUST_SECONDS): string {
+  return `${DEVICE_COOKIE_NAME}=${encodeURIComponent(signedValue)}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=${maxAgeSeconds}`
+}
+
 /**
  * `undefined` `secret` (SESSION_SECRET unset) resolves to "nobody is signed
  * in" rather than throwing — routes that need no operator (`/health`) must

@@ -21,7 +21,7 @@ export function single<T>(data: T): Single<T> {
  * call `http.get<Session>`/`http.get<{ items: TeamUser[] }>` directly, with
  * no `.data` to unwrap, so the server must not wrap them either.
  */
-export function jsonResponse(data: unknown, status = 200, headers: Record<string, string> = {}): Response {
+export function jsonResponse<T = unknown>(data: T, status = 200, headers: Record<string, string> = {}): Response {
   return new Response(JSON.stringify(data), { status, headers: { 'content-type': 'application/json', ...headers } })
 }
 

@@ -138,36 +138,76 @@ describe('session.current (AC-1274)', () => {
   })
 })
 
-describe('auth.signIn and idempotent replay (AC-1273)', () => {
-  it('rejects an unknown email and a wrong password identically, with a 401', async () => {
+/**
+ * WP-6.2b: `signIn` no longer mints a session by itself — it always returns
+ * a `SignInOutcome` (200, even on rejection) and the session is minted by
+ * `verifyCode` once the second factor clears. These four replace WP-6.2's
+ * simplified "sign-in is a 401 or a session" tests with the two-step flow.
+ */
+describe('auth.signIn and idempotent replay (AC-1273, extended WP-6.2b)', () => {
+  it('rejects an unknown email and a wrong password identically, as a 200 `failed` outcome', async () => {
     await seedUser(db, { email: 'known@eyvar.test', password: 'the-real-password', roleId: 'Owner' })
 
     const unknown = await handler(post('/auth/sign-in', { email: 'nobody@eyvar.test', password: 'x' }))
     const wrongPassword = await handler(post('/auth/sign-in', { email: 'known@eyvar.test', password: 'wrong' }))
 
-    expect(unknown.status).toBe(401)
-    expect(wrongPassword.status).toBe(401)
+    expect(unknown.status).toBe(200)
+    expect(wrongPassword.status).toBe(200)
+    expect(await unknown.json()).toMatchObject({ kind: 'failed', reason: 'rejected' })
+    expect(await wrongPassword.json()).toMatchObject({ kind: 'failed', reason: 'rejected' })
   })
 
-  it('signs in and sets a session cookie', async () => {
-    await seedUser(db, { email: 'signin@eyvar.test', password: 'the-real-password', roleId: 'Owner' })
+  it('an account with no second factor gets `enrolment-required`, not a session', async () => {
+    await seedUser(db, { email: 'noenrol@eyvar.test', password: 'the-real-password', roleId: 'Owner' })
 
-    const response = await handler(post('/auth/sign-in', { email: 'signin@eyvar.test', password: 'the-real-password' }))
+    const response = await handler(post('/auth/sign-in', { email: 'noenrol@eyvar.test', password: 'the-real-password' }))
 
     expect(response.status).toBe(200)
-    expect(response.headers.get('set-cookie')).toContain('eyvar_session=')
-    const session = (await response.json()) as Session
-    expect(session.email).toBe('signin@eyvar.test')
+    const body = (await response.json()) as { kind: string; enrolmentToken: string }
+    expect(body.kind).toBe('enrolment-required')
+    expect(body.enrolmentToken).toBe('ENR-noenrol@eyvar.test')
   })
 
-  it('a repeated Idempotency-Key on sign-in replays the identical body and creates only one session row', async () => {
-    const user = await seedUser(db, { email: 'idem@eyvar.test', password: 'the-real-password', roleId: 'Owner' })
+  it('signs in through the challenge and reaches a session with a Set-Cookie', async () => {
+    await seedUser(db, {
+      email: 'signin@eyvar.test',
+      password: 'the-real-password',
+      roleId: 'Owner',
+      secondFactorMethod: 'sms',
+      phone: '+966500000001',
+    })
+    const twoFactorHandler = createApiHandler({ db, generateCode: () => '424242' })
 
-    const first = await handler(
-      post('/auth/sign-in', { email: 'idem@eyvar.test', password: 'the-real-password' }, { idempotencyKey: 'sign-in-1' }),
+    const signIn = await twoFactorHandler(post('/auth/sign-in', { email: 'signin@eyvar.test', password: 'the-real-password' }))
+    expect(signIn.status).toBe(200)
+    const challenge = (await signIn.json()) as { kind: string; challengeId: string }
+    expect(challenge.kind).toBe('challenge')
+
+    const verify = await twoFactorHandler(post('/auth/verify-code', { challengeId: challenge.challengeId, code: '424242' }))
+    expect(verify.status).toBe(200)
+    expect(verify.headers.get('set-cookie')).toContain('eyvar_session=')
+    const outcome = (await verify.json()) as { kind: string; session: Session }
+    expect(outcome.kind).toBe('signed-in')
+    expect(outcome.session.email).toBe('signin@eyvar.test')
+  })
+
+  it('a repeated Idempotency-Key on verify-code replays the identical body and creates only one session row', async () => {
+    const user = await seedUser(db, {
+      email: 'idem@eyvar.test',
+      password: 'the-real-password',
+      roleId: 'Owner',
+      secondFactorMethod: 'sms',
+      phone: '+966500000002',
+    })
+    const twoFactorHandler = createApiHandler({ db, generateCode: () => '424242' })
+    const signIn = await twoFactorHandler(post('/auth/sign-in', { email: 'idem@eyvar.test', password: 'the-real-password' }))
+    const { challengeId } = (await signIn.json()) as { challengeId: string }
+
+    const first = await twoFactorHandler(
+      post('/auth/verify-code', { challengeId, code: '424242' }, { idempotencyKey: 'verify-1' }),
     )
-    const second = await handler(
-      post('/auth/sign-in', { email: 'idem@eyvar.test', password: 'the-real-password' }, { idempotencyKey: 'sign-in-1' }),
+    const second = await twoFactorHandler(
+      post('/auth/verify-code', { challengeId, code: '424242' }, { idempotencyKey: 'verify-1' }),
     )
 
     expect(first.status).toBe(200)
@@ -178,12 +218,21 @@ describe('auth.signIn and idempotent replay (AC-1273)', () => {
     expect(Number(sessions[0]!.count)).toBe(1)
   })
 
-  it('two concurrent sign-ins with the same Idempotency-Key create exactly one session', async () => {
-    const user = await seedUser(db, { email: 'race@eyvar.test', password: 'the-real-password', roleId: 'Owner' })
+  it('two concurrent verify-code calls with the same Idempotency-Key create exactly one session', async () => {
+    const user = await seedUser(db, {
+      email: 'race@eyvar.test',
+      password: 'the-real-password',
+      roleId: 'Owner',
+      secondFactorMethod: 'sms',
+      phone: '+966500000003',
+    })
+    const twoFactorHandler = createApiHandler({ db, generateCode: () => '424242' })
+    const signIn = await twoFactorHandler(post('/auth/sign-in', { email: 'race@eyvar.test', password: 'the-real-password' }))
+    const { challengeId } = (await signIn.json()) as { challengeId: string }
 
     const results = await Promise.allSettled([
-      handler(post('/auth/sign-in', { email: 'race@eyvar.test', password: 'the-real-password' }, { idempotencyKey: 'race-key' })),
-      handler(post('/auth/sign-in', { email: 'race@eyvar.test', password: 'the-real-password' }, { idempotencyKey: 'race-key' })),
+      twoFactorHandler(post('/auth/verify-code', { challengeId, code: '424242' }, { idempotencyKey: 'race-key' })),
+      twoFactorHandler(post('/auth/verify-code', { challengeId, code: '424242' }, { idempotencyKey: 'race-key' })),
     ])
 
     const statuses = results.map((r) => (r.status === 'fulfilled' ? r.value.status : 'rejected')).sort()

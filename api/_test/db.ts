@@ -27,15 +27,25 @@ export interface SeededUser {
   roleId: string
 }
 
-/** `roleId` must be one of the six built-in role ids `0002_auth.sql` seeds (`'Owner'`, `'Support'`, …). */
+/** `roleId` must be one of the six built-in role ids `0002_auth.sql` seeds (`'Owner'`, `'Support'`, …). `secondFactorMethod`/`phone` are WP-6.2b's columns (`0004_team.sql`), optional so every pre-existing call site still type-checks. */
 export async function seedUser(
   db: Database,
-  opts: { email: string; password: string; roleId: string; status?: 'Active' | 'Invited' | 'Suspended' },
+  opts: {
+    email: string
+    password: string
+    roleId: string
+    status?: 'Active' | 'Invited' | 'Suspended'
+    secondFactorMethod?: 'sms' | 'totp' | null
+    phone?: string | null
+  },
 ): Promise<SeededUser> {
   const passwordHash = await hashPassword(opts.password)
   const rows = await db.sql<{ id: string }>`
-    INSERT INTO users (email, name_en, name_ar, password_hash, role_id, status)
-    VALUES (${opts.email}, ${opts.email}, ${opts.email}, ${passwordHash}, ${opts.roleId}, ${opts.status ?? 'Active'})
+    INSERT INTO users (email, name_en, name_ar, password_hash, role_id, status, second_factor_method, phone)
+    VALUES (
+      ${opts.email}, ${opts.email}, ${opts.email}, ${passwordHash}, ${opts.roleId}, ${opts.status ?? 'Active'},
+      ${opts.secondFactorMethod ?? null}, ${opts.phone ?? null}
+    )
     RETURNING id
   `
   return { id: rows[0]!.id, email: opts.email, password: opts.password, roleId: opts.roleId }

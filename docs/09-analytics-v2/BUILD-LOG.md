@@ -30,7 +30,8 @@ Everything else in the plan stands, including every gate.
 | WP-1.4 Planner | mock-data-engineer | done — v2 legality, NEAREST, formula violations, 33 new tests |
 | WP-1.8 Fixtures | mock-data-engineer | running |
 | WP-1.5 Serialiser | mock-data-engineer | done — v:2 wire, every v1 URL still decodes, 56 tests |
-| WP-1.6a Resolver core | mock-data-engineer | running |
+| WP-1.6a Resolver core | mock-data-engineer | done — pure core + fixture adapter, 52 tests |
+| WP-6.4 Compiler | general-purpose | running |
 | WP-1.6c Alert evaluator | mock-data-engineer | done — 4 condition kinds, 5-state machine, 40 tests |
 | WP-4.1 Markdown | utilities-engineer | done — parse+render, 151 tests, no dangerouslySetInnerHTML |
 | WP-6.1 Backend scaffold | general-purpose | done — api/ project, router, envelopes, migrations, 5 tests |
@@ -44,6 +45,9 @@ Everything else in the plan stands, including every gate.
 |---|---|---|---|
 | F-V2-1 | D33 … D37 exist only as prose in `RULINGS.md`'s "Standing owner overrides", never as headed entries in `DECISIONS.md`, though the ID-namespace table says their text lives there | WP-0.1 | Backlog; not fixed in this build. The owner decides whether they get retroactive entries |
 | F-V2-2 | Q-RB-3 (week start) and Q-RB-7 (alert cadence) are not in `docs/07-api/OPEN-QUESTIONS.md`; they live in `specs/06-report-builder.md`. D45 and D41 answer them but the spec still poses them | WP-0.1 | Fixed in WP-8.5 |
+| F-V2-18 | Saved segments (`kind: 'saved'`) resolve to "everyone": no segments client or fixture store exists yet. A report using one silently shows unsegmented numbers | WP-1.6a | WP-1.7 creates the client and WP-1.8 the store; the mock adapter wires them. **Must not ship unwired** — silently wrong numbers are worse than a refusal |
+| F-V2-19 | `PerformedSpec.window`'s `each-bucket` versus `{rollingDays}` is evaluated over the whole report window, not per bucket | WP-1.6a | Deferred, documented in the function. No AC covers it |
+| F-V2-20 | Multi-segment series ids carry a `#seg<n>` suffix because `ReportSeries` has no `segmentLabel` field | WP-1.6a | WP-1.7 adds the field if the legend needs a real label |
 | F-V2-16 | `AlertEvaluation.outcome` had no slot for `no-baseline` or `invalid-condition`, so the client folded both into `no-complete-bucket` — which would have shown an operator "no complete bucket" when the real reason was too little history | WP-1.6c | **Fixed by the orchestrator.** Union widened in `types/alert.ts`, stopgap removed in `clients/alerts.ts`; a refusal now carries its own reason to the composer (AC-1230) |
 | F-V2-17 | `relative` with `against: 'previous-period'` reads the report's own aligned comparison series rather than an index offset, because a bucket index cannot legally offset past its own array | WP-1.6c | Accepted as the modelling call; the server cron must read the same way |
 | F-V2-14 | `measure_sources` is seeded empty: it names the real operational tables, which `05-backend.md` §11 item 1 lists as still the owner's to supply | WP-6.3 | The compiler (WP-6.4) points `measure_sources` at tables seeded from the frontend fixtures, which is what makes the mock-versus-server equality test possible. In production the owner remaps those rows; nothing else changes |
