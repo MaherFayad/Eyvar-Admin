@@ -1,5 +1,6 @@
 /**
- * Saved reports, dashboards, alert rules and alert history.
+ * Saved reports and dashboards — §11 of the v1 spec, §2/§8 of
+ * `02-report-builder-v2.md`.
  *
  * ## These persist nowhere, and that is not an accident
  *
@@ -11,10 +12,19 @@
  * what each artifact degrades to without it, and the composed query degrades to
  * nothing at all, because §9.2 makes the URL its storage.
  *
- * ## The seeded set, and which state each one exists to reach
+ * ## v2 migration (D42, WP-1.8)
  *
- * Every one of §8.3's fifteen domain states that a fixture can carry is carried
- * here, so QA never hand-edits data to reach one:
+ * Every query below is written in the v2 shape directly: `groupBy` is always
+ * an array, `funnel`/`cohort` carry every v2 field. `normaliseReportQuery`
+ * still accepts the v1 shapes — `serialise.v1.fixtures.ts` (WP-1.5) is where
+ * those live — but a fixture typed `ReportQuery` has to satisfy the v2 type to
+ * compile, and F-V2-9 already logged that ten queries is thin for a library
+ * screen. `RPT-10` … `RPT-18` below are new, one per v2 control this file did
+ * not previously exercise. **Alert rules and firings moved to `alerts.ts`**
+ * (D42 split `AlertRule` out of this module's concerns); `ALR_1_ROUTE` stays
+ * here because it is derived from `cancellationTrend`, a query this file owns.
+ *
+ * ## The seeded set, and which state each one exists to reach
  *
  * | Fixture | State it makes reachable |
  * |---|---|
@@ -27,33 +37,28 @@
  * | `RPT-7` monthly cohorts, `M0…M3` | `mode: 'cohort'`, over a window long enough to reach `M3` |
  * | `RPT-8` a journey rooted at signup | `mode: 'journey'`, and `mode-not-resolved` on the wire |
  * | `RPT-9` a daily data table | `mode: 'table'` — a real grain and a real split, unlike the other three |
+ * | `RPT-10` a formula | G2 — `A / B`, replacing the measure series in the plot |
+ * | `RPT-11` two saved segments | G5 — `segments`, compared side by side on one measure |
+ * | `RPT-12` two-level split | G4 — `groupBy` of two dimensions, drawn as a table |
+ * | `RPT-13` a fixed comparison | G6 — `periodComparison: { kind: 'fixed' }`, equal bucket counts, `percent-change` display |
+ * | `RPT-14` `area` | G8 |
+ * | `RPT-15` `stacked-bar` | G8 |
+ * | `RPT-16` `stacked-100` | G8 |
+ * | `RPT-17` `horizontal-bar` | G8 |
+ * | `RPT-18` `kpi` | G8 |
  * | `oneRungFunnel` (not saved) | AC-825's hand-edited URL: legal to link, refused when planned |
  * | `DSH-1` three tiles, the first `span: 'full'` | a rendered dashboard, and §C5's hero-over-grid layout |
  * | `DSH-2` no tiles | §11.4's first-run empty *for that dashboard* |
  * | `DSH-3` a dangling `reportId` | §11.3's missing tile, which cannot be created through the UI |
  * | `DSH-3` `range` + `filters` | §C4's board scope: one tile answering the board's window, one refusing it, one filter one tile takes and one it cannot |
- * | `ALR-1` `firing` | §8.3 state 14, with `N11` in the notification centre |
- * | `ALR-2` `armed`, muted | `mutedUntil` in the future, evaluation continuing |
- * | `ALR-3` `suspended` | §13.3 — the owner lost access to the measure |
- * | `ALR-4` `error` | five consecutive failures, notified once, to the owner only |
  *
- * ## Every cadence is `null`, deliberately
- *
- * No rule below declares an evaluation cadence. **The business has not
- * specified one**, no scheduler exists (Q-RB-7), and **AC-453** is this
- * project's standing rule for exactly this case: an invented window is
- * indistinguishable from a measured one once it is in a fixture. `minReArmMinutes`
- * is `null` for the same reason — §12.4 makes hysteresis the default and no
- * backstop minimum has been given.
- *
- * The consequence is stated rather than hidden: **no rule here evaluates.**
- * `ALR-1` is `firing` because it was *seeded* firing, so the delivered state is
- * testable before a scheduler exists — which is precisely what §4.4.4 asks for.
+ * `DSH-1` … `DSH-3` also migrate through `dashboardToPage` into `pages.ts`'s
+ * `pageFixtures` at load — see that file.
  */
 
 import { EYVAR_NOW, offsetFromNow } from '../mock/clock'
 import { reportQueryPath } from '../reporting/serialise'
-import type { AlertFiring, AlertRule, Dashboard, ReportQuery, SavedReport } from '../types/report'
+import type { Dashboard, ReportQuery, SavedReport } from '../types/report'
 
 /* ─────────────────────────── the queries ───────────────────────────────── */
 
@@ -67,7 +72,7 @@ import type { AlertFiring, AlertRule, Dashboard, ReportQuery, SavedReport } from
  */
 const captainsVsRiders: ReportQuery = {
   measures: [{ key: 'captains.registered' }, { key: 'riders.registered' }],
-  groupBy: null,
+  groupBy: [],
   filters: [],
   window: { kind: 'preset', preset: 'last-30d' },
   grain: 'day',
@@ -77,7 +82,7 @@ const captainsVsRiders: ReportQuery = {
 
 const tripsByDistrict: ReportQuery = {
   measures: [{ key: 'trips.completed' }],
-  groupBy: 'trip.pickup',
+  groupBy: ['trip.pickup'],
   filters: [],
   window: { kind: 'preset', preset: 'last-30d' },
   grain: 'week',
@@ -87,7 +92,7 @@ const tripsByDistrict: ReportQuery = {
 
 const revenueNinetyDays: ReportQuery = {
   measures: [{ key: 'revenue.total' }],
-  groupBy: null,
+  groupBy: [],
   filters: [],
   /* Ninety days over a store that holds thirty. Sixty buckets of `null`, and
      `gaps-outside-fixture-range` on the wire saying so. */
@@ -99,7 +104,7 @@ const revenueNinetyDays: ReportQuery = {
 
 const subscriptionsByPlan: ReportQuery = {
   measures: [{ key: 'subscriptions.started' }],
-  groupBy: 'subscription.plan',
+  groupBy: ['subscription.plan'],
   filters: [],
   window: { kind: 'preset', preset: 'last-30d' },
   /* The one shape that makes a pie legal: one measure, a split, a single
@@ -109,9 +114,10 @@ const subscriptionsByPlan: ReportQuery = {
   chartType: 'pie',
 }
 
+/** User content (RPT-5), Arabic, never translated — AC-898. */
 const cancellationTrend: ReportQuery = {
   measures: [{ key: 'trips.cancellationRate' }],
-  groupBy: null,
+  groupBy: [],
   filters: [],
   window: { kind: 'preset', preset: 'last-30d' },
   grain: 'day',
@@ -120,20 +126,6 @@ const cancellationTrend: ReportQuery = {
 }
 
 /* ───────────────── the four modes that are not `trend` ─────────────────── */
-
-/**
- * **None of the five queries above names a mode, and that is the fixture.**
- *
- * They were written before `mode` existed and they are left untouched: they
- * carry no `mode` field, `reportMode()` resolves them to `'trend'`, and
- * `serialiseReportQuery` writes no `mo` into their URLs. Every link an operator
- * already holds to one of them still produces the identical bytes and the
- * identical report (AC-853). The regression test for that is
- * `serialise.mode.test.ts`, which pins the exact base64 of `RPT-1`'s link.
- *
- * The four below name theirs, so every mode P7-T1 declares has a saved report
- * behind it and QA never hand-edits data to reach one.
- */
 
 /**
  * A funnel over the one subject that crosses all three stores: a rider joins,
@@ -147,7 +139,7 @@ const cancellationTrend: ReportQuery = {
  */
 const riderActivationFunnel: ReportQuery = {
   measures: [],
-  groupBy: null,
+  groupBy: [],
   filters: [],
   window: { kind: 'preset', preset: 'last-90d' },
   /* A funnel has no calendar x-axis, so the window collapses to one period.
@@ -166,7 +158,12 @@ const riderActivationFunnel: ReportQuery = {
     ],
     /* Unset, so the funnel's window is the report's window. No conversion
        window has been specified by the business and none is invented (AC-453). */
-    conversionWindowDays: null,
+    conversionWindow: null,
+    mode: 'ordered',
+    holdConstant: null,
+    exclude: [],
+    measuredAs: 'conversion',
+    groupBy: null,
   },
 }
 
@@ -180,7 +177,7 @@ const riderActivationFunnel: ReportQuery = {
  */
 const riderRetentionCohort: ReportQuery = {
   measures: [],
-  groupBy: null,
+  groupBy: [],
   filters: [],
   window: { kind: 'preset', preset: 'last-365d' },
   grain: 'none',
@@ -189,13 +186,15 @@ const riderRetentionCohort: ReportQuery = {
   mode: 'cohort',
   cohort: {
     anchorMeasureKey: 'riders.joined',
-    /* Unset: *still here* means the anchor subject's own activity, which is
+    /* `[]`: *still here* means the anchor subject's own activity, which is
        what `buildCohortMatrix`'s `getLastActiveAt` reads. A return event
        distinct from the anchor is legal in the type and unused here. */
-    returnMeasureKey: null,
+    returnMeasureKeys: [],
     /* The only grain the retention engine measures age at. `day` and `week`
        are offered by the picker and disabled with the reason (`CohortGrain`). */
     cohortGrain: 'month',
+    method: 'rolling',
+    brackets: null,
     horizon: 3,
   },
 }
@@ -203,7 +202,7 @@ const riderRetentionCohort: ReportQuery = {
 /** A journey rooted at the rider signup, two steps forward. */
 const riderJourney: ReportQuery = {
   measures: [],
-  groupBy: null,
+  groupBy: [],
   filters: [],
   window: { kind: 'preset', preset: 'last-90d' },
   grain: 'none',
@@ -220,7 +219,7 @@ const riderJourney: ReportQuery = {
  */
 const tripsByDistrictTable: ReportQuery = {
   measures: [{ key: 'trips.completed' }],
-  groupBy: 'trip.pickup',
+  groupBy: ['trip.pickup'],
   filters: [],
   window: { kind: 'preset', preset: 'last-30d' },
   grain: 'day',
@@ -245,14 +244,133 @@ const tripsByDistrictTable: ReportQuery = {
  */
 export const oneRungFunnel: ReportQuery = {
   measures: [],
-  groupBy: null,
+  groupBy: [],
   filters: [],
   window: { kind: 'preset', preset: 'last-30d' },
   grain: 'none',
   periodComparison: 'none',
   chartType: 'bar',
   mode: 'funnel',
-  funnel: { steps: [{ measureKey: 'riders.joined', filters: [] }], conversionWindowDays: null },
+  funnel: {
+    steps: [{ measureKey: 'riders.joined', filters: [] }],
+    conversionWindow: null,
+    mode: 'ordered',
+    holdConstant: null,
+    exclude: [],
+    measuredAs: 'conversion',
+    groupBy: null,
+  },
+}
+
+/* ───────────────────────── v2 queries (WP-1.8) ──────────────────────────── */
+
+/** G2 — replaces the measure series in the plot. Both refs resolve within `last-30d`, so no gap muddies the demo. */
+const revenuePerCompletedTrip: ReportQuery = {
+  measures: [{ key: 'revenue.total' }, { key: 'trips.completed' }],
+  formula: { expression: 'A / B', label: 'Revenue per completed trip' },
+  groupBy: [],
+  filters: [],
+  window: { kind: 'preset', preset: 'last-30d' },
+  grain: 'day',
+  periodComparison: 'none',
+  chartType: 'line',
+}
+
+/** G5 — two saved segments (`segments.ts`) compared on one measure, unsplit. */
+const tripsQuickVsSubscription: ReportQuery = {
+  measures: [{ key: 'trips.completed' }],
+  groupBy: [],
+  segments: [
+    { kind: 'saved', id: 'SEG-1' },
+    { kind: 'saved', id: 'SEG-2' },
+  ],
+  filters: [],
+  window: { kind: 'preset', preset: 'last-30d' },
+  grain: 'day',
+  periodComparison: 'none',
+  chartType: 'line',
+}
+
+/** G4 — two dimensions, the legal ceiling. Line and bar are disabled at this depth; a table is always legal. */
+const tripsByPickupAndKind: ReportQuery = {
+  measures: [{ key: 'trips.completed' }],
+  groupBy: ['trip.pickup', 'trip.kind'],
+  filters: [],
+  window: { kind: 'preset', preset: 'last-30d' },
+  grain: 'week',
+  periodComparison: 'none',
+  chartType: 'table',
+}
+
+/**
+ * G6 — a fixed window compared against another fixed window, same bucket
+ * count (seven days each) so the planner does not refuse it. Launch week
+ * against the most recent week, drawn as a percentage change.
+ */
+const subscriptionsLaunchWeekVsNow: ReportQuery = {
+  measures: [{ key: 'subscriptions.started' }],
+  groupBy: [],
+  filters: [],
+  window: { kind: 'preset', preset: 'last-7d' },
+  grain: 'day',
+  periodComparison: { kind: 'fixed', from: '2026-06-01', to: '2026-06-07' },
+  comparisonDisplay: 'percent-change',
+  chartType: 'line',
+}
+
+/** G8 — `area`. One measure, a stock, so the fill reads as a level rather than a flow. */
+const activeSubscriptionsArea: ReportQuery = {
+  measures: [{ key: 'subscriptions.active' }],
+  groupBy: [],
+  filters: [],
+  window: { kind: 'preset', preset: 'last-30d' },
+  grain: 'day',
+  periodComparison: 'none',
+  chartType: 'area',
+}
+
+/** G8 — `stacked-bar`. Additive, one level, inside `subscriptions`' own 25-day coverage with a real partial-first edge. */
+const subscriptionsByPlanStacked: ReportQuery = {
+  measures: [{ key: 'subscriptions.started' }],
+  groupBy: ['subscription.plan'],
+  filters: [],
+  window: { kind: 'preset', preset: 'last-30d' },
+  grain: 'week',
+  periodComparison: 'none',
+  chartType: 'stacked-bar',
+}
+
+/** G8 — `stacked-100`. Six status values normalise to a share of each week's starts. */
+const subscriptionsByStatusShare: ReportQuery = {
+  measures: [{ key: 'subscriptions.started' }],
+  groupBy: ['subscription.status'],
+  filters: [],
+  window: { kind: 'preset', preset: 'last-30d' },
+  grain: 'week',
+  periodComparison: 'none',
+  chartType: 'stacked-100',
+}
+
+/** G8 — `horizontal-bar`. Grain collapses to `none`; districts sorted descending, `Other` last. */
+const tripsByDistrictRanked: ReportQuery = {
+  measures: [{ key: 'trips.completed' }],
+  groupBy: ['trip.pickup'],
+  filters: [],
+  window: { kind: 'preset', preset: 'last-30d' },
+  grain: 'none',
+  periodComparison: 'none',
+  chartType: 'horizontal-bar',
+}
+
+/** G8 — `kpi`. One measure, no split, no segments; the comparison delta reads against last week. */
+const tripsThisWeekKpi: ReportQuery = {
+  measures: [{ key: 'trips.completed' }],
+  groupBy: [],
+  filters: [],
+  window: { kind: 'preset', preset: 'last-7d' },
+  grain: 'day',
+  periodComparison: 'previous-period',
+  chartType: 'kpi',
 }
 
 /* ───────────────────────── saved reports ───────────────────────────────── */
@@ -376,6 +494,114 @@ export const savedReportFixtures: SavedReport[] = [
     lastRunAt: offsetFromNow({ days: -5 }),
     pinnedToDashboardIds: [],
   },
+  {
+    id: 'RPT-10',
+    name: 'Revenue per completed trip · 30 days',
+    description: 'A / B: gross revenue divided by completed trips, so the two RPT-1-style panels become one line.',
+    query: revenuePerCompletedTrip,
+    ownerId: 'USR-2',
+    visibility: 'team',
+    createdAt: offsetFromNow({ days: -3 }),
+    updatedAt: offsetFromNow({ days: -3 }),
+    lastRunAt: offsetFromNow({ hours: -4 }),
+    pinnedToDashboardIds: [],
+  },
+  {
+    id: 'RPT-11',
+    name: 'Quick rides vs subscription trips',
+    description: 'Two saved segments on the same measure, so the split is a population choice rather than a dimension.',
+    query: tripsQuickVsSubscription,
+    ownerId: 'USR-1',
+    visibility: 'team',
+    createdAt: offsetFromNow({ days: -2 }),
+    updatedAt: offsetFromNow({ days: -2 }),
+    lastRunAt: offsetFromNow({ hours: -6 }),
+    pinnedToDashboardIds: [],
+  },
+  {
+    id: 'RPT-12',
+    name: 'Completed trips by district and kind · weekly table',
+    description: 'Two dimensions, the legal ceiling. Split by district, then by ride kind.',
+    query: tripsByPickupAndKind,
+    ownerId: 'USR-5',
+    visibility: 'team',
+    createdAt: offsetFromNow({ days: -1 }),
+    updatedAt: offsetFromNow({ days: -1 }),
+    lastRunAt: offsetFromNow({ hours: -2 }),
+    pinnedToDashboardIds: [],
+  },
+  {
+    id: 'RPT-13',
+    name: 'New subscriptions · this week vs launch week',
+    description: 'A fixed comparison window rather than the previous period. Launch week, chosen by hand.',
+    query: subscriptionsLaunchWeekVsNow,
+    ownerId: 'USR-2',
+    visibility: 'team',
+    createdAt: offsetFromNow({ days: -1 }),
+    updatedAt: offsetFromNow({ days: -1 }),
+    lastRunAt: offsetFromNow({ hours: -1 }),
+    pinnedToDashboardIds: [],
+  },
+  {
+    id: 'RPT-14',
+    name: 'Active subscriptions · 30 days',
+    description: null,
+    query: activeSubscriptionsArea,
+    ownerId: 'USR-1',
+    visibility: 'team',
+    createdAt: offsetFromNow({ days: -16 }),
+    updatedAt: offsetFromNow({ days: -16 }),
+    lastRunAt: offsetFromNow({ days: -1 }),
+    pinnedToDashboardIds: [],
+  },
+  {
+    id: 'RPT-15',
+    name: 'New subscriptions by plan · weekly, stacked',
+    description: null,
+    query: subscriptionsByPlanStacked,
+    ownerId: 'USR-2',
+    visibility: 'team',
+    createdAt: offsetFromNow({ days: -13 }),
+    updatedAt: offsetFromNow({ days: -13 }),
+    lastRunAt: offsetFromNow({ days: -3 }),
+    pinnedToDashboardIds: [],
+  },
+  {
+    id: 'RPT-16',
+    name: 'New subscriptions by status · share of total',
+    description: null,
+    query: subscriptionsByStatusShare,
+    ownerId: 'USR-2',
+    visibility: 'private',
+    createdAt: offsetFromNow({ days: -10 }),
+    updatedAt: offsetFromNow({ days: -10 }),
+    lastRunAt: null,
+    pinnedToDashboardIds: [],
+  },
+  {
+    id: 'RPT-17',
+    name: 'Completed trips by district · ranked',
+    description: null,
+    query: tripsByDistrictRanked,
+    ownerId: 'USR-5',
+    visibility: 'team',
+    createdAt: offsetFromNow({ days: -7 }),
+    updatedAt: offsetFromNow({ days: -7 }),
+    lastRunAt: offsetFromNow({ days: -2 }),
+    pinnedToDashboardIds: [],
+  },
+  {
+    id: 'RPT-18',
+    name: 'Completed trips this week',
+    description: 'A single tile: the total, and the comparison delta against last week.',
+    query: tripsThisWeekKpi,
+    ownerId: 'USR-1',
+    visibility: 'team',
+    createdAt: offsetFromNow({ days: -1 }),
+    updatedAt: offsetFromNow({ hours: -12 }),
+    lastRunAt: offsetFromNow({ hours: -1 }),
+    pinnedToDashboardIds: [],
+  },
 ]
 
 /* ─────────────────────────── dashboards ────────────────────────────────── */
@@ -392,7 +618,7 @@ export const dashboardFixtures: Dashboard[] = [
       {
         tileId: 'TIL-1',
         reportId: 'RPT-1',
-        pinnedName: 'Captains vs riders — 30 days',
+        pinnedName: 'Captains vs riders · 30 days',
         order: 1,
         /* §C5 — the hero. A board reads as a composition when its first tile is
            the one the board is named after and the rest sit under it; a uniform
@@ -463,7 +689,7 @@ export const dashboardFixtures: Dashboard[] = [
          */
         tileId: 'TIL-6',
         reportId: 'RPT-7',
-        pinnedName: 'Rider retention by joining month — M0 to M3',
+        pinnedName: 'Rider retention by joining month · M0 to M3',
         order: 3,
         /* A retention matrix is thirteen columns wide. At half width it renders
            as a column of single characters, which is the reading failure §C5's
@@ -504,190 +730,6 @@ export const dashboardFixtures: Dashboard[] = [
   },
 ]
 
-/* ─────────────────────────── alert rules ───────────────────────────────── */
-
-export const alertRuleFixtures: AlertRule[] = [
-  {
-    id: 'ALR-1',
-    name: 'Cancellation rate over 6%',
-    reportId: 'RPT-5',
-    seriesId: 'trips.cancellationRate#_#current',
-    comparator: 'gt',
-    /* Six, not a round-looking eight: the last **complete** daily bucket in the
-       snapshots is 24 Jun at 7 %, so this threshold makes the seeded `firing`
-       state agree with what `alerts.evaluate` actually reads. A fixture whose
-       state contradicts its own data is the defect this module is about. */
-    threshold: 6,
-    thresholdUnit: 'percent',
-    thresholdCurrency: null,
-    evaluationGrain: 'day',
-    cadence: null,
-    minReArmMinutes: null,
-    consecutiveFailuresBeforeError: 5,
-    /* Seeded `firing`, because nothing evaluates: §4.4.4 requires one already
-       fired rule with a matching notification, or the entire delivered state of
-       §12 is unreachable without a scheduler. */
-    state: 'firing',
-    enabled: true,
-    mutedUntil: null,
-    recipientIds: ['USR-1', 'USR-5'],
-    ownerId: 'USR-1',
-    notificationPriority: 'high',
-    lastEvaluatedAt: offsetFromNow({ hours: -2 }),
-    lastFiredAt: offsetFromNow({ hours: -2 }),
-    /* 24 Jun — the last **complete** bucket, at 7 %. 25 Jun reads 9 % and is
-       never evaluated, because at 09:14 it is nine hours of a day (§12.3). The
-       rule fired on the edge, not on the level (§12.4). */
-    lastValue: 7,
-    stateReasonKey: null,
-    createdAt: offsetFromNow({ days: -11 }),
-    updatedAt: offsetFromNow({ hours: -2 }),
-  },
-  {
-    id: 'ALR-2',
-    name: 'Gross revenue below SAR 400 a day',
-    reportId: 'RPT-3',
-    seriesId: 'revenue.total#_#current',
-    comparator: 'lt',
-    /* Halalas on the wire, SAR in the field. An operator typing `400` against a
-       money measure means 400 SAR; this is that, without loss (AC-876). */
-    threshold: 40_000,
-    thresholdUnit: 'money',
-    thresholdCurrency: 'SAR',
-    evaluationGrain: 'day',
-    cadence: null,
-    minReArmMinutes: null,
-    consecutiveFailuresBeforeError: 5,
-    state: 'armed',
-    enabled: true,
-    /* Muted, still evaluating. §12.4: the state machine keeps running while
-       muted so the rule re-arms correctly, and the first notification after the
-       mute expires is a fresh crossing, not a replay (AC-887). */
-    mutedUntil: offsetFromNow({ hours: 20 }),
-    recipientIds: ['USR-2'],
-    ownerId: 'USR-2',
-    notificationPriority: 'high',
-    lastEvaluatedAt: offsetFromNow({ hours: -6 }),
-    lastFiredAt: null,
-    lastValue: 64_737,
-    stateReasonKey: null,
-    createdAt: offsetFromNow({ days: -18 }),
-    updatedAt: offsetFromNow({ hours: -6 }),
-  },
-  {
-    id: 'ALR-3',
-    name: 'Subscription revenue drop',
-    reportId: 'RPT-3',
-    seriesId: 'revenue.subscription#_#current',
-    comparator: 'lt',
-    threshold: 25_000,
-    thresholdUnit: 'money',
-    thresholdCurrency: 'SAR',
-    evaluationGrain: 'day',
-    cadence: null,
-    minReArmMinutes: null,
-    consecutiveFailuresBeforeError: 5,
-    /* §13.3 — the owner lost access to the measure. It stops evaluating
-       immediately: *"an alert that outlives its owner's permission is a
-       permission grant with no record of being granted."* USR-3 (Support) holds
-       no `view_finance`, so switching to that user reproduces the cause. */
-    state: 'suspended',
-    enabled: true,
-    mutedUntil: null,
-    recipientIds: ['USR-3'],
-    ownerId: 'USR-3',
-    notificationPriority: 'high',
-    lastEvaluatedAt: offsetFromNow({ days: -4 }),
-    lastFiredAt: null,
-    lastValue: null,
-    stateReasonKey: 'rb.alert.suspended.ownerLostAccess',
-    createdAt: offsetFromNow({ days: -25 }),
-    updatedAt: offsetFromNow({ days: -4 }),
-  },
-  {
-    id: 'ALR-4',
-    name: 'Completed trips below 3 a day',
-    reportId: 'RPT-2',
-    seriesId: 'trips.completed#_#current',
-    comparator: 'lt',
-    threshold: 3,
-    thresholdUnit: 'count',
-    thresholdCurrency: null,
-    evaluationGrain: 'day',
-    cadence: null,
-    minReArmMinutes: null,
-    consecutiveFailuresBeforeError: 5,
-    /* Five consecutive failures. Notified **once**, to the owner only — *"an
-       alert that is broken is the owner's problem, not the recipients'"*
-       (§12.4, AC-886). */
-    state: 'error',
-    enabled: true,
-    mutedUntil: null,
-    recipientIds: ['USR-5'],
-    ownerId: 'USR-5',
-    notificationPriority: 'high',
-    lastEvaluatedAt: offsetFromNow({ hours: -9 }),
-    lastFiredAt: null,
-    lastValue: null,
-    stateReasonKey: 'rb.alert.error.runFailed',
-    createdAt: offsetFromNow({ days: -7 }),
-    updatedAt: offsetFromNow({ hours: -9 }),
-  },
-  {
-    id: 'ALR-5',
-    name: 'قاعدة تنبيه غير مفعّلة · انخفاض عدد الكباتن المسجلين',
-    reportId: 'RPT-1',
-    seriesId: 'captains.registered#_#current',
-    comparator: 'lte',
-    threshold: 40,
-    thresholdUnit: 'count',
-    thresholdCurrency: null,
-    evaluationGrain: 'week',
-    cadence: null,
-    minReArmMinutes: null,
-    consecutiveFailuresBeforeError: 5,
-    state: 'armed',
-    /* Disabled by its operator. Distinct from `suspended`, which the server
-       does, and from `mutedUntil`, which silences without stopping. */
-    enabled: false,
-    mutedUntil: null,
-    recipientIds: [],
-    ownerId: 'USR-1',
-    notificationPriority: 'high',
-    lastEvaluatedAt: null,
-    lastFiredAt: null,
-    lastValue: null,
-    stateReasonKey: null,
-    createdAt: offsetFromNow({ days: -1 }),
-    updatedAt: offsetFromNow({ days: -1 }),
-  },
-]
-
-/* ──────────────────────── alert history ────────────────────────────────── */
-
-export const alertFiringFixtures: AlertFiring[] = [
-  {
-    id: 'AFR-1',
-    ruleId: 'ALR-1',
-    firedAt: offsetFromNow({ hours: -2 }),
-    bucketStart: '2026-06-24',
-    value: 7,
-    threshold: 6,
-    notificationId: 'N11',
-  },
-  {
-    id: 'AFR-2',
-    ruleId: 'ALR-1',
-    firedAt: offsetFromNow({ days: -6 }),
-    bucketStart: '2026-06-20',
-    value: 9,
-    threshold: 6,
-    /* An older firing whose notification has since been cleared. `null` is a
-       real state and the history must not imply the row is still in the inbox. */
-    notificationId: null,
-  },
-]
-
 /* ─────────────────── the route an alert sends you to ───────────────────── */
 
 /**
@@ -702,6 +744,9 @@ export const alertFiringFixtures: AlertFiring[] = [
  * `alert`-type notifications in this product with a real destination.
  */
 export const ALR_1_ROUTE = reportQueryPath(cancellationTrend)
+
+/** `cancellationTrend` re-exported so `alerts.ts` and `agent.ts` can point at the exact query `ALR-1` watches and `RPT-5` names. */
+export { cancellationTrend }
 
 /** Exported for the alert client's `Test this rule`, which re-runs the rule's own query. */
 export const reportQueriesById: Record<string, ReportQuery> = Object.fromEntries(

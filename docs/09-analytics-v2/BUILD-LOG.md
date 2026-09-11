@@ -36,7 +36,8 @@ Everything else in the plan stands, including every gate.
 | WP-4.1 Markdown | utilities-engineer | done — parse+render, 151 tests, no dangerouslySetInnerHTML |
 | WP-6.1 Backend scaffold | general-purpose | done — api/ project, router, envelopes, migrations, 5 tests |
 | WP-6.2 Auth and sessions | general-purpose | done — sessions, permissions, idempotency, 36 tests |
-| WP-6.2b Team and sign-in outcomes | general-purpose | running (orchestrator-opened) |
+| WP-6.2b Team and sign-in outcomes | general-purpose | done — 72 api tests; gap list below |
+| WP-6.5 Reports, segments, annotations, pages | general-purpose | running |
 | WP-6.3 Catalogue | general-purpose | done — full Measure schema, generated glossary, 44 api tests |
 
 ## Findings raised during the build, for the owner
@@ -45,6 +46,9 @@ Everything else in the plan stands, including every gate.
 |---|---|---|---|
 | F-V2-1 | D33 … D37 exist only as prose in `RULINGS.md`'s "Standing owner overrides", never as headed entries in `DECISIONS.md`, though the ID-namespace table says their text lives there | WP-0.1 | Backlog; not fixed in this build. The owner decides whether they get retroactive entries |
 | F-V2-2 | Q-RB-3 (week start) and Q-RB-7 (alert cadence) are not in `docs/07-api/OPEN-QUESTIONS.md`; they live in `specs/06-report-builder.md`. D45 and D41 answer them but the spec still poses them | WP-0.1 | Fixed in WP-8.5 |
+| F-V2-21 | WP-6.2b left a named gap list: role CRUD and `changeRole`/`holdersOf`, session listing and revocation, device listing, `listOperators`/`listInvites`, preferences, `releaseHoldingsOf`, and a transport rate limiter. None blocks analytics v2 | WP-6.2b | **WP-6.2c** opened for the remainder, after the analytics phases |
+| F-V2-22 | Audit-log persistence is not wired: the clients' `writeAudit`/`appendAudit` run and refuse correctly but record nothing, so Activity Log playback would be empty. WP-6.1 did create the `audit_log` table in `0001_analytics.sql`, so the table exists and only the writes are missing | WP-6.2b | **WP-6.2c.** Raised because an operations console that cannot say who changed what is a real gap, not a cosmetic one |
+| F-V2-23 | WP-6.2b added a five-attempt password lockout the mock never had, because the mock shows a static locked fixture with no trigger, and stamps `lockedUntil` once rather than recomputing it on every read (the mock's version would never expire) | WP-6.2b | Accepted: the mock's behaviour is a fixture artefact, not a specification |
 | F-V2-18 | Saved segments (`kind: 'saved'`) resolve to "everyone": no segments client or fixture store exists yet. A report using one silently shows unsegmented numbers | WP-1.6a | WP-1.7 creates the client and WP-1.8 the store; the mock adapter wires them. **Must not ship unwired** — silently wrong numbers are worse than a refusal |
 | F-V2-19 | `PerformedSpec.window`'s `each-bucket` versus `{rollingDays}` is evaluated over the whole report window, not per bucket | WP-1.6a | Deferred, documented in the function. No AC covers it |
 | F-V2-20 | Multi-segment series ids carry a `#seg<n>` suffix because `ReportSeries` has no `segmentLabel` field | WP-1.6a | WP-1.7 adds the field if the legend needs a real label |

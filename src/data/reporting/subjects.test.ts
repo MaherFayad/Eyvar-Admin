@@ -33,14 +33,21 @@ const ctx = {
 
 const cohortOn = (anchorMeasureKey: string): ReportQuery => ({
   measures: [],
-  groupBy: null,
+  groupBy: [],
   filters: [],
   window: { kind: 'preset', preset: 'last-365d' },
   grain: 'none',
   periodComparison: 'none',
   chartType: 'table',
   mode: 'cohort',
-  cohort: { anchorMeasureKey, returnMeasureKey: null, cohortGrain: 'month', horizon: 1 },
+  cohort: {
+    anchorMeasureKey,
+    returnMeasureKeys: [],
+    cohortGrain: 'month',
+    method: 'rolling',
+    brackets: null,
+    horizon: 1,
+  },
 })
 
 const withSubject = measureFixtures.filter((m) => subjectKindOf(m.population.resource) !== null)
