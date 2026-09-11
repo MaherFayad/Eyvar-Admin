@@ -5,16 +5,20 @@
  * 22 runtime (`vercel.json`'s `functions` block sets `maxDuration`).
  *
  * Order per §4: auth → permission (each handler's own `requirePermission`
- * call) → idempotency → handler → envelope. Only `/health` is registered —
- * "no business handlers beyond health" for this work package; WP-6.2 onward
- * add routes to this same router.
+ * call) → idempotency → handler → envelope. `createApiHandler` takes its
+ * `Database` as a parameter so a test can hand it PGlite instead of the
+ * lazy, env-backed one the default export uses — WP-6.2.
  */
 
 import { createRouter } from '../_lib/router'
 import { errorResponse } from '../_lib/errors'
-import { authenticate, StubSessionStore, type RequestContext } from '../_lib/auth'
-import { withIdempotency, StubIdempotencyStore } from '../_lib/idempotency'
+import { authenticate, DbSessionStore, readSessionSecret, type RequestContext } from '../_lib/auth'
+import { withIdempotency, DbIdempotencyStore } from '../_lib/idempotency'
 import { single } from '../_lib/envelope'
+import { createDatabaseFromEnv, type Database } from '../_lib/db'
+import { createGetSessionHandler } from '../_lib/handlers/session'
+import { createSignInHandler, createSignOutHandler, createSignOutEverywhereHandler } from '../_lib/handlers/auth'
+import { createListTeamUsersHandler, createGetTeamUserHandler } from '../_lib/handlers/team'
 import type { IsoDateTime } from '@/data/types/common'
 
 interface HealthPayload {
@@ -22,27 +26,69 @@ interface HealthPayload {
   time: IsoDateTime
 }
 
-const router = createRouter<RequestContext>()
-const idempotencyStore = new StubIdempotencyStore()
+export interface ApiDeps {
+  db: Database
+}
 
-router.get('/health', async (_req, _ctx) => {
-  const body = single<HealthPayload>({ status: 'ok', time: new Date().toISOString() })
-  return new Response(JSON.stringify(body), {
-    status: 200,
-    headers: { 'content-type': 'application/json' },
+export function createApiHandler(deps: ApiDeps): (req: Request) => Promise<Response> {
+  const router = createRouter<RequestContext>()
+  const sessionStore = new DbSessionStore(deps.db)
+  const idempotencyStore = new DbIdempotencyStore(deps.db)
+
+  router.get('/health', async () => {
+    const body = single<HealthPayload>({ status: 'ok', time: new Date().toISOString() })
+    return new Response(JSON.stringify(body), {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+    })
   })
-})
 
-export default async function handler(req: Request): Promise<Response> {
-  const requestId = req.headers.get('x-vercel-id') ?? crypto.randomUUID()
-  try {
-    const operator = await authenticate(req, new StubSessionStore())
-    const ctx: RequestContext = { operator, requestId }
-    const userId = operator?.userId ?? 'anonymous'
-    const response = await withIdempotency(req, userId, idempotencyStore, () => router.dispatch(req, ctx))
-    response.headers.set('x-request-id', requestId)
-    return response
-  } catch (err) {
-    return errorResponse(err, requestId)
+  // auth.* (05-backend.md §2 Q1, simplified — see handlers/auth.ts)
+  router.post('/auth/sign-in', createSignInHandler(deps.db))
+  router.post('/auth/sign-out', createSignOutHandler(deps.db))
+  router.post('/auth/sign-out-everywhere', createSignOutEverywhereHandler(deps.db))
+
+  // session.current
+  router.get('/session', createGetSessionHandler(deps.db))
+
+  // team.* (read-only slice — see handlers/team.ts)
+  router.get('/team-users', createListTeamUsersHandler(deps.db))
+  router.get('/team-users/:id', createGetTeamUserHandler(deps.db))
+
+  return async function handler(req: Request): Promise<Response> {
+    const requestId = req.headers.get('x-vercel-id') ?? crypto.randomUUID()
+    try {
+      const operator = await authenticate(req, sessionStore, readSessionSecret())
+      const ctx: RequestContext = { operator, requestId }
+      const userId = operator?.userId ?? 'anonymous'
+      const response = await withIdempotency(req, userId, idempotencyStore, () => router.dispatch(req, ctx))
+      response.headers.set('x-request-id', requestId)
+      return response
+    } catch (err) {
+      return errorResponse(err, requestId)
+    }
   }
 }
+
+/**
+ * `DATABASE_URL` is read only when a route actually queries the database —
+ * `/health` never does, so this stays importable (and `health.test.ts`
+ * stays green) in an environment that has not set it.
+ */
+function lazyEnvDatabase(): Database {
+  let real: Database | null = null
+  function ensure(): Database {
+    if (!real) real = createDatabaseFromEnv()
+    return real
+  }
+  return {
+    async sql<T = Record<string, unknown>>(strings: TemplateStringsArray, ...values: unknown[]): Promise<T[]> {
+      return ensure().sql<T>(strings, ...values)
+    },
+    close: async () => {
+      if (real) await real.close()
+    },
+  }
+}
+
+export default createApiHandler({ db: lazyEnvDatabase() })

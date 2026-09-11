@@ -6,7 +6,15 @@
  */
 
 import { PAGE_HEADING_MAX, PAGE_TEXT_MD_MAX } from '../../types/page'
-import type { AgentInsightBlock, Block, CalloutBlock, HeadingBlock, TextBlock, ToggleBlock } from '../../types/page'
+import type {
+  AgentInsightBlock,
+  Block,
+  CalloutBlock,
+  HeadingBlock,
+  ReportBlock,
+  TextBlock,
+  ToggleBlock,
+} from '../../types/page'
 import type {
   CaseStudy,
   CaseStudyAlternative,
@@ -59,6 +67,11 @@ function findingEvidenceBlock(finding: CaseStudyFinding, jobId: string): AgentIn
   }
 }
 
+/** The finding's chart, once T13 has saved it — never minted here, only relayed (input, not a lookup). */
+function findingChartBlock(finding: CaseStudyFinding, jobId: string, reportId: string): ReportBlock {
+  return { id: `${jobId}-finding-${finding.id}-chart`, type: 'report', reportId, view: 'chart', height: 'M', title: null }
+}
+
 function alternativeToggle(alternative: CaseStudyAlternative, jobId: string, index: number): ToggleBlock {
   const id = `${jobId}-alt-${index}`
   const evidence: AgentInsightBlock = {
@@ -97,16 +110,24 @@ function dataQualityCallout(dataQuality: CaseStudyDataQuality, jobId: string): C
 }
 
 /**
- * Converts a validated `CaseStudy` into an ordered `Block[]`: question,
- * each finding paired with its evidence, the alternatives, the
- * recommendations, the data-quality note. `jobId` is the run's `AgentJob.id`
- * — not part of `CaseStudy` itself, so it is threaded in by the caller.
+ * Converts a validated `CaseStudy` into an ordered `Block[]`. `jobId` is the
+ * run's `AgentJob.id`, not part of `CaseStudy`. `chartReportIds` (finding id
+ * → saved `reportId`) is data T13 produced elsewhere, handed in rather than
+ * fetched — a finding missing from it, or the map itself absent, degrades to
+ * its evidence block alone; the function never throws and never drops a
+ * finding for want of a chart (AC-1129).
  */
-export function caseStudyToBlocks(study: CaseStudy, jobId: string): Block[] {
+export function caseStudyToBlocks(
+  study: CaseStudy,
+  jobId: string,
+  chartReportIds?: Readonly<Record<string, string>>,
+): Block[] {
   const blocks: Block[] = [questionHeading(study, jobId)]
 
   for (const finding of study.findings) {
     blocks.push(findingTextBlock(finding, jobId))
+    const reportId = chartReportIds?.[finding.id]
+    if (reportId && reportId.trim().length > 0) blocks.push(findingChartBlock(finding, jobId, reportId))
     blocks.push(findingEvidenceBlock(finding, jobId))
   }
 

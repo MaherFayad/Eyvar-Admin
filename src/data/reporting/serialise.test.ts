@@ -282,8 +282,13 @@ describe('3 — existing v1 links keep decoding to the query they always named',
   })
 
   it('round-trips every seeded report, in whatever mode it names', () => {
+    /* `serialiseReportQuery` takes a v2-shaped `ReportQuery` (§2.9); a saved
+       report still written in v1 shape is normalised first, exactly as a
+       real caller normalises at the boundary before this function ever
+       sees it — AC-1100 covers the migration itself. */
     for (const report of savedReportFixtures) {
-      expect(roundTrip(report.query)).toEqual(normaliseReportQuery(report.query))
+      const normalised = normaliseReportQuery(report.query)
+      expect(roundTrip(normalised)).toEqual(normalised)
     }
   })
 })

@@ -196,6 +196,55 @@ describe('caseStudyToBlocks', () => {
     expect(validatePage(pageFor(blocks)).filter((v) => v.code === 'duplicate-block-id')).toEqual([])
   })
 
+  describe('chartReportIds (T13 charts, AC-1129)', () => {
+    const fullMap = { 'F-1': 'RPT-101', 'F-2': 'RPT-102' }
+
+    it('with a full map, emits one report block per finding, each immediately followed by its agent-insight block', () => {
+      const blocks = caseStudyToBlocks(study, JOB_ID, fullMap)
+      for (const finding of study.findings) {
+        const reportIndex = blocks.findIndex((b) => b.type === 'report' && b.id.includes(finding.id))
+        expect(reportIndex).toBeGreaterThanOrEqual(0)
+        const reportBlock = blocks[reportIndex]!
+        if (reportBlock.type !== 'report') throw new Error('expected a report block')
+        expect(reportBlock.reportId).toBe(fullMap[finding.id as keyof typeof fullMap])
+        const next = blocks[reportIndex + 1]!
+        if (next.type !== 'agent-insight') throw new Error('expected the next block to be agent-insight')
+        expect(next.findingId).toBe(finding.id)
+      }
+      expect(validatePage(pageFor(blocks))).toEqual([])
+    })
+
+    it('without the map, produces exactly the same output as calling with no third argument at all', () => {
+      const withoutArg = caseStudyToBlocks(study, JOB_ID)
+      const withUndefined = caseStudyToBlocks(study, JOB_ID, undefined)
+      expect(withUndefined).toEqual(withoutArg)
+      expect(withoutArg.some((b) => b.type === 'report')).toBe(false)
+      expect(validatePage(pageFor(withoutArg))).toEqual([])
+    })
+
+    it('a partial map degrades only the findings it lacks, without throwing or dropping them', () => {
+      const partialMap = { 'F-1': 'RPT-101' }
+      const blocks = caseStudyToBlocks(study, JOB_ID, partialMap)
+
+      const f1Report = blocks.find((b) => b.type === 'report' && b.id.includes('F-1'))
+      expect(f1Report).toBeDefined()
+
+      const f2Report = blocks.find((b) => b.type === 'report' && b.id.includes('F-2'))
+      expect(f2Report).toBeUndefined()
+      // F-2 keeps its text and evidence blocks — the finding is never dropped for lacking a chart.
+      expect(blocks.some((b) => b.type === 'text' && b.id === `${JOB_ID}-finding-F-2-text`)).toBe(true)
+      expect(blocks.some((b) => b.type === 'agent-insight' && b.findingId === 'F-2')).toBe(true)
+
+      expect(validatePage(pageFor(blocks))).toEqual([])
+    })
+
+    it('a blank or unknown reportId in the map is treated as no chart, never throws, never emits an invalid report block', () => {
+      const blocks = caseStudyToBlocks(study, JOB_ID, { 'F-1': '', 'NOT-A-FINDING': 'RPT-999' })
+      expect(blocks.some((b) => b.type === 'report')).toBe(false)
+      expect(validatePage(pageFor(blocks))).toEqual([])
+    })
+  })
+
   it('is pure: calling it twice with the same study produces deep-equal output', () => {
     expect(caseStudyToBlocks(study, JOB_ID)).toEqual(caseStudyToBlocks(study, JOB_ID))
   })
