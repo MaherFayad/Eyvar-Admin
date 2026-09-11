@@ -77,7 +77,10 @@ describe('DbSessionStore.readSession', () => {
     await new DbSessionStore(db).readSession(sessionId)
 
     const after = await db.sql<{ last_seen_at: string }>`SELECT last_seen_at FROM sessions WHERE id = ${sessionId}`
-    expect(after[0]!.last_seen_at).toBe(before[0]!.last_seen_at)
+    // PGlite returns `timestamptz` as a `Date`, not a string — compare by
+    // instant, since two distinct `Date` objects for the same moment are
+    // never `Object.is`-equal.
+    expect(new Date(after[0]!.last_seen_at).getTime()).toBe(new Date(before[0]!.last_seen_at).getTime())
   })
 
   it('refreshes last_seen_at and expires_at once a session has gone stale past the 5-minute threshold', async () => {

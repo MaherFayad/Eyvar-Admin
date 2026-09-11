@@ -46,11 +46,14 @@ describe('api/_db/migrate.mjs', () => {
     db = new PGlite({ extensions: { pgcrypto } })
     const adapter = adapterFor(db)
 
-    await migrate(adapter)
+    const firstRun = await migrate(adapter)
     const secondRun = await migrate(adapter)
 
     expect(secondRun).toEqual([])
+    // Recorded count tracks however many migration files exist today
+    // (`firstRun.length`), not a literal — WP-6.2 added a second file and a
+    // hard-coded `1` here would break on every migration after that.
     const recorded = await db.query('SELECT name FROM schema_migrations')
-    expect(recorded.rows).toHaveLength(1)
+    expect(recorded.rows).toHaveLength(firstRun.length)
   })
 })

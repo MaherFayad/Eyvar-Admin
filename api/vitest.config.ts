@@ -16,5 +16,10 @@ export default defineConfig({
     environment: 'node',
     include: ['api/**/*.test.ts'],
     exclude: ['**/node_modules/**', '**/dist/**', '**/.claude/**'],
+    // PGlite spin-up plus WP-6.2's deliberately CPU-hard scrypt hashing (one
+    // per seeded user) is slower than the 5s default under a loaded machine
+    // — several tests seed two or three users.
+    testTimeout: 20_000,
+    hookTimeout: 20_000,
   },
 })

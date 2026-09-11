@@ -114,14 +114,6 @@ export function resolveWindow(window: ReportWindow, today: IsoDate): { from: Iso
   return resolvePreset(window.preset, today)
 }
 
-/**
- * §2.7 adds four presets `ReportPreset` (`types/report.ts`) does not declare yet —
- * widening that union is that file's owner's call, not this one's (WP-1.3 report).
- * `resolvePreset` understands the superset so the range popover can be wired to it
- * the day the type catches up.
- */
-export type ReportPresetV2 = ReportPreset | 'this-quarter' | 'last-quarter' | 'this-year' | 'year-to-date'
-
 /** The Riyadh-local calendar quarter start (1 Jan / 1 Apr / 1 Jul / 1 Oct) `date` falls in. */
 function quarterStartOf(date: IsoDate): IsoDate {
   const month = Number(date.slice(5, 7)) - 1
@@ -129,7 +121,7 @@ function quarterStartOf(date: IsoDate): IsoDate {
   return `${date.slice(0, 4)}-${String(startMonth + 1).padStart(2, '0')}-01`
 }
 
-export function resolvePreset(preset: ReportPresetV2, today: IsoDate): { from: IsoDate; to: IsoDate } {
+export function resolvePreset(preset: ReportPreset, today: IsoDate): { from: IsoDate; to: IsoDate } {
   switch (preset) {
     case 'today':
       return { from: today, to: today }

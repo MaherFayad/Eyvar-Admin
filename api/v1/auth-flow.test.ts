@@ -174,8 +174,8 @@ describe('auth.signIn and idempotent replay (AC-1273)', () => {
     expect(second.status).toBe(200)
     expect(await first.json()).toEqual(await second.json())
 
-    const sessions = await db.sql<{ count: string }>`SELECT count(*) FROM sessions WHERE user_id = ${user.id}`
-    expect(sessions[0]!.count).toBe('1')
+    const sessions = await db.sql<{ count: string | number }>`SELECT count(*) FROM sessions WHERE user_id = ${user.id}`
+    expect(Number(sessions[0]!.count)).toBe(1)
   })
 
   it('two concurrent sign-ins with the same Idempotency-Key create exactly one session', async () => {
@@ -189,7 +189,7 @@ describe('auth.signIn and idempotent replay (AC-1273)', () => {
     const statuses = results.map((r) => (r.status === 'fulfilled' ? r.value.status : 'rejected')).sort()
     expect(statuses).toEqual([200, 409])
 
-    const sessions = await db.sql<{ count: string }>`SELECT count(*) FROM sessions WHERE user_id = ${user.id}`
-    expect(sessions[0]!.count).toBe('1')
+    const sessions = await db.sql<{ count: string | number }>`SELECT count(*) FROM sessions WHERE user_id = ${user.id}`
+    expect(Number(sessions[0]!.count)).toBe(1)
   })
 })

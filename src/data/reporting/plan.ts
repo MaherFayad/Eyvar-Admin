@@ -69,8 +69,9 @@ import type {
   ReportQuery,
 } from '../types/report'
 import type { IsoDate } from '../types/common'
-import { countBuckets, resolveWindow } from './buckets'
+import { comparisonWindow, countBuckets, resolveWindow } from './buckets'
 import { subjectKindOf } from './subjects'
+import { formulaUnit, type FormulaError, type FormulaRefs, type FormulaViolationCode } from './formula'
 
 /* ─────────────────────────── the constants ─────────────────────────────── */
 
@@ -86,11 +87,29 @@ export const MAX_GROUPS = 8
 /** §7.2's hard ceiling. A pie with seven parts is a legend with a chart attached. */
 export const PIE_MAX_PARTS = 6
 
-/** §7.2 / AC-839. A pie of these is arithmetic nonsense wearing a chart, under every other combination. */
-const PIE_ILLEGAL_UNITS = new Set(['percent', 'ratio', 'rating'])
+/**
+ * §7.2 / §3 / AC-839, AC-1115. A share of these three units is arithmetic
+ * nonsense wearing a chart — a pie of percentages, a stack of ratios — under
+ * every combination that would otherwise be legal. Shared by `pie` and the two
+ * stacked forms rather than declared twice.
+ */
+const SHARE_ILLEGAL_UNITS = new Set(['percent', 'ratio', 'rating'])
 
-/** All four, always offered. An illegal one is disabled in place, never hidden (D9 CQ-3). */
-export const CHART_TYPES: ChartType[] = ['line', 'bar', 'pie', 'table']
+/** All nine (02 §2.8 / G8), always offered. An illegal one is disabled in place, never hidden (D9 CQ-3). */
+export const CHART_TYPES: ChartType[] = [
+  'line',
+  'area',
+  'bar',
+  'stacked-bar',
+  'stacked-100',
+  'horizontal-bar',
+  'pie',
+  'kpi',
+  'table',
+]
+
+/** §2.5's ceiling: `measures × segments × groups`. 24 with a comparison, but the query-time count is unhalved. */
+export const MAX_CURRENT_SERIES = 12
 
 /** Offered in this order. `'hour'` is here so its reason is readable, not so it works (R4-1 §4.4). */
 export const GRAINS: ReportGrain[] = ['hour', 'day', 'week', 'month', 'none']
@@ -171,11 +190,22 @@ const MODE_FIXES_GRAIN_TO_NONE: Record<ReportMode, boolean> = {
   journey: true,
 }
 
-/** §7.3. *Nearest* is defined, not inferred: line → bar → table, and pie → bar. */
+/**
+ * §7.3 / 02 §3. *Nearest* is defined, not inferred, and v2 extends the same
+ * table rather than replacing it: `area → line → bar → table`,
+ * `stacked-bar → bar → table`, `stacked-100 → stacked-bar → table`,
+ * `horizontal-bar → bar → table`, `kpi → table` — each a chain, walked in order
+ * until a legal one is found (AC-1119).
+ */
 const NEAREST: Record<ChartType, ChartType[]> = {
   line: ['bar', 'table'],
+  area: ['line', 'bar', 'table'],
   bar: ['table'],
+  'stacked-bar': ['bar', 'table'],
+  'stacked-100': ['stacked-bar', 'table'],
+  'horizontal-bar': ['bar', 'table'],
   pie: ['bar', 'table'],
+  kpi: ['table'],
   table: [],
 }
 
@@ -225,15 +255,25 @@ export function applyReportMode(query: ReportQuery, mode: ReportMode): ReportQue
      with no controls to start from. The defaults are the ones the constants
      above already justify, and none of them is a business rule invented here. */
   if (mode === 'funnel' && !next.funnel) {
-    next.funnel = { steps: [], conversionWindowDays: null }
+    next.funnel = {
+      steps: [],
+      conversionWindow: null,
+      mode: 'ordered',
+      holdConstant: null,
+      exclude: [],
+      measuredAs: 'conversion',
+      groupBy: null,
+    }
   }
   if (mode === 'cohort' && !next.cohort) {
     next.cohort = {
       anchorMeasureKey: null,
-      returnMeasureKey: null,
+      returnMeasureKeys: [],
       /* The only grain the retention engine measures age at. The other two are
          offered by the picker and disabled with the reason (`CohortGrain`). */
       cohortGrain: 'month',
+      method: 'rolling',
+      brackets: null,
       /* `M0…M3` — the same four columns the seeded cohort report uses, and the
          narrowest matrix that is still a matrix. */
       horizon: 3,
@@ -337,6 +377,42 @@ export function planQuery(query: ReportQuery, catalogue: Catalogue, today: IsoDa
     }
   }
 
+  /* G1 / AC-1120: `aggregate` is only legal when it is one of the measure's own
+     `bucketAggregateOptions`. Read off `query.measures` directly rather than
+     the mode-generic `measureSource` above — a funnel step is not a `MeasureRef`
+     and has no aggregate to check. */
+  if (isSeriesMode) {
+    for (const ref of query.measures) {
+      if (ref.aggregate === undefined) continue
+      const options = byKey.get(ref.key)?.bucketAggregateOptions ?? []
+      if (!options.includes(ref.aggregate)) {
+        violations.push({
+          code: 'illegal-aggregate',
+          field: 'measures',
+          reasonKey: 'rb.violation.illegalAggregate',
+          reasonParams: { key: ref.key, aggregate: ref.aggregate },
+        })
+      }
+    }
+  }
+
+  /* G5 / AC-1122: a `performed` segment needs the server support the
+     catalogue's `supportsPerformed` declares. Absent means `false` — same
+     conservative default `Measure.supportsPerformed` documents. */
+  if (isSeriesMode) {
+    for (const segment of query.segments ?? []) {
+      if (segment.kind !== 'inline' || !segment.performed) continue
+      if (byKey.get(segment.performed.measureKey)?.supportsPerformed !== true) {
+        violations.push({
+          code: 'segment-performed-unsupported',
+          field: 'segments',
+          reasonKey: 'rb.violation.segmentPerformedUnsupported',
+          reasonParams: { measure: segment.performed.measureKey },
+        })
+      }
+    }
+  }
+
   /* ── window ───────────────────────────────────────────────────────────── */
   const window = resolveWindow(query.window, today)
   if (window.from > window.to) {
@@ -352,13 +428,18 @@ export function planQuery(query: ReportQuery, catalogue: Catalogue, today: IsoDa
   const legalDimensions = intersect(measures.map((m) => m.dimensions.map((d) => d.key)))
   const legalFilterFields = intersect(measures.map((m) => m.filterableFields))
 
-  if (query.groupBy !== null && !legalDimensions.includes(query.groupBy)) {
-    violations.push({
-      code: 'illegal-dimension',
-      field: 'groupBy',
-      reasonKey: 'rb.violation.illegalDimension',
-      reasonParams: { dimension: query.groupBy },
-    })
+  /* G4: up to two levels. Each is checked against the same intersection a
+     single level always was — a hand-edited second level is no more legal
+     than a hand-edited first one. */
+  for (const dimension of query.groupBy) {
+    if (!legalDimensions.includes(dimension)) {
+      violations.push({
+        code: 'illegal-dimension',
+        field: 'groupBy',
+        reasonKey: 'rb.violation.illegalDimension',
+        reasonParams: { dimension },
+      })
+    }
   }
 
   for (const f of query.filters) {
@@ -415,15 +496,41 @@ export function planQuery(query: ReportQuery, catalogue: Catalogue, today: IsoDa
 
   const bucketCount = countBuckets(window.from, window.to, query.grain)
 
+  /* §2.6 / AC-1112: a fixed comparison window must produce the same bucket
+     count, at this grain, as the primary window — the primitive
+     `buckets.test.ts` proves the two counts genuinely disagree for a
+     mismatched window; this is the refusal built on it. `reasonParams.required`
+     is the current window's count, so the date popover can state exactly how
+     many days/weeks/months the fixed window needs to be. */
+  if (isSeriesMode && typeof query.periodComparison === 'object' && query.periodComparison.kind === 'fixed') {
+    const comparison = comparisonWindow(window, query.periodComparison)
+    const comparisonBucketCount = countBuckets(comparison.from, comparison.to, query.grain)
+    if (comparisonBucketCount !== bucketCount) {
+      violations.push({
+        code: 'comparison-length',
+        field: 'periodComparison',
+        reasonKey: 'rb.violation.comparisonLength',
+        reasonParams: { required: bucketCount, got: comparisonBucketCount },
+      })
+    }
+  }
+
   /* ── chart type ───────────────────────────────────────────────────────── */
-  const hasSplit = query.groupBy !== null
-  const splitParts = hasSplit ? expectedGroupCount(query.groupBy!, catalogue) : 1
+  /* G4: up to two levels. `splitParts` is the product of each level's
+     cardinality hint — the catalogue's forecast of how many series the split
+     produces, same role the single-level version always played. */
+  const groupLevels = query.groupBy.length
+  const hasSplit = groupLevels > 0
+  const splitParts = hasSplit
+    ? query.groupBy.reduce((total, dimension) => total * expectedGroupCount(dimension, catalogue), 1)
+    : 1
+  const hasSegments = (query.segments ?? []).length > 0
   const modeChart = MODE_CHART[mode]
 
   const chartTypes =
     modeChart === null
       ? CHART_TYPES.map((c) =>
-          chartLegality(c, { measures, hasSplit, splitParts, grain: query.grain, bucketCount }),
+          chartLegality(c, { measures, groupLevels, hasSplit, splitParts, hasSegments, grain: query.grain, bucketCount }),
         )
       : /* The mode already answered this question. The other three stay on
            screen, disabled, saying which mode decided and what it decided —
@@ -437,9 +544,58 @@ export function planQuery(query: ReportQuery, catalogue: Catalogue, today: IsoDa
     ? query.chartType
     : modeChart ?? nearestLegal(query.chartType, chartTypes)
 
+  /* G5, AC-1113: the series ceiling, counted **before** a request exists.
+     `measures × segments × groups`, each folded to at least one so an
+     unstarted picker does not read as zero series, and the group term folded
+     at `MAX_GROUPS` the same way the fold warning itself will be. Doubling for
+     a period comparison is a display fact (§2.6), not part of this ceiling —
+     the ceiling is stated in "current series". */
+  if (isSeriesMode) {
+    const segmentCount = Math.max(1, (query.segments ?? []).length)
+    const currentSeriesCount = Math.max(1, measures.length) * segmentCount * Math.min(splitParts, MAX_GROUPS + 1)
+    if (currentSeriesCount > MAX_CURRENT_SERIES) {
+      violations.push({
+        code: 'too-many-series',
+        field: 'segments',
+        reasonKey: 'rb.violation.tooManySeries',
+        reasonParams: { count: currentSeriesCount, max: MAX_CURRENT_SERIES },
+      })
+    }
+  }
+
+  /* G2 / AC-1104…AC-1107: the formula's own grammar and unit rules live in
+     `reporting/formula.ts`; this delegates rather than re-checking, and maps
+     `FormulaViolationCode` onto `QueryViolationCode` 1:1 (the two unions are
+     the same five strings by construction) so the two never drift. The error's
+     source position is carried through in `reasonParams` so the field can
+     underline exactly where the expression broke. */
+  if (isSeriesMode && query.formula && measures[0]) {
+    const refs: FormulaRefs = {
+      A: {
+        unit: measures[0].unit,
+        currency: measures[0].currency,
+        additive: measures[0].additive,
+        temporality: measures[0].temporality,
+      },
+      B: measures[1]
+        ? {
+            unit: measures[1].unit,
+            currency: measures[1].currency,
+            additive: measures[1].additive,
+            temporality: measures[1].temporality,
+          }
+        : undefined,
+      hasSplit,
+    }
+    const result = formulaUnit(query.formula.expression, refs)
+    if (!result.ok) {
+      violations.push(formulaViolation(result.error))
+    }
+  }
+
   /* ── the per-mode configuration ───────────────────────────────────────── */
   const cohortGrains = mode === 'cohort' ? planCohortGrains() : []
-  if (mode === 'funnel') violations.push(...funnelViolations(query))
+  if (mode === 'funnel') violations.push(...funnelViolations(query, byKey))
   if (mode === 'cohort') violations.push(...cohortViolations(query, window, byKey))
   if (mode === 'journey') violations.push(...journeyViolations(query, byKey))
 
@@ -498,8 +654,9 @@ function measureKeysForMode(
   }
   if (mode === 'cohort') {
     const c = query.cohort
+    /* G11: `returnMeasureKeys` is OR-combined and may be several. */
     return {
-      keys: [c?.anchorMeasureKey, c?.returnMeasureKey].filter((k): k is MeasureKey => Boolean(k)),
+      keys: [c?.anchorMeasureKey, ...(c?.returnMeasureKeys ?? [])].filter((k): k is MeasureKey => Boolean(k)),
       field: 'cohort',
     }
   }
@@ -511,9 +668,10 @@ function measureKeysForMode(
 }
 
 /** *A funnel needs ordered steps.* The array order **is** the order (`FunnelSpec`). */
-function funnelViolations(query: ReportQuery): QueryViolation[] {
+function funnelViolations(query: ReportQuery, byKey: Map<MeasureKey, Measure>): QueryViolation[] {
   const out: QueryViolation[] = []
-  const steps = query.funnel?.steps ?? []
+  const spec = query.funnel
+  const steps = spec?.steps ?? []
 
   if (steps.length < MIN_FUNNEL_STEPS) {
     out.push({
@@ -552,6 +710,35 @@ function funnelViolations(query: ReportQuery): QueryViolation[] {
     seen.add(signature)
   })
 
+  /* G10 / §5: `sequential`, `holdConstant` and `exclude` need event-level data
+     no store here has. Refused **unconditionally for `exclude`** — no
+     capability flag names it, because nothing in this catalogue could ever
+     satisfy it — and for the other two unless every rung's measure declares
+     `funnelCapabilities` for the one asked. One violation, not three: the
+     three options share a control and a query asking for more than one gets
+     one reason, not a stack of identical sentences. */
+  if (spec) {
+    const wantsSequential = spec.mode === 'sequential'
+    const wantsHoldConstant = spec.holdConstant !== null
+    const wantsExclude = spec.exclude.length > 0
+    if (wantsSequential || wantsHoldConstant || wantsExclude) {
+      const supported =
+        !wantsExclude &&
+        steps.every((step) => {
+          const caps = byKey.get(step.measureKey)?.funnelCapabilities
+          return (!wantsSequential || caps?.sequential === true) && (!wantsHoldConstant || caps?.holdConstant === true)
+        })
+      if (!supported) {
+        out.push({
+          code: 'funnel-needs-server',
+          field: 'funnel',
+          reasonKey: 'rb.funnel.needsServer',
+          reasonParams: {},
+        })
+      }
+    }
+  }
+
   return out
 }
 
@@ -586,7 +773,7 @@ function cohortViolations(
      gets the reason beside the anchor control rather than an empty matrix.
      An UNRESOLVED measure is left alone: `unknown-measure` already named it,
      and two reasons for one mistake is one reason too many. */
-  for (const key of [spec.anchorMeasureKey, spec.returnMeasureKey]) {
+  for (const key of [spec.anchorMeasureKey, ...spec.returnMeasureKeys]) {
     if (key === null) continue
     const measure = byKey.get(key)
     if (!measure) continue
@@ -706,33 +893,104 @@ export function cohortIntervals(horizon: number | undefined): string[] {
 
 interface ChartContext {
   measures: Measure[]
+  /** G4: 0, 1 or 2. Only `stacked-bar`, `stacked-100` and `table` survive two. */
+  groupLevels: number
   hasSplit: boolean
   splitParts: number
+  hasSegments: boolean
   grain: ReportGrain
   bucketCount: number
 }
 
+/** `line`'s three gates (§3), reused as `area`'s first two — "as line" in the table's own words. */
+function lineLikeLegality(chart: ChartType, ctx: ChartContext): OptionLegality<ChartType> {
+  const { grain, bucketCount, groupLevels } = ctx
+  if (groupLevels === 2) {
+    return illegal(chart, 'rb.chart.twoLevelsNeedStack', {})
+  }
+  if (grain === 'none') {
+    return illegal(chart, 'rb.chart.lineNeedsGrain', {})
+  }
+  if (bucketCount < 2) {
+    /* Legacy already knows this and says so at `:6774`. */
+    return illegal(chart, 'rb.chart.lineNeedsTwoPoints', { buckets: bucketCount })
+  }
+  return legal(chart)
+}
+
 function chartLegality(chart: ChartType, ctx: ChartContext): OptionLegality<ChartType> {
-  const { measures, hasSplit, splitParts, grain, bucketCount } = ctx
+  const { measures, groupLevels, hasSplit, splitParts, hasSegments, grain } = ctx
 
   /* A table renders the same numbers the chart renders, for every query shape
      in §7.1. It is the floor and it is never illegal (AC-841). */
   if (chart === 'table') return legal(chart)
 
-  if (chart === 'line') {
-    if (grain === 'none') {
-      return illegal(chart, 'rb.chart.lineNeedsGrain', {})
-    }
-    if (bucketCount < 2) {
-      /* Legacy already knows this and says so at `:6774`. */
-      return illegal(chart, 'rb.chart.lineNeedsTwoPoints', { buckets: bucketCount })
+  if (chart === 'line') return lineLikeLegality(chart, ctx)
+
+  if (chart === 'area') {
+    /* AC-1118: "as line, and one measure" — line's own gates first, so a
+       two-level split or a bare `grain: 'none'` reports line's reason rather
+       than a generic one, then the one gate area adds on top. */
+    const base = lineLikeLegality(chart, ctx)
+    if (!base.legal) return base
+    if (measures.length !== 1) {
+      return illegal(chart, 'rb.chart.areaOneMeasure', {})
     }
     return legal(chart)
   }
 
   if (chart === 'bar') {
+    if (groupLevels === 2) {
+      return illegal(chart, 'rb.chart.twoLevelsNeedStack', {})
+    }
     if (grain === 'none' && !hasSplit) {
       return illegal(chart, 'rb.chart.barNeedsGrainOrSplit', {})
+    }
+    return legal(chart)
+  }
+
+  if (chart === 'stacked-bar' || chart === 'stacked-100') {
+    /* AC-1115: additive, a split or two same-unit measures, and none of the
+       three share units. `measures.length === 2` stands in for "two same-unit
+       measures" because a pair that disagreed on unit already carries
+       `mixed-unit` from the pairing rule above — this gate does not repeat it. */
+    if (measures.length === 0 || measures.some((m) => !m.additive)) {
+      return illegal(chart, 'rb.chart.stackNeedsAdditive', {})
+    }
+    if (!hasSplit && measures.length !== 2) {
+      return illegal(chart, 'rb.chart.stackNeedsParts', {})
+    }
+    const badUnit = measures.find((m) => SHARE_ILLEGAL_UNITS.has(m.unit))
+    if (badUnit) {
+      return illegal(chart, 'rb.chart.stackUnit', { unit: badUnit.unit })
+    }
+    if (chart === 'stacked-100') {
+      const parts = hasSplit ? splitParts : measures.length
+      if (parts < 2) {
+        return illegal(chart, 'rb.chart.stack100NeedsParts', { parts })
+      }
+    }
+    return legal(chart)
+  }
+
+  if (chart === 'horizontal-bar') {
+    /* AC-1117: "requires grain: 'none' and a split" — bundled with "one
+       measure" under the same reason, since a picker with two measures and a
+       split is not a shape this chart can draw either. */
+    if (!hasSplit || measures.length !== 1) {
+      return illegal(chart, 'rb.chart.hbarNeedsSplit', {})
+    }
+    if (grain !== 'none') {
+      return illegal(chart, 'rb.chart.hbarSinglePeriod', {})
+    }
+    return legal(chart)
+  }
+
+  if (chart === 'kpi') {
+    /* AC-1116: one measure, no split, no segment — one reason for all three,
+       because a KPI tile has no legend to show what the split or segment was. */
+    if (measures.length !== 1 || hasSplit || hasSegments) {
+      return illegal(chart, 'rb.chart.kpiOneSeries', {})
     }
     return legal(chart)
   }
@@ -742,7 +1000,7 @@ function chartLegality(chart: ChartType, ctx: ChartContext): OptionLegality<Char
   if (!m) {
     return illegal(chart, 'rb.chart.pieOneMeasure', {})
   }
-  if (PIE_ILLEGAL_UNITS.has(m.unit)) {
+  if (SHARE_ILLEGAL_UNITS.has(m.unit)) {
     return illegal(chart, 'rb.chart.pieUnit', { unit: m.unit })
   }
   if (!m.additive) {
@@ -771,6 +1029,32 @@ function nearestLegal(from: ChartType, options: OptionLegality<ChartType>[]): Ch
     if (options.find((o) => o.value === candidate)?.legal) return candidate
   }
   return 'table'
+}
+
+/* ────────────────────────── formula legality ───────────────────────────── */
+
+/** `FormulaViolationCode` onto `rb.violation.formula*` — 02 §11's naming, one row per code. */
+const FORMULA_REASON_KEY: Record<FormulaViolationCode, string> = {
+  'formula-parse': 'rb.violation.formulaParse',
+  'formula-unknown-ref': 'rb.violation.formulaUnknownRef',
+  'formula-unit': 'rb.violation.formulaUnit',
+  'formula-needs-additive': 'rb.violation.formulaNeedsAdditive',
+  'formula-needs-split': 'rb.violation.formulaNeedsSplit',
+}
+
+/**
+ * `FormulaError` → `QueryViolation`. The codes are the same five strings on
+ * both sides by construction (`FormulaViolationCode` and the formula slice of
+ * `QueryViolationCode`), so this is a field reshape, not a lookup — `position`
+ * survives into `reasonParams` either way, which is what lets the rail
+ * underline the exact character the expression broke on (AC-1104).
+ */
+function formulaViolation(error: FormulaError): QueryViolation {
+  const reasonParams: Record<string, string | number> =
+    error.code === 'formula-parse'
+      ? { position: error.position, expected: error.expected }
+      : { position: error.position, ref: error.ref ?? '' }
+  return { code: error.code, field: 'formula', reasonKey: FORMULA_REASON_KEY[error.code], reasonParams }
 }
 
 /* ───────────────────────────── helpers ─────────────────────────────────── */

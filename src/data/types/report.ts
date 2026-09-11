@@ -88,11 +88,21 @@ export type ReportPreset =
   | 'last-month'
   | 'last-12-months'
   | 'last-year'
+  /**
+   * §2.7: matches Amplitude's range list without a custom range. `buckets.ts`'s
+   * `resolvePreset` typed these against a local `ReportPresetV2` superset
+   * (F-V2-5) until this union caught up; that superset is retired the same
+   * change this lands.
+   */
+  | 'this-quarter'
+  | 'last-quarter'
+  | 'this-year'
+  | 'year-to-date'
 
 /**
- * The nine, in the order every range control offers them.
+ * The thirteen, in the order every range control offers them.
  *
- * Exported so a second range control cannot be built with eight of them in a
+ * Exported so a second range control cannot be built with the presets in a
  * different order: the list and the union are one declaration, and a preset
  * added to the type without a place in this array does not compile.
  */
@@ -106,6 +116,10 @@ export const REPORT_PRESETS: readonly ReportPreset[] = [
   'last-month',
   'last-12-months',
   'last-year',
+  'this-quarter',
+  'last-quarter',
+  'this-year',
+  'year-to-date',
 ]
 
 export type ReportWindow =
@@ -702,6 +716,23 @@ export type QueryViolationCode =
    * steps, cohort age and path depth, none of which is a calendar.
    */
   | 'mode-fixes-grain'
+  /* ── v2, WP-1.4. `02-report-builder-v2.md` §2 and §3. ────────────────── */
+  /** §2.2. `formulaUnit`'s five refusals, carried through unchanged (`FormulaViolationCode`). */
+  | 'formula-parse'
+  | 'formula-unknown-ref'
+  | 'formula-unit'
+  | 'formula-needs-additive'
+  | 'formula-needs-split'
+  /** §2.1. `aggregate` set outside the measure's `bucketAggregateOptions`. */
+  | 'illegal-aggregate'
+  /** §2.5. A `performed` segment on a measure whose `supportsPerformed` is not `true`. */
+  | 'segment-performed-unsupported'
+  /** §2.6. A fixed comparison window whose bucket count differs from the primary window's. */
+  | 'comparison-length'
+  /** §2.5's ceiling: `measures × segments × groups` above 12 current series. */
+  | 'too-many-series'
+  /** §5. `sequential`, `holdConstant` or `exclude` on a rung the catalogue has not declared server support for. */
+  | 'funnel-needs-server'
 
 export interface QueryViolation {
   code: QueryViolationCode
@@ -719,6 +750,11 @@ export interface QueryViolation {
     | 'funnel'
     | 'cohort'
     | 'journey'
+    /* v2 controls, WP-1.4: the formula field, the segments picker and the
+       fixed-comparison date popover each get their own reason slot. */
+    | 'formula'
+    | 'segments'
+    | 'periodComparison'
   /** The reason, as a key with params. Never assembled from fragments (AC-894). */
   reasonKey: string
   reasonParams: Record<string, string | number>

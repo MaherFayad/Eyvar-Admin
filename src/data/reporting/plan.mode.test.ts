@@ -38,7 +38,7 @@ const violation = (query: ReportQuery, code: QueryViolation['code']) =>
 /** Everything common to the four non-trend modes. Each block varies one thing. */
 const base: ReportQuery = {
   measures: [],
-  groupBy: null,
+  groupBy: [],
   filters: [],
   window: { kind: 'preset', preset: 'last-90d' },
   grain: 'none',
@@ -49,13 +49,28 @@ const base: ReportQuery = {
 
 const step = (measureKey: string): FunnelStep => ({ measureKey, filters: [] })
 
+/** The v2 `FunnelSpec` at its defaults, for tests that only vary `steps` or one v2 field. */
+const funnelSpec = (
+  steps: FunnelStep[],
+  overrides: Partial<NonNullable<ReportQuery['funnel']>> = {},
+): NonNullable<ReportQuery['funnel']> => ({
+  steps,
+  conversionWindow: null,
+  mode: 'ordered',
+  holdConstant: null,
+  exclude: [],
+  measuredAs: 'conversion',
+  groupBy: null,
+  ...overrides,
+})
+
 /* ────────────────────────────── funnel ─────────────────────────────────── */
 
 describe('1 — a funnel needs ordered steps', () => {
   const funnel = (steps: FunnelStep[]): ReportQuery => ({
     ...base,
     mode: 'funnel',
-    funnel: { steps, conversionWindowDays: null },
+    funnel: funnelSpec(steps),
   })
 
   it('refuses a funnel with no configuration at all', () => {
@@ -112,13 +127,10 @@ describe('1 — a funnel needs ordered steps', () => {
     const query: ReportQuery = {
       ...base,
       mode: 'funnel',
-      funnel: {
-        steps: [
-          { measureKey: 'trips.completed', filters: [{ field: 'trip.kind', op: 'eq', value: 'quick' }] },
-          { measureKey: 'trips.completed', filters: [] },
-        ],
-        conversionWindowDays: null,
-      },
+      funnel: funnelSpec([
+        { measureKey: 'trips.completed', filters: [{ field: 'trip.kind', op: 'eq', value: 'quick' }] },
+        { measureKey: 'trips.completed', filters: [] },
+      ]),
     }
     expect(codes(query)).toEqual([])
   })
@@ -156,8 +168,10 @@ describe('2 — a cohort needs an anchor event and a window', () => {
     mode: 'cohort',
     cohort: {
       anchorMeasureKey: 'riders.joined',
-      returnMeasureKey: null,
+      returnMeasureKeys: [],
       cohortGrain: 'month',
+      method: 'rolling',
+      brackets: null,
       horizon: 3,
       ...spec,
     },
@@ -290,10 +304,7 @@ describe('4 — the mode fixes the chart and, where there is no calendar, the gr
   const funnelQuery: ReportQuery = {
     ...base,
     mode: 'funnel',
-    funnel: {
-      steps: [step('riders.joined'), step('trips.completed')],
-      conversionWindowDays: null,
-    },
+    funnel: funnelSpec([step('riders.joined'), step('trips.completed')]),
   }
 
   it('leaves the chart choice with the operator in trend mode only', () => {
