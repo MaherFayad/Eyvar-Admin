@@ -33,7 +33,9 @@ Everything else in the plan stands, including every gate.
 | WP-1.4b Formula unit fix | utilities-engineer | done — revenue-per-trip legal, both guards kept, RPT-19 seeded |
 | WP-1.5 Serialiser | mock-data-engineer | done — v:2 wire, every v1 URL still decodes, 56 tests |
 | WP-1.6a Resolver core | mock-data-engineer | done — pure core + fixture adapter, 52 tests |
-| WP-6.4 Compiler | general-purpose | running |
+| WP-6.4 Compiler | general-purpose | done — 14 saved reports equal the mock bucket for bucket; scale caveat below |
+| WP-6.4b Compiler gaps | general-purpose | running (orchestrator-opened) |
+| WP-6.6 Alerts and crons | general-purpose | running |
 | WP-1.6c Alert evaluator | mock-data-engineer | done — 4 condition kinds, 5-state machine, 40 tests |
 | WP-4.1 Markdown | utilities-engineer | done — parse+render, 151 tests, no dangerouslySetInnerHTML |
 | WP-6.1 Backend scaffold | general-purpose | done — api/ project, router, envelopes, migrations, 5 tests |
@@ -42,12 +44,37 @@ Everything else in the plan stands, including every gate.
 | WP-6.5 Reports, segments, annotations, pages | general-purpose | done — 122 api tests, 409 proved with two concurrent writers |
 | WP-6.3 Catalogue | general-purpose | done — full Measure schema, generated glossary, 44 api tests |
 
+## The one finding that needs a decision before production
+
+**The compiler aggregates in Node, not in SQL.** WP-6.4 chose to fetch matching rows
+(capped at 50,000 per leg) and then call the *same* `resolveTrendLeg` / `resolveFormulaLeg`
+the mock calls, rather than emit `GROUP BY` SQL. SQL does population resolution, filtering
+and the row cap; everything after that is shared code.
+
+**Why it is a good decision for now:** it makes server-versus-mock divergence structurally
+impossible rather than merely tested. The fold's tie-break, the mean's rounding, gap handling
+and partial-bucket marking cannot drift, because there is exactly one implementation. That is
+why 14 saved reports come back equal to the mock bucket for bucket.
+
+**Why it cannot ship to production as-is:** a ride-subscription business writes far more than
+50,000 trips in any window an operator would report on. Past the cap every leg returns
+`truncated: true` — marked, not silent, but a truncated answer is not an answer. Aggregation
+has to move into SQL before real volumes, and at that point the equality test becomes the
+thing that keeps the SQL honest.
+
+**Recommendation:** keep it for the preview deployment, and treat "push aggregation into SQL,
+with AC-1276 as the guard" as the first production work package. Do not raise the row cap
+instead; that trades a marked wrong answer for an unmarked slow one.
+
 ## Findings raised during the build, for the owner
 
 | # | Finding | Raised by | Disposition |
 |---|---|---|---|
 | F-V2-1 | D33 … D37 exist only as prose in `RULINGS.md`'s "Standing owner overrides", never as headed entries in `DECISIONS.md`, though the ID-namespace table says their text lives there | WP-0.1 | Backlog; not fixed in this build. The owner decides whether they get retroactive entries |
 | F-V2-2 | Q-RB-3 (week start) and Q-RB-7 (alert cadence) are not in `docs/07-api/OPEN-QUESTIONS.md`; they live in `specs/06-report-builder.md`. D45 and D41 answer them but the spec still poses them | WP-0.1 | Fixed in WP-8.5 |
+| F-V2-30 | `subscriptions.active` and `subscriptions.cancelled` do not equal the mock: the mock's liveness is a three-condition window (`startedOn`, `endsOn`, **and** `cancelledAt`), while `measure_sources.live_to_column` is a two-bound scheme that ignores an early cancellation. A cancelled subscription counts as active on the server | WP-6.4 | **WP-6.4b opened.** This is a wrong number, not a missing feature |
+| F-V2-31 | The compiler treats a saved segment as a no-op, matching the mock's behaviour before WP-1.7 gave it a real lookup | WP-6.4 | **WP-6.4b**, once the `segments` table is seeded |
+| F-V2-32 | Funnel, cohort and journey modes are not compiled: the server answers `mode-not-resolved`. WP-6.4's brief covered the trend and formula legs only | WP-6.4 | Real gap for http mode. Needs its own work package before those three modes work against the server |
 | F-V2-28 | There is no `manage_analytics` permission key. Every analytics write the server accepts — saving a report, editing a page, creating an annotation, arming an alert — is gated on `view_analytics`, so anyone who can read analytics can write it. `PermissionRef.level` (`full`/`read`) exists but D17 deprecated it; navigation carries a bare `PermissionKey` | WP-6.5 | **Open, the owner's call, and it is a product decision not a bug.** The existing product gates nothing finer, so the server is faithful to today's behaviour rather than introducing a regression. Minting the key touches the RBAC union, every role fixture, the settings permission matrix and `navigation.test.ts`'s parity assertion, so it is not a change to make unilaterally mid-build |
 | F-V2-29 | `api/_db/migrate.mjs` is plain `.mjs` and cannot import the TypeScript `dashboardToPage`, so the dashboard-to-page migration is written and tested but not wired into `npm run db:migrate`. It is moot today: no `dashboards` table exists in Postgres, a v1 dashboard lives only in frontend fixtures | WP-6.5 | Guarded and idempotent; wires up the day a dashboards table exists |
 | F-V2-27 | `02-report-builder-v2.md` §2.2 types `A / B` as `ratio` unconditionally, so revenue per trip renders as a bare number with no currency — an operator sees `23.4`, not `SAR 23.40`. Built to the plan, because D42 was signed with that table | WP-1.4b | **Open, the owner's call.** Money divided by a count is money per unit; carrying the currency would read better and cannot mislead. Changing it means amending §2.2, `formulaUnit` and its tests |

@@ -67,6 +67,8 @@ onFixturesLoaded((f) => {
   /* Seeded here rather than at module load: these locals are built from
      late-bound fixtures, which are undefined until the fixture chunk lands. */
   rules = alertRuleFixtures.map((r) => ({ ...r }))
+  firings = alertFiringFixtures.map((f2) => ({ ...f2 }))
+  configHistory = {}
 })
 
 export const ALERT_OPERATIONS = {
@@ -76,6 +78,10 @@ export const ALERT_OPERATIONS = {
   delete: 'alerts.delete',
   evaluate: 'alerts.evaluate',
   history: 'alerts.history',
+  firings: 'alerts.firings',
+  acknowledge: 'alerts.acknowledge',
+  mute: 'alerts.mute',
+  configHistory: 'alerts.configHistory',
 } as const
 
 /* Registered at module load, not on first call. `config.ts` says *"each client
@@ -87,6 +93,16 @@ registerOperations(...Object.values(ALERT_OPERATIONS))
 
 /** Mutable copy. **Not persistence** — Q1 is open, and §9.1 cuts alerts entirely without it. */
 let rules!: AlertRule[]
+/** Mutable copy, so `acknowledgeFiring` is observable within a session. */
+let firings!: AlertFiring[]
+/** §5's per-rule save log — `{ at, by, diff }`, newest last. Session-only, like everything else here. */
+let configHistory!: Record<string, ConfigHistoryEntry[]>
+
+export interface ConfigHistoryEntry {
+  at: string
+  by: string
+  diff: Array<{ field: string; from: unknown; to: unknown }>
+}
 
 /**
  * GET /api/v1/alerts
@@ -164,6 +180,12 @@ export interface SaveAlertInput {
   recipientIds: string[]
   enabled: boolean
   mutedUntil: string | null
+  /** v2, `04-alerting-v2.md` §2. **Absent means the v1 static shape** — `comparator`/`threshold` above. */
+  condition?: AlertRule['condition']
+  channels?: AlertRule['channels']
+  severity?: AlertRule['severity']
+  labels?: string[]
+  minReArmMinutes?: number | null
 }
 
 /**
@@ -211,9 +233,11 @@ export async function saveAlertRule(
       /* Derived. See the doc comment. */
       thresholdUnit: measure!.unit,
       thresholdCurrency: measure!.currency,
+      /* v2 (`04-alerting-v2.md` §2). `undefined` keeps `alertCondition()` reading the v1 pair above. */
+      condition: input.condition,
       evaluationGrain: input.evaluationGrain,
       cadence: input.cadence,
-      minReArmMinutes: existing?.minReArmMinutes ?? null,
+      minReArmMinutes: input.minReArmMinutes ?? existing?.minReArmMinutes ?? null,
       consecutiveFailuresBeforeError: existing?.consecutiveFailuresBeforeError ?? 5,
       state: existing?.state ?? 'armed',
       enabled: input.enabled,
@@ -221,14 +245,21 @@ export async function saveAlertRule(
       recipientIds: input.recipientIds,
       ownerId: existing?.ownerId ?? currentMockUserId(),
       notificationPriority: existing?.notificationPriority ?? 'high',
+      severity: input.severity,
+      channels: input.channels,
+      labels: input.labels ?? existing?.labels ?? [],
       lastEvaluatedAt: existing?.lastEvaluatedAt ?? null,
       lastFiredAt: existing?.lastFiredAt ?? null,
       lastValue: existing?.lastValue ?? null,
+      lastBand: existing?.lastBand,
+      acknowledgedAt: existing?.acknowledgedAt,
+      acknowledgedBy: existing?.acknowledgedBy,
       stateReasonKey: existing?.stateReasonKey ?? null,
       createdAt: existing?.createdAt ?? EYVAR_NOW,
       updatedAt: EYVAR_NOW,
     }
 
+    if (existing) recordConfigChange(existing, rule)
     rules = existing ? rules.map((r) => (r.id === rule.id ? rule : r)) : [...rules, rule]
     return { status: 'saved' as const, rule: { ...rule } }
   })
@@ -347,9 +378,107 @@ export async function listAlertFirings(
     return http.get<Paginated<AlertFiring>>(`/alerts/${ruleId}/history`, { ...params, signal }, { signal })
   }
   return mock(ALERT_OPERATIONS.history, signal, () => {
-    const rows = alertFiringFixtures
+    const rows = firings
       .filter((f) => f.ruleId === ruleId)
       .sort((a, b) => Date.parse(b.firedAt) - Date.parse(a.firedAt))
+    return paginate(rows, params)
+  })
+}
+
+/* ─────────────────────────── §4's Firings tab ───────────────────────────── */
+
+export interface FiringQuery extends QueryParams {
+  /** `filters[ruleId|severity|acknowledged]` — the Firings tab's own controls. */
+  filters?: QueryParams['filters']
+}
+
+/**
+ * GET /api/v1/alerts/firings
+ *   params: q · filters[ruleId|severity|acknowledged] · page · pageSize
+ *   -> Paginated<AlertFiring>
+ *
+ * The cross-rule ledger `04-alerting-v2.md` §4 adds beside the per-rule
+ * `alerts.history` above: every firing the viewer may see, newest first.
+ */
+export async function listFirings(params: FiringQuery = {}, signal?: AbortSignal): Promise<Paginated<AlertFiring>> {
+  if (DATA_SOURCE === 'http') {
+    return http.get<Paginated<AlertFiring>>('/alerts/firings', { ...params, signal }, { signal })
+  }
+  return mock(ALERT_OPERATIONS.firings, signal, () => {
+    let rows = [...firings]
+    for (const filter of params.filters ?? []) {
+      const wanted = Array.isArray(filter.value) ? filter.value.map(String) : [String(filter.value)]
+      if (filter.field === 'ruleId') rows = rows.filter((f) => wanted.includes(f.ruleId))
+      if (filter.field === 'acknowledged') {
+        const want = wanted.includes('true')
+        rows = rows.filter((f) => (f.acknowledgedAt !== null && f.acknowledgedAt !== undefined) === want)
+      }
+    }
+    rows.sort((a, b) => Date.parse(b.firedAt) - Date.parse(a.firedAt))
+    return paginate(rows, params)
+  })
+}
+
+/**
+ * POST /api/v1/alerts/firings/:id/acknowledge
+ *   -> AlertFiring
+ *
+ * §7 state 27. Writes `acknowledgedAt`/`acknowledgedBy` on the firing and
+ * mirrors both onto the rule, matching the shape `ALR-10`/`AFR-3` already
+ * seed. No state change.
+ */
+export async function acknowledgeFiring(firingId: string, signal?: AbortSignal): Promise<AlertFiring> {
+  if (DATA_SOURCE === 'http') {
+    return http.post<AlertFiring>(`/alerts/firings/${firingId}/acknowledge`, undefined, { signal })
+  }
+  return mockMutation(ALERT_OPERATIONS.acknowledge, signal, () => {
+    const row = firings.find((f) => f.id === firingId)
+    if (!row) throw notFound('alert firing', firingId)
+    const me = currentMockUserId()
+    const acknowledged: AlertFiring = { ...row, acknowledgedAt: EYVAR_NOW, acknowledgedBy: me }
+    firings = firings.map((f) => (f.id === firingId ? acknowledged : f))
+    rules = rules.map((r) => (r.id === row.ruleId ? { ...r, acknowledgedAt: EYVAR_NOW, acknowledgedBy: me } : r))
+    return { ...acknowledged }
+  })
+}
+
+/**
+ * POST /api/v1/alerts/:id/mute
+ *   body: { until: IsoDateTime }
+ *   -> Single<AlertRule>
+ *
+ * §4's `Mute for…` inline menu. §12.4: evaluation keeps running while muted
+ * so the rule re-arms correctly; this writes only `mutedUntil`.
+ */
+export async function muteAlertRule(id: string, until: string, signal?: AbortSignal): Promise<Single<AlertRule>> {
+  if (DATA_SOURCE === 'http') return http.post<Single<AlertRule>>(`/alerts/${id}/mute`, { until }, { signal })
+  return mockMutation(ALERT_OPERATIONS.mute, signal, () => {
+    const row = rules.find((r) => r.id === id)
+    if (!row) throw notFound('alert rule', id)
+    const muted: AlertRule = { ...row, mutedUntil: until }
+    rules = rules.map((r) => (r.id === id ? muted : r))
+    return { data: { ...muted } }
+  })
+}
+
+/**
+ * GET /api/v1/alerts/:id/config-history
+ *   -> Paginated<ConfigHistoryEntry>
+ *
+ * §5's `Changes` tab. One entry per save that changed a field, newest first.
+ * A rule saved once, unchanged, or never edited since seeding has none —
+ * the empty state, not an error.
+ */
+export async function getAlertConfigHistory(
+  id: string,
+  params: QueryParams = {},
+  signal?: AbortSignal,
+): Promise<Paginated<ConfigHistoryEntry>> {
+  if (DATA_SOURCE === 'http') {
+    return http.get<Paginated<ConfigHistoryEntry>>(`/alerts/${id}/config-history`, { ...params, signal }, { signal })
+  }
+  return mock(ALERT_OPERATIONS.configHistory, signal, () => {
+    const rows = [...(configHistory[id] ?? [])].reverse()
     return paginate(rows, params)
   })
 }
@@ -394,6 +523,8 @@ export function resetAlerts(): void {
      binder in this module seeds fresh state when it does land. */
   if (!fixturesLoaded()) return
   rules = alertRuleFixtures.map((r) => ({ ...r }))
+  firings = alertFiringFixtures.map((f) => ({ ...f }))
+  configHistory = {}
 }
 
 /* ────────────────────────────── helpers ────────────────────────────────── */
@@ -406,6 +537,20 @@ export function resetAlerts(): void {
  */
 function measureForSeries(seriesId: string) {
   return measuresByKey[seriesId.split('#')[0] ?? ''] ?? null
+}
+
+/** §5's `{ at, by, diff }` row — one entry per field that actually changed. */
+const CONFIG_HISTORY_FIELDS = ['name', 'evaluationGrain', 'cadence', 'severity', 'enabled', 'mutedUntil'] as const
+
+function recordConfigChange(before: AlertRule, after: AlertRule): void {
+  const diff = CONFIG_HISTORY_FIELDS.filter((field) => before[field] !== after[field]).map((field) => ({
+    field,
+    from: before[field],
+    to: after[field],
+  }))
+  if (diff.length === 0) return
+  const entry: ConfigHistoryEntry = { at: EYVAR_NOW, by: currentMockUserId(), diff }
+  configHistory = { ...configHistory, [after.id]: [...(configHistory[after.id] ?? []), entry] }
 }
 
 function evaluation(

@@ -69,6 +69,7 @@ import {
   type SaveInvalidReason,
   type SaveReportOutcome,
   type SavedReport,
+  type SavedReportVersion,
 } from '../types/report'
 import { currentMockPermissions, currentMockUserId } from './session'
 import { http } from './http'
@@ -431,9 +432,9 @@ export async function listReportVersions(
   id: string,
   params: QueryParams = {},
   signal?: AbortSignal,
-): Promise<Paginated<{ at: string; by: string; query: ReportQuery }>> {
+): Promise<Paginated<SavedReportVersion>> {
   if (DATA_SOURCE === 'http') {
-    return http.get(`/reports/${id}/versions`, { ...params, signal }, { signal })
+    return http.get<Paginated<SavedReportVersion>>(`/reports/${id}/versions`, { ...params, signal }, { signal })
   }
   return mock(REPORT_OPERATIONS.versions, signal, () => {
     const row = reports.find((r) => r.id === id)
@@ -493,25 +494,33 @@ export async function contribution(input: ContributionInput, signal?: AbortSigna
     runReport({ ...input.query, window: input.windowB }, { signal }),
   ])
   return mock(REPORT_OPERATIONS.contribution, signal, () => {
+    /* One current series' sum of usable points — `null` when it has none, not `0` (a gap, not a zero). */
     const totalOf = (result: ReportResult, groupValue: string | null): number | null => {
       const series = result.series.find((s) => s.role === 'current' && s.groupValue === groupValue)
       if (!series) return null
-      const usable = series.points.filter((p, i) => p !== null && !series.partialBucketIndexes.includes(i))
-      return usable.length === 0 ? null : (usable as number[]).reduce((sum, v) => sum + v, 0)
+      const usable = series.points.filter((p, i) => p !== null && !series.partialBucketIndexes.includes(i)) as number[]
+      return usable.length === 0 ? null : usable.reduce((sum, v) => sum + v, 0)
+    }
+    /* The whole series' total is every group's total summed — not a lookup for
+       an ungrouped series, which does not exist once `query.groupBy` is set. */
+    const sumAllOf = (result: ReportResult): number | null => {
+      const totals = result.series
+        .filter((s) => s.role === 'current')
+        .map((s) => totalOf(result, s.groupValue))
+        .filter((t): t is number => t !== null)
+      return totals.length === 0 ? null : totals.reduce((sum, t) => sum + t, 0)
     }
     const groupsA = a.status === 'ok' ? a.result.series.filter((s) => s.role === 'current').map((s) => s.groupValue) : []
     const groupsB = b.status === 'ok' ? b.result.series.filter((s) => s.role === 'current').map((s) => s.groupValue) : []
-    const groupValues = [...new Set([...groupsA, ...groupsB])]
+    const groupValues = [...new Set([...groupsA, ...groupsB])].filter((g): g is string => g !== null)
     return runContribution({
-      totalA: a.status === 'ok' ? totalOf(a.result, null) : null,
-      totalB: b.status === 'ok' ? totalOf(b.result, null) : null,
-      parts: groupValues
-        .filter((g): g is string => g !== null)
-        .map((groupValue) => ({
-          groupValue,
-          totalA: a.status === 'ok' ? totalOf(a.result, groupValue) : null,
-          totalB: b.status === 'ok' ? totalOf(b.result, groupValue) : null,
-        })),
+      totalA: a.status === 'ok' ? sumAllOf(a.result) : null,
+      totalB: b.status === 'ok' ? sumAllOf(b.result) : null,
+      parts: groupValues.map((groupValue) => ({
+        groupValue,
+        totalA: a.status === 'ok' ? totalOf(a.result, groupValue) : null,
+        totalB: b.status === 'ok' ? totalOf(b.result, groupValue) : null,
+      })),
     })
   })
 }
