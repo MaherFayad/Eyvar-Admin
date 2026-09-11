@@ -29,6 +29,24 @@ export interface SavePageOutcomeLike {
   violations?: unknown[]
 }
 
+/** T16's `alert_context` — one firing, its rule, the series around it, and the context around that. */
+export interface AlertContextResult {
+  rule: AlertRule
+  bucketStart: string
+  value: number
+  threshold: number
+  series: {
+    id: string
+    measureKey: string
+    groupValue: string | null
+    buckets: string[]
+    points: (number | null)[]
+    partialBucketIndexes: number[]
+  } | null
+  priorFirings: AlertFiring[]
+  annotations: Annotation[]
+}
+
 export interface Backend {
   today(): IsoDate
   currentPermissions(): Promise<PermissionKey[] | null>
@@ -75,6 +93,8 @@ export interface Backend {
   getAlertRule(id: string): Promise<Single<AlertRule>>
   listAlertFirings(ruleId: string, params: QueryParams): Promise<Paginated<AlertFiring>>
   listFirings(params: QueryParams): Promise<Paginated<AlertFiring>>
+  /** `null` means no firing with that id. */
+  alertContext(firingId: string): Promise<AlertContextResult | null>
 
   listAnnotations(params: { from?: IsoDate; to?: IsoDate }): Promise<Annotation[]>
 

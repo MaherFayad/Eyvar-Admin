@@ -225,7 +225,21 @@ export function AlertsView({
       header: t('rb.alerts.col.condition'),
       minWidth: 180,
       dataType: 'text',
-      cell: (row) => <bdi>{conditionSummary(row, t, language)}</bdi>,
+      /* §7 state 23 — an anomaly rule short of the 8-point floor states the
+         count on the row, not only inside a transient `Test now` result. */
+      cell: (row) => {
+        const condition = alertCondition(row)
+        const info = rowSeries.data?.[row.id]
+        if (condition.kind === 'anomaly' && info) {
+          const usable = info.points.filter(
+            (v, i) => v !== null && !info.partialBucketIndexes.includes(i),
+          ).length
+          if (usable < 8) {
+            return <bdi>{t('rb.alert.anomaly.noBaseline', { count: usable })}</bdi>
+          }
+        }
+        return <bdi>{conditionSummary(row, t, language)}</bdi>
+      },
     },
     {
       id: 'state',

@@ -37,12 +37,16 @@ import {
   listPages,
   listReports,
   recordRun,
+  runReport,
   sampleRows,
   savePage,
   saveReport,
   compareWindows,
 } from '../../src/data/clients/index'
-import type { Backend } from './backendTypes.js'
+import type { AlertContextResult, Backend } from './backendTypes.js'
+
+/** T16's `alert_context` reaches ±14 buckets either side of the firing (§5). */
+const ALERT_CONTEXT_RADIUS = 14
 
 if (DATA_SOURCE === 'http') {
   // `mockBackend.ts` must never load in an http build. `source.ts` only
@@ -109,6 +113,59 @@ export const mockBackend: Backend = {
   getAlertRule: (id) => getAlertRule(id),
   listAlertFirings: (ruleId, params) => listAlertFirings(ruleId, params),
   listFirings: (params) => listFirings(params),
+  alertContext: async (firingId) => {
+    /* No `getFiring(id)` client exists — `listFirings` is the only read, so
+       every firing is paged through once. The seeded fixture set is small
+       (tens of rows); a real backend has the dedicated endpoint §5 names. */
+    const allFirings = await listFirings({ pageSize: 500 })
+    const firing = allFirings.items.find((f) => f.id === firingId)
+    if (!firing) return null
+
+    const ruleResult = await getAlertRule(firing.ruleId).catch(() => null)
+    if (!ruleResult) return null
+    const rule = ruleResult.data
+
+    let series: AlertContextResult['series'] = null
+    const reportResult = await getReport(rule.reportId).catch(() => null)
+    if (reportResult) {
+      const outcome = await runReport(reportResult.data.query)
+      if (outcome.status === 'ok') {
+        const found = outcome.result.series.find((s) => s.id === rule.seriesId)
+        if (found) {
+          const bucketIndex = outcome.result.buckets.indexOf(firing.bucketStart)
+          const start = bucketIndex === -1 ? 0 : Math.max(0, bucketIndex - ALERT_CONTEXT_RADIUS)
+          const end = bucketIndex === -1 ? outcome.result.buckets.length : Math.min(outcome.result.buckets.length, bucketIndex + ALERT_CONTEXT_RADIUS + 1)
+          series = {
+            id: found.id,
+            measureKey: found.measureKey,
+            groupValue: found.groupValue,
+            buckets: outcome.result.buckets.slice(start, end),
+            points: found.points.slice(start, end),
+            partialBucketIndexes: found.partialBucketIndexes.filter((i) => i >= start && i < end).map((i) => i - start),
+          }
+        }
+      }
+    }
+
+    const priorFirings = (await listAlertFirings(rule.id, { pageSize: 50 })).items
+      .filter((f) => f.id !== firing.id && Date.parse(f.firedAt) < Date.parse(firing.firedAt))
+      .slice(0, 10)
+
+    const annotations =
+      series && series.buckets.length > 0
+        ? await listAnnotations({ from: series.buckets[0], to: series.buckets[series.buckets.length - 1] })
+        : []
+
+    return {
+      rule,
+      bucketStart: firing.bucketStart,
+      value: firing.value,
+      threshold: firing.threshold,
+      series,
+      priorFirings,
+      annotations,
+    }
+  },
 
   listAnnotations: (params) => listAnnotations(params),
 

@@ -10,8 +10,9 @@ import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { EN } from '@/i18n/dictionaries'
 import { createTranslator } from '@/lib'
+import { REPORT_PRESETS } from '@/data/clients/reports'
 import type { ReportQuery } from '@/data/types'
-import { ComparisonControl, ComparisonDisplayToggle } from './WindowControl'
+import { ComparisonControl, ComparisonDisplayToggle, WindowControl } from './WindowControl'
 
 const t = createTranslator({ dictionary: EN })
 const TODAY = '2026-09-11'
@@ -36,6 +37,22 @@ const BASE: ReportQuery = {
   periodComparison: 'none',
   chartType: 'line',
 }
+
+describe('the window popover — §2.7 presets', () => {
+  it('AC-1109 / AC-1158 — lists all thirteen presets, including the four new ones', async () => {
+    const user = userEvent.setup()
+    render(<WindowControl query={BASE} onChange={() => {}} today={TODAY} t={t} language="en" />)
+    /* The trigger's accessible name is the associated `<Label for>`, `rb.control.window` —
+       its own two-line content is what a sighted operator reads, not what AT announces. */
+    await user.click(screen.getByRole('button', { name: t('rb.control.window') }))
+    for (const preset of REPORT_PRESETS) {
+      expect(screen.getByRole('button', { name: t(`rb.preset.${preset}`) })).toBeInTheDocument()
+    }
+    for (const key of ['this-quarter', 'last-quarter', 'this-year', 'year-to-date']) {
+      expect(screen.getByRole('button', { name: t(`rb.preset.${key}`) })).toBeInTheDocument()
+    }
+  })
+})
 
 describe('ComparisonControl', () => {
   it('AC-1158 — offers previous period, previous quarter, previous year and a fixed row', async () => {

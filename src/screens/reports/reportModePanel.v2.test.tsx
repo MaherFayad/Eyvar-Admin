@@ -142,17 +142,15 @@ describe('funnel v2 — measuredAs and the conversion window (AC-1167, AC-1169)'
     expect(screen.getByRole('option', { name: copy('rb.funnel.window.weeks').replace('{weeks}', '4') })).toBeInTheDocument()
   })
 
-  it('a v1 query normalises conversionWindowDays to {value, unit} and the window control renders it (AC-1167)', () => {
-    const v1 = {
+  it('a query with a {value, unit} conversion window (AC-1167\'s migrated shape) renders in the window control', async () => {
+    const withWindow: ReportQuery = {
       ...funnelQuery,
-      funnel: { steps: funnelQuery.funnel!.steps, conversionWindowDays: 7 } as never,
+      funnel: { ...funnelQuery.funnel!, conversionWindow: { value: 7, unit: 'day' } },
     }
-    render(<Harness initial={v1} />)
-    /* `ReportModePanel` reads `query.funnel` as-given (unnormalised) — this
-       proves the CONTROL survives a v1 shape without throwing, which is the
-       failure mode the missing migration produced. `normaliseReportQuery`
-       itself is proven in `report.test.ts`. */
-    expect(screen.getByLabelText(copy('rb.funnel.window'))).toBeInTheDocument()
+    render(<Harness initial={withWindow} />)
+    expect(screen.getByLabelText(copy('rb.funnel.window'))).toHaveTextContent(
+      copy('rb.funnel.window.days').replace('{days}', '7'),
+    )
   })
 })
 
@@ -207,10 +205,10 @@ describe('cohort v2 — method and custom brackets (AC-1172)', () => {
     render(<Harness initial={cohortQuery} />)
     expect(screen.getByText(copy('rb.cohort.return.own'))).toBeInTheDocument()
 
-    await user.click(screen.getByLabelText(copy('rb.cohort.return.add')))
+    await user.click(screen.getByRole('combobox', { name: copy('rb.cohort.return') }))
     const measure = measureFixtures.find((m) => m.key !== 'riders.joined')!
     await user.click(await screen.findByRole('option', { name: t(measure.labelKey) }))
-    expect(screen.getByRole('button', { name: t(measure.labelKey) })).toBeInTheDocument()
+    expect(screen.getByText(t(measure.labelKey))).toBeInTheDocument()
     expect(screen.queryByText(copy('rb.cohort.return.own'))).not.toBeInTheDocument()
   })
 })

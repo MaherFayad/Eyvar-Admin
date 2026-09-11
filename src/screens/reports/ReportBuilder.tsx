@@ -226,7 +226,7 @@ import type {
 } from '@/data/types'
 import { applyReportMode } from '@/data/clients/reports'
 import { normaliseReportQuery, reportMode, type ReportMode } from '@/data/types'
-import type { Page } from '@/data/types/page'
+import { pageTemplate, type Page } from '@/data/types/page'
 import { formatDate, isDeepEqual, type Language, type Translator } from '@/lib'
 import { downloadPng, renderChartPng, type ChartPngCaption } from '@/lib/chartPng'
 import { auditExport, downloadCsv, reportCsvToText } from './export'
@@ -955,8 +955,15 @@ export function ReportBuilder({
      is open, so a builder that is never pinned costs no extra request. */
   const [pinMenuOpen, setPinMenuOpen] = useState(false)
   const pinPages = useAsync(
-    (signal) =>
-      listPages({ pageSize: 100, filters: [{ field: 'kind', op: 'eq', value: 'dashboard' }] }, signal),
+    async (signal) => {
+      const result = await listPages(
+        { pageSize: 100, filters: [{ field: 'kind', op: 'eq', value: 'dashboard' }] },
+        signal,
+      )
+      /* Templates dropped — see the matching comment in `SaveReportDialog.tsx`. */
+      const items = result.items.filter((page) => !pageTemplate(page))
+      return { ...result, items, total: items.length }
+    },
     {
       deps: [pinMenuOpen],
       enabled: pinMenuOpen,

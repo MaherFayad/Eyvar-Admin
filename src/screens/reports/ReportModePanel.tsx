@@ -603,11 +603,16 @@ function FunnelFields({
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="rb-funnel-exclude">{t('rb.funnel.exclude')}</Label>
+        {/* No `htmlFor`: this labels the SECTION, and a `<label for>` also
+            names a `<button>` (it is labelable, same as an input) — pointing
+            it at `Add an exclusion` would swallow that text and announce
+            "Exclude" instead, exactly the defect `Add a step`'s own label
+            risks above. */}
+        <Label>{t('rb.funnel.exclude')}</Label>
         {/* §5: refused unconditionally — no catalogue capability could ever
             satisfy it (`plan.ts`'s `funnelViolations`), so this is not a
             picker with every option disabled, it is one disabled control. */}
-        <Button id="rb-funnel-exclude" type="button" variant="secondary" disabled>
+        <Button type="button" variant="secondary" disabled>
           {t('rb.funnel.exclude.add')}
         </Button>
         <p className="text-xs text-muted-foreground">{t('rb.funnel.needsServer')}</p>

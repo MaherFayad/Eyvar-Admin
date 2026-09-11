@@ -8,7 +8,7 @@
  */
 
 import { httpGet, httpPost, EyvarHttpError } from './client.js'
-import type { Backend, SavePageOutcomeLike, SaveReportOutcomeLike } from './backendTypes.js'
+import type { AlertContextResult, Backend, SavePageOutcomeLike, SaveReportOutcomeLike } from './backendTypes.js'
 import type { Paginated, Single } from '../../src/data/types/common'
 import type { Dimension, Measure } from '../../src/data/types/measure'
 import type { ReportRun, RecordRunOutcome, CompareWindowsResult, SeriesDelta } from '../../src/data/clients/runs'
@@ -122,6 +122,14 @@ export const httpBackend: Backend = {
   getAlertRule: (id) => httpGet<Single<AlertRule>>(`/alerts/${id}`),
   listAlertFirings: (ruleId, params) => httpGet<Paginated<AlertFiring>>(`/alerts/${ruleId}/history`, params as Record<string, string | number | boolean | undefined>),
   listFirings: (params) => httpGet<Paginated<AlertFiring>>('/alerts/firings', params as Record<string, string | number | boolean | undefined>),
+  alertContext: async (firingId) => {
+    try {
+      return await httpGet<AlertContextResult>(`/alerts/firings/${firingId}/context`)
+    } catch (e) {
+      if (e instanceof EyvarHttpError && e.status === 404) return null
+      throw e
+    }
+  },
 
   listAnnotations: (params) => httpGet<Annotation[]>('/annotations', params as Record<string, string | number | boolean | undefined>),
 

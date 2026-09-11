@@ -21,9 +21,10 @@
  *    name, and the strip stops being five named questions.
  * 4. **The badge tracks dirtiness**, including dirtiness that is *not* the
  *    query — renaming a saved report makes it a draft.
- * 5. **PNG and PDF are listed, off, and say why.** D9 CQ-3: hidden is not the
- *    same as unavailable, and an operator hunting for an export this product
- *    does not have is the cost of hiding it.
+ * 5. **PDF is listed, off, and says why (D9 CQ-3); PNG works once a chart
+ *    exists (AC-1159) and is off only before then.** Hidden is not the same as
+ *    unavailable, and an operator hunting for an export this product does not
+ *    have is the cost of hiding it.
  *
  * Disciplines kept from `reports.test.tsx`: **no fixture module is imported**
  * (records come through the client seam) and **nothing spies on a client
@@ -35,12 +36,23 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { ShellProvider } from '@/shell/ShellContext'
-import { disableMockLatency, listReports, resetDataLayer } from '@/data/clients'
-import type { SavedReport } from '@/data/types'
+import { disableMockLatency, listReports, reportQueryPath, resetDataLayer } from '@/data/clients'
+import type { ReportQuery, SavedReport } from '@/data/types'
 import { EN } from '@/i18n/dictionaries'
 import { createTranslator } from '@/lib'
 import { REPORTS_EN } from './copy'
 import { ReportBuilder } from './ReportBuilder'
+
+/** A legal trend, composed here rather than read out of the seed. */
+const TREND: ReportQuery = {
+  measures: [{ key: 'captains.registered' }],
+  groupBy: [],
+  filters: [],
+  window: { kind: 'preset', preset: 'last-30d' },
+  grain: 'day',
+  periodComparison: 'none',
+  chartType: 'line',
+}
 
 const copy = (key: string) => REPORTS_EN[key] as string
 const shellCopy = (key: string) => EN[key] as string
@@ -75,8 +87,13 @@ async function savedReports(): Promise<readonly SavedReport[]> {
  * badge assertions.
  */
 function renderBuilder(report: SavedReport | null) {
+  return renderBuilderAt('/management/reports', report)
+}
+
+/** As `renderBuilder`, at a chosen path — a seeded `?q=` runs on arrival, with no debounce to wait out. */
+function renderBuilderAt(path: string, report: SavedReport | null) {
   return render(
-    <MemoryRouter initialEntries={['/management/reports']}>
+    <MemoryRouter initialEntries={[path]}>
       <ShellProvider>
         <ReportBuilder
           report={report}
@@ -262,7 +279,7 @@ describe('§A5 — the badge says whether what is on screen has been written dow
 /* ─────────────── 5 — blocked exports are listed, not hidden ────────────── */
 
 describe('§A6 / D9 CQ-3 — an export this product cannot do is disabled with a reason', () => {
-  it('shows PNG and PDF off, beside a CSV that works, and states why', async () => {
+  it('shows PNG and PDF off before anything has run, and states why PDF stays off', async () => {
     const user = userEvent.setup()
     renderBuilder(null)
 
@@ -273,13 +290,37 @@ describe('§A6 / D9 CQ-3 — an export this product cannot do is disabled with a
     const pdf = await screen.findByRole('menuitem', { name: copy('rb.export.pdf') })
 
     /* Present AND off — both halves, because a "not enabled" check alone passes
-       on a control that was removed. */
+       on a control that was removed. Nothing has run yet, so PNG has no chart
+       to rasterise — the same reason CSV stays off here too. */
     expect(png).toHaveAttribute('aria-disabled', 'true')
     expect(pdf).toHaveAttribute('aria-disabled', 'true')
 
-    /* The reason, in the menu, where the operator is looking. Amplitude greys
-       these out and says nothing; this sentence is the difference. */
-    expect(screen.getByText(copy('rb.export.blocked'))).toBeInTheDocument()
+    /* PDF's own reason, in the menu, where the operator is looking. Amplitude
+       greys these out and says nothing; this sentence is the difference. */
+    expect(screen.getByText(copy('rb.export.pdf.blocked'))).toBeInTheDocument()
+  })
+
+  it('AC-1159 — enables PNG once a chart exists, PDF stays off', async () => {
+    const user = userEvent.setup()
+    renderBuilderAt(reportQueryPath(TREND), null)
+    /* The seeded question runs on arrival. Waited through the TABLE beneath
+       the chart, not the plot itself: jsdom lays out nothing, so Recharts'
+       `ResponsiveContainer` never measures a size and never draws an `<svg>`
+       (AGENT-BRIEF's own trap) — but the numbers-beneath section is plain
+       markup and is the honest signal that `status` reached `content`. */
+    await screen.findByRole('region', { name: copy('rb.canvas.table.heading') })
+
+    await user.click(await screen.findByRole('button', { name: shellCopy('shell.moreActions') }))
+    await user.click(await screen.findByRole('menuitem', { name: copy('rb.export.menu') }))
+
+    expect(await screen.findByRole('menuitem', { name: copy('rb.export.png') })).not.toHaveAttribute(
+      'aria-disabled',
+      'true',
+    )
+    expect(screen.getByRole('menuitem', { name: copy('rb.export.pdf') })).toHaveAttribute(
+      'aria-disabled',
+      'true',
+    )
   })
 })
 
