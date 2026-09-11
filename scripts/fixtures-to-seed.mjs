@@ -5,12 +5,19 @@
  * loaded from the frontend's fixtures").
  *
  * `src/data/fixtures/measures.ts` → `measures.seed.sql` and
- * `dimensions.seed.sql`, full column set, one `SEEDERS` entry each. Extend by
- * adding another entry; nothing else here changes.
+ * `dimensions.seed.sql`, full column set, one `SEEDERS` entry each. WP-6.4
+ * added five more — `drivers`, `riders`, `subscriptions`, `trips`,
+ * `dailySnapshots` — the operational population `api/_lib/compile.ts` reads
+ * through `measure_sources` (`0005_runs.sql`), so the compiler's equality
+ * test (AC-1276) runs against the same rows the mock resolver does. Extend by
+ * adding another `SEEDERS` entry; nothing else here changes.
  *
- * Fixtures are TypeScript with no runtime imports beyond their own literals
- * (`import type` only), so this transpiles the one file with esbuild rather
- * than pulling in a bundler for a stub.
+ * `measures.ts` has no runtime imports beyond its own literals, but the
+ * operational fixtures do (`fixtures/cycle.ts`, `mock/clock.ts`, and — for
+ * `subscriptions`/`trips` — each other), so `importFixture` **bundles** the
+ * entry file with esbuild rather than transpiling it alone; a single-file
+ * transpile cannot resolve a relative import at all once it is loaded from a
+ * `data:` URL with no filesystem context.
  */
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
@@ -22,8 +29,15 @@ const ROOT = path.resolve(__dirname, '..')
 const OUT_DIR = path.join(ROOT, 'docs', '09-analytics-v2', 'examples')
 
 async function importFixture(relativePath) {
-  const source = await readFile(path.join(ROOT, relativePath), 'utf8')
-  const { code } = await esbuild.transform(source, { loader: 'ts', format: 'esm', target: 'es2022' })
+  const result = await esbuild.build({
+    entryPoints: [path.join(ROOT, relativePath)],
+    bundle: true,
+    write: false,
+    format: 'esm',
+    target: 'es2022',
+    platform: 'neutral',
+  })
+  const code = result.outputFiles[0].text
   return import(`data:text/javascript,${encodeURIComponent(code)}`)
 }
 
@@ -114,6 +128,86 @@ function dimensionsSeed(dimensionFixtures) {
   return statements.join('\n')
 }
 
+/**
+ * A generic row-INSERT builder for the `fixture_*` operational tables
+ * `0005_runs.sql` creates — one row per fixture record, `sqlValue` picking
+ * the literal for each declared column off the record. `ON CONFLICT
+ * (id) DO NOTHING` matches `measuresSeed`/`dimensionsSeed`: re-running the
+ * script is idempotent, never a second copy.
+ */
+function tableSeed(tableName, columns, rows, sqlValue) {
+  const quotedColumns = columns.map((c) => `"${c}"`).join(', ')
+  const statements = rows.map((row) => {
+    const values = columns.map((c) => sqlValue(row, c)).join(', ')
+    return `INSERT INTO ${tableName} (${quotedColumns}) VALUES (${values}) ON CONFLICT (id) DO NOTHING;`
+  })
+  return statements.join('\n')
+}
+
+/** `Driver` → `fixture_drivers` (`0005_runs.sql`). `driver.*` columns hold the namespaced dimension/filter fields verbatim. */
+function driversSeed(drivers) {
+  const columns = ['id', 'joinedAt', 'driver.city', 'driver.vehicleClass', 'driver.status']
+  const get = { id: (d) => d.id, joinedAt: (d) => d.joinedAt, 'driver.city': (d) => d.city, 'driver.vehicleClass': (d) => d.vehicleClass, 'driver.status': (d) => d.status }
+  return tableSeed('fixture_drivers', columns, drivers, (row, c) => sqlString(get[c](row)))
+}
+
+/** `Rider` → `fixture_riders`. */
+function ridersSeed(riders) {
+  const columns = ['id', 'joinedAt', 'rider.city', 'rider.status']
+  const get = { id: (r) => r.id, joinedAt: (r) => r.joinedAt, 'rider.city': (r) => r.city, 'rider.status': (r) => r.status }
+  return tableSeed('fixture_riders', columns, riders, (row, c) => sqlString(get[c](row)))
+}
+
+/** `Subscription` → `fixture_subscriptions`. `cancelledAt` is the one nullable column. */
+function subscriptionsSeed(subscriptions) {
+  const columns = [
+    'id', 'riderId', 'startedOn', 'endsOn', 'cancelledAt',
+    'subscription.plan', 'subscription.vehicleClass', 'subscription.status', 'paidHalalas',
+  ]
+  const get = {
+    id: (s) => s.id, riderId: (s) => s.riderId, startedOn: (s) => s.startedOn, endsOn: (s) => s.endsOn,
+    'subscription.plan': (s) => s.planKey, 'subscription.vehicleClass': (s) => s.vehicleClass,
+    'subscription.status': (s) => s.status, paidHalalas: (s) => s.paidHalalas,
+  }
+  return tableSeed('fixture_subscriptions', columns, subscriptions, (row, c) => {
+    if (c === 'cancelledAt') return sqlNullable(row.cancelledAt)
+    if (c === 'paidHalalas') return String(get[c](row))
+    return sqlString(get[c](row))
+  })
+}
+
+/** `Trip` → `fixture_trips`. `endedAt` and `pickup` are nullable (in progress / cancelled before pickup). */
+function tripsSeed(trips) {
+  const columns = ['id', 'riderId', 'endedAt', 'trip.kind', 'trip.status', 'trip.pickup', 'fareHalalas']
+  const get = {
+    id: (t) => t.id, riderId: (t) => t.riderId, 'trip.kind': (t) => t.kind, 'trip.status': (t) => t.status,
+    fareHalalas: (t) => t.fareHalalas,
+  }
+  return tableSeed('fixture_trips', columns, trips, (row, c) => {
+    if (c === 'endedAt') return sqlNullable(row.endedAt)
+    if (c === 'trip.pickup') return sqlNullable(row.pickup)
+    if (c === 'fareHalalas') return String(get[c](row))
+    return sqlString(get[c](row))
+  })
+}
+
+/** `DailySnapshot` → `daily_snapshots` (`0005_runs.sql`), snake_case per the real operational table's own column names. */
+function dailySnapshotsSeed(snapshots) {
+  const columns = [
+    'day', 'riders', 'drivers', 'active_subscriptions', 'quick_rides',
+    'cancel_rate_pct', 'total_revenue_halalas', 'quick_ride_revenue_halalas', 'sub_revenue_halalas',
+  ]
+  const quotedColumns = columns.join(', ')
+  const statements = snapshots.map((s) => {
+    const values = [
+      sqlString(s.date), String(s.riders), String(s.drivers), String(s.activeSubs), String(s.quickRides),
+      String(s.cancelRatePct), String(s.totalRevenueHalalas), String(s.quickRideRevenueHalalas), String(s.subRevenueHalalas),
+    ].join(', ')
+    return `INSERT INTO daily_snapshots (${quotedColumns}) VALUES (${values}) ON CONFLICT (day) DO NOTHING;`
+  })
+  return statements.join('\n')
+}
+
 const SEEDERS = {
   measures: {
     fixture: 'src/data/fixtures/measures.ts',
@@ -122,6 +216,26 @@ const SEEDERS = {
   dimensions: {
     fixture: 'src/data/fixtures/measures.ts',
     build: (mod) => dimensionsSeed(mod.dimensionFixtures),
+  },
+  drivers: {
+    fixture: 'src/data/fixtures/drivers.ts',
+    build: (mod) => driversSeed(mod.allDriverFixtures),
+  },
+  riders: {
+    fixture: 'src/data/fixtures/riders.ts',
+    build: (mod) => ridersSeed(mod.riderFixtures),
+  },
+  subscriptions: {
+    fixture: 'src/data/fixtures/subscriptions.ts',
+    build: (mod) => subscriptionsSeed(mod.allSubscriptionFixtures),
+  },
+  trips: {
+    fixture: 'src/data/fixtures/trips.ts',
+    build: (mod) => tripsSeed(mod.allTripFixtures),
+  },
+  dailySnapshots: {
+    fixture: 'src/data/fixtures/dailySnapshots.ts',
+    build: (mod) => dailySnapshotsSeed(mod.dailySnapshotFixtures),
   },
 }
 

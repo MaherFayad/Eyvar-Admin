@@ -352,6 +352,12 @@ export const SUB_TABS: SubTabRoute[] = [
       ['reports', 'rb.view.reports'],
       ['dashboards', 'rb.view.dashboards'],
       ['alerts', 'rb.view.alerts'],
+      /* D46 — the fourth view. `dashboards` keeps its id here on purpose: the
+         rename to `pages` plus the `dashboards` alias is WP-4.5's, which owns
+         `screens/reports/views.ts` and must land the rename in both files at
+         once (`routes.test.ts` asserts the two lists are identical). `an.index.title`
+         stands in for a `rb.view.analyst` key until that copy exists. */
+      ['analyst', 'an.index.title'],
     ),
     detailRoutes: [
       {
@@ -373,6 +379,29 @@ export const SUB_TABS: SubTabRoute[] = [
         parentSubTabId: 'management-reports',
         paramName: 'dashboardId',
         titleKey: 'rb.page.title',
+        shape: 'single',
+        patterns: ['P5'],
+      },
+      {
+        /* D46 — `/pages/:pageId` replaces `/dashboards/:dashboardId`, which
+           redirects (WP-4.2 wires the redirect; the row above stays so it has
+           a target). Ordered after `report` for the same swallow reason. */
+        kind: 'page',
+        path: '/management/reports/pages/:pageId',
+        parentSubTabId: 'management-reports',
+        paramName: 'pageId',
+        titleKey: 'rb.page.title',
+        shape: 'single',
+        patterns: ['P5'],
+      },
+      {
+        /* D46, `01-analyst-agent.md` §4. Ordered after `report` for the same
+           swallow reason — `:reportId` would otherwise match `analyst` as an id. */
+        kind: 'analyst-job',
+        path: '/management/reports/analyst/:jobId',
+        parentSubTabId: 'management-reports',
+        paramName: 'jobId',
+        titleKey: 'an.index.title',
         shape: 'single',
         patterns: ['P5'],
       },

@@ -264,16 +264,28 @@ export const oneRungFunnel: ReportQuery = {
 
 /* ───────────────────────── v2 queries (WP-1.8) ──────────────────────────── */
 
-/** G2 — replaces the measure series in the plot. Both refs resolve within `last-30d`, so no gap muddies the demo. */
-const revenuePerCompletedTrip: ReportQuery = {
-  measures: [{ key: 'revenue.total' }, { key: 'trips.completed' }],
-  formula: { expression: 'A / B', label: 'Revenue per completed trip' },
+/**
+ * G2 — replaces the measure series in the plot. `A` and `B` are both `count`,
+ * same unit, same temporality, so `plan.ts`'s §6.2 pairing rule (`mixed-unit`)
+ * does not fire on the raw pair — `plan.ts` does not yet exempt a query that
+ * carries `formula` from that pairing check, and a report whose raw measures
+ * were refused could not be a `SavedReport` in the first place (§4.2). See
+ * the handoff for the mixed-unit-vs-formula finding this traced.
+ *
+ * `mode: 'trend'` is written explicitly, unlike `RPT-1` … `RPT-5`: those five
+ * are the pre-P7-T1 set `serialise.test.ts` pins to an exact count of legacy,
+ * mode-less links (AC-1101); every report seeded after `mode` existed names it.
+ */
+const quickRideShareOfTrips: ReportQuery = {
+  measures: [{ key: 'trips.quickRides' }, { key: 'trips.completed' }],
+  formula: { expression: 'A / B * 100', label: 'Quick rides as a share of completed trips' },
   groupBy: [],
   filters: [],
   window: { kind: 'preset', preset: 'last-30d' },
   grain: 'day',
   periodComparison: 'none',
   chartType: 'line',
+  mode: 'trend',
 }
 
 /** G5 — two saved segments (`segments.ts`) compared on one measure, unsplit. */
@@ -289,6 +301,7 @@ const tripsQuickVsSubscription: ReportQuery = {
   grain: 'day',
   periodComparison: 'none',
   chartType: 'line',
+  mode: 'trend',
 }
 
 /** G4 — two dimensions, the legal ceiling. Line and bar are disabled at this depth; a table is always legal. */
@@ -300,6 +313,7 @@ const tripsByPickupAndKind: ReportQuery = {
   grain: 'week',
   periodComparison: 'none',
   chartType: 'table',
+  mode: 'trend',
 }
 
 /**
@@ -316,6 +330,7 @@ const subscriptionsLaunchWeekVsNow: ReportQuery = {
   periodComparison: { kind: 'fixed', from: '2026-06-01', to: '2026-06-07' },
   comparisonDisplay: 'percent-change',
   chartType: 'line',
+  mode: 'trend',
 }
 
 /** G8 — `area`. One measure, a stock, so the fill reads as a level rather than a flow. */
@@ -327,6 +342,7 @@ const activeSubscriptionsArea: ReportQuery = {
   grain: 'day',
   periodComparison: 'none',
   chartType: 'area',
+  mode: 'trend',
 }
 
 /** G8 — `stacked-bar`. Additive, one level, inside `subscriptions`' own 25-day coverage with a real partial-first edge. */
@@ -338,6 +354,7 @@ const subscriptionsByPlanStacked: ReportQuery = {
   grain: 'week',
   periodComparison: 'none',
   chartType: 'stacked-bar',
+  mode: 'trend',
 }
 
 /** G8 — `stacked-100`. Six status values normalise to a share of each week's starts. */
@@ -349,6 +366,7 @@ const subscriptionsByStatusShare: ReportQuery = {
   grain: 'week',
   periodComparison: 'none',
   chartType: 'stacked-100',
+  mode: 'trend',
 }
 
 /** G8 — `horizontal-bar`. Grain collapses to `none`; districts sorted descending, `Other` last. */
@@ -360,6 +378,7 @@ const tripsByDistrictRanked: ReportQuery = {
   grain: 'none',
   periodComparison: 'none',
   chartType: 'horizontal-bar',
+  mode: 'trend',
 }
 
 /** G8 — `kpi`. One measure, no split, no segments; the comparison delta reads against last week. */
@@ -371,6 +390,7 @@ const tripsThisWeekKpi: ReportQuery = {
   grain: 'day',
   periodComparison: 'previous-period',
   chartType: 'kpi',
+  mode: 'trend',
 }
 
 /* ───────────────────────── saved reports ───────────────────────────────── */
@@ -496,9 +516,9 @@ export const savedReportFixtures: SavedReport[] = [
   },
   {
     id: 'RPT-10',
-    name: 'Revenue per completed trip · 30 days',
-    description: 'A / B: gross revenue divided by completed trips, so the two RPT-1-style panels become one line.',
-    query: revenuePerCompletedTrip,
+    name: 'Quick rides as a share of completed trips',
+    description: 'A / B * 100: the formula replaces the two measures with one line.',
+    query: quickRideShareOfTrips,
     ownerId: 'USR-2',
     visibility: 'team',
     createdAt: offsetFromNow({ days: -3 }),

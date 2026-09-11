@@ -87,7 +87,8 @@ function parseJsonColumn<T>(value: unknown): T | null {
   return value as T
 }
 
-function toMeasure(row: MeasureRow): Measure {
+/** Exported for `compile.ts` (WP-6.4): the compiler reads the same `measures` rows through this exact reassembly, so a leg's `Measure` can never drift from what `catalogue.measures` serves. */
+export function toMeasure(row: MeasureRow): Measure {
   const measure: Measure = {
     key: row.key,
     labelKey: row.label_key,
@@ -134,7 +135,8 @@ function toMeasure(row: MeasureRow): Measure {
   return measure
 }
 
-function toDimension(row: DimensionRow): Dimension {
+/** Exported for `compile.ts` (WP-6.4) — see `toMeasure`. */
+export function toDimension(row: DimensionRow): Dimension {
   return {
     key: row.key,
     labelKey: row.label_key,

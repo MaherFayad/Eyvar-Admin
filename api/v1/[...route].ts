@@ -48,6 +48,7 @@ import {
   createListDimensionsHandler,
   createGetGlossaryHandler,
 } from '../_lib/handlers/catalogue'
+import { createRunReportHandler } from '../_lib/handlers/reports'
 import type { IsoDateTime } from '@/data/types/common'
 
 interface HealthPayload {
@@ -111,6 +112,9 @@ export function createApiHandler(deps: ApiDeps): (req: Request) => Promise<Respo
   router.get('/catalogue/measures', createListMeasuresHandler(deps.db))
   router.get('/catalogue/dimensions', createListDimensionsHandler(deps.db))
   router.get('/catalogue/glossary', createGetGlossaryHandler(deps.db))
+
+  // reports.run (see handlers/reports.ts) — WP-6.4
+  router.post('/reports/run', createRunReportHandler(deps.db))
 
   return async function handler(req: Request): Promise<Response> {
     const requestId = req.headers.get('x-vercel-id') ?? crypto.randomUUID()
