@@ -116,11 +116,10 @@ import { InfoHint, hintLines } from '@/components/InfoHint'
 import { FormulaField } from './FormulaField'
 import { SegmentPicker } from './SegmentPicker'
 import { TransformControls } from './TransformControls'
-import { ComparisonControl, ComparisonDisplayToggle } from './WindowControl'
 import { pairableWith } from '@/data/clients'
 import { REPORT_GROUP_BY_MAX } from '@/data/types/report'
-import { reportMode, type BucketAggregate, type Dimension, type Measure, type MeasureRef, type QueryPlan, type ReportQuery } from '@/data/types'
-import type { Language, Translator } from '@/lib'
+import type { BucketAggregate, Dimension, Measure, MeasureRef, QueryPlan, ReportQuery } from '@/data/types'
+import type { Translator } from '@/lib'
 
 /** The sentinel a `Select` uses for "none". Radix forbids an empty-string item value. */
 const NONE = '__none__'
@@ -142,15 +141,6 @@ export interface QueryPanelProps {
   catalogueStatus: 'loading' | 'error' | 'empty' | 'content'
   onRetryCatalogue: () => void
   running: boolean
-  /**
-   * WP-2.6b — `ComparisonControl`'s fixed-range popover needs both, and
-   * `ChartToolbar` has not swapped it in for its own inline `Compare to`
-   * select yet (its own note: "ready for `ChartToolbar` (WP-2.7)"). Wired
-   * here as the stopgap so a fixed comparison is reachable at all; see the
-   * handoff for which file removes the duplicate once WP-2.7 lands.
-   */
-  today: string
-  language: Language
   t: Translator
 }
 
@@ -164,17 +154,12 @@ export function QueryPanel({
   catalogueStatus,
   onRetryCatalogue,
   running,
-  today,
-  language,
   t,
 }: QueryPanelProps) {
   const byKey = useMemo(() => new Map(measures.map((m) => [m.key, m])), [measures])
   const first = query.measures[0] ? byKey.get(query.measures[0].key) ?? null : null
   const second = query.measures[1] ? byKey.get(query.measures[1].key) ?? null : null
   const unstarted = query.measures.length === 0
-  /* §9 — `periodComparison` is only asked of a trend or a table (`plan.ts`'s own `isSeriesMode`). */
-  const mode = reportMode(query)
-  const isSeriesMode = mode === 'trend' || mode === 'table'
 
   /* While the catalogue is still arriving every measure is "unknown" to the
      planner, which is true and useless: the operator has not made a mistake and
@@ -457,14 +442,10 @@ export function QueryPanel({
       />
 
       {/* **The date range, the grain, the comparison and the chart type are
-          `ChartToolbar`'s.** They are decisions about *how the answer is
-          read*, and §A7 (and 22-analytics-v2.md §1.4) puts them on the row
-          above the plot they change, including the comparison's fixed range
-          and `Show as` — not here, even as a stopgap: two controls writing
-          `periodComparison` is the exact failure this file's header warns
-          against. See `ChartToolbar.tsx`.
-          They are decisions about *how the answer is read*, and §A7 puts them
-          on the row above the plot they change. See `ChartToolbar.tsx`. */}
+          `ChartToolbar`'s**, including the comparison's fixed range and
+          `Show as` (22-analytics-v2.md §1.4): a setting with two controls is
+          one that will disagree on screen (this file's own header). See
+          `ChartToolbar.tsx` for where each one lives. */}
       <Button
         type="button"
         variant="default"

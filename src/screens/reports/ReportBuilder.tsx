@@ -1556,8 +1556,6 @@ export function ReportBuilder({
               catalogueStatus={catalogue.status}
               onRetryCatalogue={catalogue.refetch}
               running={status === 'loading'}
-              today={today}
-              language={language}
               t={t}
             />
           ) : (

@@ -85,16 +85,17 @@ describe('AC-1188 — a metric block renders one series’ value', () => {
     expect(container.querySelector('.text-2xl')).toBeInTheDocument()
   })
 
-  it('shows a sparkline, described for a screen reader, when the format is "sparkline"', async () => {
+  it('shows a sparkline, its shape described for a screen reader (§9.2 — the plot itself is aria-hidden)', async () => {
     await mountBlock(metricOn('RPT-18', 'sparkline'))
 
-    expect(await screen.findByRole('img')).toBeInTheDocument()
+    expect(await screen.findByText(/, over the report’s window/)).toBeInTheDocument()
   })
 
   it('renders the absent-value sentinel, never a zero, when the series is a gap', async () => {
-    /* `RPT-8` resolves to no data today (`mode-not-resolved`) per its own
-       fixture comment — every point in its one series is `null`. */
-    await mountBlock(metricOn('RPT-8', 'value'))
+    /* `RPT-3`'s comparison series is `null` end to end — "the mock emits
+       `null` outside a store's coverage, not zeros" (`resolveReport.ts`). */
+    const block: MetricBlock = { id: 'blk-gap', type: 'metric', reportId: 'RPT-3', seriesId: 'revenue.total#_#comparison', format: 'value' }
+    await mountBlock(block)
 
     expect(await screen.findByText(ABSENT)).toBeInTheDocument()
     expect(screen.queryByText('0')).not.toBeInTheDocument()

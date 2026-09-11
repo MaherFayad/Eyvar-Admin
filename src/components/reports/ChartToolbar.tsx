@@ -102,16 +102,7 @@ import type {
 } from '@/data/types'
 import { reportMode } from '@/data/types'
 import { formatDate, type Language, type Translator } from '@/lib'
-import { WindowControl } from './WindowControl'
-
-/** §6.3's three, in the order the rail offered them. Unchanged by the move. */
-/* Only the string-valued members — §1.4's `{ kind: 'fixed' }` row is the rail
-   v2 owner's addition, not this file's WP; see the `Select`'s own note. */
-const COMPARISONS: Exclude<ReportQuery['periodComparison'], { kind: 'fixed' }>[] = [
-  'none',
-  'previous-period',
-  'previous-year',
-]
+import { ComparisonControl, ComparisonDisplayToggle, WindowControl } from './WindowControl'
 
 /**
  * The twelve shapes, and the `(mode, chartType)` each one is. `chartType:
@@ -232,7 +223,6 @@ export function ChartToolbar({
   const current = visualisationOf(query)
   const vizLabelId = useId()
   const grainLabelId = useId()
-  const compareLabelId = useId()
 
   /* The planner speaks in enum values; this row owns their labels. A reason may
      never render a raw `week` at an operator. */
@@ -398,39 +388,25 @@ export function ChartToolbar({
               </SelectContent>
             </Select>
 
-            {/* ── the comparison ────────────────────────────────────────── */}
-            {/* The label stays `Compare to` whether or not a comparison is on:
-                it names the control, and a label that changes wording with the
-                value is a label a screen-reader user hears differently every
-                time they land on it. */}
-            <Label id={compareLabelId} className="sr-only">
-              {t('rb.control.compare')}
-            </Label>
-            <Select
-              /* §1.4 (rail v2, out of this file's WP) adds a fifth, non-string
-                 `{ kind: 'fixed' }` option with its own popover; until that
-                 lands here, a fixed comparison still shows as its own row so
-                 the trigger never renders `[object Object]`. */
-              value={typeof query.periodComparison === 'string' ? query.periodComparison : 'fixed'}
+            {/* ── the comparison — §1.4, §1.5 ──────────────────────────────
+                `ComparisonControl` and `ComparisonDisplayToggle` are
+                `WindowControl.tsx`'s (WP-2.6): the fifth `Fixed range…` row,
+                its own popover, `previous-quarter`, and the `Show as` toggle.
+                This file keeps only the trailing clear (§A7), unchanged. */}
+            <ComparisonControl
+              query={query}
+              onChange={onChange}
+              today={today}
               disabled={unstarted}
-              onValueChange={(value) =>
-                onChange({ ...query, periodComparison: value as ReportQuery['periodComparison'] })
-              }
-            >
-              <SelectTrigger id="rb-compare" size="sm" aria-labelledby={compareLabelId}>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {COMPARISONS.map((value) => (
-                  <SelectItem key={value} value={value}>
-                    {t(`rb.compare.${value}`)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {/* §A7 — the comparison carries its own way off. Present only when
-                there is one to clear, because a permanently-inert `✕` beside a
-                control reads as broken rather than as unavailable. */}
+              t={t}
+              language={language}
+            />
+            {comparing && (
+              <ComparisonDisplayToggle query={query} onChange={onChange} disabled={unstarted} t={t} />
+            )}
+            {/* §A7 — the comparison carries its own way off. Present only
+                when there is one to clear, so a permanently-inert `✕` beside
+                a control does not read as broken. */}
             {comparing && (
               <Button
                 type="button"

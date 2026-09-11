@@ -51,7 +51,7 @@ Everything else in the plan stands, including every gate.
 | WP-6.4c Server funnel, cohort, journey | general-purpose | running |
 | WP-7.1 MCP tool server | general-purpose | done — 20 tools, 84 tests, PII masking proved |
 | WP-7.2 Runner | general-purpose | running |
-| WP-7.3 Prompts and schemas | general-purpose | running |
+| WP-7.3 Prompts and schemas | general-purpose | done — protocol prompt, 5 job templates, 5 schemas, 95 agent tests |
 | WP-3.6 Seam violation in two tests | qa-engineer | done — both converted to the client seam, 19 tests kept |
 | WP-1.6c Alert evaluator | mock-data-engineer | done — 4 condition kinds, 5-state machine, 40 tests |
 | WP-4.1 Markdown | utilities-engineer | done — parse+render, 151 tests, no dangerouslySetInnerHTML |
@@ -113,7 +113,7 @@ instead; that trades a marked wrong answer for an unmarked slow one.
 | F-V2-40 | `Measured as` (gap G1, the Amplitude-parity row) is implemented nowhere: the type exists, no fixture measure populates `bucketAggregateOptions`, and the rail has no control | WP-2.6 | **WP-2.6b** |
 | F-V2-41 | The second split level (gap G4) has no UI. The resolver folds per level and two-level series ids are tested, but the rail offers one dimension only | WP-2.6 | **WP-2.6b** |
 | F-V2-42 | Two controls in the segment popover share the accessible name "Add segment" — the trigger and the submit — because the design spec's copy table gives both that label | WP-2.6 | WP-8.1's accessibility pass, with content-designer for the wording |
-| F-V2-38 | Agent result validation is full-depth for `case-study` and `build-page`; the `ask`, `triage-alert` and `weekly-review` job kinds have no output schema in `types/agent.ts`, so their results are not validated to the same depth | WP-6.7 | Phase 7 specs those shapes, or the kinds are dropped. An unvalidated result kind is a hole in the no-number-without-a-run guarantee |
+| F-V2-38 | Agent result validation is full-depth for `case-study` and `build-page` only; `ask`, `triage-alert` and `weekly-review` are not validated to the same depth **on the server** | WP-6.7 | **Half closed:** WP-7.3 wrote schemas for all five kinds (`triage` and `review` are deliberately the case-study shape). The server should now validate against them too — otherwise the guarantee holds at the runner but not at the queue |
 | F-V2-36 | On Hobby the hourly cron cannot deploy. If an operator removes that entry, an hourly rule's `lastEvaluatedAt` is simply never advanced — nothing fabricates it — so the rule reads as growing evaluation lag rather than as armed and healthy | WP-6.6 | Correct behaviour: the degradation is visible, not silent |
 | F-V2-37 | Housekeeping decides whether a `report_run` is still referenced by text-scanning `pages.blocks_json` for the run id, because the case-study citation block shape belongs to the agent work package | WP-6.6 | Revisit once WP-6.7 lands the real citation shape; a text scan over-retains rather than deleting a cited run, which is the safe direction |
 | F-V2-33 | `src/data/clients/dashboards.ts` could not simply be deleted: three screens import it and a missing module is a Vite resolve crash, not a type error, which took `routes.test.ts` and `seam.test.ts` down with it. The CRUD is gone; the file survives holding only the pure board-scope maths | WP-1.7 | Accepted. The importing screens move to `pages.ts` in phase 4, and the file goes then |
