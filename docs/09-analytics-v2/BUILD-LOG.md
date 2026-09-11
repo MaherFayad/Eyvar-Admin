@@ -29,13 +29,19 @@ Everything else in the plan stands, including every gate.
 | WP-1.6d Pages, case study | mock-data-engineer | done — validator, migration, caseStudyToBlocks, 45 tests; provenance follow-up in flight |
 | WP-1.4 Planner | mock-data-engineer | done — v2 legality, NEAREST, formula violations, 33 new tests |
 | WP-1.8 Fixtures | mock-data-engineer | done — v2 migration, 6 new fixture files, AC-1290 table, 61 typecheck errors left (all in reports screens) |
-| WP-1.7 Clients | mock-data-engineer | running |
+| WP-1.7 Clients | mock-data-engineer | done — 5 new clients, 377 endpoints, contract clean. **Phase 1 closed** |
+| WP-2.1/2.2/2.3/2.4/2.5 Chart surface | frontend-engineer | running |
+| WP-2.6 Rail v2 | frontend-engineer | running |
+| WP-2.7/2.8 Toolbar, export, library | frontend-engineer | running |
+| WP-3.1/3.2/3.3 Funnel, retention, table | frontend-engineer | running |
+| WP-4.2/4.3/4.4/4.5 Pages | frontend-engineer | running |
+| WP-5.1/5.2/5.3/5.4 Alerting client | frontend-engineer | running |
 | WP-1.4b Formula unit fix | utilities-engineer | done — revenue-per-trip legal, both guards kept, RPT-19 seeded |
 | WP-1.5 Serialiser | mock-data-engineer | done — v:2 wire, every v1 URL still decodes, 56 tests |
 | WP-1.6a Resolver core | mock-data-engineer | done — pure core + fixture adapter, 52 tests |
 | WP-6.4 Compiler | general-purpose | done — 14 saved reports equal the mock bucket for bucket; scale caveat below |
 | WP-6.4b Compiler gaps | general-purpose | done — both wrong-number bugs closed, 16/19 reports equal the mock |
-| WP-6.4c Server funnel, cohort, journey | general-purpose | running (orchestrator-opened) |
+| WP-6.4c Server funnel, cohort, journey | — | queued (orchestrator-opened) |
 | WP-6.6 Alerts and crons | general-purpose | running |
 | WP-1.6c Alert evaluator | mock-data-engineer | done — 4 condition kinds, 5-state machine, 40 tests |
 | WP-4.1 Markdown | utilities-engineer | done — parse+render, 151 tests, no dangerouslySetInnerHTML |
@@ -75,6 +81,9 @@ instead; that trades a marked wrong answer for an unmarked slow one.
 | F-V2-2 | Q-RB-3 (week start) and Q-RB-7 (alert cadence) are not in `docs/07-api/OPEN-QUESTIONS.md`; they live in `specs/06-report-builder.md`. D45 and D41 answer them but the spec still poses them | WP-0.1 | Fixed in WP-8.5 |
 | ~~F-V2-30~~ | **Fixed in WP-6.4b** via a real live-window model (`live_to_bounds_json`, combined with `LEAST`), not a special case. `subscriptions.active` and `subscriptions.cancelled` do not equal the mock: the mock's liveness is a three-condition window (`startedOn`, `endsOn`, **and** `cancelledAt`), while `measure_sources.live_to_column` is a two-bound scheme that ignores an early cancellation. A cancelled subscription counts as active on the server | WP-6.4 | **WP-6.4b opened.** This is a wrong number, not a missing feature |
 | ~~F-V2-31~~ | **Fixed in WP-6.4b.** A saved segment resolves against the seeded `segments` table and an unknown id refuses with `segment-not-found` rather than falling through to everyone. Was: the compiler treated a saved segment as a no-op, matching the mock's behaviour before WP-1.7 gave it a real lookup | WP-6.4 | **WP-6.4b**, once the `segments` table is seeded |
+| F-V2-33 | `src/data/clients/dashboards.ts` could not simply be deleted: three screens import it and a missing module is a Vite resolve crash, not a type error, which took `routes.test.ts` and `seam.test.ts` down with it. The CRUD is gone; the file survives holding only the pure board-scope maths | WP-1.7 | Accepted. The importing screens move to `pages.ts` in phase 4, and the file goes then |
+| F-V2-34 | `Page.starredBy` is absent from `03-pages-and-dashboards.md` §2's model even though §7 promises a starred toggle and `05-backend.md` declares `POST /pages/:id/star`. Minted by extension to unblock a documented endpoint | WP-1.7 | Spec gap, resolved by extension; for the owner to confirm |
+| F-V2-35 | `cancelAgentJob` is not implemented: `AgentJobState` has no `cancelled` member. Flagged rather than minted, because a cancelled job is a state the runner and the schema must both agree on | WP-1.7 | Phase 7 decides |
 | F-V2-32 | Funnel, cohort and journey modes are not compiled: the server answers `mode-not-resolved`. RPT-6, RPT-7 and RPT-8 are the only saved reports still outside AC-1276's equality test | WP-6.4 | **WP-6.4c opened.** Without it, three of the five report modes do not work against a real server |
 | F-V2-28 | There is no `manage_analytics` permission key. Every analytics write the server accepts — saving a report, editing a page, creating an annotation, arming an alert — is gated on `view_analytics`, so anyone who can read analytics can write it. `PermissionRef.level` (`full`/`read`) exists but D17 deprecated it; navigation carries a bare `PermissionKey` | WP-6.5 | **Open, the owner's call, and it is a product decision not a bug.** The existing product gates nothing finer, so the server is faithful to today's behaviour rather than introducing a regression. Minting the key touches the RBAC union, every role fixture, the settings permission matrix and `navigation.test.ts`'s parity assertion, so it is not a change to make unilaterally mid-build |
 | F-V2-29 | `api/_db/migrate.mjs` is plain `.mjs` and cannot import the TypeScript `dashboardToPage`, so the dashboard-to-page migration is written and tested but not wired into `npm run db:migrate`. It is moot today: no `dashboards` table exists in Postgres, a v1 dashboard lives only in frontend fixtures | WP-6.5 | Guarded and idempotent; wires up the day a dashboards table exists |

@@ -156,3 +156,8 @@ CREATE TABLE IF NOT EXISTS notifications (
 );
 CREATE INDEX IF NOT EXISTS notifications_user_created_idx ON notifications (user_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS notifications_user_read_idx ON notifications (user_id, read);
+
+-- §6's digest: "Optional per operator (Profile › Notifications) … Off by
+-- default." One boolean is the whole preference — `api/cron/alerts-digest.ts`
+-- reads it, nothing else does.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS alerts_digest_opt_in BOOLEAN NOT NULL DEFAULT false;
