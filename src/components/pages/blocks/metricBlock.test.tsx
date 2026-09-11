@@ -7,7 +7,7 @@
 import { render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it } from 'vitest'
-import { disableMockLatency, listDimensions, listMeasures, localDayOf, resetDataLayer } from '@/data/clients'
+import { EYVAR_TODAY, disableMockLatency, listDimensions, listMeasures, resetDataLayer } from '@/data/clients'
 import type { Dimension, Measure } from '@/data/types'
 import type { MetricBlock } from '@/data/types/page'
 import { ABSENT } from '@/lib'
@@ -42,7 +42,7 @@ function mountBlock(block: MetricBlock, value: Partial<PageBlocksValue> = {}) {
       measures,
       dimensions,
       scope: { range: null, filters: [] },
-      today: localDayOf(new Date().toISOString()),
+      today: EYVAR_TODAY,
       noDataSentence: 'No data.',
       t: noopTranslator as PageBlocksValue['t'],
       language: 'en',

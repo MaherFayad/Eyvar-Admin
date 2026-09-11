@@ -30,11 +30,15 @@ import { signSessionId } from '../_lib/auth'
 import type { ApiErrorBody } from '../_lib/errors'
 import type { RequestContext } from '../_lib/auth'
 import { createRunReportHandler } from '../_lib/handlers/reportsRun'
+import { DEFAULT_ROW_CAP, loadCatalogue } from '../_lib/compile'
+import { resolveFunnel } from '../_lib/handlers/reportsFunnel'
 import { measureFixtures, dimensionFixtures } from '@/data/fixtures/measures'
 import { savedReportFixtures } from '@/data/fixtures/reports'
 import { resolveReport, type ResolveContext } from '@/data/mock/resolveReport'
 import { EYVAR_NOW, EYVAR_TODAY } from '@/data/mock/clock'
-import type { ReportResult } from '@/data/types/report'
+import { resolveWindow } from '@/data/reporting/buckets'
+import { normaliseReportQuery, type ReportQuery, type ReportResult } from '@/data/types/report'
+import type { Measure } from '@/data/types/measure'
 import type { PermissionKey } from '@/data/types/navigation'
 import type { Catalogue } from '@/data/reporting/plan'
 
@@ -275,14 +279,50 @@ describe('reports.run: auth and legality', () => {
  * expected numbers can be traced by hand from the rows the test itself
  * inserts, not from the ~130-row shared trip fixture.
  *
- * `fixtures-to-seed.mjs`'s `SERVER_ONLY_FUNNEL_CAPABILITIES` declares
- * `sequential`/`holdConstant` support for `riders.joined`, `trips.completed`
- * and `subscriptions.started` in `measures.seed.sql` — the one column this
- * seed states that the TS fixture (`src/data/fixtures/measures.ts`) does
- * not, because only the server computes either option. Without it `plan.ts`
- * would refuse both queries below with `funnel-needs-server`.
+ * These two call `resolveFunnel` directly rather than through `handler` —
+ * `plan.ts`'s planner refuses both queries with `funnel-needs-server` unless
+ * the catalogue declares `funnelCapabilities`, and no measure in
+ * `src/data/fixtures/measures.ts` declares either (the mock never computes
+ * them, so it has no reason to). Seeding that declaration into
+ * `measures.seed.sql` was tried and reverted: it diverges the seeded
+ * catalogue from `measureFixtures` and breaks AC-1275
+ * (`api/v1/catalogue.test.ts`'s "`catalogue.measures` equals `measureFixtures`
+ * field for field"). Patching `funnelCapabilities` onto an **in-memory**
+ * copy of the loaded catalogue, only for this test's own call into the
+ * resolver, proves the same computation without touching anything another
+ * agent's fixture or contract test reads.
  */
 describe('reports.run: funnel server-only options (WP-6.4c)', () => {
+  /** Loads the real catalogue, patches `funnelCapabilities` onto specific measures in memory only, and calls `resolveFunnel` directly — never through `planQuery`. */
+  async function resolveFunnelDirect(
+    query: ReportQuery,
+    capabilities: Record<string, { sequential?: boolean; holdConstant?: boolean }>,
+  ) {
+    const catalogue = await loadCatalogue(db)
+    const byKey = new Map<string, Measure>(
+      catalogue.measures.map((m) => {
+        const extra = capabilities[m.key]
+        if (!extra) return [m.key, m]
+        return [
+          m.key,
+          { ...m, funnelCapabilities: { sequential: false, holdConstant: false, ...m.funnelCapabilities, ...extra } },
+        ]
+      }),
+    )
+    const dimByKey = new Map(catalogue.dimensions.map((d) => [d.key, d]))
+    const q = normaliseReportQuery(query)
+    const window = resolveWindow(query.window, EYVAR_TODAY)
+    return resolveFunnel(
+      db,
+      query,
+      q,
+      window,
+      { permissions: OPS_MANAGER_PERMISSIONS, today: EYVAR_TODAY, asOf: EYVAR_NOW, rowCap: DEFAULT_ROW_CAP },
+      byKey,
+      dimByKey,
+    )
+  }
+
   it(
     'sequential: an interleaving trip between the matched trip and the matched subscription drops that rider, ' +
       'ordered would have kept — RDR-TEST-SEQ-A joins 06-01, trips (done) 06-05, subscribes 06-10: no other rung ' +
@@ -329,9 +369,11 @@ describe('reports.run: funnel server-only options (WP-6.4c)', () => {
         },
       }
 
-      const response = await handler(run(query, analystCookie))
-      expect(response.status).toBe(200)
-      const result = (await response.json()) as ReportResult
+      const result: ReportResult = await resolveFunnelDirect(query, {
+        'riders.joined': { sequential: true },
+        'trips.completed': { sequential: true },
+        'subscriptions.started': { sequential: true },
+      })
       const points = result.series.map((s) => s.points[0])
       expect(points).toEqual([2, 2, 1])
       expect(result.warnings).not.toContain('funnel-counted-not-followed')
@@ -375,9 +417,9 @@ describe('reports.run: funnel server-only options (WP-6.4c)', () => {
         },
       }
 
-      const response = await handler(run(query, analystCookie))
-      expect(response.status).toBe(200)
-      const result = (await response.json()) as ReportResult
+      const result: ReportResult = await resolveFunnelDirect(query, {
+        'trips.completed': { holdConstant: true },
+      })
       const points = result.series.map((s) => s.points[0])
       expect(points).toEqual([2, 1])
       expect(result.warnings).not.toContain('funnel-counted-not-followed')

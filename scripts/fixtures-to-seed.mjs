@@ -65,24 +65,6 @@ function sqlJson(value) {
  * (AC-1275). WP-6.1's original six-column stub is gone: every field of
  * `Measure` (`src/data/types/measure.ts`) has a column now.
  */
-/**
- * WP-6.4c: `sequential`/`holdConstant` funnel options are server-only
- * (`plan.ts`'s `funnel-needs-server`) and no measure in
- * `src/data/fixtures/measures.ts` declares `funnelCapabilities` for either —
- * the mock never computes them, so it has no reason to. The seed is the one
- * place the *server's* catalogue can say "I support this" without a
- * frontend-owned fixture change, so `reports-run.test.ts`'s hand-checked
- * server-only-option cases can reach the planner's real gate rather than a
- * synthetic one. Declared for the same three measures RPT-6's funnel already
- * uses; applied only where the fixture itself is silent, so a future fixture
- * declaration always wins.
- */
-const SERVER_ONLY_FUNNEL_CAPABILITIES = {
-  'riders.joined': { sequential: true, holdConstant: true },
-  'trips.completed': { sequential: true, holdConstant: true },
-  'subscriptions.started': { sequential: true, holdConstant: true },
-}
-
 function measuresSeed(measureFixtures) {
   const columns = [
     'key', 'sort_order', 'label_key', 'category',
@@ -122,7 +104,7 @@ function measuresSeed(measureFixtures) {
       sqlNullable(measure.captionKey),
       sqlJson(measure.displayedAsMetricKeys),
       measure.supportsPerformed === undefined ? 'null' : sqlBool(measure.supportsPerformed),
-      sqlJson(measure.funnelCapabilities ?? SERVER_ONLY_FUNNEL_CAPABILITIES[measure.key]),
+      sqlJson(measure.funnelCapabilities),
     ]
     return `INSERT INTO measures (${columns.join(', ')}) VALUES (${values.join(', ')}) ON CONFLICT (key) DO NOTHING;`
   })
