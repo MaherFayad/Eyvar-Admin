@@ -1,0 +1,15 @@
+{
+  "id": "WP-2.7",
+  "branch": "analytics-v2",
+  "allow": [
+    "src/components/reports/ChartToolbar.tsx",
+    "src/screens/reports/ReportBuilder.tsx",
+    "src/screens/reports/csv.ts",
+    "src/screens/reports/export.ts",
+    "src/screens/reports/csv.test.ts",
+    "src/screens/reports/export.test.ts",
+    "src/lib/chartPng.ts",
+    "src/lib/chartPng.test.ts"
+  ],
+  "deny": []
+}

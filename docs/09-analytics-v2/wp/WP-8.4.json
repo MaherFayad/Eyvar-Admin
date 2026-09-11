@@ -1,0 +1,11 @@
+{
+  "id": "WP-8.4",
+  "branch": "analytics-v2",
+  "allow": [
+    "src/components/reports/ResultTable.tsx",
+    "src/hooks/requestCache.ts",
+    "src/hooks/requestCache.test.ts",
+    "vite.config.ts"
+  ],
+  "deny": []
+}

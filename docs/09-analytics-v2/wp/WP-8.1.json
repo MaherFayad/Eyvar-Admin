@@ -1,0 +1,8 @@
+{
+  "id": "WP-8.1",
+  "branch": "analytics-v2",
+  "allow": [
+    "docs/02-verification/analytics-v2-a11y.md"
+  ],
+  "deny": []
+}

@@ -1,0 +1,9 @@
+{
+  "id": "WP-1.4",
+  "branch": "analytics-v2",
+  "allow": [
+    "src/data/reporting/plan.ts",
+    "src/data/reporting/plan.test.ts"
+  ],
+  "deny": []
+}

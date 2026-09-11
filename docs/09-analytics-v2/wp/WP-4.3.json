@@ -1,0 +1,13 @@
+{
+  "id": "WP-4.3",
+  "branch": "analytics-v2",
+  "allow": [
+    "src/components/pages/edit/**",
+    "src/screens/pages/useAutosave.ts",
+    "src/screens/pages/useAutosave.test.ts",
+    "src/commands/undo.ts"
+  ],
+  "deny": [
+    "src/components/ui/**"
+  ]
+}

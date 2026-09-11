@@ -1,0 +1,9 @@
+{
+  "id": "WP-8.2",
+  "branch": "analytics-v2",
+  "allow": [
+    "src/i18n/**",
+    "scripts/harness/**"
+  ],
+  "deny": []
+}

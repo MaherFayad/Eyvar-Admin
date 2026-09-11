@@ -1,0 +1,11 @@
+{
+  "id": "WP-4.8",
+  "branch": "analytics-v2",
+  "allow": [
+    "scripts/harness/pages.mjs",
+    "docs/02-verification/analytics-v2-pages-visual.md",
+    "docs/02-verification/analytics-v2-pages-a11y.md",
+    "docs/02-verification/analytics-v2-pages-qa.md"
+  ],
+  "deny": []
+}

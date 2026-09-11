@@ -1,0 +1,11 @@
+{
+  "id": "WP-1.3",
+  "branch": "analytics-v2",
+  "allow": [
+    "src/data/reporting/buckets.ts",
+    "src/data/reporting/buckets.test.ts",
+    "src/data/reporting/transforms.ts",
+    "src/data/reporting/transforms.test.ts"
+  ],
+  "deny": []
+}

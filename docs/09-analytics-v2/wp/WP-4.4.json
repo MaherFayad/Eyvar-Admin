@@ -1,0 +1,9 @@
+{
+  "id": "WP-4.4",
+  "branch": "analytics-v2",
+  "allow": [
+    "src/components/pages/ColumnsBlock.tsx",
+    "src/components/pages/edit/**"
+  ],
+  "deny": []
+}

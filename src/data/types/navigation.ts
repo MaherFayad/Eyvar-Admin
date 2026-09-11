@@ -85,6 +85,10 @@ export type DetailKind =
   | 'entity'
   | 'report'
   | 'dashboard'
+  /** Analytics v2 (D42). `Dashboard` migrates to `Page`; `dashboard` stays until that phase deletes it. */
+  | 'page'
+  /** Analytics v2 — the analyst job page, `01-analyst-agent.md` §4. */
+  | 'analyst-job'
   /** Support › Disputes › one claim (S-7). */
   | 'dispute'
   /** Support › Safety › one incident (S-8, spec F-2). */

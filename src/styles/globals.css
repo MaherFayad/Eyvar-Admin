@@ -1429,6 +1429,17 @@
   --ev-series-5: #2b4dd4;
   --ev-series-6: #1193b0;
 
+  /* ── s7/s8, D40: the palette runs to eight so an eight-way split reads
+     without a wrap. Same method as s1-s6 (worst-of-trichromat/protan/deutan
+     dE76, >=3:1 on --card, chroma >=30, dE76 >=20 from --ev-red/--ev-amber):
+       s7 moss   #2b661a  h106 s60 l25   card 6.716  page 6.958
+       s8 rose   #f31b6a  h338 s90 l53   card 3.916  page 4.057
+     Worst pairwise dE76 (worst observer): s7 vs s1-s6 >= 21.1 (deutan, vs
+     s1); s8 vs s1-s6 >= 23.0 (protan, vs s6); s7 vs s8 23.4 (deutan). Every
+     figure clears the six's own 20-from-red/amber and >=20-pairwise floors. */
+  --ev-series-7: #2b661a;
+  --ev-series-8: #f31b6a;
+
   /* ── THE AREA FILLS. One per stop, by --ev-brand-lt's stated method: the
      stop at **10% on the theme's ground**. s1 reproduces --ev-brand-lt
      EXACTLY — 0.10 x rgb(12 105 68) + 0.90 x rgb(255 255 255) = #e7f0ec — so
@@ -1491,6 +1502,11 @@
   --ev-series-4-lt: #f1eaf0;
   --ev-series-5-lt: #eaedfb;
   --ev-series-6-lt: #e7f4f7;
+  /* s7/s8 fills, same 10% wash: 0.10 x stop + 0.90 x white. Stroke/fill
+     contrast 6.006 (s7) and 3.481 (s8) — s8 is the thin pair the six's s3/s6
+     already showed, still >=3:1. */
+  --ev-series-7-lt: #eaf0e8;
+  --ev-series-8-lt: #fee8f0;
 
   /* --- Geometry. D7 §1.4. Every value is on the 4px grid (D15).
      D-2 IS RETIRED — see `03-navattic-language.md` §5. Its type half was not a
@@ -1751,6 +1767,26 @@
      literals. It clears 3:1 on white at 6.574 against the new --ev-red. */
   --ev-marker: 3px;
 
+  /* D39/D40, spec 03 §2: the four fixed heights a `report` page-block may
+     take, `report.height: 'S' | 'M' | 'L' | 'XL'`. Amplitude's own four row
+     heights, kept rather than re-derived so a migrated dashboard tile does
+     not jump size. Not on the 4px-grid comment above by exception — R13
+     names these four figures directly, so there is nothing to derive. */
+  --ev-block-h-s: 375px;
+  --ev-block-h-m: 500px;
+  --ev-block-h-l: 625px;
+  --ev-block-h-xl: 750px;
+
+  /* Four ascending alpha steps of --chart-fill-s1 (== --ev-series-1-lt), for
+     a retention matrix cell (spec 02 cohort mode). Same color-mix idiom as
+     --ev-hairline-soft: one token, no ground assumed, so a cell composes
+     correctly on any row stripe. Step 4 is the fill at full strength — the
+     ramp's existing pale-wash ceiling, not a new colour. */
+  --ev-heat-1: color-mix(in srgb, var(--ev-series-1-lt) 25%, transparent);
+  --ev-heat-2: color-mix(in srgb, var(--ev-series-1-lt) 50%, transparent);
+  --ev-heat-3: color-mix(in srgb, var(--ev-series-1-lt) 75%, transparent);
+  --ev-heat-4: var(--ev-series-1-lt);
+
   /* --- Motion. R18 + §7.6. Untouched by D7. A loop may only signal "this feed
      is live". Transition DURATIONS come from Tailwind's own scale
      (`duration-200` for a layer, `duration-100` for a popover) — that scale is
@@ -1967,6 +2003,20 @@
   --ev-series-4: #b264a0;
   --ev-series-5: #6a83f6;
   --ev-series-6: #50d5e7;
+  /* s7/s8, D40, re-solved against the dark card rather than lifted from
+     light — the dark card and page sit close enough in value that light's
+     s7/s8 hues collapse into each other under simulated deuteranopia, so
+     both were re-searched for mutual dE76 as well as the six's own floors:
+       s7 moss   #419130  h110 s50 l38   card 5.019  page 4.510
+       s8 rose   #ea0619  h355 s95 l47   card 4.283  page 3.849
+     Worst-observer dE76: s7 vs s1-s6 >= 22.0 (vs s3); s8 vs s1-s6 >= 21.3
+     (vs s3); s7 vs s8 21.4. s8's hue sits 17 deg from light's s8 (338):
+     dark's red (#f08a7e) is a different hue from light's red (#b42318), so
+     the same 20-from-red floor lands the two themes on different hues —
+     the tether is a preference the six's derivation states, not a rule, and
+     it loses to the dE76 floor when the two conflict. */
+  --ev-series-7: #419130;
+  --ev-series-8: #ea0619;
 
   /* --- Area fills, hsl(H_stop 40% L) one faint step above the card; every
      stop clears 3:1 on its own fill and both inks clear AA on all six. s1 is
@@ -1976,6 +2026,11 @@
   --ev-series-4-lt: #491f3c;
   --ev-series-5-lt: #1c2241;
   --ev-series-6-lt: #17343a;
+  /* s7/s8 fills, same hsl(H_stop 40% L) construction: stroke/fill contrast
+     3.735 (s7) and 3.147 (s8), fill/card ~1.35 — matched to the six's own
+     1.28-1.50 range. */
+  --ev-series-7-lt: #182d13;
+  --ev-series-8-lt: #441d20;
 
   /* NO ELEVATION BLOCK HERE ANY MORE. Shadows are retired in both themes
      (owner, 2026-09-06) and dark's tier-1 inset highlight went with them. What
@@ -2671,6 +2726,10 @@
   --chart-s4: var(--ev-series-4);
   --chart-s5: var(--ev-series-5);
   --chart-s6: var(--ev-series-6);
+  /* D40: the ramp runs to eight. Derivation and the dE76/contrast figures
+     are at --ev-series-7 and --ev-series-8 in layer 1, both themes. */
+  --chart-s7: var(--ev-series-7);
+  --chart-s8: var(--ev-series-8);
 
   /* --- One pale area fill per stop, so a compound area chart does not have
      to reach for --chart-fill six times and get one green wash under six
@@ -2692,6 +2751,8 @@
   --chart-fill-s4: var(--ev-series-4-lt);
   --chart-fill-s5: var(--ev-series-5-lt);
   --chart-fill-s6: var(--ev-series-6-lt);
+  --chart-fill-s7: var(--ev-series-7-lt);
+  --chart-fill-s8: var(--ev-series-8-lt);
 }
 
 /* ==========================================================================
@@ -2849,6 +2910,19 @@
   --color-chart-fill-s4: var(--chart-fill-s4);
   --color-chart-fill-s5: var(--chart-fill-s5);
   --color-chart-fill-s6: var(--chart-fill-s6);
+  /* D40 — `stroke-chart-s7`, `fill-chart-fill-s8`, same reason as s1-s6. */
+  --color-chart-s7: var(--chart-s7);
+  --color-chart-s8: var(--chart-s8);
+  --color-chart-fill-s7: var(--chart-fill-s7);
+  --color-chart-fill-s8: var(--chart-fill-s8);
+
+  /* D39/D40 — a retention matrix cell takes `bg-heat-1` … `bg-heat-4`
+     instead of an inline alpha. No layer-2 slot: the name already carries
+     its one meaning, same precedent as --spacing-marker below. */
+  --color-heat-1: var(--ev-heat-1);
+  --color-heat-2: var(--ev-heat-2);
+  --color-heat-3: var(--ev-heat-3);
+  --color-heat-4: var(--ev-heat-4);
 
   /* Geometry, so a component can say `w-rail` / `h-row` / `max-w-page`
      instead of an arbitrary value. */
@@ -2866,6 +2940,12 @@
   --spacing-monitor-aside: var(--ev-monitor-aside-w);
   --spacing-drawer: var(--ev-drawer-w);
   --spacing-marker: var(--ev-marker);
+  /* D39/D40, spec 03 §2 — `h-block-h-s` … `h-block-h-xl` for a page's
+     `report` block, so `report.height` never becomes a pixel literal. */
+  --spacing-block-h-s: var(--ev-block-h-s);
+  --spacing-block-h-m: var(--ev-block-h-m);
+  --spacing-block-h-l: var(--ev-block-h-l);
+  --spacing-block-h-xl: var(--ev-block-h-xl);
   /* design 12 §2 — `w-inbox-list`, `w-inbox-rail`, `w-inbox-rail-min`. */
   --spacing-inbox-list: var(--ev-inbox-list-w);
   --spacing-inbox-rail: var(--ev-inbox-rail-w);

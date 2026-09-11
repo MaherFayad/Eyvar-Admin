@@ -1,0 +1,16 @@
+{
+  "id": "WP-7.4",
+  "branch": "analytics-v2",
+  "allow": [
+    "src/screens/analyst/**",
+    "src/screens/reports/ReportsScreen.tsx",
+    "src/screens/reports/views.ts",
+    "src/routes.tsx",
+    "src/components/reports/ChartToolbar.tsx",
+    "src/screens/reports/ReportBuilder.tsx",
+    "src/components/PageHeader.tsx",
+    "src/screens/reports/AlertFeedView.tsx",
+    "src/commands/**"
+  ],
+  "deny": []
+}

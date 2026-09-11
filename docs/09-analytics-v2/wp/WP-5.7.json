@@ -1,0 +1,11 @@
+{
+  "id": "WP-5.7",
+  "branch": "analytics-v2",
+  "allow": [
+    "scripts/harness/alerts-v2.mjs",
+    "docs/02-verification/analytics-v2-alerts-visual.md",
+    "docs/02-verification/analytics-v2-alerts-a11y.md",
+    "docs/02-verification/analytics-v2-alerts-qa.md"
+  ],
+  "deny": []
+}

@@ -1,0 +1,8 @@
+{
+  "id": "WP-4.6",
+  "branch": "analytics-v2",
+  "allow": [
+    "src/components/pages/edit/**"
+  ],
+  "deny": []
+}

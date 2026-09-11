@@ -1,0 +1,14 @@
+{
+  "id": "WP-2.1",
+  "branch": "analytics-v2",
+  "allow": [
+    "src/components/reports/SeriesChart.tsx",
+    "src/components/reports/ResultCanvas.tsx",
+    "src/components/reports/rollup.ts",
+    "src/components/reports/KpiCard.tsx"
+  ],
+  "deny": [
+    "src/components/reports/PanelChart.tsx",
+    "src/components/ui/**"
+  ]
+}

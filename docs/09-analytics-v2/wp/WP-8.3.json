@@ -1,0 +1,15 @@
+{
+  "id": "WP-8.3",
+  "branch": "analytics-v2",
+  "allow": [
+    "docs/02-verification/analytics-v2-visual.md",
+    "src/components/reports/**",
+    "src/components/pages/**",
+    "src/screens/pages/**",
+    "src/screens/analyst/**",
+    "src/screens/reports/**"
+  ],
+  "deny": [
+    "src/styles/globals.css"
+  ]
+}

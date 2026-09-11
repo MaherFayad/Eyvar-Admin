@@ -1,0 +1,8 @@
+{
+  "id": "WP-6.5",
+  "branch": "analytics-v2",
+  "allow": [
+    "api/**"
+  ],
+  "deny": []
+}

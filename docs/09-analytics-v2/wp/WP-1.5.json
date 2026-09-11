@@ -1,0 +1,10 @@
+{
+  "id": "WP-1.5",
+  "branch": "analytics-v2",
+  "allow": [
+    "src/data/reporting/serialise.ts",
+    "src/data/reporting/serialise.test.ts",
+    "src/data/reporting/serialise.v1.fixtures.ts"
+  ],
+  "deny": []
+}

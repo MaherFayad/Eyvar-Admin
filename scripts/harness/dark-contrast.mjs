@@ -4,6 +4,11 @@
  * plan's screenshots came from, and measures every rendered text node against
  * the ground it actually sits on. Fails on any ratio under 4.5 (3.0 at 18px+).
  *
+ * Also checks the D40 chart hues (WP-0.3): `--chart-s7`/`--chart-s8` and
+ * their fills read as CSS custom properties in both themes and measured
+ * against `--background` and `--card`, the file's own non-text floor (3:1,
+ * WCAG 1.4.11) at `--ev-series-1`.
+ *
  *   npx vite --port 4334   (or set HARNESS_BASE)
  *   node scripts/harness/dark-contrast.mjs [label]
  */
@@ -146,8 +151,73 @@ function probe() {
   return { rows, skipped, dark: document.documentElement.classList.contains('dark') }
 }
 
+/* D40's new stops read straight off :root — no text node walks a chart
+   colour, so this is a direct computed-property check, not the DOM probe
+   above. Non-text floor 3:1 (WCAG 1.4.11), same as the ramp's own rule. */
+function chartHueProbe() {
+  const canvas = document.createElement('canvas').getContext('2d')
+  const parse = (css) => {
+    canvas.fillStyle = '#000'
+    canvas.fillStyle = css
+    const n = canvas.fillStyle
+    const m = n.match(/^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i)
+    return m ? m.slice(1).map((h) => parseInt(h, 16)) : null
+  }
+  const lum = ([r, g, b]) => {
+    const f = (c) => {
+      c /= 255
+      return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4
+    }
+    return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b)
+  }
+  const ratio = (a, b) => {
+    const x = lum(a)
+    const y = lum(b)
+    return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05)
+  }
+  const cs = getComputedStyle(document.documentElement)
+  const read = (name) => parse(cs.getPropertyValue(name).trim())
+  const page = read('--background')
+  const card = read('--card')
+  const dark = document.documentElement.classList.contains('dark')
+  const rows = []
+  for (const name of ['--chart-s7', '--chart-s8']) {
+    const rgb = read(name)
+    rows.push({
+      name,
+      hex: '#' + rgb.map((v) => v.toString(16).padStart(2, '0')).join(''),
+      vsPage: Math.round(ratio(rgb, page) * 1000) / 1000,
+      vsCard: Math.round(ratio(rgb, card) * 1000) / 1000,
+    })
+  }
+  return { dark, rows }
+}
+
 const browser = await chromium.launch()
 let failures = 0
+
+/* One route is enough — these are :root custom properties, not page
+   content, so they are the same on every screen. Checked light-then-dark. */
+{
+  const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 } })
+  const page = await ctx.newPage()
+  await page.goto(BASE + '/support/tickets', { waitUntil: 'networkidle' })
+  await page.waitForTimeout(600)
+  const light = await page.evaluate(chartHueProbe)
+  await switchToDark(page)
+  const darkResult = await page.evaluate(chartHueProbe)
+  for (const [label, result] of [['light', light], ['dark', darkResult]]) {
+    const fails = result.rows.filter((r) => r.vsPage < 3 || r.vsCard < 3)
+    console.log(
+      `chart-hues ${label} ${LABEL}`,
+      JSON.stringify(result.rows),
+      fails.length || result.dark !== (label === 'dark') ? 'FAIL' : 'ok',
+    )
+    if (fails.length || result.dark !== (label === 'dark')) failures += 1
+  }
+  await ctx.close()
+}
+
 for (const [name, url] of ROUTES) {
   const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 } })
   const page = await ctx.newPage()

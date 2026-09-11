@@ -1,0 +1,11 @@
+{
+  "id": "WP-1.1",
+  "branch": "analytics-v2",
+  "allow": [
+    "src/data/types/**"
+  ],
+  "deny": [
+    "src/components/**",
+    "src/screens/**"
+  ]
+}

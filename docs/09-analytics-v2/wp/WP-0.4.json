@@ -1,0 +1,15 @@
+{
+  "id": "WP-0.4",
+  "branch": "analytics-v2",
+  "allow": [
+    "src/screens/pages/copy.ts",
+    "src/i18n/ar/pages.ts",
+    "src/screens/analyst/copy.ts",
+    "src/i18n/ar/analyst.ts",
+    "src/i18n/dictionaries.ts",
+    "src/i18n/ar/index.ts",
+    "docs/08-i18n/KEYS.md",
+    "scripts/i18n-budget.json"
+  ],
+  "deny": []
+}

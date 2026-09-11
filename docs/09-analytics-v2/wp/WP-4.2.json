@@ -1,0 +1,18 @@
+{
+  "id": "WP-4.2",
+  "branch": "analytics-v2",
+  "allow": [
+    "src/components/pages/**",
+    "src/screens/pages/PageScreen.tsx",
+    "src/screens/pages/PageScreen.test.tsx",
+    "src/components/reports/DashboardTile.tsx",
+    "src/components/reports/useResolvedReport.ts",
+    "src/components/reports/useResolvedReport.test.ts",
+    "src/routes.tsx",
+    "src/data/fixtures/routeTable.ts",
+    "src/screens/reports/dashboard.chrome.test.tsx",
+    "src/screens/reports/dashboard.depth.test.tsx",
+    "src/screens/reports/dashboards.test.tsx"
+  ],
+  "deny": []
+}

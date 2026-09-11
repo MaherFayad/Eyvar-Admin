@@ -1,0 +1,10 @@
+{
+  "id": "WP-3.1",
+  "branch": "analytics-v2",
+  "allow": [
+    "src/screens/reports/ReportModePanel.tsx",
+    "src/screens/reports/ReportModeCanvas.tsx",
+    "src/data/mock/resolveReport.ts"
+  ],
+  "deny": []
+}

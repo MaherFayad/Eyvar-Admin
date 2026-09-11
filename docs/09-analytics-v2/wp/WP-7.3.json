@@ -1,0 +1,9 @@
+{
+  "id": "WP-7.3",
+  "branch": "analytics-v2",
+  "allow": [
+    "agent/prompts/**",
+    "agent/schemas/**"
+  ],
+  "deny": []
+}

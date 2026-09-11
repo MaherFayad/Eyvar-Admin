@@ -1,0 +1,17 @@
+{
+  "id": "WP-2.2",
+  "branch": "analytics-v2",
+  "allow": [
+    "src/components/reports/ResultCanvas.tsx",
+    "src/components/reports/SeriesChart.tsx",
+    "src/components/reports/useChartView.ts",
+    "src/components/reports/*.test.tsx",
+    "src/screens/reports/copy.ts",
+    "src/i18n/ar/reports.ts"
+  ],
+  "deny": [
+    "src/components/reports/PanelChart.tsx",
+    "src/styles/globals.css",
+    "src/components/ui/**"
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "id": "WP-2.4",
+  "branch": "analytics-v2",
+  "allow": [
+    "src/components/reports/AnnotationMarks.tsx",
+    "src/components/reports/AnnotationForm.tsx",
+    "src/components/reports/SeriesChart.tsx",
+    "src/components/reports/ChartToolbar.tsx",
+    "src/screens/reports/copy.ts",
+    "src/i18n/ar/reports.ts"
+  ],
+  "deny": []
+}

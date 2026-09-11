@@ -1,0 +1,9 @@
+{
+  "id": "WP-6.8",
+  "branch": "analytics-v2",
+  "allow": [
+    "scripts/api-smoke.mjs",
+    "docs/09-analytics-v2/handoffs/cutover.md"
+  ],
+  "deny": []
+}

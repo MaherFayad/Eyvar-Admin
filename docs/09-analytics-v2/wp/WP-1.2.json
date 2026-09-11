@@ -1,0 +1,9 @@
+{
+  "id": "WP-1.2",
+  "branch": "analytics-v2",
+  "allow": [
+    "src/data/reporting/formula.ts",
+    "src/data/reporting/formula.test.ts"
+  ],
+  "deny": []
+}

@@ -1,0 +1,9 @@
+{
+  "id": "WP-2.3",
+  "branch": "analytics-v2",
+  "allow": [
+    "src/components/reports/ChartToolbar.tsx",
+    "src/components/reports/SeriesChart.tsx"
+  ],
+  "deny": []
+}

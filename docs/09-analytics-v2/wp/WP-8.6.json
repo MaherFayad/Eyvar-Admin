@@ -1,0 +1,12 @@
+{
+  "id": "WP-8.6",
+  "branch": "analytics-v2",
+  "allow": [
+    "src/**",
+    "api/**",
+    "agent/**"
+  ],
+  "deny": [
+    "src/components/ui/**"
+  ]
+}

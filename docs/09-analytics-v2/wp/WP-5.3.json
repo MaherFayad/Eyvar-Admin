@@ -1,0 +1,9 @@
+{
+  "id": "WP-5.3",
+  "branch": "analytics-v2",
+  "allow": [
+    "src/screens/reports/AlertFeedView.tsx",
+    "src/screens/reports/AlertsView.tsx"
+  ],
+  "deny": []
+}

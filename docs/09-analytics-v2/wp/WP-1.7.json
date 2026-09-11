@@ -1,0 +1,18 @@
+{
+  "id": "WP-1.7",
+  "branch": "analytics-v2",
+  "allow": [
+    "src/data/clients/segments.ts",
+    "src/data/clients/annotations.ts",
+    "src/data/clients/pages.ts",
+    "src/data/clients/agent.ts",
+    "src/data/clients/runs.ts",
+    "src/data/clients/reports.ts",
+    "src/data/clients/alerts.ts",
+    "src/data/clients/dashboards.ts",
+    "src/data/clients/index.ts",
+    "src/data/clients/http.ts",
+    "src/data/clients/seam.test.ts"
+  ],
+  "deny": []
+}

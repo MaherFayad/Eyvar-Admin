@@ -1,0 +1,8 @@
+{
+  "id": "WP-0.5",
+  "branch": "analytics-v2",
+  "allow": [
+    "docs/05-restructure/design/22-analytics-v2.md"
+  ],
+  "deny": []
+}

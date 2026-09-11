@@ -169,6 +169,30 @@ nothing else changes.
   both elevation and focus composes them into one comma list, or moves elevation to a
   wrapper. Getting this wrong reopens defect D20 silently.
 
+## Analytics v2 additions (D40, D39)
+
+The categorical chart ramp runs to eight stops. `--chart-s1`…`--chart-s6` are unchanged; see
+`src/styles/globals.css` at `--ev-series-1` for their full derivation. `s7`/`s8` were derived
+the same way (worst-of-trichromat/protanope/deuteranope dE76, ≥3:1 non-text on `--card` and
+`--ev-bg`, dE76 ≥20 from `--ev-red` and `--ev-amber`, Lab chroma ≥30) and re-solved
+independently per theme, same as `s2`–`s6`.
+
+| Token | Light | Dark | Card contrast (light / dark) |
+|---|---|---|---|
+| `--ev-series-7` (`--chart-s7`) | `#2b661a` (moss) | `#419130` | 6.716 / 5.019 |
+| `--ev-series-8` (`--chart-s8`) | `#f31b6a` (rose) | `#ea0619` | 3.916 / 4.283 |
+| `--ev-series-7-lt` (`--chart-fill-s7`) | `#eaf0e8` | `#182d13` | — |
+| `--ev-series-8-lt` (`--chart-fill-8`) | `#fee8f0` | `#441d20` | — |
+
+`s8`'s dark hue sits 17° from its light twin: dark's `--ev-red` is a different hue from
+light's, so the same dE76-from-red floor lands the two themes on different hues. The six's "hue
+within 6°" is a preference, not a rule, and loses to the floor here.
+
+| Token | Value | What it is |
+|---|---|---|
+| `--ev-block-h-s` / `-m` / `-l` / `-xl` (`h-block-h-s` …) | 375 / 500 / 625 / 750 px | A page `report` block's four fixed heights, spec 03 §2, D39. Amplitude's own four row heights. |
+| `--ev-heat-1` … `-4` (`bg-heat-1` …) | `color-mix(in srgb, var(--ev-series-1-lt) 25/50/75%, transparent)`, then the fill itself at 100% | Four ascending alpha steps of `--chart-fill-s1` for a retention matrix cell. Same `color-mix` idiom as `--ev-hairline-soft`. |
+
 ## Two tokens that are not what they look like
 
 | Token | What it is | What it is not |

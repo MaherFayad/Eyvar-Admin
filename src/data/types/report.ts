@@ -50,7 +50,26 @@ import type {
 } from './common'
 import type { MetricUnit } from './metrics'
 import type { PermissionKey } from './navigation'
-import type { MeasureGrain, MeasureKey, Temporality } from './measure'
+import type { BucketAggregate, DimensionKey, MeasureGrain, MeasureKey, Temporality } from './measure'
+import type { SegmentRef } from './segment'
+import type { AlertRule } from './alert'
+
+/**
+ * Alert types moved to `alert.ts` (D42). Re-exported here for one phase so
+ * `import { AlertRule } from './report'` keeps compiling.
+ */
+export type {
+  AlertCadence,
+  AlertChannel,
+  AlertComparator,
+  AlertCondition,
+  AlertEvaluation,
+  AlertFiring,
+  AlertRule,
+  AlertSeverity,
+  AlertState,
+} from './alert'
+export { alertChannels, alertCondition, alertSeverity, normaliseAlertRule } from './alert'
 
 /* ─────────────────────────── the query ─────────────────────────────────── */
 
@@ -104,14 +123,75 @@ export type ReportWindow =
  */
 export type ReportGrain = MeasureGrain | 'none'
 
-export type PeriodComparison = 'none' | 'previous-period' | 'previous-year'
+/**
+ * G6 (`02-report-builder-v2.md` §2.6): v2 adds `previous-quarter` and a fixed
+ * range. `fixed` must have the same bucket count as the current window, or the
+ * planner emits `comparison-length`.
+ */
+export type PeriodComparison =
+  | 'none'
+  | 'previous-period'
+  | 'previous-quarter'
+  | 'previous-year'
+  | { kind: 'fixed'; from: IsoDate; to: IsoDate }
 
-export type ChartType = 'line' | 'bar' | 'pie' | 'table'
+/** §2.6. `'series'` is R7's dashed-overlay default; `difference` and `percent-change` are resolved, not drawn client-side. */
+export type ComparisonDisplay = 'series' | 'difference' | 'percent-change'
 
-/** §3.2. A ref, not a copy of the measure — the catalogue is the definition. */
+export const DEFAULT_COMPARISON_DISPLAY: ComparisonDisplay = 'series'
+
+/** G8: v1's four plus area, the two stacked forms, horizontal bar and kpi (§3 legality gates each). */
+export type ChartType =
+  | 'line'
+  | 'area'
+  | 'bar'
+  | 'stacked-bar'
+  | 'stacked-100'
+  | 'horizontal-bar'
+  | 'pie'
+  | 'kpi'
+  | 'table'
+
+/**
+ * §3.2. A ref, not a copy of the measure — the catalogue is the definition.
+ *
+ * `aggregate` (G1) is legal only when `Measure.bucketAggregateOptions`
+ * includes it; the planner emits `illegal-aggregate` otherwise. Absent means
+ * the catalogue's own `Measure.bucketAggregate`.
+ */
 export interface MeasureRef {
   key: MeasureKey
+  aggregate?: BucketAggregate
 }
+
+/** G2 (§2.2): `A / B`, `A * n`, `ROLLAVG(A, n)`, `CUMSUM(A)`, `DELTA(A)`, `PCT(A)`. Parsed by `reporting/formula.ts`. */
+export interface ReportFormula {
+  expression: string
+  label: string
+}
+
+/**
+ * G3 (§2.3), applied by the resolver after aggregation, before comparison.
+ * `cumulative` requires `additive`; `percentOfTotal` requires a split;
+ * `rollingAverage` is 2 … 30 and disabled below that many buckets.
+ */
+export interface ReportTransform {
+  cumulative: boolean
+  rollingAverage: number | null
+  percentOfTotal: boolean
+}
+
+export const DEFAULT_REPORT_TRANSFORM: ReportTransform = {
+  cumulative: false,
+  rollingAverage: null,
+  percentOfTotal: false,
+}
+
+/** G4: two levels keeps the legend readable. Series ids become `<measureKey>#<g1>|<g2>#<role>`. */
+export const REPORT_GROUP_BY_MAX = 2
+
+/** G5: the series ceiling counts `measures × segments × groups` (24 with a comparison). */
+export const REPORT_SEGMENTS_MAX = 4
 
 /* ──────────────────────── the analysis mode ────────────────────────────── */
 
@@ -172,16 +252,33 @@ export interface FunnelStep {
  * how a funnel ends up rendering its steps in one order and computing drop-off
  * in another.
  */
+export type FunnelMode = 'ordered' | 'unordered' | 'sequential'
+export type FunnelMeasuredAs = 'conversion' | 'conversion-over-time' | 'time-to-convert'
+
 export interface FunnelSpec {
   steps: FunnelStep[]
   /**
-   * How long one subject has to reach the last step from the first.
-   *
-   * **`null` means the report window**, which is the only answer that needs no
-   * business decision: a funnel over `last-30d` with no conversion window is
-   * "of the people who entered in these 30 days, how many finished in these 30
-   * days". Any other default would be invented (AC-453), so none is.
+   * How long one subject has to reach the last step from the first. **`null`
+   * means the report window** — any other default is invented (AC-453).
+   * `normaliseReportQuery` migrates v1's `conversionWindowDays: n` here as
+   * `{ value: n, unit: 'day' }` (G10, §5).
    */
+  conversionWindow: { value: number; unit: 'hour' | 'day' | 'week' } | null
+  /** Default `'ordered'`. `sequential` needs `Measure.funnelCapabilities.sequential`. */
+  mode: FunnelMode
+  /** Needs `Measure.funnelCapabilities.holdConstant`. `null` holds nothing constant. */
+  holdConstant: DimensionKey | null
+  /** Populations that disqualify a subject anywhere in the funnel. */
+  exclude: MeasureKey[]
+  /** Default `'conversion'`. */
+  measuredAs: FunnelMeasuredAs
+  /** The drop-off group table's split, opened by clicking a step. `null` is ungrouped. */
+  groupBy: DimensionKey | null
+}
+
+/** v1's shape. `normaliseReportQuery` accepts either this or `FunnelSpec`. */
+export interface FunnelSpecV1 {
+  steps: FunnelStep[]
   conversionWindowDays: number | null
 }
 
@@ -210,19 +307,34 @@ export type CohortGrain = 'day' | 'week' | 'month'
  * anchor the matrix reaches, and the plan checks the window is long enough to
  * reach it (`cohort-window-too-short`).
  */
+export type CohortMethod = 'rolling' | 'nday' | 'bracket'
+
 export interface CohortSpec {
   /** The event that forms the cohort. `null` is an unstarted cohort report, not an error. */
   anchorMeasureKey: MeasureKey | null
   /**
-   * What counts as *still here*. `null` means the anchor's own subject
-   * activity, which is what `buildCohortMatrix`'s `getLastActiveAt` reads.
+   * What counts as *still here*, OR-combined. `[]` means the anchor's own
+   * subject activity (`buildCohortMatrix`'s `getLastActiveAt`). v2 (G11, §6);
+   * `normaliseReportQuery` migrates v1's single `returnMeasureKey` into this.
    */
-  returnMeasureKey: MeasureKey | null
+  returnMeasureKeys: MeasureKey[]
   cohortGrain: CohortGrain
+  /** Default `'rolling'`. */
+  method: CohortMethod
+  /** In `cohortGrain` units, e.g. `[[0,7],[7,14]]`. `null` unless `method === 'bracket'`. */
+  brackets: [number, number][] | null
   /**
    * How many intervals after the anchor the matrix reaches — `M0 … M{horizon}`,
    * the exact vocabulary `reporting/cohorts.ts` already consumes.
    */
+  horizon: number
+}
+
+/** v1's shape. `normaliseReportQuery` accepts either this or `CohortSpec`. */
+export interface CohortSpecV1 {
+  anchorMeasureKey: MeasureKey | null
+  returnMeasureKey: MeasureKey | null
+  cohortGrain: CohortGrain
   horizon: number
 }
 
@@ -240,6 +352,26 @@ export interface JourneySpec {
   depth: number
 }
 
+/** G12, §7: a measure per column rather than a series per row. Each column resolves as its own leg. */
+export type TableColumn =
+  | { kind: 'measure'; ref: MeasureRef; filters?: FilterSpec[]; label?: string }
+  | { kind: 'formula'; expression: string; label: string }
+
+export interface TableFormatBand {
+  lte: number
+  tone: 'success' | 'warning' | 'neutral'
+}
+
+export interface TableSpec {
+  /** 1 … 8. */
+  columns: TableColumn[]
+  /** 0 … 2, folded at 8 each. `'time'` uses the query's own grain. */
+  rows: ('time' | DimensionKey)[]
+  /** A totals row, only when every column is additive — otherwise the cell reads the aggregate word. */
+  totals: boolean
+  format: { column: number; bands: TableFormatBand[] }[]
+}
+
 export interface ReportQuery {
   /**
    * One or two. **Capped at two** (§6.1) — *"the third series is where a chart
@@ -248,8 +380,8 @@ export interface ReportQuery {
    * exactly what §11 is for.
    */
   measures: MeasureRef[]
-  /** A dimension key legal for **every** measure listed. `null` is no split. */
-  groupBy: string | null
+  /** G4: legal for every measure listed, capped at `REPORT_GROUP_BY_MAX`. `[]` is no split. */
+  groupBy: DimensionKey[]
   /** The existing vocabulary, unchanged. No second filter model (AC-814). */
   filters: FilterSpec[]
   window: ReportWindow
@@ -257,7 +389,16 @@ export interface ReportQuery {
   periodComparison: PeriodComparison
   chartType: ChartType
 
-  /* ── the mode, and the three configurations only one mode reads ───────── */
+  /** G2. Replaces the measure series in the plot when set. */
+  formula?: ReportFormula
+  /** G3. Applied after aggregation, before comparison. Absent means `DEFAULT_REPORT_TRANSFORM`. */
+  transform?: ReportTransform
+  /** G5, capped at `REPORT_SEGMENTS_MAX`. Absent or `[]` means "everyone". */
+  segments?: SegmentRef[]
+  /** G6. Absent means `DEFAULT_COMPARISON_DISPLAY`. */
+  comparisonDisplay?: ComparisonDisplay
+
+  /* ── the mode, and the four configurations only one mode reads ────────── */
 
   /**
    * Which of the five questions this is. **Absent means `'trend'`** — read it
@@ -270,6 +411,19 @@ export interface ReportQuery {
   cohort?: CohortSpec
   /** Read only when `mode` is `'journey'`. Absent is an unstarted journey. */
   journey?: JourneySpec
+  /** Read only when `mode` is `'table'` (§7). Absent is the degenerate series table, `rows: ['time']`. */
+  table?: TableSpec
+}
+
+/**
+ * A `ReportQuery` as a v1 URL, saved report or caller may still carry it —
+ * `groupBy` a bare dimension, `funnel`/`cohort` in their v1 shapes.
+ * `normaliseReportQuery` is the only function that reads this type.
+ */
+export type ReportQueryInput = Omit<ReportQuery, 'groupBy' | 'funnel' | 'cohort'> & {
+  groupBy: DimensionKey[] | DimensionKey | null
+  funnel?: FunnelSpec | FunnelSpecV1
+  cohort?: CohortSpec | CohortSpecV1
 }
 
 /**
@@ -284,18 +438,63 @@ export function reportMode(query: Pick<ReportQuery, 'mode'>): ReportMode {
   return query.mode ?? DEFAULT_REPORT_MODE
 }
 
+/** `groupBy` migrated: a bare dimension becomes a one-element array, `null` becomes `[]`. */
+function normaliseGroupBy(groupBy: DimensionKey[] | DimensionKey | null): DimensionKey[] {
+  if (groupBy === null) return []
+  return Array.isArray(groupBy) ? groupBy : [groupBy]
+}
+
+/** `funnel.conversionWindowDays` migrated to `conversionWindow`; every v2 default filled. */
+function normaliseFunnelSpec(funnel: FunnelSpec | FunnelSpecV1): FunnelSpec {
+  const conversionWindow: FunnelSpec['conversionWindow'] =
+    'conversionWindow' in funnel
+      ? funnel.conversionWindow
+      : funnel.conversionWindowDays == null
+        ? null
+        : { value: funnel.conversionWindowDays, unit: 'day' }
+  return {
+    steps: funnel.steps,
+    conversionWindow,
+    mode: 'mode' in funnel ? funnel.mode : 'ordered',
+    holdConstant: 'holdConstant' in funnel ? funnel.holdConstant : null,
+    exclude: 'exclude' in funnel ? funnel.exclude : [],
+    measuredAs: 'measuredAs' in funnel ? funnel.measuredAs : 'conversion',
+    groupBy: 'groupBy' in funnel ? funnel.groupBy : null,
+  }
+}
+
+/** `cohort.returnMeasureKey` migrated into a one-element `returnMeasureKeys`; every v2 default filled. */
+function normaliseCohortSpec(cohort: CohortSpec | CohortSpecV1): CohortSpec {
+  const returnMeasureKeys: MeasureKey[] =
+    'returnMeasureKeys' in cohort
+      ? cohort.returnMeasureKeys
+      : cohort.returnMeasureKey == null
+        ? []
+        : [cohort.returnMeasureKey]
+  return {
+    anchorMeasureKey: cohort.anchorMeasureKey,
+    returnMeasureKeys,
+    cohortGrain: cohort.cohortGrain,
+    method: 'method' in cohort ? cohort.method : 'rolling',
+    brackets: 'brackets' in cohort ? cohort.brackets : null,
+    horizon: cohort.horizon,
+  }
+}
+
 /**
- * The query with its default made explicit.
- *
- * `serialiseReportQuery` is **lossless up to this normalisation** and no
- * further: a query carrying no `mode` and a query carrying `mode: 'trend'` are
- * the same question, they produce the same URL by construction (the default is
- * never written), and they therefore come back as one value. That is the
- * property the round-trip tests assert, and it is what keeps an existing saved
- * link resolving unchanged.
+ * The query with every v1 shape migrated and every v2 default made explicit
+ * (D42). `serialiseReportQuery` is **lossless up to this normalisation**: a
+ * query with no `mode` and one with `mode: 'trend'` produce the same URL and
+ * so come back as one value — the property the round-trip tests assert.
  */
-export function normaliseReportQuery(query: ReportQuery): ReportQuery & { mode: ReportMode } {
-  return { ...query, mode: reportMode(query) }
+export function normaliseReportQuery(query: ReportQueryInput): ReportQuery & { mode: ReportMode } {
+  return {
+    ...query,
+    mode: reportMode(query),
+    groupBy: normaliseGroupBy(query.groupBy),
+    funnel: query.funnel ? normaliseFunnelSpec(query.funnel) : undefined,
+    cohort: query.cohort ? normaliseCohortSpec(query.cohort) : undefined,
+  }
 }
 
 /* ─────────────────────────── the result ────────────────────────────────── */
@@ -725,151 +924,7 @@ export interface Dashboard {
   updatedAt: IsoDateTime
 }
 
-/* ───────────────────────── alert rules (§12) ───────────────────────────── */
-
-/**
- * Four values, and **deliberately the same four names `FilterOperator`
- * already uses** (§12.2). One comparator vocabulary in the product.
- */
-export type AlertComparator = 'gt' | 'gte' | 'lt' | 'lte'
-
-/**
- * How often the server looks. §4.2 offers two values.
- *
- * **Every seeded rule carries `cadence: null`, and that is the point.** The
- * business has not specified an evaluation cadence, no scheduler exists
- * (Q-RB-7), and `AC-453` is this project's standing rule for exactly this case:
- * *an invented window is indistinguishable from a measured one once it is in a
- * fixture*. So the field is modelled, left unset, and a rule with
- * `cadence: null` **does not evaluate** — the same shape R5-15 gives a measure
- * with no population.
- */
-export type AlertCadence = 'hourly' | 'daily'
-
-/** §12.4's state machine. Server state — *"state in a browser is not state"* (§12.1). */
-export type AlertState = 'armed' | 'firing' | 'cooling' | 'suspended' | 'error'
-
-export interface AlertRule {
-  id: string
-  name: string
-  /** An alert targets a **saved** report — a stable identity, a name, and somewhere to send the operator. */
-  reportId: string
-  /** One `ReportSeries.id` of that report. */
-  seriesId: string
-  comparator: AlertComparator
-  /**
-   * The number the series is tested against, **in the series' own wire unit**.
-   * Money is integer halalas here as everywhere; an operator typing `40`
-   * against a money measure means 40 SAR and the wire carries `4000`.
-   */
-  threshold: number
-  /**
-   * **Derived** from the series' measure. An operator never picks a unit
-   * (AC-876). Carried on the rule so a rule list can render a threshold without
-   * resolving the report.
-   */
-  thresholdUnit: MetricUnit
-  thresholdCurrency: CurrencyCode | null
-
-  /** Which bucket's value is tested. */
-  evaluationGrain: MeasureGrain
-
-  /**
-   * **Unset on every seeded rule.** See `AlertCadence`. `null` means no cadence
-   * has been specified by the business, and the rule does not evaluate.
-   */
-  cadence: AlertCadence | null
-
-  /**
-   * §12.4's backstop for a value that oscillates across the line.
-   *
-   * **`null` on every seeded rule**, and `null` is meaningful: hysteresis alone
-   * — the value must come back inside the threshold before the rule can fire
-   * again — which §12.4 names as the default. No minimum has been specified and
-   * none is invented.
-   */
-  minReArmMinutes: number | null
-
-  /**
-   * How many consecutive `reports.run` failures move the rule to `error`.
-   * **AC-886 states five**, so this is specified rather than invented; it is a
-   * field rather than a constant because the number is the business's to change.
-   */
-  consecutiveFailuresBeforeError: number
-
-  state: AlertState
-  enabled: boolean
-  /**
-   * A **deadline, not a duration** — the house rule. Silences notifications
-   * without stopping evaluation: a rule muted while firing still re-arms
-   * (AC-887).
-   */
-  mutedUntil: IsoDateTime | null
-
-  /** `TeamUser.id`s. §13.3 — a recipient who cannot see the measure is not a legal recipient. */
-  recipientIds: string[]
-  /** **Evaluation authority** (§13.3): the rule is evaluated as its owner, never on wider rights. */
-  ownerId: string
-
-  /**
-   * The priority the emitted `Notification` carries. `'high'` by default.
-   *
-   * **`'critical'` is unreachable today and deliberately so**: §13.2 restricts
-   * marking a rule critical to a permission that does not exist, and Q-RB-9
-   * asks the owner which. Not derived from how far past the threshold the value
-   * went — *that is a magnitude, not an urgency* (§12.5).
-   */
-  notificationPriority: 'high' | 'critical'
-
-  lastEvaluatedAt: IsoDateTime | null
-  lastFiredAt: IsoDateTime | null
-  lastValue: number | null
-  /** Why the rule is `suspended` or in `error`, as a key. `null` in every other state. */
-  stateReasonKey: string | null
-
-  createdAt: IsoDateTime
-  updatedAt: IsoDateTime
-}
-
-/** One past crossing. `alerts.history`. */
-export interface AlertFiring {
-  id: string
-  ruleId: string
-  firedAt: IsoDateTime
-  /** The complete bucket that tripped it. */
-  bucketStart: IsoDate
-  value: number
-  threshold: number
-  /** The `Notification.id` this firing produced, so the two can be reconciled. */
-  notificationId: string | null
-}
-
-/**
- * `Test this rule` — §12.1's fourth client-owned item, and AC-877.
- *
- * **It says *would have fired*, never *fired*.** `stateChanged` is the literal
- * `false` so no caller can read it as anything else, and no notification is
- * emitted. This is how an operator discovers the threshold is on the wrong side
- * of the line.
- */
-export interface AlertEvaluation {
-  ruleId: string
-  evaluatedAt: IsoDateTime
-  /** The most recent **complete** bucket. `null` when the window holds none (§12.3). */
-  bucketStart: IsoDate | null
-  value: number | null
-  unit: MetricUnit
-  currency: CurrencyCode | null
-  wouldFire: boolean
-  outcome:
-    | 'would-fire'
-    | 'would-not-fire'
-    | 'no-complete-bucket'
-    | 'series-missing'
-    | 'series-blocked'
-    | 'report-missing'
-  stateChanged: false
-}
+/* Alert rules moved to `alert.ts` (D42) — see the re-export near the top of this file. */
 
 /* ───────────────────── mutation outcomes ───────────────────────────────── */
 

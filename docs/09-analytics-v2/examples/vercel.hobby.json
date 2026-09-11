@@ -1,0 +1,13 @@
+{
+  "rewrites": [{ "source": "/((?!api/).*)", "destination": "/index.html" }],
+  "functions": {
+    "api/**/*.ts": { "maxDuration": 60 },
+    "api/cron/*.ts": { "maxDuration": 300 }
+  },
+  "crons": [
+    { "path": "/api/cron/snapshot", "schedule": "5 21 * * *" },
+    { "path": "/api/cron/alerts-daily", "schedule": "15 3 * * *" },
+    { "path": "/api/cron/alerts-digest", "schedule": "0 5 * * *" },
+    { "path": "/api/cron/housekeeping", "schedule": "30 2 * * *" }
+  ]
+}

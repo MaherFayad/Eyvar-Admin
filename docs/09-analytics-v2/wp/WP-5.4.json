@@ -1,0 +1,8 @@
+{
+  "id": "WP-5.4",
+  "branch": "analytics-v2",
+  "allow": [
+    "src/screens/reports/AlertHistoryDialog.tsx"
+  ],
+  "deny": []
+}

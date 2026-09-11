@@ -1,0 +1,12 @@
+{
+  "id": "WP-7.7",
+  "branch": "analytics-v2",
+  "allow": [
+    "docs/09-analytics-v2/studies/**",
+    "scripts/harness/analyst.mjs",
+    "docs/02-verification/analytics-v2-analyst-qa.md",
+    "docs/02-verification/analytics-v2-analyst-visual.md",
+    "docs/02-verification/analytics-v2-analyst-a11y.md"
+  ],
+  "deny": []
+}

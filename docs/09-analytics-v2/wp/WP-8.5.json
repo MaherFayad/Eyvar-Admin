@@ -1,0 +1,11 @@
+{
+  "id": "WP-8.5",
+  "branch": "analytics-v2",
+  "allow": [
+    "docs/07-api/**",
+    "docs/08-i18n/**",
+    "docs/RULINGS.md",
+    "docs/README.md"
+  ],
+  "deny": []
+}

@@ -1,0 +1,12 @@
+{
+  "id": "WP-3.4",
+  "branch": "analytics-v2",
+  "allow": [
+    "scripts/harness/reports-v2.mjs",
+    "scripts/harness/reports-v2-modes.mjs",
+    "docs/02-verification/analytics-v2-modes-visual.md",
+    "docs/02-verification/analytics-v2-modes-a11y.md",
+    "docs/02-verification/analytics-v2-modes-qa.md"
+  ],
+  "deny": []
+}

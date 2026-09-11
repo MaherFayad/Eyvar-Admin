@@ -1,0 +1,13 @@
+{
+  "id": "WP-6.1",
+  "branch": "analytics-v2",
+  "allow": [
+    "api/**",
+    "scripts/fixtures-to-seed.mjs",
+    "docs/09-analytics-v2/examples/**",
+    "vercel.json",
+    "package.json",
+    "vite.config.ts"
+  ],
+  "deny": []
+}

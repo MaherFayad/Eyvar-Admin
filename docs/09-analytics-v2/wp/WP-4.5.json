@@ -1,0 +1,14 @@
+{
+  "id": "WP-4.5",
+  "branch": "analytics-v2",
+  "allow": [
+    "src/screens/reports/DashboardsView.tsx",
+    "src/screens/reports/PagesView.tsx",
+    "src/screens/reports/PagesView.test.tsx",
+    "src/screens/reports/views.ts",
+    "src/screens/reports/ReportsScreen.tsx",
+    "src/screens/reports/ReportBuilder.tsx",
+    "src/screens/reports/dashboards.test.tsx"
+  ],
+  "deny": []
+}

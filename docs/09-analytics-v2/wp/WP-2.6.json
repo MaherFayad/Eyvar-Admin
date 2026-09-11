@@ -1,0 +1,13 @@
+{
+  "id": "WP-2.6",
+  "branch": "analytics-v2",
+  "allow": [
+    "src/components/reports/QueryPanel.tsx",
+    "src/components/reports/LegalityOptions.tsx",
+    "src/components/reports/WindowControl.tsx",
+    "src/components/reports/FormulaField.tsx",
+    "src/components/reports/SegmentPicker.tsx",
+    "src/components/reports/TransformControls.tsx"
+  ],
+  "deny": []
+}

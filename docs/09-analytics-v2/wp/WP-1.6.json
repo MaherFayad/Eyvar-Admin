@@ -1,0 +1,21 @@
+{
+  "id": "WP-1.6",
+  "branch": "analytics-v2",
+  "allow": [
+    "src/data/reporting/resolve/**",
+    "src/data/mock/resolveReport.ts",
+    "src/data/mock/resolveReport.mode.test.ts",
+    "src/data/mock/resolveReport.test.ts",
+    "src/data/reporting/stats.ts",
+    "src/data/reporting/stats.test.ts",
+    "src/data/reporting/anomaly.ts",
+    "src/data/reporting/anomaly.test.ts",
+    "src/data/reporting/alerts/**",
+    "src/data/reporting/pages/**",
+    "src/data/reporting/agent/**",
+    "src/data/clients/alerts.ts"
+  ],
+  "deny": [
+    "src/components/**"
+  ]
+}

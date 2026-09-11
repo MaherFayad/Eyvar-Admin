@@ -1,11 +1,11 @@
 {
   "totals": {
-    "keys": 6891,
-    "en": 6525,
-    "ar": 6891,
+    "keys": 6915,
+    "en": 6548,
+    "ar": 6914,
     "arMissing": 0,
     "arExtra": 366,
-    "copyFiles": 37,
+    "copyFiles": 39,
     "unregisteredKeys": 194,
     "pluralForms": 73,
     "defaultValue": 0,
@@ -288,6 +288,22 @@
         "ADMIN_ACTIVITY_EN"
       ],
       "keys": 25,
+      "notInEN": 0
+    },
+    {
+      "file": "src/screens/analyst/copy.ts",
+      "exports": [
+        "ANALYST_EN"
+      ],
+      "keys": 16,
+      "notInEN": 0
+    },
+    {
+      "file": "src/screens/pages/copy.ts",
+      "exports": [
+        "PAGES_EN"
+      ],
+      "keys": 7,
       "notInEN": 0
     },
     {

@@ -1,0 +1,9 @@
+{
+  "id": "WP-5.1",
+  "branch": "analytics-v2",
+  "allow": [
+    "src/screens/reports/AlertRuleDialog.tsx",
+    "src/components/reports/AlertPreviewChart.tsx"
+  ],
+  "deny": []
+}

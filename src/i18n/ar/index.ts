@@ -40,6 +40,8 @@ import { OVERVIEW_AR } from './metrics'
 import { ZONES_AR } from './zones'
 import { GROWTH_AR } from './growth'
 import { REPORTS_AR } from './reports'
+import { PAGES_AR } from './pages'
+import { ANALYST_AR } from './analyst'
 import { FINANCIALS_AR } from './financials'
 import { PROFILE_AR } from './profile'
 import { RIDER_PROFILE_AR } from './riderProfile'
@@ -89,6 +91,8 @@ export const AR: Dictionary = {
   ...ZONES_AR,
   ...GROWTH_AR,
   ...REPORTS_AR,
+  ...PAGES_AR,
+  ...ANALYST_AR,
   ...FINANCIALS_AR,
   ...PROFILE_AR,
   ...RIDER_PROFILE_AR,

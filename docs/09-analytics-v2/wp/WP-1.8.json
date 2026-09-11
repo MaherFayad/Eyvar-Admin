@@ -1,0 +1,14 @@
+{
+  "id": "WP-1.8",
+  "branch": "analytics-v2",
+  "allow": [
+    "src/data/fixtures/reports.ts",
+    "src/data/fixtures/segments.ts",
+    "src/data/fixtures/annotations.ts",
+    "src/data/fixtures/pages.ts",
+    "src/data/fixtures/alerts.ts",
+    "src/data/fixtures/agent.ts",
+    "src/data/fixtures/routeTable.ts"
+  ],
+  "deny": []
+}

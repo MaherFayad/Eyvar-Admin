@@ -1,0 +1,12 @@
+{
+  "id": "WP-7.1",
+  "branch": "analytics-v2",
+  "allow": [
+    "agent/package.json",
+    "agent/tsconfig.json",
+    "agent/mcp/**",
+    "agent/mcp.json",
+    "agent/README.md"
+  ],
+  "deny": []
+}

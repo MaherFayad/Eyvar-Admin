@@ -223,6 +223,8 @@ import { MY_WORK_EN } from '@/screens/operations/my-work/copy'
 import { OVERVIEW_EN } from '@/screens/metrics/copy'
 import { POLICY_EN } from '@/screens/admin/policy/copy'
 import { REPORTS_EN } from '@/screens/reports/copy'
+import { PAGES_EN } from '@/screens/pages/copy'
+import { ANALYST_EN } from '@/screens/analyst/copy'
 import { REQUESTS_EN } from '@/screens/operations/requests/copy'
 import { SAFETY_EN } from '@/screens/support/safety/copy'
 import { SUPPORT_DESK_EN } from '@/screens/support/desk/copy'
@@ -1169,6 +1171,8 @@ export const EN: Dictionary = {
   ...OVERVIEW_EN,
   ...POLICY_EN,
   ...REPORTS_EN,
+  ...PAGES_EN,
+  ...ANALYST_EN,
   ...REQUESTS_EN,
   ...SAFETY_EN,
   ...SUPPORT_DESK_EN,

@@ -156,6 +156,15 @@ export default defineConfig({
   resolve: {
     alias: { '@': path.resolve(__dirname, './src') },
   },
+  /**
+   * Dev-only proxy to `vercel dev` — active only under `VITE_DATA_SOURCE=http`
+   * (05-backend.md §1). Mock stays the default so harnesses keep working with
+   * no database.
+   */
+  server:
+    process.env.VITE_DATA_SOURCE === 'http'
+      ? { proxy: { '/api': 'http://localhost:3000' } }
+      : undefined,
   test: {
     environment: 'jsdom',
     globals: true,
@@ -180,7 +189,9 @@ export default defineConfig({
      */
     testTimeout: 15_000,
     /* Agent worktrees live under `.claude/worktrees/` inside the repo; their
-       test files must not run against this tree's modules. */
-    exclude: ['**/node_modules/**', '**/dist/**', '**/.claude/**'],
+       test files must not run against this tree's modules. `api/**` has its
+       own project (`api/vitest.config.ts`, `npm run test:api`) — node, not
+       jsdom — so it must not double-run here. */
+    exclude: ['**/node_modules/**', '**/dist/**', '**/.claude/**', 'api/**'],
   },
 })

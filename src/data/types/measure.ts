@@ -185,7 +185,7 @@ export type Temporality = 'stock' | 'flow'
  * change when one does, and so `Hour` is *disabled in place with a reason*
  * rather than absent (AC-816, D9 CQ-3).
  */
-export type MeasureGrain = 'hour' | 'day' | 'week' | 'month'
+export type MeasureGrain = 'hour' | 'day' | 'week' | 'month' | 'quarter'
 
 /** §4.1 **F-3**. A group-by the measure can legally answer, with a cardinality hint. */
 export interface DimensionRef {
@@ -222,6 +222,26 @@ export interface Measure {
   /** §4.1 **F-1**. */
   temporality: Temporality
   bucketAggregate: BucketAggregate
+  /**
+   * G1 (`02-report-builder-v2.md` §2.1): other legal aggregates for a value
+   * field — a measure that can be summed or averaged offers both. **Absent or
+   * a single entry means the rail shows no `Measured as` control at all**; the
+   * catalogue's `bucketAggregate` stays the only aggregate that runs.
+   */
+  bucketAggregateOptions?: BucketAggregate[]
+  /**
+   * G5: can a segment's `performed` filter run against this measure's
+   * population? **Absent means `false`** — conservative, matching R5-15's
+   * default of "not representable until declared".
+   */
+  supportsPerformed?: boolean
+  /**
+   * G10: which v2 funnel options the server can compute for a rung over this
+   * measure. **Absent means neither** — `sequential` and `holdConstant` need
+   * event-level data the mock does not have; the planner refuses them with
+   * `funnel-needs-server` until this says otherwise.
+   */
+  funnelCapabilities?: { sequential: boolean; holdConstant: boolean }
   /**
    * §4.1 **F-2**. Whether values may be summed across buckets **or across
    * groups**. Gates stacked bars and gates the pie entirely (§7.2): a pie of
@@ -334,4 +354,5 @@ export const GRAIN_RANK: Record<MeasureGrain, number> = {
   day: 1,
   week: 2,
   month: 3,
+  quarter: 4,
 }

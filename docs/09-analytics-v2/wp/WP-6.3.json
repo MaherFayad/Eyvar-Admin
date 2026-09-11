@@ -1,0 +1,9 @@
+{
+  "id": "WP-6.3",
+  "branch": "analytics-v2",
+  "allow": [
+    "api/**",
+    "docs/ref/glossary.md"
+  ],
+  "deny": []
+}

@@ -1,0 +1,11 @@
+{
+  "id": "WP-7.6",
+  "branch": "analytics-v2",
+  "allow": [
+    "agent/runner/schedule.ts",
+    "src/screens/analyst/**",
+    "src/data/clients/agent.ts",
+    "src/data/clients/agent.test.ts"
+  ],
+  "deny": []
+}

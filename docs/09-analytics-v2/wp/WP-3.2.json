@@ -1,0 +1,10 @@
+{
+  "id": "WP-3.2",
+  "branch": "analytics-v2",
+  "allow": [
+    "src/data/reporting/cohorts.ts",
+    "src/data/reporting/cohorts.test.ts",
+    "src/screens/reports/ReportModeCanvas.tsx"
+  ],
+  "deny": []
+}

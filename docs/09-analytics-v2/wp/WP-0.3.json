@@ -1,0 +1,10 @@
+{
+  "id": "WP-0.3",
+  "branch": "analytics-v2",
+  "allow": [
+    "src/styles/globals.css",
+    "docs/ref/tokens.md",
+    "scripts/harness/dark-contrast.mjs"
+  ],
+  "deny": []
+}
