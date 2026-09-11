@@ -38,6 +38,7 @@ import {
   bucketStarts,
   comparisonWindow,
   localDayOf,
+  partialBucketIndexes,
   resolveWindow,
 } from '../reporting/buckets'
 import {
@@ -74,9 +75,8 @@ import type {
   ReportResult,
   ReportSeries,
   ReportWarning,
-  SegmentRef,
 } from '../types/report'
-import type { PerformedSpec } from '../types/segment'
+import type { PerformedSpec, SegmentRef } from '../types/segment'
 
 /* ─────────────────────── the row-source table ──────────────────────────── */
 
@@ -1076,7 +1076,7 @@ function resolveCohort(
      blocked return measure is left out rather than leaking a number through it. */
   const returnMeasures = (spec.returnMeasureKeys ?? [])
     .map((k) => measuresByKey[k])
-    .filter((m): m is Measure => Boolean(m) && !blockedFor(m, ctx))
+    .filter((m): m is Measure => Boolean(m && !blockedFor(m, ctx)))
   const returned =
     returnMeasures.length > 0
       ? mergeLatest(returnMeasures.map((m) => latestPerSubject(eventsOf(m, query.filters, window).events)))
@@ -1406,11 +1406,44 @@ function panelIdFor(measureKey: string, groupValue: string | null): string {
   return groupValue === null ? `p:${measureKey}` : `p:${measureKey}:${groupValue}`
 }
 
-/* `buildSeries`, `bucketSpan`, `valueForBucket` and `groupsFor` moved to
+/* `buildSeries`, `bucketSpan` and `groupsFor` moved to
    `reporting/resolve/core.ts` (`resolveTrendLeg`/`resolveFormulaLeg`,
    `planGroupPaths`) as the pure aggregation core — WP-1.6. `buildMeasureRows`
    above is what replaced them here: population, predicate, filter and segment
-   matching, flattened to the `CoreRow` shape core operates on. */
+   matching, flattened to the `CoreRow` shape core operates on. `valueForBucket`
+   stays — `eventsOf`'s counted-funnel fallback still needs the one-window
+   aggregate and does not go through `CoreRow` at all. */
+
+/** One window, one number — `eventsOf`'s `total` for a rung nobody can be followed on. Same rules as `core.ts`'s `valueForSpan`. */
+function valueForBucket(
+  measure: Measure,
+  source: RowSource<AnyRow>,
+  rows: readonly AnyRow[],
+  first: IsoDate,
+  last: IsoDate,
+): number | null {
+  const { bucketAggregate, population } = measure
+
+  if (bucketAggregate === 'cumulative-count' || bucketAggregate === 'end-of-period') {
+    const liveAt = source.liveAt
+    if (!liveAt) return null
+    return rows.filter((row) => liveAt(row, last)).length
+  }
+
+  const inBucket = rows.filter((row) => {
+    const d = source.dateOf(row, population.timeField)
+    return d !== null && d >= first && d <= last
+  })
+
+  if (bucketAggregate === 'count') return inBucket.length
+  if (bucketAggregate === 'sum') {
+    return inBucket.reduce((total, row) => total + source.valueOf(row, population.valueField), 0)
+  }
+  /* mean — a rate is meaned, never summed. An empty bucket has no mean. */
+  if (inBucket.length === 0) return null
+  const sum = inBucket.reduce((total, row) => total + source.valueOf(row, population.valueField), 0)
+  return Math.round((sum / inBucket.length) * 10) / 10
+}
 
 function matchesAll(row: AnyRow, filters: readonly FilterSpec[], source: RowSource<AnyRow>): boolean {
   return filters.every((f) => {
