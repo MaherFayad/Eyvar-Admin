@@ -86,6 +86,8 @@ function renderPanel(query: ReportQuery = BASE, onChange = vi.fn()) {
       catalogueStatus="content"
       onRetryCatalogue={() => {}}
       running={false}
+      today={EYVAR_TODAY}
+      language="en"
       t={t}
     />,
   )

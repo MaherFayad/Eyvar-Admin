@@ -7,18 +7,33 @@
 import { useState } from 'react'
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { createTranslator } from '@/lib'
 import { EN } from '@/i18n/dictionaries'
-import { dimensionFixtures, measureFixtures } from '@/data/fixtures/measures'
+import { listDimensions, listMeasures } from '@/data/clients'
 import { planQuery, type Catalogue } from '@/data/reporting/plan'
 import { EYVAR_TODAY } from '@/data/mock/clock'
-import type { ReportQuery } from '@/data/types'
+import type { Dimension, Measure, ReportQuery } from '@/data/types'
 import { ReportModePanel } from './ReportModePanel'
 
 const t = createTranslator({ dictionary: EN })
 const copy = (key: string) => EN[key] as string
-const catalogue: Catalogue = { measures: measureFixtures, dimensions: dimensionFixtures }
+/* Crosses the client seam (`seam.test.ts` §4) the way `ReportModePanel`'s own
+   caller does: the catalogue arrives from `listMeasures`/`listDimensions`,
+   never a fixture import. */
+let measureFixtures: Measure[] = []
+let dimensionFixtures: Dimension[] = []
+let catalogue: Catalogue = { measures: [], dimensions: [] }
+
+beforeAll(async () => {
+  const [measuresPage, dimensionsPage] = await Promise.all([
+    listMeasures({ pageSize: 100 }),
+    listDimensions({ pageSize: 100 }),
+  ])
+  measureFixtures = measuresPage.items
+  dimensionFixtures = dimensionsPage.items
+  catalogue = { measures: measureFixtures, dimensions: dimensionFixtures }
+})
 
 beforeEach(() => {
   if (!Element.prototype.hasPointerCapture) {

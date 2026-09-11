@@ -1,19 +1,22 @@
 /**
  * `reports.run` end-to-end through the real router — WP-6.4, AC-1276,
- * AC-1277, AC-1278.
+ * AC-1277, AC-1278; WP-6.4c closes the funnel/cohort/journey gap.
  *
- * AC-1276 is not hand-written: for every seeded saved report whose `mode` is
- * `'trend'` (the default) or `'table'`, this file runs `resolveReport` (the
- * mock's own resolver, over the exact fixture arrays this suite also seeds
- * into PGlite) and separately runs `reports.run` through the real HTTP
- * handler, then deep-compares the two `ReportResult`s field for field. Both
- * sides are pinned to the fixed clock (`EYVAR_TODAY`/`EYVAR_NOW`) so a window
- * resolves identically on both.
+ * AC-1276 is not hand-written: for every seeded saved report, this file runs
+ * `resolveReport` (the mock's own resolver, over the exact fixture arrays
+ * this suite also seeds into PGlite) and separately runs `reports.run`
+ * through the real HTTP handler, then deep-compares the two `ReportResult`s
+ * field for field. Both sides are pinned to the fixed clock
+ * (`EYVAR_TODAY`/`EYVAR_NOW`) so a window resolves identically on both.
  *
- * `RPT-6`/`RPT-7`/`RPT-8` (`funnel`/`cohort`/`journey`) are excluded —
- * WP-6.4's brief covers the trend/formula compiler only; the server answers
- * those three modes with `mode-not-resolved` rather than pretending to
- * resolve them (see `reportsRun.ts`'s header). Named in the final report.
+ * `RPT-6`/`RPT-7`/`RPT-8` (`funnel`/`cohort`/`journey`) are no longer
+ * excluded — WP-6.4c's `reportsFunnel.ts`/`reportsCohort.ts`/
+ * `reportsJourney.ts` resolve them for real. `sequential` and `holdConstant`
+ * (`02-report-builder-v2.md` §5) have no mock counterpart to equality-test
+ * against — the "funnel server-only options" describe block below asserts
+ * their computed result directly against a hand-checked expectation instead,
+ * over a handful of fixture rows the test seeds itself and traces in its own
+ * name and comments.
  */
 import { afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { readFile } from 'node:fs/promises'
@@ -108,22 +111,16 @@ function run(query: unknown, cookie: string): Request {
 }
 
 /**
- * `RPT-6`/`RPT-7`/`RPT-8` are `funnel`/`cohort`/`journey` — a different WP
- * (see `reportsRun.ts`'s header), the only remaining exclusion.
- *
- * WP-6.4b closed the other two gaps this list used to carry:
- *   - `RPT-11` (`tripsQuickVsSubscription`, two saved segments) — `segments`
- *     is seeded (`segments.seed.sql`) and `reportsRun.ts`'s `resolveSegment`
- *     now looks `'saved'` up for real, same as the mock.
- *   - `RPT-14` (`activeSubscriptionsArea`, `subscriptions.active`) —
- *     `measure_sources.live_to_bounds_json` (`0008_live_window.sql`) now
- *     carries the three-bound live window `cancelledAt` needs.
+ * Nothing excluded any more. WP-6.4b closed two earlier gaps this list used
+ * to carry (`RPT-11`'s saved segments, `RPT-14`'s live window); WP-6.4c
+ * closes the last one — `RPT-6`/`RPT-7`/`RPT-8` (`funnel`/`cohort`/`journey`)
+ * now resolve for real and equality-test the same as every other saved
+ * report.
  */
-const EXCLUDED_REPORT_IDS = new Set(['RPT-6', 'RPT-7', 'RPT-8'])
-const trendAndTableReports = savedReportFixtures.filter((r) => !EXCLUDED_REPORT_IDS.has(r.id))
+const allSavedReports = savedReportFixtures
 
 describe('reports.run (AC-1276): server equals the mock, bucket for bucket', () => {
-  for (const report of trendAndTableReports) {
+  for (const report of allSavedReports) {
     it(`${report.id} — ${report.name}`, async () => {
       const mockCtx: ResolveContext = { permissions: OPS_MANAGER_PERMISSIONS, today: EYVAR_TODAY }
       const expected = resolveReport(report.query, CATALOGUE, mockCtx)

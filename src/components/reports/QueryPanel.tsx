@@ -465,9 +465,13 @@ export function QueryPanel({
           journey have no `periodComparison` (`plan.ts`'s `isSeriesMode`). */}
       {isSeriesMode && (
         <div className="flex flex-col gap-1.5">
+          <Label htmlFor="rb-compare">{t('rb.control.compare')}</Label>
           <ComparisonControl query={query} onChange={onChange} today={today} disabled={unstarted} t={t} language={language} />
           {query.periodComparison !== 'none' && (
-            <ComparisonDisplayToggle query={query} onChange={onChange} disabled={unstarted} t={t} />
+            <>
+              <Label htmlFor="rb-comparison-display">{t('rb.control.comparisonDisplay')}</Label>
+              <ComparisonDisplayToggle query={query} onChange={onChange} disabled={unstarted} t={t} />
+            </>
           )}
         </div>
       )}

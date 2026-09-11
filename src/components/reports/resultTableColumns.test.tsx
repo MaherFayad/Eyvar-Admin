@@ -9,20 +9,30 @@
 
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, expect, it } from 'vitest'
+import { beforeAll, describe, expect, it } from 'vitest'
 import { createTranslator } from '@/lib'
 import { EN } from '@/i18n/dictionaries'
-import { measureFixtures } from '@/data/fixtures/measures'
+import { listMeasures } from '@/data/clients'
 import type { Measure, ReportPanel, ReportResult, ReportSeries } from '@/data/types'
 import type { TableColumn, TableSpec } from '@/data/types/report'
 import { ResultTableColumns } from './ResultTable'
 
 const t = createTranslator({ dictionary: EN })
-const measuresByKey = Object.fromEntries(measureFixtures.map((m) => [m.key, m])) as Record<string, Measure>
+/* Crosses the client seam (`seam.test.ts` §4) the way `ResultTableColumns`'
+   own caller does: the catalogue arrives from `listMeasures`, never a fixture
+   import. */
+let measuresByKey: Record<string, Measure> = {}
 /** `count`, additive — sums honestly. */
-const COMPLETED = measuresByKey['trips.completed'] as Measure
+let COMPLETED: Measure
 /** `mean`, not additive — a sum of it would be arithmetic nonsense. */
-const TIME_TO_ASSIGN = measuresByKey['requests.timeToAssign'] as Measure
+let TIME_TO_ASSIGN: Measure
+
+beforeAll(async () => {
+  const page = await listMeasures({ pageSize: 100 })
+  measuresByKey = Object.fromEntries(page.items.map((m) => [m.key, m]))
+  COMPLETED = measuresByKey['trips.completed'] as Measure
+  TIME_TO_ASSIGN = measuresByKey['requests.timeToAssign'] as Measure
+})
 
 const BUCKETS = ['2026-06-19', '2026-06-20', '2026-06-21']
 
