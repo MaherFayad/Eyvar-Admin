@@ -1,28 +1,8 @@
 /**
- * The report-builder formula grammar — `02-report-builder-v2.md` §2.2, verbatim:
- *
- * ```
- * expr    := term (('+' | '-') term)*
- * term    := factor (('*' | '/') factor)*
- * factor  := NUMBER | REF | func '(' expr (',' NUMBER)? ')' | '(' expr ')'
- * REF     := 'A' | 'B'
- * func    := 'ROLLAVG' | 'CUMSUM' | 'DELTA' | 'PCT'
- * ```
- *
- * Three functions, no more:
- *
- * - `parseFormula` — syntax only. Never throws; a bad expression comes back as
- *   a `formula-parse` error carrying the character position and the token the
- *   parser expected there (AC-1104).
- * - `formulaUnit` — walks the parsed AST against the two measures' unit,
- *   currency, additive and split facts and returns the resulting unit, or the
- *   first refusal it finds (AC-1105 … AC-1107).
- * - `evaluateFormula` — computes the AST against resolved bucket series. A gap
- *   (`null`) in any operand makes the result `null` at that bucket; division
- *   by zero is `null`, never `Infinity` (AGENT-BRIEF "the traps").
- *
- * Money stays whatever integer unit the measure already carries (halalas) —
- * this module does no unit conversion, only arithmetic and refusal.
+ * The report-builder formula grammar, `02-report-builder-v2.md` §2.2's
+ * `expr`/`term`/`factor` grammar verbatim — `parseFormula` (syntax, AC-1104),
+ * `formulaUnit` (unit rules, AC-1105 … AC-1107) and `evaluateFormula`
+ * (arithmetic; a gap is `null`, never `0`, per AGENT-BRIEF "the traps").
  */
 
 import type { CurrencyCode } from '@/data/types/common'
@@ -86,7 +66,9 @@ function parseErrorAt(position: number, expected: string): FormulaParseError {
   return { code: 'formula-parse', position, expected, message: `expected ${expected} at position ${position}` }
 }
 
-const SIMPLE_TOKENS: Record<string, Token['type']> = {
+type SimpleTokenType = '+' | '-' | '*' | '/' | '(' | ')' | ','
+
+const SIMPLE_TOKENS: Record<string, SimpleTokenType> = {
   '+': '+',
   '-': '-',
   '*': '*',
@@ -118,7 +100,7 @@ function tokenize(source: string): { tokens: Token[] } | { error: FormulaParseEr
 
     const simple = SIMPLE_TOKENS[ch]
     if (simple !== undefined) {
-      tokens.push({ type: simple, pos: i } as Token)
+      tokens.push({ type: simple, pos: i })
       i++
       continue
     }
@@ -388,9 +370,33 @@ function unitOf(node: FormulaNode, refs: FormulaRefs): UnitResult {
       if (!left.ok) return left
       const right = unitOf(node.right, refs)
       if (!right.ok) return right
+
+      if (node.op === '*') {
+        const promoted = promoteRatioToPercent(node.left, left.value, node.right, right.value)
+        if (promoted !== null) return { ok: true, value: promoted }
+      }
       return combine(node.op, left.value, right.value, node.at)
     }
   }
+}
+
+/**
+ * AC-1105: `A / B * 100` is `percent`. The grammar has no unit-suffix
+ * operator, so scaling a ratio by the exact literal `100` is its one spelling
+ * of "as a percentage"; any other multiplier leaves a scaled, still
+ * dimensionless ratio.
+ */
+function promoteRatioToPercent(
+  leftNode: FormulaNode,
+  leftUnit: NodeUnit,
+  rightNode: FormulaNode,
+  rightUnit: NodeUnit,
+): NodeUnit | null {
+  const isRatio = (u: NodeUnit) => u.kind === 'quantity' && u.unit === 'ratio'
+  const isLiteral100 = (n: FormulaNode) => n.kind === 'number' && n.value === 100
+  if (isRatio(leftUnit) && isLiteral100(rightNode)) return { kind: 'quantity', unit: 'percent', currency: null, additive: true }
+  if (isRatio(rightUnit) && isLiteral100(leftNode)) return { kind: 'quantity', unit: 'percent', currency: null, additive: true }
+  return null
 }
 
 function combine(op: FormulaOperator, left: NodeUnit, right: NodeUnit, at: number): UnitResult {
@@ -417,16 +423,6 @@ function combine(op: FormulaOperator, left: NodeUnit, right: NodeUnit, at: numbe
     }
     if (bothScalar) return { ok: true, value: { kind: 'scalar' } }
     const quantity = (left.kind === 'quantity' ? left : right) as Extract<NodeUnit, { kind: 'quantity' }>
-    // A/B*100 (AC-1105): scaling a dimensionless ratio by the literal 100 is
-    // the grammar's one spelling of "as a percentage" — any other multiplier
-    // leaves it a scaled ratio, still dimensionless.
-    const scalarSide = left.kind === 'scalar' ? left : right
-    const other = left.kind === 'scalar' ? right : left
-    const literal100 =
-      (left.kind === 'number' as never) || false // placeholder, replaced below
-    void scalarSide
-    void other
-    void literal100
     return { ok: true, value: quantity }
   }
 
@@ -518,25 +514,18 @@ function rollingAverage(points: (number | null)[], n: number): (number | null)[]
 }
 
 /**
- * A running total genuinely depends on every prior bucket. Once one of them is
- * a gap, honestly reporting the running total as "unknown from here on" is
- * what "never substitute zero" (AGENT-BRIEF) demands — filling it in would be
- * indistinguishable from having treated the gap as zero.
+ * Mirrors `transforms.ts`'s `cumulative` (AC-1110) exactly, so a formula's
+ * `CUMSUM` and the `cumulative` transform never disagree over the same
+ * series: a gap does not reset or zero the total, it carries forward
+ * silently, but the gap's own bucket is `null` so the chart draws the break.
  */
 function cumulativeSum(points: (number | null)[]): (number | null)[] {
-  const out: (number | null)[] = []
   let running = 0
-  let broken = false
-  for (const value of points) {
-    if (value === null) broken = true
-    if (broken) {
-      out.push(null)
-    } else {
-      running += value as number
-      out.push(running)
-    }
-  }
-  return out
+  return points.map((value) => {
+    if (value === null) return null
+    running += value
+    return running
+  })
 }
 
 function delta(points: (number | null)[]): (number | null)[] {

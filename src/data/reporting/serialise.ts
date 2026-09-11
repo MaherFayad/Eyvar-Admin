@@ -1,61 +1,41 @@
 /**
- * `ReportQuery` ⇄ URL — §9.2, and it is **AC-853**, not an implementation note.
- *
- * ## Why this is in the data layer
- *
- * **Q1 (persistence) is open and there is no storage adapter.** `lib/persistence.ts`
- * is explicit that shipping a `localStorage` adapter would be *"answering Q1 by
- * writing code"*. §9.2's answer is that **the URL is the storage adapter for the
- * core**: reload does not lose the question, Back steps through previous
- * questions, and sharing works with no share feature because pasting a link into
- * a chat is how every analytics tool is actually used.
- *
- * That makes the encoding part of the query model's contract rather than a
- * screen's detail: an alert's notification `route` is a serialised query
- * (§12.5), so a fixture in this layer has to be able to produce one.
- *
- * ## One opaque param, not one param per control
- *
- * §9.2: *"a compact encoding of the query object, not one param per control"* —
- * one param keeps §3.8's URL rules intact and keeps `?view=` and `?entity=`
- * unambiguous. Base64url of JSON is lossless by construction, which is what
- * AC-853 asks for; it is not obfuscation and nothing secret goes through it.
- *
- * **`reports.run` is a POST and this is a GET param, and the two encodings stay
- * independent on purpose** (§4.3): a filter list can exceed a URL, so the
- * request body and the shareable link are allowed to disagree about form while
- * agreeing about content.
- *
- * ## Lossless, and what P7-T1 did to that word
- *
- * `mode` and its three configurations serialise here, which is the entire point
- * of putting `mode` in the query: **a funnel, a cohort matrix and a journey are
- * now shareable, bookmarkable and alertable on the same terms as a trend**, and
- * the alert notification `route` this file produces (§12.5) can point at any of
- * the five.
- *
- * Lossless is now *lossless up to `normaliseReportQuery`*, and the one thing
- * that collapses is the one thing that must:
- *
- *     serialise({ …q })                  === serialise({ …q, mode: 'trend' })
- *     deserialise(serialise(q))          deep-equals normaliseReportQuery(q)
- *
- * The default is never written, so an existing link keeps its exact bytes and
- * an existing link written before this field existed keeps its exact meaning
- * (AC-853). Nothing else collapses: every non-default mode, every funnel step
- * with its own filters, every cohort anchor and horizon and every journey root
- * survives the trip unchanged.
+ * `ReportQuery` ⇄ URL, the storage adapter §9.2 assigns it while Q1 is open
+ * (AC-853). One opaque `q` param, base64url of JSON, not one param per
+ * control. v2 writes `v: 2` and is lossless up to `normaliseReportQuery`
+ * (AC-1102); a URL with no `v` key is v1 and migrates through that same
+ * function (AC-1100/1101), so there is one migration path, not two.
  */
 
-import { DEFAULT_REPORT_MODE, reportMode } from '../types/report'
+import {
+  DEFAULT_COMPARISON_DISPLAY,
+  DEFAULT_REPORT_MODE,
+  DEFAULT_REPORT_TRANSFORM,
+  normaliseReportQuery,
+  reportMode,
+} from '../types/report'
 import type {
+  ComparisonDisplay,
+  CohortGrain,
+  CohortMethod,
   CohortSpec,
+  CohortSpecV1,
+  FunnelMeasuredAs,
+  FunnelMode,
   FunnelSpec,
+  FunnelSpecV1,
   FunnelStep,
   JourneySpec,
+  MeasureRef,
+  ReportFormula,
   ReportMode,
   ReportQuery,
+  ReportQueryInput,
+  ReportTransform,
+  TableColumn,
+  TableSpec,
 } from '../types/report'
+import type { BucketAggregate, DimensionKey } from '../types/measure'
+import type { PerformedSpec, SegmentRef } from '../types/segment'
 
 /** The single search param. `q` is short because it is typed into chat windows. */
 export const REPORT_QUERY_PARAM = 'q'
@@ -79,45 +59,55 @@ function fromBase64Url(encoded: string): string {
   return new TextDecoder().decode(bytes)
 }
 
-/**
- * Serialise, with **keys in a fixed order**.
- *
- * `JSON.stringify` follows insertion order, and two panels that built the same
- * query in a different order would otherwise produce two different links for
- * one question — which breaks `Back` deduplication and makes two identical bug
- * reports look like two bugs. Determinism here is the same discipline the
- * fixtures follow.
- */
-export function serialiseReportQuery(query: ReportQuery): string {
-  const ordered: Record<string, unknown> = {
-    m: query.measures.map((m) => m.key),
-    g: query.groupBy,
-    f: query.filters.map((f) => [f.field, f.op, f.value]),
-    w: query.window,
-    gr: query.grain,
-    c: query.periodComparison,
-    ct: query.chartType,
-  }
+/* ─────────────────────── wire shapes, v1 and v2 ─────────────────────────── */
 
-  /* The mode and its configuration are **appended in a fixed order after the
-     seven that were always there**, and only when they carry something. Two
-     properties fall out of that and both are load-bearing:
+type WireFilter = [string, string, unknown]
+type WireMeasure = string | [string, BucketAggregate]
 
-     1. **`trend` never reaches the URL.** It is the default, so its absence and
-        its presence mean the same thing, and writing it would change the link
-        for every report that already exists. Every URL an operator has
-        bookmarked, pinned to a runbook or pasted into a chat window before this
-        field existed keeps parsing to the identical query (AC-853).
-     2. **The order is still fixed.** §9.2's determinism rule is that one
-        question produces one link; conditional keys appended in a constant
-        sequence preserve that, because the condition depends only on the query. */
-  const mode = reportMode(query)
-  if (mode !== DEFAULT_REPORT_MODE) ordered.mo = mode
-  if (query.funnel) ordered.fn = encodeFunnel(query.funnel)
-  if (query.cohort) ordered.co = encodeCohort(query.cohort)
-  if (query.journey) ordered.jo = encodeJourney(query.journey)
+type WireConversionWindow = { v: number; u: 'hour' | 'day' | 'week' }
+/** v1: `w` was the bare day count. */
+type WireFunnelV1 = { s: Array<[string, WireFilter[]]>; w: number | null }
+/** v2: `w` is the unit-carrying window; the rest are omitted at their default. */
+type WireFunnelV2 = {
+  s: Array<[string, WireFilter[]]>
+  w: WireConversionWindow | null
+  md?: FunnelMode
+  hc?: DimensionKey
+  ex?: string[]
+  ma?: FunnelMeasuredAs
+  gb?: DimensionKey
+}
 
-  return toBase64Url(JSON.stringify(ordered))
+/** v1: `r` was the single return measure or `null`. */
+type WireCohortV1 = { a: string | null; r: string | null; g: string; h: number }
+/** v2: `r` is the OR-combined array; `m`/`b` are omitted at their default. */
+type WireCohortV2 = {
+  a: string | null
+  r: string[]
+  g: string
+  h: number
+  m?: CohortMethod
+  b?: [number, number][]
+}
+
+type WireJourney = { r: string | null; d: number }
+
+type WireFormula = { e: string; l: string }
+type WireTransform = { c: boolean; r: number | null; p: boolean }
+
+type WirePerformed = { mk: string; op: PerformedSpec['op']; c: number; w: 'each' | { r: number } }
+type WireSegment =
+  | { k: 's'; id: string }
+  | { k: 'i'; l: string; f: WireFilter[]; p?: WirePerformed }
+
+type WireTableColumn =
+  | { k: 'm'; r: WireMeasure; f?: WireFilter[]; l?: string }
+  | { k: 'f'; e: string; l: string }
+type WireTable = {
+  c: WireTableColumn[]
+  r: string[]
+  t: boolean
+  fm: { c: number; b: TableSpec['format'][number]['bands'] }[]
 }
 
 /* Each configuration gets short keys for the same reason `q` is short: these
@@ -125,46 +115,107 @@ export function serialiseReportQuery(query: ReportQuery): string {
    same `[field, op, value]` triples the query-level filters use — one filter
    encoding in the product, as there is one filter model (AC-814). */
 
-type WireFilter = [string, string, unknown]
-type WireFunnel = { s: Array<[string, WireFilter[]]>; w: number | null }
-type WireCohort = { a: string | null; r: string | null; g: string; h: number }
-type WireJourney = { r: string | null; d: number }
+function encodeFilter(f: { field: string; op: string; value: unknown }): WireFilter {
+  return [f.field, f.op, f.value]
+}
 
-function encodeFunnel(funnel: FunnelSpec): WireFunnel {
+function decodeFilter([field, op, value]: WireFilter): ReportQuery['filters'][number] {
   return {
-    s: funnel.steps.map((step) => [
-      step.measureKey,
-      step.filters.map((f) => [f.field, f.op, f.value] as WireFilter),
-    ]),
-    w: funnel.conversionWindowDays,
+    field,
+    op: op as ReportQuery['filters'][number]['op'],
+    value: value as ReportQuery['filters'][number]['value'],
   }
 }
 
-function decodeFunnel(raw: WireFunnel | undefined): FunnelSpec | undefined {
+function encodeMeasure(ref: MeasureRef): WireMeasure {
+  return ref.aggregate ? [ref.key, ref.aggregate] : ref.key
+}
+
+function decodeMeasure(entry: WireMeasure): MeasureRef {
+  return Array.isArray(entry) ? { key: entry[0], aggregate: entry[1] } : { key: entry }
+}
+
+function encodeFunnel(funnel: FunnelSpec): WireFunnelV2 {
+  const wire: WireFunnelV2 = {
+    s: funnel.steps.map((step) => [step.measureKey, step.filters.map(encodeFilter)]),
+    w: funnel.conversionWindow
+      ? { v: funnel.conversionWindow.value, u: funnel.conversionWindow.unit }
+      : null,
+  }
+  if (funnel.mode !== 'ordered') wire.md = funnel.mode
+  if (funnel.holdConstant !== null) wire.hc = funnel.holdConstant
+  if (funnel.exclude.length > 0) wire.ex = funnel.exclude
+  if (funnel.measuredAs !== 'conversion') wire.ma = funnel.measuredAs
+  if (funnel.groupBy !== null) wire.gb = funnel.groupBy
+  return wire
+}
+
+/**
+ * Reads either wire shape and hands back the matching `ReportQueryInput`
+ * shape untouched — `normaliseReportQuery` is the one place that migrates
+ * v1's `conversionWindowDays` into `conversionWindow`, so this function does
+ * not repeat that decision.
+ */
+function decodeFunnel(
+  raw: WireFunnelV1 | WireFunnelV2 | undefined,
+  isV2: boolean,
+): FunnelSpec | FunnelSpecV1 | undefined {
   if (!raw || !Array.isArray(raw.s)) return undefined
   const steps: FunnelStep[] = raw.s.map(([measureKey, filters]) => ({
     measureKey,
     filters: (filters ?? []).map(decodeFilter),
   }))
-  return { steps, conversionWindowDays: raw.w ?? null }
-}
-
-function encodeCohort(cohort: CohortSpec): WireCohort {
+  if (!isV2) {
+    const v1 = raw as WireFunnelV1
+    return { steps, conversionWindowDays: v1.w ?? null }
+  }
+  const v2 = raw as WireFunnelV2
   return {
-    a: cohort.anchorMeasureKey,
-    r: cohort.returnMeasureKey,
-    g: cohort.cohortGrain,
-    h: cohort.horizon,
+    steps,
+    conversionWindow: v2.w ? { value: v2.w.v, unit: v2.w.u } : null,
+    mode: v2.md ?? 'ordered',
+    holdConstant: v2.hc ?? null,
+    exclude: v2.ex ?? [],
+    measuredAs: v2.ma ?? 'conversion',
+    groupBy: v2.gb ?? null,
   }
 }
 
-function decodeCohort(raw: WireCohort | undefined): CohortSpec | undefined {
+function encodeCohort(cohort: CohortSpec): WireCohortV2 {
+  const wire: WireCohortV2 = {
+    a: cohort.anchorMeasureKey,
+    r: cohort.returnMeasureKeys,
+    g: cohort.cohortGrain,
+    h: cohort.horizon,
+  }
+  if (cohort.method !== 'rolling') wire.m = cohort.method
+  if (cohort.brackets !== null) wire.b = cohort.brackets
+  return wire
+}
+
+/** Same rule as `decodeFunnel`: hands back a shape, migrates nothing. */
+function decodeCohort(
+  raw: WireCohortV1 | WireCohortV2 | undefined,
+  isV2: boolean,
+): CohortSpec | CohortSpecV1 | undefined {
   if (!raw) return undefined
+  if (!isV2) {
+    const v1 = raw as WireCohortV1
+    return {
+      anchorMeasureKey: v1.a ?? null,
+      returnMeasureKey: v1.r ?? null,
+      cohortGrain: v1.g as CohortGrain,
+      horizon: v1.h,
+    }
+  }
+  const v2 = raw as WireCohortV2
   return {
-    anchorMeasureKey: raw.a ?? null,
-    returnMeasureKey: raw.r ?? null,
-    cohortGrain: raw.g as CohortSpec['cohortGrain'],
-    horizon: raw.h,
+    anchorMeasureKey: v2.a ?? null,
+    returnMeasureKeys: v2.r ?? [],
+    cohortGrain: v2.g as CohortGrain,
+    method: v2.m ?? 'rolling',
+    brackets: v2.b ?? null,
+    horizon: v2.h,
   }
 }
 
@@ -177,64 +228,195 @@ function decodeJourney(raw: WireJourney | undefined): JourneySpec | undefined {
   return { rootMeasureKey: raw.r ?? null, depth: raw.d }
 }
 
-function decodeFilter([field, op, value]: WireFilter): ReportQuery['filters'][number] {
+function encodeFormula(formula: ReportFormula): WireFormula {
+  return { e: formula.expression, l: formula.label }
+}
+
+function decodeFormula(raw: WireFormula): ReportFormula {
+  return { expression: raw.e, label: raw.l }
+}
+
+function isDefaultTransform(t: ReportTransform): boolean {
+  return (
+    t.cumulative === DEFAULT_REPORT_TRANSFORM.cumulative &&
+    t.rollingAverage === DEFAULT_REPORT_TRANSFORM.rollingAverage &&
+    t.percentOfTotal === DEFAULT_REPORT_TRANSFORM.percentOfTotal
+  )
+}
+
+function encodeTransform(t: ReportTransform): WireTransform {
+  return { c: t.cumulative, r: t.rollingAverage, p: t.percentOfTotal }
+}
+
+function decodeTransform(raw: WireTransform): ReportTransform {
+  return { cumulative: raw.c, rollingAverage: raw.r, percentOfTotal: raw.p }
+}
+
+function encodePerformed(p: PerformedSpec): WirePerformed {
   return {
-    field,
-    op: op as ReportQuery['filters'][number]['op'],
-    value: value as ReportQuery['filters'][number]['value'],
+    mk: p.measureKey,
+    op: p.op,
+    c: p.count,
+    w: p.window === 'each-bucket' ? 'each' : { r: p.window.rollingDays },
+  }
+}
+
+function decodePerformed(raw: WirePerformed): PerformedSpec {
+  return {
+    measureKey: raw.mk,
+    op: raw.op,
+    count: raw.c,
+    window: raw.w === 'each' ? 'each-bucket' : { rollingDays: raw.w.r },
+  }
+}
+
+function encodeSegment(seg: SegmentRef): WireSegment {
+  if (seg.kind === 'saved') return { k: 's', id: seg.id }
+  const wire: WireSegment = { k: 'i', l: seg.label, f: seg.filters.map(encodeFilter) }
+  if (seg.performed) wire.p = encodePerformed(seg.performed)
+  return wire
+}
+
+function decodeSegment(raw: WireSegment): SegmentRef {
+  if (raw.k === 's') return { kind: 'saved', id: raw.id }
+  const seg: SegmentRef = { kind: 'inline', label: raw.l, filters: (raw.f ?? []).map(decodeFilter) }
+  if (raw.p) seg.performed = decodePerformed(raw.p)
+  return seg
+}
+
+function encodeTableColumn(col: TableColumn): WireTableColumn {
+  if (col.kind === 'formula') return { k: 'f', e: col.expression, l: col.label }
+  const wire: WireTableColumn = { k: 'm', r: encodeMeasure(col.ref) }
+  if (col.filters && col.filters.length > 0) wire.f = col.filters.map(encodeFilter)
+  if (col.label) wire.l = col.label
+  return wire
+}
+
+function decodeTableColumn(raw: WireTableColumn): TableColumn {
+  if (raw.k === 'f') return { kind: 'formula', expression: raw.e, label: raw.l }
+  const col: TableColumn = { kind: 'measure', ref: decodeMeasure(raw.r) }
+  if (raw.f) col.filters = raw.f.map(decodeFilter)
+  if (raw.l) col.label = raw.l
+  return col
+}
+
+function encodeTable(table: TableSpec): WireTable {
+  return {
+    c: table.columns.map(encodeTableColumn),
+    r: table.rows,
+    t: table.totals,
+    fm: table.format.map((f) => ({ c: f.column, b: f.bands })),
+  }
+}
+
+function decodeTable(raw: WireTable | undefined): TableSpec | undefined {
+  if (!raw || !Array.isArray(raw.c)) return undefined
+  return {
+    columns: raw.c.map(decodeTableColumn),
+    rows: (raw.r ?? []) as TableSpec['rows'],
+    totals: raw.t ?? false,
+    format: (raw.fm ?? []).map((f) => ({ column: f.c, bands: f.b })),
   }
 }
 
 /**
- * Restore. Returns `null` on anything unparseable — a mangled link is a
- * **domain** outcome the panel renders as "this link is not a report", not an
- * exception that takes down the screen. §8.3 state 2's rule applies: the
- * previous query is retained.
+ * Keys in a fixed order (§9.2: one question, one link). `v: 2` first, then
+ * the seven keys every v1 URL carried, then `mo`/`fn`/`co`/`jo` and the five
+ * v2 keys — each written only when it differs from its default, so a plain
+ * query serialises to `v` plus the v1 set and nothing more (AC-1102).
+ */
+export function serialiseReportQuery(query: ReportQuery): string {
+  const ordered: Record<string, unknown> = {
+    v: 2,
+    m: query.measures.map(encodeMeasure),
+    g: query.groupBy,
+    f: query.filters.map(encodeFilter),
+    w: query.window,
+    gr: query.grain,
+    c: query.periodComparison,
+    ct: query.chartType,
+  }
+
+  const mode = reportMode(query)
+  if (mode !== DEFAULT_REPORT_MODE) ordered.mo = mode
+  if (query.funnel) ordered.fn = encodeFunnel(query.funnel)
+  if (query.cohort) ordered.co = encodeCohort(query.cohort)
+  if (query.journey) ordered.jo = encodeJourney(query.journey)
+
+  if (query.formula) ordered.fo = encodeFormula(query.formula)
+  if (query.transform && !isDefaultTransform(query.transform)) ordered.tr = encodeTransform(query.transform)
+  if (query.segments && query.segments.length > 0) ordered.sg = query.segments.map(encodeSegment)
+  if (query.comparisonDisplay && query.comparisonDisplay !== DEFAULT_COMPARISON_DISPLAY) {
+    ordered.cd = query.comparisonDisplay
+  }
+  if (query.table) ordered.tb = encodeTable(query.table)
+
+  return toBase64Url(JSON.stringify(ordered))
+}
+
+interface WireQuery {
+  v?: number
+  m: WireMeasure[]
+  g: string | string[] | null
+  f: WireFilter[]
+  w: ReportQuery['window']
+  gr: ReportQuery['grain']
+  c: ReportQuery['periodComparison']
+  ct: ReportQuery['chartType']
+  mo?: ReportMode
+  fn?: WireFunnelV1 | WireFunnelV2
+  co?: WireCohortV1 | WireCohortV2
+  jo?: WireJourney
+  fo?: WireFormula
+  tr?: WireTransform
+  sg?: WireSegment[]
+  cd?: ComparisonDisplay
+  tb?: WireTable
+}
+
+/**
+ * Restore. Returns `null` on anything unparseable — a domain outcome the
+ * panel renders as "this link is not a report", never a thrown exception
+ * (§8.3 state 2). A v1 URL (no `v` key) decodes into the same
+ * `ReportQueryInput` shape `normaliseReportQuery` already migrates, so the
+ * migration rules live in exactly one function (AC-1100/1101).
  */
 export function deserialiseReportQuery(encoded: string): ReportQuery | null {
   try {
-    const raw = JSON.parse(fromBase64Url(encoded)) as {
-      m: string[]
-      g: string | null
-      f: WireFilter[]
-      w: ReportQuery['window']
-      gr: ReportQuery['grain']
-      c: ReportQuery['periodComparison']
-      ct: ReportQuery['chartType']
-      mo?: ReportMode
-      fn?: WireFunnel
-      co?: WireCohort
-      jo?: WireJourney
-    }
+    const raw = JSON.parse(fromBase64Url(encoded)) as WireQuery
     if (!Array.isArray(raw.m)) return null
 
-    const query: ReportQuery = {
-      measures: raw.m.map((key) => ({ key })),
+    const isV2 = raw.v === 2
+
+    const input: ReportQueryInput = {
+      measures: raw.m.map(decodeMeasure),
       groupBy: raw.g ?? null,
       filters: (raw.f ?? []).map(decodeFilter),
       window: raw.w,
       grain: raw.gr,
       periodComparison: raw.c,
       chartType: raw.ct,
-      /* **A link written before `mode` existed carries no `mo` and lands here
-         as a trend** — the same answer `reportMode()` gives everywhere else,
-         reached through the same constant rather than a literal. This is the
-         whole of the backwards-compatibility guarantee, and it is one line. */
-      mode: raw.mo ?? DEFAULT_REPORT_MODE,
+      mode: raw.mo,
     }
 
-    /* Set only when present, so an absent configuration deserialises to an
-       absent configuration rather than to an empty one. `{ steps: [] }` and
-       "no funnel yet" are different states and the panel renders them
-       differently. */
-    const funnel = decodeFunnel(raw.fn)
-    if (funnel) query.funnel = funnel
-    const cohort = decodeCohort(raw.co)
-    if (cohort) query.cohort = cohort
+    const funnel = decodeFunnel(raw.fn, isV2)
+    if (funnel) input.funnel = funnel
+    const cohort = decodeCohort(raw.co, isV2)
+    if (cohort) input.cohort = cohort
     const journey = decodeJourney(raw.jo)
-    if (journey) query.journey = journey
+    if (journey) input.journey = journey
 
-    return query
+    /* v1 never carried these five keys, so there is nothing to migrate — an
+       absent key already means "default" on both sides of the wire. */
+    if (isV2) {
+      if (raw.fo) input.formula = decodeFormula(raw.fo)
+      if (raw.tr) input.transform = decodeTransform(raw.tr)
+      if (raw.sg) input.segments = raw.sg.map(decodeSegment)
+      if (raw.cd) input.comparisonDisplay = raw.cd
+      if (raw.tb) input.table = decodeTable(raw.tb)
+    }
+
+    return normaliseReportQuery(input)
   } catch {
     return null
   }

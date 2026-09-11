@@ -85,6 +85,17 @@ export function conflictError(details: ApiErrorDetail[], message = 'Conflict'): 
   return new HttpError(409, 'conflict', message, details, { retryable: false })
 }
 
+/** A second request with the same `Idempotency-Key` while the first is still running (`05-backend.md` §2 Q3, WP-6.2). */
+export function idempotencyInProgressError(): HttpError {
+  return new HttpError(
+    409,
+    'idempotency_in_progress',
+    'A request with this Idempotency-Key is already in progress',
+    [],
+    { retryable: true },
+  )
+}
+
 function internalError(cause: unknown): HttpError {
   // The cause is for server logs; the wire body never leaks internals.
   console.error(cause)

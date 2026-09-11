@@ -15,6 +15,16 @@ export function single<T>(data: T): Single<T> {
   return { data }
 }
 
+/**
+ * A bare-`T` JSON response, for the endpoints `CONTRACT.md` §2 marks as the
+ * exception to `Single<T>` — `session.ts` and `team.ts`'s client docblocks
+ * call `http.get<Session>`/`http.get<{ items: TeamUser[] }>` directly, with
+ * no `.data` to unwrap, so the server must not wrap them either.
+ */
+export function jsonResponse(data: unknown, status = 200, headers: Record<string, string> = {}): Response {
+  return new Response(JSON.stringify(data), { status, headers: { 'content-type': 'application/json', ...headers } })
+}
+
 export function countResult(count: number | null): CountResult {
   return { count }
 }
