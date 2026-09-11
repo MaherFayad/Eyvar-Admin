@@ -17,14 +17,15 @@ Everything else in the plan stands, including every gate.
 
 | WP | Owner | State |
 |---|---|---|
-| WP-0.1 Decisions | product-owner | destroyed by the stash incident; rerun in flight |
+| WP-0.1 Decisions | product-owner | done (rerun) — D38…D46 headed entries + 9 RULINGS rows, every citation verified |
 | WP-0.2 WP gate | utilities-engineer | done — gate + 62 manifests, 10 tests green |
 | WP-0.3 Tokens | design-token-steward | done — s7/s8 in both themes, block heights, heat ramp, contrast harness green |
 | WP-0.4 Copy skeletons | i18n-arabic-engineer | done — pg.* (7 keys), an.* (16 keys), both registered |
 | WP-0.5 Design notes | product-designer | done — design/22-analytics-v2.md, every control specced |
 | WP-1.1 Types | mock-data-engineer | done — v2 unions + 5 new type modules; 121 downstream compiles broken by design |
 | WP-4.1 Markdown | utilities-engineer | done — parse+render, 151 tests, no dangerouslySetInnerHTML |
-| WP-6.1 Backend scaffold | general-purpose | running |
+| WP-6.1 Backend scaffold | general-purpose | done — api/ project, router, envelopes, migrations, 5 tests |
+| WP-6.2 Auth and sessions | general-purpose | running |
 
 ## Findings raised during the build, for the owner
 

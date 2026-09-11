@@ -38,6 +38,15 @@ number and given one row there.
 | D-11a — who owns focus when a menu hands off to a layer: **the layer wins** | Decided |
 | D-12 — peek is the drawer, not a sixth surface | Decided |
 | D-13 — motion has no duration tokens, and the request for a duration scale is refused | Decided |
+| D38 — the analyst agent runs on the owner's Claude Code subscription, never an API key | Decided |
+| D39 — a dashboard is a page: an ordered list of blocks | Decided |
+| D40 — two series may share one axis, and the palette runs to eight hues | Decided |
+| D41 — alerts evaluate on Vercel Cron, at exactly two cadences | Decided |
+| D42 — the query model gains formulas, transforms, segments and comparison display | Decided |
+| D43 — an alert may deliver to email and to a Slack webhook, gated by permission at delivery time | Decided |
+| D44 — the agent may read a masked sample of the records behind a bucket, through one tool | Decided |
+| D45 — the week starts on Sunday | Decided |
+| D46 — the Report Builder gains a fourth view, `analyst`, and two detail routes | Decided |
 | D-F32 — a `Metric` derived from a server response is not a minted literal | Decided |
 | D31 — Admin: three things the workspace deliberately does not do | Decided |
 | D32 — five cross-cutting rules from the Management and Operations pass | Decided |
@@ -4682,3 +4691,303 @@ carrying a literal.
 Two that stay open and are named where they block: a licensed tile provider for the two maps
 (`Basemap` isolates the URL), and `Driver.position` on the wire, without which the dispatch map
 cannot claim where a captain is.
+
+---
+
+## D38 — the analyst agent runs on the owner's Claude Code subscription, never an API key
+
+**Status:** decided by the business owner, 2026-09-11.
+
+**What was asked.** `01-analyst-agent.md` §1 needed a place to run: an agent with tools for
+reporting, charts, pages and alerts, able to reason over the business's own data and write
+case studies that inform decisions.
+
+**What is decided.** The analyst agent is a Claude Code session invoked in print mode
+(`claude -p`) with `--mcp-config`, on a machine logged into the owner's Claude Code
+subscription, driven by a runner the owner operates. No API key exists anywhere in the
+product; no model call originates from the browser or from a Vercel function. The **Agent
+SDK is refused for this purpose**: it requires API-key or cloud-provider authentication, and
+Anthropic's policy reserves subscription login for first-party products
+(`code.claude.com/docs/en/agent-sdk/overview`, cited in `01-analyst-agent.md:23`). Print mode
+honours the subscription login (`code.claude.com/docs/en/headless`) and accepts MCP tools,
+`--allowedTools`/`--disallowedTools`, `--json-schema`, `--max-turns`, hooks and `stream-json`
+output — enough to run a bounded job with typed evidence, even though it cannot spawn
+subagents or preload skills (`01-analyst-agent.md:22-26`).
+
+**What it costs.** Usage counts against the subscription's rolling windows, shared with every
+other use of that login. The product must show when the agent is at its limit rather than
+fail silently or fall back to an API key. The runner is an internal tool used by the account
+that owns the subscription; it is **not** offered to third parties, and no tenant-per-key
+model is available to a future customer of the product. Claude Code cloud routines
+(`/schedule`) remain an unverified Option B — whether a routine can reach a private MCP
+endpoint with a secret is untested — so the runner's own scheduler (§8) is the default and
+routines are revisited only once verified (`01-analyst-agent.md:26`).
+
+**What it supersedes.** Nothing existing; this is the first ruling on where the analyst
+agent runs. It forecloses two alternatives the plan considered and rejected:
+"call the Claude API from a Vercel function" and "Agent SDK on the subscription"
+(`01-analyst-agent.md:22-23`).
+
+---
+
+## D39 — a dashboard is a page: an ordered list of blocks
+
+**Status:** decided by the business owner, 2026-09-11.
+
+**What was asked.** `03-pages-and-dashboards.md` §1 needed the owner's ruling on whether
+"quick dashboards" (spec 06 §11) stay a fixed list of report tiles or become a general block
+document, ahead of building the page renderer and the migration.
+
+**What is decided.** A dashboard is a **page**: a named, ordered list of blocks, where a
+saved-report tile is one block kind among several (`report`, `metric`, `table`, `text`,
+`heading`, `callout`, `toggle`, `columns`, `divider`). Order stays a single integer per
+block; a `columns` block is a container that holds 2–4 further blocks whose widths sum to
+at most 12, and a `toggle` block nests one level and may not itself hold `columns` or
+`toggle` (`03-pages-and-dashboards.md:41-42`). There is no free geometry and no
+per-breakpoint layout beyond the existing 1280 floor and `wide:` step, which stacks a row of
+columns below `wide:` (`03-pages-and-dashboards.md:19`). A page holds at most 200 blocks
+counted recursively (`03-pages-and-dashboards.md:53`).
+
+**What it supersedes.**
+- **Spec 06 §11.1**, which read *"A dashboard is a named, ordered list of saved report ids,
+  rendered through the existing §3.7 composer. **Nothing more.**"* (`specs/06-report-builder.md:756-757`).
+  "Nothing more" is now wrong: a dashboard is a page, and a page holds nine block kinds, not
+  one.
+- **The refusal of text tiles** recorded at `DashboardDetailScreen.tsx:1276-1281`: *"`Text` —
+  §11 defines a dashboard as a named ordered list of saved report ids. A text tile is not a
+  report id, so it reopens the definition, the schema and the save endpoint. Recorded as a
+  follow-up, not smuggled in."* D39 is that follow-up landing: a text block is now first-class.
+
+**What it costs.** `Dashboard` and `DashboardTile` types are deleted; `dashboards.*`
+operations are removed from `knownOperations()` and `pages.*` operations registered in their
+place — a client-contract break, not an additive change. Existing dashboards migrate by a
+pure function, tested against the three fixture dashboards: each tile in `order` becomes a
+`report` block (`view: 'chart'`, `height: 'M'`, `title: null`); consecutive `half` tiles pair
+into a two-column `columns` block; a `full` tile stands alone
+(`03-pages-and-dashboards.md:65-68`). The backend runs the same migration once, in
+`0003_pages.sql`'s companion script. `/management/reports/dashboards/:id` redirects to
+`/management/reports/pages/:id` — 301 on the server, a route-table alias on the client
+(`03-pages-and-dashboards.md:70-71`). Board scope (`range`, `filters`) applied per tile with
+refusal (`dashboards.ts:323-422`) is unchanged; a `report` block inherits it exactly as a tile
+did.
+
+---
+
+## D40 — two series may share one axis, and the palette runs to eight hues
+
+**Status:** decided by the business owner, 2026-09-11.
+
+**What was asked.** `02-report-builder-v2.md` needed the owner's ruling on whether two
+measures, or several segments, may share one y-axis, and whether the six-hue series palette
+(R4-1, `--chart-s1`…`s6`) is wide enough for a segmented series or an eight-way split.
+
+**What is decided.** Two measures, or several segments, may share one axis **when they share
+a unit and a temporality**; `pairRefusal` still forces separate panels where the units
+differ. The series palette recorded in `docs/RULINGS.md`'s "Standing owner overrides" as
+six stops is **extended by two hues, `--chart-s7` and `--chart-s8`**, so an eight-way segment
+split reads without wrapping into a repeated hue. R7 is unchanged: a **period** comparison is
+the same hue, dashed, never a new hue.
+
+**What it costs — none; already minted.** `src/styles/globals.css:2731-2732` already defines
+`--chart-s7: var(--ev-series-7)` and `--chart-s8: var(--ev-series-8)`, and
+`src/styles/globals.css:2913-2915` exposes them as `--color-chart-s7` / `--color-chart-s8`
+with the comment `/* D40 — stroke-chart-s7, fill-chart-fill-s8, same reason as s1-s6. */`,
+confirmed passing the same AA check the first six stops carry
+(`02-report-builder-v2.md:291`). This ruling is the paper that authorises tokens the
+design-token-steward had already cut in anticipation; no further token work follows from it.
+
+**What it supersedes.** Extends, rather than reverses, the "Standing owner overrides" chart
+entry in `docs/RULINGS.md` — see the edit to that file below. Does **not** touch R4-1's
+"small multiples, do not mint the palette" ruling on the *original* six stops, and does not
+touch `pairRefusal`'s rule for unit mismatches, which `docs/RULINGS.md` names explicitly as
+"not overridden, and not to be assumed overridden."
+
+---
+
+## D41 — alerts evaluate on Vercel Cron, at exactly two cadences
+
+**Status:** decided by the business owner, 2026-09-11. Answers **Q-RB-7**
+(`specs/06-report-builder.md:1535`: *"Is there a backend commitment for a scheduler? If not,
+is the client half of alerts still worth building?"*).
+
+**What was asked.** `specs/06-report-builder.md:330` flagged `cadence` as a required field
+whose only legal values — `'hourly' | 'daily'` — were minted by the spec that required them,
+with no scheduler committed to implement either: *"A rule may not offer a cadence the
+scheduler does not implement, and a fixture may not seed one."*
+
+**What is decided.** Alerts evaluate **on the server, on Vercel Cron, at two cadences:
+`hourly` and `daily`.** The client's cadence control offers exactly these two, plus `Not
+scheduled` as an explained third state (`04-alerting-v2.md:140`). `cadence: null` remains
+legal and means "not scheduled" — a rule with no cadence never evaluates
+(`04-alerting-v2.md:57`, `:122`). A rule at `week` or `month` grain on a daily cadence
+evaluates once the day's snapshot has run (`04-alerting-v2.md:95`).
+
+**What it costs.** The scheduler is real work, not a stub: a rule row shows
+`Last evaluated 3 h ago · expected hourly` in the warning tone when lag exceeds 2× the
+cadence (`04-alerting-v2.md:175`), which requires the server to record and expose every
+evaluation's timestamp. Delivery fans out per channel after evaluation — in-app, email per
+recipient who still holds the rule's measure permission, Slack per webhook — and each
+delivery's success or failure is recorded independently so the history can show a channel
+failed without pretending the firing did not happen (`04-alerting-v2.md:107-109`).
+
+**What it supersedes.** Resolves the previously-blocked state of `specs/06-report-builder.md`
+§4.2 and §12.1, which disagreed with each other (§4.2 required a cadence choice; §12.1 stated
+plainly that nothing evaluates). Neither is rewritten by this entry; the spec's own text still
+poses Q-RB-7, which is a separate finding (F-V2-2, disposed in WP-8.5).
+
+---
+
+## D42 — the query model gains formulas, transforms, segments and comparison display
+
+**Status:** decided by the business owner, 2026-09-11.
+
+**What was asked.** `02-report-builder-v2.md` needed the owner's sign-off to extend
+`ReportQuery` — the one query model D13 established and the non-negotiables in
+`00-README.md`'s "non-negotiables" §1 restate — toward Amplitude fidelity, without forking it
+into a v2 model that reads differently at the wire.
+
+**What is decided.** `ReportQuery` gains, all optional with defaults so a v1 URL still
+deserialises unchanged: `formula?: ReportFormula` (`{ expression, label }`, evaluated by a
+hand-written recursive-descent parser with no dependency, `src/data/reporting/formula.ts` per
+`02-report-builder-v2.md:67-70`), `transform?: ReportTransform` (cumulative, rolling average,
+rolling window — `02-report-builder-v2.md:18`), `segments?: SegmentRef[]` (default `[]`
+meaning "everyone", capped at 4 — `02-report-builder-v2.md:132`), and
+`comparisonDisplay?: 'series' | 'difference' | 'percent-change'` (default `'series'` —
+`02-report-builder-v2.md:151`). The URL carries a version key, `v: 2`, ahead of the new
+serialiser keys `fo` (formula), `tr` (transform), `sg` (segments), `cd` (comparisonDisplay),
+`tb` (table) — added **after** every v1 key, so `deserialise` reads an unversioned URL as
+`v: 1` by default (`02-report-builder-v2.md:203-204`). The planner refuses what the catalogue
+cannot support: an unparseable formula (`formula-parse`, with position and expected token),
+an unresolvable reference (`formula-unknown-ref`), a unit mismatch (`formula-unit`), a
+non-additive formula target (`formula-needs-additive`) — each disabled in place with the
+reason, per the illegal-is-disabled non-negotiable, never hidden.
+
+**What it costs.** Every screen that reads or writes `ReportQuery` — the rail, the URL
+serialiser, the CSV export, the alert rule editor, the page `report` block, the agent's
+`run_report` tool — takes the new optional fields or explicitly ignores them; none may
+silently drop one on a round trip. `ReportResult` gains a matching v2 shape
+(`series[].groupValues`, `formulaLabel`, `segmentLabel`) that a v1 consumer must not choke on.
+
+**What it supersedes.** Nothing; it is the first extension of the model D13 created and
+`00-README.md`'s "already built" table names as the seam every addition must go through
+without a parallel model.
+
+---
+
+## D43 — an alert may deliver to email and to a Slack webhook, gated by permission at delivery time
+
+**Status:** decided by the business owner, 2026-09-11.
+
+**What was asked.** Spec 06 §13.3 described email and Slack delivery as blocked on
+permission resolution the client could not do; `04-alerting-v2.md` needed the owner's sign-off
+now that D42's server resolves permission server-side.
+
+**What is decided.** `AlertChannel` gains two variants beyond the notification centre:
+`{ type: 'email'; userIds: string[] }`, which targets named team users rather than free
+addresses so the permission check has an identity to check, and
+`{ type: 'slack'; webhookId: string }`, referencing a webhook stored server-side with its
+secret encrypted (`04-alerting-v2.md:69`, `:73-74`). **A recipient must hold the rule's
+measure permission at delivery time**; the server drops a recipient who does not and notifies
+the owner, rather than silently including them (spec 06 §13.3, now implementable). The email
+user picker is filtered to users who currently hold the measure's permission; the Slack
+webhook picker is unfiltered because a webhook is not a person
+(`04-alerting-v2.md:141-142`).
+
+**What it costs.** Each delivery's outcome is tracked per channel independently — the history
+shows `in-app ✓ · email ✓ · slack ✗` with the failure reason in the row's title
+(`04-alerting-v2.md:127`), so a Slack outage never reads as a rule that silently failed to
+fire. **Nav badges remain untouched** (§12.6): an alert delivering to email or Slack still
+never turns a nav badge red, unchanged from the cap D13 recorded when alerts were first
+scoped.
+
+**What it supersedes.** Nothing existing; spec 06 §13.3 was already written to this shape and
+was blocked only on the server doing the permission resolution D42/backend now provide.
+
+---
+
+## D44 — the agent may read a masked sample of the records behind a bucket, through one tool
+
+**Status:** decided by the business owner, 2026-09-11.
+
+**What was asked.** `01-analyst-agent.md` needed the owner's sign-off before the agent could
+see anything beyond aggregate numbers — a case study is thin without an example row, but a
+sample is also the single largest exposure surface a reasoning agent can be handed.
+
+**What is decided.** The agent gets exactly one tool for row-level access, `T10 sample_rows`,
+taking `{ resource, filters: FilterSpec[], bucket?: IsoDate, limit?: ≤50 }` and returning rows
+with PII fields masked by the server — name to initials, phone to its last two digits, ids
+left intact — gated by the requesting operator's permission on the resource
+(`01-analyst-agent.md:167`). The model is told masked fields are masked and instructed not to
+try to infer identities from what remains (`01-analyst-agent.md:189`). **Every call is
+audit-logged**, writing an audit row alongside the run's evidence hash and run id
+(`01-analyst-agent.md:85`, `:167`). The finished job is checked for leakage: "any string that
+looks like an unmasked phone or email in the output fails the job"
+(`01-analyst-agent.md:262`).
+
+**What it costs.** The 50-row cap and the mask are enforced server-side, not by the prompt —
+the client and the agent both trust the server's masking, and neither may request an
+unmasked row through this or any other tool. The agent inherits the requesting operator's
+own permission and nothing more, per non-negotiable #9; an operator who cannot see a measure
+cannot have the agent see its records on their behalf either.
+
+**What it supersedes.** Nothing existing; this is the first and only row-level read tool the
+analyst agent is given. No other tool in its catalogue (`01-analyst-agent.md` T1–T9, T11+)
+returns record-level data.
+
+---
+
+## D45 — the week starts on Sunday
+
+**Status:** decided by the business owner, 2026-09-11. Answers **Q-RB-3**
+(`specs/06-report-builder.md:1531`: *"Does the week start Sunday or Monday? Every weekly
+number in every exported report depends on it."*).
+
+**What was asked.** `src/data/reporting/buckets.ts:47-49` carried the position unratified:
+*"**Q-RB-3, unanswered.** `0` = Sunday, `1` = Monday. §3.5 takes the Sunday position; the
+owner has not ratified it. AC-819 tests whatever this says."*
+
+**What is decided.** The week starts on **Sunday**, confirming the existing position:
+`WEEK_START_DOW = 0` at `src/data/reporting/buckets.ts:50` stands as written and needs no
+code change. The backend's own week-bucketing, built fresh for this plan, implements the same
+constant rather than re-deriving it.
+
+**What it costs.** Nothing changes in the client; `buckets.ts:47-49`'s comment is now stale
+and should lose the "unanswered"/"has not ratified" language on next touch — noted here
+rather than edited, since `src/data/reporting/` is outside this work package's file list.
+AC-819 and every weekly number in every exported report to date were already computed on the
+Sunday position, so no retroactive correction is owed.
+
+**What it supersedes.** Retires the open half of Q-RB-3. Non-negotiable #8 in
+`00-README.md` ("Riyadh time, Sunday week start … Q-RB-3 is still the owner's to answer")
+is answered as of this date; the non-negotiable's substance (Riyadh time, Sunday start) does
+not change, only its status from provisional to ratified.
+
+---
+
+## D46 — the Report Builder gains a fourth view, `analyst`, and two detail routes
+
+**Status:** decided by the business owner, 2026-09-11. Amends **D1a**'s sub-tab row.
+
+**What was asked.** `03-pages-and-dashboards.md` and `01-analyst-agent.md` both needed a
+route: a page has to live somewhere once D39 makes it a first-class object, and the analyst
+agent's finished jobs need a route to show their evidence in.
+
+**What is decided.** The Report Builder's view switcher gains a fourth view, **`analyst`**,
+alongside the existing three. Two detail routes are added:
+`/management/reports/analyst/:jobId` and `/management/reports/pages/:pageId`. The latter
+**replaces** `/management/reports/dashboards/:dashboardId`, which redirects to it — 301 on
+the server, a route-table alias on the client (`03-pages-and-dashboards.md:70-71`) — rather
+than the two routes existing side by side.
+
+**What it costs.** `knownOperations()` drops `dashboards.*` and registers `pages.*`
+(D39). `DetailKind`, which D1a already widened from five to seven routes to add `report` and
+`dashboard` (D1a: *"`DetailKind` gains **`report`** and **`dashboard`**; §3.4's five
+level-3 routes are now seven"*), now trades `dashboard` for `page` and gains `analystJob` —
+the route count changes again, and whoever next touches `routes.test.ts`,
+`shell/permissions.test.ts` and `shell/qa.copy.test.tsx`'s assertions (already flagged as
+fragile by D1a's own "the risk is not the row; it is the second signature") must update all
+three together.
+
+**What it supersedes.** Amends D1a's sub-tab row: **the count of sub-tabs does not change**
+(Management stays six, `management-reports` stays order 6) — only the detail-route shape
+under that one sub-tab changes, from five `DetailKind`s to seven with a different membership.

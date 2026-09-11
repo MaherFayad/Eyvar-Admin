@@ -24,7 +24,7 @@ The same digits mean different things with different prefixes. Write the exact f
 | Form | Means | Text lives in |
 |---|---|---|
 | `R1`…`R19`, `R5a` | `DESIGN.md` ruling | `_partials/00-header.md`, "Rulings on contested points" |
-| `D1`…`D37`, `D1a`, `D7a`, `D35a`, `D35b` | Project decision | `05-restructure/DECISIONS.md` |
+| `D1`…`D46`, `D1a`, `D7a`, `D35a`, `D35b` | Project decision | `05-restructure/DECISIONS.md` |
 | `D-1`…`D-13` (hyphen) | `DESIGN.md` §6.2 sanctioned deviation | `_partials/06-eyvar-mapping.md`; D-11a, D-12, D-13 in DECISIONS.md |
 | `D3`, `D11` written next to "§6.3" | Legacy defect number | `_partials/06-eyvar-mapping.md` §6.3 |
 | `R-1`…`R-4` | Round 3 ruling | `05-restructure/design/00-decisions-r3.md` |
@@ -46,7 +46,7 @@ and that spec fidelity outranks `DESIGN.md` there where the two conflict.
 Where a `DESIGN.md` rule is overridden this way, record the override in a comment at the
 rule's own site and add it to the list below. Overridden so far:
 
-- `globals.css` "there is no categorical chart palette": `--chart-s1`…`s6` and `--chart-fill-s1`…`s6` exist; `--chart-s1` is `--ev-brand`, so single-series charts are unchanged.
+- `globals.css` "there is no categorical chart palette": `--chart-s1`…`s6` and `--chart-fill-s1`…`s6` exist; `--chart-s1` is `--ev-brand`, so single-series charts are unchanged. **Extended by D40 (2026-09-11):** the palette now runs to **eight** hues — `--chart-s7` and `--chart-s8` (`globals.css:2731-2732`, exposed as `--color-chart-s7`/`--color-chart-s8` at `globals.css:2913-2915`) — so an eight-way segment split reads without a repeated hue. `pairRefusal`'s rule for what may share one y-axis is unchanged by this, and now also permits two measures, or several segments, sharing one axis when they share a unit and a temporality.
 - §3.7 "no gridlines beyond the axis baseline": `SeriesChart` draws horizontal gridlines.
 - §5.7 "helper text under fields, not tooltips": rail descriptions are `InfoHint` tooltips.
 
@@ -264,6 +264,15 @@ One line each. The text lives in `05-restructure/DECISIONS.md`; grep the ID.
 | D-11a — who owns focus when a menu hands off to a layer: **the layer wins** |
 | D-12 — peek is the drawer, not a sixth surface |
 | D-13 — motion has no duration tokens, and the request for a duration scale is refused |
+| D38 — the analyst agent runs on the owner's Claude Code subscription, in print mode, on a runner the owner operates; no API key anywhere in the product |
+| D39 — a dashboard is a page: an ordered list of blocks, a saved-report tile one kind among several (supersedes spec 06 §11.1 and the text-tile refusal at `DashboardDetailScreen.tsx:1276-1281`) |
+| D40 — two measures or several segments may share one axis when they share a unit and a temporality; the series palette is extended to eight hues, `--chart-s7`/`--chart-s8` |
+| D41 — alerts evaluate on Vercel Cron at exactly two cadences, `hourly` and `daily`; `cadence: null` means not scheduled (answers Q-RB-7) |
+| D42 — `ReportQuery` gains formula, transform, segments and comparisonDisplay, all optional, behind a `v: 2` URL key |
+| D43 — an alert may deliver to email and to a Slack webhook; a recipient must hold the rule's measure permission at delivery time |
+| D44 — the agent may read a masked sample of records through one tool, `sample_rows`, capped at 50 rows and audit-logged |
+| D45 — the week starts on Sunday, confirming `WEEK_START_DOW = 0` at `src/data/reporting/buckets.ts:50` (answers Q-RB-3) |
+| D46 — the Report Builder gains a fourth view, `analyst`, and the routes `/management/reports/analyst/:jobId` and `/management/reports/pages/:pageId` (replaces `/dashboards/:dashboardId`; amends D1a's sub-tab row) |
 
 ## Round rulings
 
