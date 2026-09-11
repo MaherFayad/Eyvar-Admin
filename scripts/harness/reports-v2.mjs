@@ -1,17 +1,16 @@
 /**
- * WP-2.1…2.5 — the chart surface, proven in Chromium rather than asserted in
- * jsdom (which renders no SVG and would report every one of these working
- * either way). Reads `HARNESS_BASE`, default `http://localhost:4327`.
+ * WP-2.1…2.5, closed by WP-2.10 — the chart surface, proven in Chromium
+ * rather than asserted in jsdom (which renders no SVG and would report every
+ * one of these working either way). Reads `HARNESS_BASE`, default
+ * `http://localhost:4327`.
  *
- * Fixture reports (`src/data/fixtures/reports.ts`, G8):
+ * Fixture reports (`src/data/fixtures/reports.ts`, G8 plus WP-2.10's two):
  *   RPT-14 area · RPT-15 stacked-bar · RPT-16 stacked-100 ·
  *   RPT-17 horizontal-bar · RPT-18 kpi · RPT-1 line, ≥30 buckets for the brush
+ *   RPT-20 a real ≥8-group split (AC-1136) · RPT-21 stacked-bar + comparison (AC-1132)
  *
- * **Known gap, not this script's to close.** `ReportBuilder.tsx` (another
- * WP's file) does not yet pass `annotations` / `canAnnotate` /
- * `onSaveAnnotation` to `ResultCanvas`, so AC-1148…1150 cannot be observed
- * live in the app yet — proven instead in
- * `src/components/reports/chartSurfaceV2.test.tsx`. Flagged in the report.
+ * `ReportBuilder.tsx` now wires `annotations`/`canAnnotate`/`onSaveAnnotation`
+ * through to `ResultCanvas`, so AC-1148…1150 are observed live here too.
  */
 import { chromium } from 'playwright'
 import { mkdirSync } from 'node:fs'
@@ -98,13 +97,18 @@ for (const [id, kind] of CHART_TYPE_REPORTS) {
 
 /* ═══════════ AC-1132 — a stacked comparison is an outline, behind, dashed ═ */
 
-/* `SeriesChart` draws a comparison only at ≤2 series (pre-v2 rule, unchanged:
-   "twelve lines, half of them dashed, is not a comparison anybody can read").
-   RPT-15 is a 3-group split, so it cannot show this — no seeded stacked-bar
-   fixture has ≤2 series AND a comparison. Flagged for mock-data-engineer
-   (fixtures) rather than faked with a hand-edited URL a real operator cannot
-   reach; the mechanism itself is exercised by `SeriesChart.tsx`'s own branch. */
-console.log('SKIP  AC-1132 needs a ≤2-series stacked-bar fixture with a comparison; none seeded')
+{
+  const { ctx, page } = await newPage()
+  await openReport(page, 'RPT-21')
+  const outline = await page.evaluate(() =>
+    [...document.querySelectorAll('.recharts-bar-rectangle path, path.recharts-bar-rectangle')].some(
+      (el) => el.getAttribute('fill') === 'none' && !!el.getAttribute('stroke-dasharray'),
+    ),
+  )
+  check('AC-1132 a stacked comparison draws as an unfilled, dashed outline behind the stack', outline)
+  await page.screenshot({ path: `${OUT}/v2-stacked-comparison.png`, fullPage: true })
+  await ctx.close()
+}
 
 /* ═══════════ AC-1133 — stacked-100 axis reads 0–100%, parts sum to 100 ════ */
 
@@ -179,11 +183,26 @@ for (const arabic of [false, true]) {
 }
 
 /* ═══════════ AC-1136 — series 7/8 take s7/s8; Other is muted-foreground ═══ */
-/* No seeded fixture reaches a 7th series; this is proven at the unit level
-   (`seriesColor(6)` / `seriesColor(7)` return `--chart-s7`/`-s8` by
-   construction — `SeriesChart.tsx`'s `SERIES_STOPS`) and flagged here rather
-   than faked with a hand-edited URL a real operator cannot reach. */
-console.log('SKIP  AC-1136 needs a ≥7-series fixture; proven structurally, not here')
+
+{
+  const { ctx, page } = await newPage()
+  await openReport(page, 'RPT-20')
+  const result = await page.evaluate(() => {
+    const muted = getComputedStyle(document.querySelector('.text-muted-foreground') ?? document.body).color
+    const fills = [...document.querySelectorAll('g.recharts-bar')].map((g) => {
+      const mark = g.querySelector('path.recharts-bar-rectangle, path')
+      return mark ? getComputedStyle(mark).fill : null
+    })
+    return { muted, fills }
+  })
+  const { fills, muted } = result
+  check('AC-1136 draws nine series groups (eight named plus Other)', fills.length === 9, JSON.stringify(fills))
+  const distinctNamed = new Set(fills.slice(0, 8))
+  check('AC-1136 the eight named series (including 7th and 8th) are eight distinct hues', distinctNamed.size === 8)
+  check('AC-1136 the folded Other takes --muted-foreground', fills[8] === muted, `${fills[8]} vs ${muted}`)
+  await page.screenshot({ path: `${OUT}/v2-eight-hues-and-other.png`, fullPage: true })
+  await ctx.close()
+}
 
 /* ═══════════ AC-1137 — no shadow on any chart card ═════════════════════ */
 
@@ -327,6 +346,27 @@ for (const width of [1280, 1440]) {
   const urlUnchanged = page.url().endsWith('/management/reports/RPT-14')
   check('AC-1152 `[` steps the brush edge and the URL is unchanged', urlUnchanged)
   await page.screenshot({ path: `${OUT}/v2-brush.png`, fullPage: true })
+  await ctx.close()
+}
+
+/* ═══════════ AC-1148/1149/1150 — annotations, now reachable live ══════════ */
+
+{
+  const { ctx, page } = await newPage()
+  await openReport(page, 'RPT-1')
+  /* `ANN-6` (`fixtures/annotations.ts`) sits inside the fixed clock's last
+     30 days — RPT-1's own window — by construction. */
+  const mark = page.getByRole('button', { name: /Payment gateway outage/ })
+  check('AC-1148 an annotation inside the window draws a marker', (await mark.count()) > 0)
+  if ((await mark.count()) > 0) {
+    await mark.first().focus()
+    await page.waitForTimeout(200)
+    const note = await page.locator('[role="tooltip"]').count()
+    check('AC-1149 keyboard focus on a marker shows the label and note', note > 0)
+  }
+  const addButton = page.getByRole('button', { name: 'Add annotation' })
+  check('AC-1149 the add form’s control is reachable, enabled for USR-1', (await addButton.isEnabled()) === true)
+  await page.screenshot({ path: `${OUT}/v2-annotations.png`, fullPage: true })
   await ctx.close()
 }
 

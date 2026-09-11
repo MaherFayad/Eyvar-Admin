@@ -36,7 +36,8 @@ Everything else in the plan stands, including every gate.
 | WP-2.6b Measured-as, 2nd split, transform legality | frontend-engineer | done — 3 gaps closed, 106 tests |
 | WP-2.7/2.8 Toolbar, export, library | frontend-engineer | done — overflow, PNG with tEXt provenance, library views; harness caught an invisible-line bug |
 | WP-3.1/3.2/3.3 Funnel, retention, table | frontend-engineer | done — 82 tests, harness green; two features unreachable, see WP-3.5 |
-| WP-1.9 Normalise at the entry points | mock-data-engineer | running (orchestrator-opened) |
+| WP-1.9 Normalise at the entry points | mock-data-engineer | done — typecheck 52 to 7, test failures 32 to 21 |
+| WP-8.0 Clear the migration residue | qa-engineer | running (orchestrator-opened) |
 | WP-3.5 Wire the modes up | — | queued, blocked on WP-1.9 freeing report.ts |
 | WP-4.2/4.3/4.4/4.5 Pages | frontend-engineer | done — 12 block views, editor, columns, index; coverage regression being repaired |
 | WP-4.9 Page test coverage | qa-engineer | done — 24 → 82 tests, ports decided, **8 defects found** |
