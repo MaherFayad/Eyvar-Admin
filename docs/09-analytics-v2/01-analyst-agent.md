@@ -121,6 +121,30 @@ Rules the runner enforces around it:
 
 ### 3.4 Developing before the backend exists
 
+## Verified against real spawns (2026-09-11, WP-7.2)
+
+Three things in this document were assumptions. A real `claude -p` run on the owner's
+subscription contradicted each, and the runner is built to what was observed, not to what was
+written here first.
+
+1. **`--json-schema` does not make the final message raw JSON.** It injects a `StructuredOutput`
+   tool the model must call, and it does so regardless of `--allowedTools` / `--disallowedTools`.
+   The runner special-cases that tool in both `spawn.ts` and the PreToolUse hook.
+2. **`--disallowedTools` does not close the tool list.** A spawn restricted exactly as §3
+   specifies still exposed `CronCreate`, `Monitor`, `Workflow`, `ToolSearch` and third-party MCP
+   connectors. The PreToolUse hook is therefore **load-bearing, not defence in depth** — it was
+   proven live to refuse `ToolSearch` and `TodoWrite`, with the hook's own error text appearing
+   in the transcript. Do not remove it on the grounds that the flags already cover it.
+3. **`${CLAUDE_PROJECT_DIR}` resolves to the spawn's cwd (`agent/sandbox`), not the repo root.**
+   Hook paths in `settings.json` are written relative to that.
+
+Windows-specific defects found by running it, all fixed: `shell: true` does not quote a command
+path containing a space (`C:\Program Files
+odejs
+ode.exe`); `SIGTERM` does not kill the
+process tree when `shell: true` wraps `cmd.exe`, so a hung spawn survives its timeout — the
+runner uses `taskkill /t /f` on win32.
+
 `EYVAR_MCP_SOURCE=mock` makes the MCP server import `src/data/clients/index.ts` through `tsx`
 and run against the fixtures with `disableMockLatency()`. Every tool works end to end, `runId`s
 are minted locally, and the runner writes events to a local JSONL instead of the backend. The

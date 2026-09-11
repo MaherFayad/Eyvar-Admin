@@ -53,7 +53,7 @@ Everything else in the plan stands, including every gate.
 | WP-6.4c Server funnel, cohort, journey | general-purpose | done — **all 19 saved reports equal the mock**, 186 api tests |
 | WP-7.4 Analyst frontend | frontend-engineer | running |
 | WP-7.1 MCP tool server | general-purpose | done — 20 tools, 84 tests, PII masking proved |
-| WP-7.2 Runner | general-purpose | running |
+| WP-7.2 Runner | general-purpose | done — real spawns run; 135 agent tests |
 | WP-7.3 Prompts and schemas | general-purpose | done — protocol prompt, 5 job templates, 5 schemas, 95 agent tests |
 | WP-3.6 Seam violation in two tests | qa-engineer | done — both converted to the client seam, 19 tests kept |
 | WP-1.6c Alert evaluator | mock-data-engineer | done — 4 condition kinds, 5-state machine, 40 tests |
