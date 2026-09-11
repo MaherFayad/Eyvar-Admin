@@ -139,9 +139,7 @@ written here first.
    Hook paths in `settings.json` are written relative to that.
 
 Windows-specific defects found by running it, all fixed: `shell: true` does not quote a command
-path containing a space (`C:\Program Files
-odejs
-ode.exe`); `SIGTERM` does not kill the
+path containing a space (Node installed under "Program Files"); `SIGTERM` does not kill the
 process tree when `shell: true` wraps `cmd.exe`, so a hung spawn survives its timeout — the
 runner uses `taskkill /t /f` on win32.
 
