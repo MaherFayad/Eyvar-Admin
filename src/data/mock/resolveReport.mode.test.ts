@@ -19,7 +19,7 @@ import { dimensionFixtures, measureFixtures } from '../fixtures/measures'
 import { EYVAR_TODAY } from './clock'
 import { NO_PATH, resolveReport } from './resolveReport'
 import { planQuery, type Catalogue } from '../reporting/plan'
-import type { ReportQuery } from '../types/report'
+import type { FunnelSpec, FunnelStep, ReportQuery } from '../types/report'
 
 const catalogue: Catalogue = { measures: measureFixtures, dimensions: dimensionFixtures }
 
@@ -31,9 +31,20 @@ const ctx = {
   today: EYVAR_TODAY,
 }
 
+/** One funnel spec, v2-shaped, so every literal below states the whole shape once (`normaliseReportQuery` fills these from a v1 object too — AC-1100 — but this file writes v2 directly). */
+const funnelSpec = (steps: FunnelStep[], conversionWindow: FunnelSpec['conversionWindow'] = null): FunnelSpec => ({
+  steps,
+  conversionWindow,
+  mode: 'ordered',
+  holdConstant: null,
+  exclude: [],
+  measuredAs: 'conversion',
+  groupBy: null,
+})
+
 const trend: ReportQuery = {
   measures: [{ key: 'trips.completed' }],
-  groupBy: null,
+  groupBy: [],
   filters: [],
   window: { kind: 'preset', preset: 'last-30d' },
   grain: 'day',
@@ -48,13 +59,10 @@ const funnel: ReportQuery = {
   chartType: 'bar',
   window: { kind: 'preset', preset: 'last-365d' },
   mode: 'funnel',
-  funnel: {
-    steps: [
-      { measureKey: 'riders.joined', filters: [] },
-      { measureKey: 'trips.completed', filters: [] },
-    ],
-    conversionWindowDays: null,
-  },
+  funnel: funnelSpec([
+    { measureKey: 'riders.joined', filters: [] },
+    { measureKey: 'trips.completed', filters: [] },
+  ]),
 }
 
 const cohort: ReportQuery = {
@@ -66,8 +74,10 @@ const cohort: ReportQuery = {
   mode: 'cohort',
   cohort: {
     anchorMeasureKey: 'riders.joined',
-    returnMeasureKey: null,
+    returnMeasureKeys: [],
     cohortGrain: 'month',
+    method: 'rolling',
+    brackets: null,
     horizon: 3,
   },
 }
@@ -177,13 +187,10 @@ describe('2 — a funnel follows subjects', () => {
        funnel over one measure. Two rungs, two ids, no collision. */
     const twoWays: ReportQuery = {
       ...funnel,
-      funnel: {
-        steps: [
-          { measureKey: 'trips.completed', filters: [{ field: 'trip.kind', op: 'eq', value: 'quick' }] },
-          { measureKey: 'trips.completed', filters: [] },
-        ],
-        conversionWindowDays: null,
-      },
+      funnel: funnelSpec([
+        { measureKey: 'trips.completed', filters: [{ field: 'trip.kind', op: 'eq', value: 'quick' }] },
+        { measureKey: 'trips.completed', filters: [] },
+      ]),
     }
     const ids = run(twoWays).series.map((s) => s.id)
     expect(new Set(ids).size).toBe(2)
@@ -194,13 +201,10 @@ describe('2 — a funnel follows subjects', () => {
        real question — so the resolver answers it and admits what it measured. */
     const counted: ReportQuery = {
       ...funnel,
-      funnel: {
-        steps: [
-          { measureKey: 'trips.quickRides', filters: [] },
-          { measureKey: 'trips.completed', filters: [] },
-        ],
-        conversionWindowDays: null,
-      },
+      funnel: funnelSpec([
+        { measureKey: 'trips.quickRides', filters: [] },
+        { measureKey: 'trips.completed', filters: [] },
+      ]),
     }
     expect(run(counted).warnings).toContain('funnel-counted-not-followed')
     /* And a followed funnel does NOT carry it, or the caveat would be noise. */
@@ -210,7 +214,7 @@ describe('2 — a funnel follows subjects', () => {
   it('narrows the funnel when the conversion window is shorter than the range', () => {
     const oneDay: ReportQuery = {
       ...funnel,
-      funnel: { steps: funnel.funnel!.steps, conversionWindowDays: 1 },
+      funnel: funnelSpec(funnel.funnel!.steps, { value: 1, unit: 'day' }),
     }
     const wide = Number(run(funnel).series[1]?.points[0] ?? 0)
     const narrow = Number(run(oneDay).series[1]?.points[0] ?? 0)
@@ -220,14 +224,11 @@ describe('2 — a funnel follows subjects', () => {
   it('redacts a rung the viewer may not read, and every rung after it', () => {
     const finance: ReportQuery = {
       ...funnel,
-      funnel: {
-        steps: [
-          { measureKey: 'riders.joined', filters: [] },
-          { measureKey: 'trips.fareCollected', filters: [] },
-          { measureKey: 'trips.completed', filters: [] },
-        ],
-        conversionWindowDays: null,
-      },
+      funnel: funnelSpec([
+        { measureKey: 'riders.joined', filters: [] },
+        { measureKey: 'trips.fareCollected', filters: [] },
+        { measureKey: 'trips.completed', filters: [] },
+      ]),
     }
     const result = resolveReport(finance, catalogue, { permissions: [], today: EYVAR_TODAY })
     /* §13.1 — no points in the response, not a client-side filter over one. */
@@ -277,7 +278,7 @@ describe('3 — a cohort is `reporting/cohorts.ts`, transposed onto the result',
   it('follows a named return event instead of the subject’s own activity', () => {
     const bySubscription: ReportQuery = {
       ...cohort,
-      cohort: { ...cohort.cohort!, returnMeasureKey: 'subscriptions.started' },
+      cohort: { ...cohort.cohort!, returnMeasureKeys: ['subscriptions.started'] },
     }
     const a = run(cohort).series.map((s) => s.points)
     const b = run(bySubscription).series.map((s) => s.points)

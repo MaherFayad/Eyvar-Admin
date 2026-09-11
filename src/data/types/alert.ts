@@ -179,6 +179,11 @@ export interface AlertEvaluation {
     | 'would-fire'
     | 'would-not-fire'
     | 'no-complete-bucket'
+    /* An anomaly rule with too little history to form a band, and a condition the
+       catalogue cannot support (AC-1230, AC-1222). Both are refusals the composer
+       shows in place, not failures. */
+    | 'no-baseline'
+    | 'invalid-condition'
     | 'series-missing'
     | 'series-blocked'
     | 'report-missing'

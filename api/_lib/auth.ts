@@ -17,6 +17,16 @@ export const SESSION_COOKIE_NAME = 'eyvar_session'
 export const SESSION_TTL_SECONDS = 60 * 60 * 24 * 30
 
 /**
+ * `verifyCode`'s `rememberDevice` and `reauthenticate`'s AC-573 device check
+ * (§7.1, `TRUSTED_DEVICE_DAYS` in `fixtures/authIdentities.ts`) — a second,
+ * separate cookie from the session one, so a device can stay "remembered"
+ * across a sign-out/sign-in that rotates the session cookie. Signed the same
+ * way (`signSessionId`/`verifySessionCookieValue` are generic over any id).
+ */
+export const DEVICE_COOKIE_NAME = 'eyvar_device'
+export const DEVICE_TRUST_SECONDS = 60 * 60 * 24 * 30
+
+/**
  * Bounded write for the "refresh last-seen without making every GET a
  * write" requirement: `readSession` only issues the `UPDATE` when the
  * session has not been touched in this long, so a screen polling every few

@@ -297,10 +297,8 @@ export async function evaluateAlertRule(
   )
 
   /* All four condition kinds, the partial-bucket rule and the gap rule live in
-     `reporting/alerts/evaluate.ts` now — shared with the future server cron
-     (`04-alerting-v2.md` §3). `no-baseline` and `invalid-condition` fold into
-     `no-complete-bucket` below because `AlertEvaluation.outcome` (types/alert.ts)
-     has no slot for them yet; widening that type is WP-1.7's. */
+     `reporting/alerts/evaluate.ts` now — shared with the server cron
+     (`04-alerting-v2.md` §3). */
   const result = evaluate(
     rule,
     {
@@ -311,9 +309,11 @@ export async function evaluateAlertRule(
     },
     EYVAR_NOW,
   )
+  /* A refusal carries its own reason through to the composer (AC-1230): too little
+     history reads as `no-baseline`, not as a missing bucket. */
   const outcome = result.outcome
   if (outcome !== 'would-fire' && outcome !== 'would-not-fire') {
-    return evaluation(rule, today, 'no-complete-bucket')
+    return evaluation(rule, today, outcome)
   }
 
   return mock(ALERT_OPERATIONS.evaluate, signal, () => ({
