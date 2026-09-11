@@ -18,6 +18,7 @@
     "build:pseudo": "tsc -b && vite build --mode pseudo",
     "test:changed": "node scripts/test-changed.mjs",
     "check:sort": "node scripts/sortfield-check.mjs",
+    "wp:gate": "node scripts/wp-gate.mjs",
     "test:api": "vitest run --config api/vitest.config.ts",
     "db:migrate": "node api/_db/migrate.mjs",
     "api:smoke": "node scripts/api-smoke.mjs"
