@@ -532,13 +532,17 @@ export async function fetchSubjectEvents(
   const rowIdField = await resolveColumn(db, source.table_name, fieldColumns, source.row_id_column)
   if (!rowIdField) return { kind, events: [], truncated: false }
 
-  /* Only meaningful when the *held* dimension's field lives on this same
-     table — see this function's own docblock and `holdConstant`'s comment in
-     `handlers/reportsFunnel.ts` for what a rung whose store cannot answer it
-     means. */
+  /* `dimension.key`, not `dimension.field` — the same lookup `compile.ts`'s
+     own `groupBy` resolution already uses (`effectiveLevels`): a fixture
+     table's real column is named after the catalogue's namespaced KEY
+     (`"trip.pickup"`), never `Dimension.field`'s bare JS property name
+     (`pickup`). Only meaningful when the *held* dimension's field lives on
+     this same table — see this function's own docblock and `holdConstant`'s
+     comment in `handlers/reportsFunnel.ts` for what a rung whose store
+     cannot answer it means. */
   const dimField =
     dimension && dimension.resource === measure.population.resource
-      ? await resolveColumn(db, source.table_name, fieldColumns, dimension.field)
+      ? await resolveColumn(db, source.table_name, fieldColumns, dimension.key)
       : null
 
   const table = quoteIdent(source.table_name)

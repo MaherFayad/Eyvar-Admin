@@ -13,7 +13,7 @@ export default defineConfig({
   test: {
     name: 'agent',
     environment: 'node',
-    include: ['mcp/**/*.test.ts'],
+    include: ['mcp/**/*.test.ts', 'schemas/**/*.test.ts'],
     exclude: ['**/node_modules/**', '**/dist/**'],
     testTimeout: 15_000,
   },

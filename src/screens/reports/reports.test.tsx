@@ -599,11 +599,14 @@ describe('§12 — the client half of alerts, and the two fields nobody has deci
 
   it('AC-885 — a firing rule uses the word and a warning tone, and no red anywhere', async () => {
     renderAt('/management/reports?view=alerts', <ReportsScreen />)
-    const firing = await screen.findByText(REPORTS_EN['rb.alert.state.firing'] as string)
+    /* Two seeded rules (`ALR-1`, `ALR-10`) are `firing` — every badge, not
+       just the first, is asserted (`findAllByText`). */
+    const firingBadges = await screen.findAllByText(REPORTS_EN['rb.alert.state.firing'] as string)
+    expect(firingBadges.length).toBeGreaterThan(0)
     /* R7's `warning` is the one attention tone; R5a permits red in four places
        and this is none of them. The tone is checked on the badge that carries
        the word, not merely somewhere on the page. */
-    expect(firing.className).toContain('bg-warning')
+    for (const firing of firingBadges) expect(firing.className).toContain('bg-warning')
     expect(document.body.querySelector('.bg-destructive')).toBeNull()
     expect(document.body.querySelector('.text-destructive')).toBeNull()
   })

@@ -456,27 +456,13 @@ export function QueryPanel({
         t={t}
       />
 
-      {/* ── 9 · compare to (WP-2.6b stopgap — see `QueryPanelProps.today`) ── */}
-      {/* `ChartToolbar`'s own `Compare to` still lacks `previous-quarter` and
-          the fixed row, and `Show as` is not on screen anywhere. Both exist
-          as `WindowControl` exports with nowhere to render; this is that
-          somewhere until WP-2.7 swaps them into the toolbar and this section
-          comes back out. Series modes only — a funnel, a cohort and a
-          journey have no `periodComparison` (`plan.ts`'s `isSeriesMode`). */}
-      {isSeriesMode && (
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="rb-compare">{t('rb.control.compare')}</Label>
-          <ComparisonControl query={query} onChange={onChange} today={today} disabled={unstarted} t={t} language={language} />
-          {query.periodComparison !== 'none' && (
-            <>
-              <Label htmlFor="rb-comparison-display">{t('rb.control.comparisonDisplay')}</Label>
-              <ComparisonDisplayToggle query={query} onChange={onChange} disabled={unstarted} t={t} />
-            </>
-          )}
-        </div>
-      )}
-
-      {/* **The date range, the grain and the chart type are `ChartToolbar`'s.**
+      {/* **The date range, the grain, the comparison and the chart type are
+          `ChartToolbar`'s.** They are decisions about *how the answer is
+          read*, and §A7 (and 22-analytics-v2.md §1.4) puts them on the row
+          above the plot they change, including the comparison's fixed range
+          and `Show as` — not here, even as a stopgap: two controls writing
+          `periodComparison` is the exact failure this file's header warns
+          against. See `ChartToolbar.tsx`.
           They are decisions about *how the answer is read*, and §A7 puts them
           on the row above the plot they change. See `ChartToolbar.tsx`. */}
       <Button

@@ -1,0 +1,1516 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://eyvar.internal/agent/schemas/page.schema.json",
+  "title": "PageBlocks",
+  "description": "The `build-page` kind's output: `Block[]` directly (§7), rendered by the same block renderer as any other page. `validatePage` (src/data/reporting/pages/validate.ts) is the authority on the full ancestor-chain nesting rule; this schema gates the direct case and the per-block shapes.",
+  "type": "array",
+  "maxItems": 200,
+  "items": {
+    "oneOf": [
+      {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "type": {
+            "const": "heading"
+          },
+          "level": {
+            "enum": [
+              1,
+              2,
+              3
+            ]
+          },
+          "text": {
+            "type": "string",
+            "maxLength": 200
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "level",
+          "text"
+        ],
+        "additionalProperties": false
+      },
+      {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "type": {
+            "const": "text"
+          },
+          "md": {
+            "type": "string",
+            "maxLength": 8000
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "md"
+        ],
+        "additionalProperties": false
+      },
+      {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "type": {
+            "const": "callout"
+          },
+          "tone": {
+            "enum": [
+              "info",
+              "success",
+              "warning",
+              "neutral"
+            ]
+          },
+          "md": {
+            "type": "string",
+            "maxLength": 8000
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "tone",
+          "md"
+        ],
+        "additionalProperties": false
+      },
+      {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "type": {
+            "const": "divider"
+          }
+        },
+        "required": [
+          "id",
+          "type"
+        ],
+        "additionalProperties": false
+      },
+      {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "type": {
+            "const": "toggle"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1
+          },
+          "open": {
+            "type": "boolean"
+          },
+          "blocks": {
+            "type": "array",
+            "items": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "type": {
+                      "const": "heading"
+                    },
+                    "level": {
+                      "enum": [
+                        1,
+                        2,
+                        3
+                      ]
+                    },
+                    "text": {
+                      "type": "string",
+                      "maxLength": 200
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "type",
+                    "level",
+                    "text"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "type": {
+                      "const": "text"
+                    },
+                    "md": {
+                      "type": "string",
+                      "maxLength": 8000
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "type",
+                    "md"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "type": {
+                      "const": "callout"
+                    },
+                    "tone": {
+                      "enum": [
+                        "info",
+                        "success",
+                        "warning",
+                        "neutral"
+                      ]
+                    },
+                    "md": {
+                      "type": "string",
+                      "maxLength": 8000
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "type",
+                    "tone",
+                    "md"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "type": {
+                      "const": "divider"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "type"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "type": {
+                      "const": "report"
+                    },
+                    "reportId": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "view": {
+                      "enum": [
+                        "chart",
+                        "table",
+                        "headline"
+                      ]
+                    },
+                    "height": {
+                      "enum": [
+                        "S",
+                        "M",
+                        "L",
+                        "XL"
+                      ]
+                    },
+                    "title": {
+                      "oneOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "type",
+                    "reportId",
+                    "view",
+                    "height",
+                    "title"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "type": {
+                      "const": "metric"
+                    },
+                    "reportId": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "seriesId": {
+                      "oneOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "format": {
+                      "enum": [
+                        "value",
+                        "value-delta",
+                        "sparkline"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "type",
+                    "reportId",
+                    "seriesId",
+                    "format"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "type": {
+                      "const": "table"
+                    },
+                    "columns": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "key": {
+                            "type": "string"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "align": {
+                            "enum": [
+                              "start",
+                              "end"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "key",
+                          "label",
+                          "align"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "rows": {
+                      "type": "array",
+                      "items": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "type",
+                    "columns",
+                    "rows"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "type": {
+                      "const": "alert-status"
+                    },
+                    "ruleIds": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "type",
+                    "ruleIds"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "type": {
+                      "const": "agent-insight"
+                    },
+                    "jobId": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "findingId": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "md": {
+                      "type": "string",
+                      "maxLength": 8000
+                    },
+                    "runIds": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "type",
+                    "jobId",
+                    "findingId",
+                    "md",
+                    "runIds"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "type": {
+                      "const": "bookmark"
+                    },
+                    "target": {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "enum": [
+                            "page",
+                            "report"
+                          ]
+                        },
+                        "id": {
+                          "type": "string",
+                          "minLength": 1
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "id"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "type",
+                    "target"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            }
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "title",
+          "open",
+          "blocks"
+        ],
+        "additionalProperties": false
+      },
+      {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "type": {
+            "const": "columns"
+          },
+          "columns": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 4,
+            "items": {
+              "type": "object",
+              "properties": {
+                "width": {
+                  "type": "integer",
+                  "minimum": 3,
+                  "maximum": 12
+                },
+                "blocks": {
+                  "type": "array",
+                  "items": {
+                    "oneOf": [
+                      {
+                        "oneOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "minLength": 1
+                              },
+                              "type": {
+                                "const": "heading"
+                              },
+                              "level": {
+                                "enum": [
+                                  1,
+                                  2,
+                                  3
+                                ]
+                              },
+                              "text": {
+                                "type": "string",
+                                "maxLength": 200
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "type",
+                              "level",
+                              "text"
+                            ],
+                            "additionalProperties": false
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "minLength": 1
+                              },
+                              "type": {
+                                "const": "text"
+                              },
+                              "md": {
+                                "type": "string",
+                                "maxLength": 8000
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "type",
+                              "md"
+                            ],
+                            "additionalProperties": false
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "minLength": 1
+                              },
+                              "type": {
+                                "const": "callout"
+                              },
+                              "tone": {
+                                "enum": [
+                                  "info",
+                                  "success",
+                                  "warning",
+                                  "neutral"
+                                ]
+                              },
+                              "md": {
+                                "type": "string",
+                                "maxLength": 8000
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "type",
+                              "tone",
+                              "md"
+                            ],
+                            "additionalProperties": false
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "minLength": 1
+                              },
+                              "type": {
+                                "const": "divider"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "type"
+                            ],
+                            "additionalProperties": false
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "minLength": 1
+                              },
+                              "type": {
+                                "const": "report"
+                              },
+                              "reportId": {
+                                "type": "string",
+                                "minLength": 1
+                              },
+                              "view": {
+                                "enum": [
+                                  "chart",
+                                  "table",
+                                  "headline"
+                                ]
+                              },
+                              "height": {
+                                "enum": [
+                                  "S",
+                                  "M",
+                                  "L",
+                                  "XL"
+                                ]
+                              },
+                              "title": {
+                                "oneOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "type",
+                              "reportId",
+                              "view",
+                              "height",
+                              "title"
+                            ],
+                            "additionalProperties": false
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "minLength": 1
+                              },
+                              "type": {
+                                "const": "metric"
+                              },
+                              "reportId": {
+                                "type": "string",
+                                "minLength": 1
+                              },
+                              "seriesId": {
+                                "oneOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "format": {
+                                "enum": [
+                                  "value",
+                                  "value-delta",
+                                  "sparkline"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "type",
+                              "reportId",
+                              "seriesId",
+                              "format"
+                            ],
+                            "additionalProperties": false
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "minLength": 1
+                              },
+                              "type": {
+                                "const": "table"
+                              },
+                              "columns": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "key": {
+                                      "type": "string"
+                                    },
+                                    "label": {
+                                      "type": "string"
+                                    },
+                                    "align": {
+                                      "enum": [
+                                        "start",
+                                        "end"
+                                      ]
+                                    }
+                                  },
+                                  "required": [
+                                    "key",
+                                    "label",
+                                    "align"
+                                  ],
+                                  "additionalProperties": false
+                                }
+                              },
+                              "rows": {
+                                "type": "array",
+                                "items": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                }
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "type",
+                              "columns",
+                              "rows"
+                            ],
+                            "additionalProperties": false
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "minLength": 1
+                              },
+                              "type": {
+                                "const": "alert-status"
+                              },
+                              "ruleIds": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "type",
+                              "ruleIds"
+                            ],
+                            "additionalProperties": false
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "minLength": 1
+                              },
+                              "type": {
+                                "const": "agent-insight"
+                              },
+                              "jobId": {
+                                "type": "string",
+                                "minLength": 1
+                              },
+                              "findingId": {
+                                "type": "string",
+                                "minLength": 1
+                              },
+                              "md": {
+                                "type": "string",
+                                "maxLength": 8000
+                              },
+                              "runIds": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string",
+                                  "minLength": 1
+                                }
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "type",
+                              "jobId",
+                              "findingId",
+                              "md",
+                              "runIds"
+                            ],
+                            "additionalProperties": false
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "minLength": 1
+                              },
+                              "type": {
+                                "const": "bookmark"
+                              },
+                              "target": {
+                                "type": "object",
+                                "properties": {
+                                  "kind": {
+                                    "enum": [
+                                      "page",
+                                      "report"
+                                    ]
+                                  },
+                                  "id": {
+                                    "type": "string",
+                                    "minLength": 1
+                                  }
+                                },
+                                "required": [
+                                  "kind",
+                                  "id"
+                                ],
+                                "additionalProperties": false
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "type",
+                              "target"
+                            ],
+                            "additionalProperties": false
+                          }
+                        ]
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "type": {
+                            "const": "toggle"
+                          },
+                          "title": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "open": {
+                            "type": "boolean"
+                          },
+                          "blocks": {
+                            "type": "array",
+                            "items": {
+                              "oneOf": [
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "id": {
+                                      "type": "string",
+                                      "minLength": 1
+                                    },
+                                    "type": {
+                                      "const": "heading"
+                                    },
+                                    "level": {
+                                      "enum": [
+                                        1,
+                                        2,
+                                        3
+                                      ]
+                                    },
+                                    "text": {
+                                      "type": "string",
+                                      "maxLength": 200
+                                    }
+                                  },
+                                  "required": [
+                                    "id",
+                                    "type",
+                                    "level",
+                                    "text"
+                                  ],
+                                  "additionalProperties": false
+                                },
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "id": {
+                                      "type": "string",
+                                      "minLength": 1
+                                    },
+                                    "type": {
+                                      "const": "text"
+                                    },
+                                    "md": {
+                                      "type": "string",
+                                      "maxLength": 8000
+                                    }
+                                  },
+                                  "required": [
+                                    "id",
+                                    "type",
+                                    "md"
+                                  ],
+                                  "additionalProperties": false
+                                },
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "id": {
+                                      "type": "string",
+                                      "minLength": 1
+                                    },
+                                    "type": {
+                                      "const": "callout"
+                                    },
+                                    "tone": {
+                                      "enum": [
+                                        "info",
+                                        "success",
+                                        "warning",
+                                        "neutral"
+                                      ]
+                                    },
+                                    "md": {
+                                      "type": "string",
+                                      "maxLength": 8000
+                                    }
+                                  },
+                                  "required": [
+                                    "id",
+                                    "type",
+                                    "tone",
+                                    "md"
+                                  ],
+                                  "additionalProperties": false
+                                },
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "id": {
+                                      "type": "string",
+                                      "minLength": 1
+                                    },
+                                    "type": {
+                                      "const": "divider"
+                                    }
+                                  },
+                                  "required": [
+                                    "id",
+                                    "type"
+                                  ],
+                                  "additionalProperties": false
+                                },
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "id": {
+                                      "type": "string",
+                                      "minLength": 1
+                                    },
+                                    "type": {
+                                      "const": "report"
+                                    },
+                                    "reportId": {
+                                      "type": "string",
+                                      "minLength": 1
+                                    },
+                                    "view": {
+                                      "enum": [
+                                        "chart",
+                                        "table",
+                                        "headline"
+                                      ]
+                                    },
+                                    "height": {
+                                      "enum": [
+                                        "S",
+                                        "M",
+                                        "L",
+                                        "XL"
+                                      ]
+                                    },
+                                    "title": {
+                                      "oneOf": [
+                                        {
+                                          "type": "string"
+                                        },
+                                        {
+                                          "type": "null"
+                                        }
+                                      ]
+                                    }
+                                  },
+                                  "required": [
+                                    "id",
+                                    "type",
+                                    "reportId",
+                                    "view",
+                                    "height",
+                                    "title"
+                                  ],
+                                  "additionalProperties": false
+                                },
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "id": {
+                                      "type": "string",
+                                      "minLength": 1
+                                    },
+                                    "type": {
+                                      "const": "metric"
+                                    },
+                                    "reportId": {
+                                      "type": "string",
+                                      "minLength": 1
+                                    },
+                                    "seriesId": {
+                                      "oneOf": [
+                                        {
+                                          "type": "string"
+                                        },
+                                        {
+                                          "type": "null"
+                                        }
+                                      ]
+                                    },
+                                    "format": {
+                                      "enum": [
+                                        "value",
+                                        "value-delta",
+                                        "sparkline"
+                                      ]
+                                    }
+                                  },
+                                  "required": [
+                                    "id",
+                                    "type",
+                                    "reportId",
+                                    "seriesId",
+                                    "format"
+                                  ],
+                                  "additionalProperties": false
+                                },
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "id": {
+                                      "type": "string",
+                                      "minLength": 1
+                                    },
+                                    "type": {
+                                      "const": "table"
+                                    },
+                                    "columns": {
+                                      "type": "array",
+                                      "items": {
+                                        "type": "object",
+                                        "properties": {
+                                          "key": {
+                                            "type": "string"
+                                          },
+                                          "label": {
+                                            "type": "string"
+                                          },
+                                          "align": {
+                                            "enum": [
+                                              "start",
+                                              "end"
+                                            ]
+                                          }
+                                        },
+                                        "required": [
+                                          "key",
+                                          "label",
+                                          "align"
+                                        ],
+                                        "additionalProperties": false
+                                      }
+                                    },
+                                    "rows": {
+                                      "type": "array",
+                                      "items": {
+                                        "type": "array",
+                                        "items": {
+                                          "type": "string"
+                                        }
+                                      }
+                                    }
+                                  },
+                                  "required": [
+                                    "id",
+                                    "type",
+                                    "columns",
+                                    "rows"
+                                  ],
+                                  "additionalProperties": false
+                                },
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "id": {
+                                      "type": "string",
+                                      "minLength": 1
+                                    },
+                                    "type": {
+                                      "const": "alert-status"
+                                    },
+                                    "ruleIds": {
+                                      "type": "array",
+                                      "items": {
+                                        "type": "string"
+                                      }
+                                    }
+                                  },
+                                  "required": [
+                                    "id",
+                                    "type",
+                                    "ruleIds"
+                                  ],
+                                  "additionalProperties": false
+                                },
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "id": {
+                                      "type": "string",
+                                      "minLength": 1
+                                    },
+                                    "type": {
+                                      "const": "agent-insight"
+                                    },
+                                    "jobId": {
+                                      "type": "string",
+                                      "minLength": 1
+                                    },
+                                    "findingId": {
+                                      "type": "string",
+                                      "minLength": 1
+                                    },
+                                    "md": {
+                                      "type": "string",
+                                      "maxLength": 8000
+                                    },
+                                    "runIds": {
+                                      "type": "array",
+                                      "items": {
+                                        "type": "string",
+                                        "minLength": 1
+                                      }
+                                    }
+                                  },
+                                  "required": [
+                                    "id",
+                                    "type",
+                                    "jobId",
+                                    "findingId",
+                                    "md",
+                                    "runIds"
+                                  ],
+                                  "additionalProperties": false
+                                },
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "id": {
+                                      "type": "string",
+                                      "minLength": 1
+                                    },
+                                    "type": {
+                                      "const": "bookmark"
+                                    },
+                                    "target": {
+                                      "type": "object",
+                                      "properties": {
+                                        "kind": {
+                                          "enum": [
+                                            "page",
+                                            "report"
+                                          ]
+                                        },
+                                        "id": {
+                                          "type": "string",
+                                          "minLength": 1
+                                        }
+                                      },
+                                      "required": [
+                                        "kind",
+                                        "id"
+                                      ],
+                                      "additionalProperties": false
+                                    }
+                                  },
+                                  "required": [
+                                    "id",
+                                    "type",
+                                    "target"
+                                  ],
+                                  "additionalProperties": false
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "type",
+                          "title",
+                          "open",
+                          "blocks"
+                        ],
+                        "additionalProperties": false
+                      }
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "blocks"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "columns"
+        ],
+        "additionalProperties": false
+      },
+      {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "type": {
+            "const": "report"
+          },
+          "reportId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "view": {
+            "enum": [
+              "chart",
+              "table",
+              "headline"
+            ]
+          },
+          "height": {
+            "enum": [
+              "S",
+              "M",
+              "L",
+              "XL"
+            ]
+          },
+          "title": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "reportId",
+          "view",
+          "height",
+          "title"
+        ],
+        "additionalProperties": false
+      },
+      {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "type": {
+            "const": "metric"
+          },
+          "reportId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "seriesId": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "format": {
+            "enum": [
+              "value",
+              "value-delta",
+              "sparkline"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "reportId",
+          "seriesId",
+          "format"
+        ],
+        "additionalProperties": false
+      },
+      {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "type": {
+            "const": "table"
+          },
+          "columns": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                },
+                "align": {
+                  "enum": [
+                    "start",
+                    "end"
+                  ]
+                }
+              },
+              "required": [
+                "key",
+                "label",
+                "align"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "rows": {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "columns",
+          "rows"
+        ],
+        "additionalProperties": false
+      },
+      {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "type": {
+            "const": "alert-status"
+          },
+          "ruleIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "ruleIds"
+        ],
+        "additionalProperties": false
+      },
+      {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "type": {
+            "const": "agent-insight"
+          },
+          "jobId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "findingId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "md": {
+            "type": "string",
+            "maxLength": 8000
+          },
+          "runIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "jobId",
+          "findingId",
+          "md",
+          "runIds"
+        ],
+        "additionalProperties": false
+      },
+      {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "type": {
+            "const": "bookmark"
+          },
+          "target": {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "enum": [
+                  "page",
+                  "report"
+                ]
+              },
+              "id": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "required": [
+              "kind",
+              "id"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "target"
+        ],
+        "additionalProperties": false
+      }
+    ]
+  }
+}

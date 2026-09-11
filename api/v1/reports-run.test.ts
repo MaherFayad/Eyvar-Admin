@@ -339,16 +339,17 @@ describe('reports.run: funnel server-only options (WP-6.4c)', () => {
   )
 
   it(
-    'holdConstant on trip.pickup: RDR-TEST-HC-A\'s second trip repeats the entry pickup (TestHcEntryDistrict) and ' +
-      'is kept; RDR-TEST-HC-B\'s second trip is at a different pickup (TestHcOtherDistrict) and is dropped — ' +
-      'expected rung counts [2, 1], not [2, 2]',
+    'holdConstant on trip.pickup: RDR-TEST-HC-A\'s second trip (kind Subscription, so the entry trip itself — ' +
+      'kind Quick Ride — cannot satisfy rung 2\'s own filter and self-match) repeats the entry pickup ' +
+      '(TestHcEntryDistrict) and is kept; RDR-TEST-HC-B\'s second trip is at a different pickup ' +
+      '(TestHcOtherDistrict) and is dropped — expected rung counts [2, 1], not [2, 2]',
     async () => {
       await pglite.exec(`
         INSERT INTO fixture_trips (id, "riderId", "endedAt", "trip.kind", "trip.status", "trip.pickup", "fareHalalas") VALUES
           ('TRP-TEST-HC-A1', 'RDR-TEST-HC-A', '2026-06-05T10:00:00+03:00', 'Quick Ride', 'done', 'TestHcEntryDistrict', 1000),
           ('TRP-TEST-HC-B1', 'RDR-TEST-HC-B', '2026-06-05T10:00:00+03:00', 'Quick Ride', 'done', 'TestHcEntryDistrict', 1000),
-          ('TRP-TEST-HC-A2', 'RDR-TEST-HC-A', '2026-06-10T10:00:00+03:00', 'Quick Ride', 'done', 'TestHcEntryDistrict', 1000),
-          ('TRP-TEST-HC-B2', 'RDR-TEST-HC-B', '2026-06-10T10:00:00+03:00', 'Quick Ride', 'done', 'TestHcOtherDistrict', 1000);
+          ('TRP-TEST-HC-A2', 'RDR-TEST-HC-A', '2026-06-10T10:00:00+03:00', 'Subscription', 'done', 'TestHcEntryDistrict', 1000),
+          ('TRP-TEST-HC-B2', 'RDR-TEST-HC-B', '2026-06-10T10:00:00+03:00', 'Subscription', 'done', 'TestHcOtherDistrict', 1000);
       `)
 
       const query = {
@@ -363,7 +364,7 @@ describe('reports.run: funnel server-only options (WP-6.4c)', () => {
         funnel: {
           steps: [
             { measureKey: 'trips.completed', filters: [{ field: 'trip.pickup', op: 'eq' as const, value: 'TestHcEntryDistrict' }] },
-            { measureKey: 'trips.completed', filters: [] },
+            { measureKey: 'trips.completed', filters: [{ field: 'trip.kind', op: 'eq' as const, value: 'Subscription' }] },
           ],
           conversionWindow: null,
           mode: 'ordered' as const,

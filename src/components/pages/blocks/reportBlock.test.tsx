@@ -1,22 +1,26 @@
 /**
  * `ReportBlockView`'s five states — moved and renamed from
- * `dashboards.test.tsx` / `pinnedShape.test.tsx` (D39). Same two defects
- * those files proved against a dashboard tile, proven here against a
- * `report` block through `useResolvedReport`, the same client seam
- * (`reports.get`/`reports.run`), never a fixture import (AC-1186).
+ * `dashboards.test.tsx` / `pinnedShape.test.tsx` (D39). Same defects those
+ * files proved against a `DashboardTile`, proven here against a `report`
+ * block through `useResolvedReport` (AC-1186), never a fixture import.
  */
 
-import { render, screen } from '@testing-library/react'
-import { MemoryRouter } from 'react-router-dom'
+import { render, screen, waitFor, within } from '@testing-library/react'
+import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { beforeEach, describe, expect, it } from 'vitest'
-import { disableMockLatency, getReport, listMeasures, listDimensions, localDayOf, mockFailures, resetDataLayer } from '@/data/clients'
+import { disableMockLatency, getReport, listMeasures, listDimensions, localDayOf, mockFailures, reportQueryPath, resetDataLayer, saveReport } from '@/data/clients'
 import { listPages } from '@/data/clients/pages'
-import type { Dimension, Measure } from '@/data/types'
+import { reportMode, type Dimension, type Measure } from '@/data/types'
 import type { Page, ReportBlock } from '@/data/types/page'
+import { isSeriesMode } from '@/screens/reports/ReportBuilder'
+import { ReportsScreen } from '@/screens/reports/ReportsScreen'
+import { ShellProvider } from '@/shell/ShellContext'
 import { PageBlocksProvider, type PageBlocksValue } from '../PageBlocksContext'
 import { ReportBlockView } from './ReportBlockView'
+import { MetricBlockView } from './MetricBlockView'
 import { REPORTS_EN } from '@/screens/reports/copy'
 import { PAGES_EN } from '@/screens/pages/copy'
+import { PageDetailScreen } from '@/screens/pages/PageDetailScreen'
 
 const copy = (key: string) => (REPORTS_EN[key] ?? PAGES_EN[key]) as string
 
@@ -120,5 +124,141 @@ describe('loading', () => {
     const result = await mountBlock(block)
 
     expect(result.container.querySelector('[data-slot="skeleton"]')).not.toBeNull()
+  })
+})
+
+/* Ported from dashboard.chrome.test.tsx / pinnedShape.test.tsx — the frame
+   and shape guarantees survive the block rename (D39); only the tile-span
+   chrome (§C5) is genuinely gone, replaced by `report.height`. */
+
+function mountPage(pageId: string) {
+  return render(
+    <MemoryRouter initialEntries={[`/management/reports/pages/${pageId}`]}>
+      <ShellProvider>
+        <Routes>
+          <Route path="/management/reports/pages/:pageId" element={<PageDetailScreen />} />
+        </Routes>
+      </ShellProvider>
+    </MemoryRouter>,
+  )
+}
+
+function mountBuilder(path: string) {
+  return render(
+    <MemoryRouter initialEntries={[path]}>
+      <ShellProvider>
+        <ReportsScreen />
+      </ShellProvider>
+    </MemoryRouter>,
+  )
+}
+
+function headerRow(scope: HTMLElement): string[] {
+  const table = scope.querySelector('table')
+  if (!table) return []
+  return [...table.querySelectorAll('thead th')].map((cell) => (cell.textContent ?? '').replace(/\s+/g, ' ').trim())
+}
+
+/* The mode heading, read off `[data-slot="card-title"]` only — the builder's
+   own mode toggle carries the same word as a button label. */
+function cardTitles(scope: HTMLElement): string[] {
+  return [...scope.querySelectorAll('[data-slot="card-title"]')].map((node) => (node.textContent ?? '').replace(/\s+/g, ' ').trim())
+}
+
+describe('a resolvable block shows the report’s current name, not its stored title', () => {
+  it('re-titles itself when the report is renamed after it was pinned', async () => {
+    const before = (await getReport('RPT-4')).data
+    const outcome = await saveReport({
+      id: before.id,
+      name: 'Renamed after it was pinned',
+      description: before.description,
+      query: before.query,
+      visibility: before.visibility,
+    })
+    expect(outcome.status).toBe('saved')
+
+    mountPage('DSH-3')
+
+    /* `block.title` (the `pinnedName` successor, migrate.ts) is a fallback for
+       the unresolved states only — a resolvable block reads the reference. */
+    expect(await screen.findByRole('button', { name: 'Renamed after it was pinned' })).toBeInTheDocument()
+    expect(screen.queryByText('New subscriptions by plan')).not.toBeInTheDocument()
+  })
+})
+
+describe('AC-873 (ported) — a report block draws what the report draws', () => {
+  it('gives the block the same header row the builder gives the same report', async () => {
+    const report = (await getReport('RPT-7')).data
+    const heading = copy(`rb.${reportMode(report.query)}.heading`)
+
+    const builder = mountBuilder(reportQueryPath(report.query))
+    await waitFor(() => expect(headerRow(builder.container).length).toBeGreaterThan(0), { timeout: 5000 })
+    const inBuilder = headerRow(builder.container)
+    expect(cardTitles(builder.container)).toContain(heading)
+    builder.unmount()
+
+    const boardRender = mountPage('DSH-3')
+    const title = await screen.findByRole('button', { name: report.name })
+    const block = title.closest('[data-slot="card"]') as HTMLElement
+    await waitFor(() => expect(headerRow(block).length).toBeGreaterThan(0), { timeout: 5000 })
+
+    expect(headerRow(block)).toEqual(inBuilder)
+    expect(cardTitles(block)).toContain(heading)
+    boardRender.unmount()
+  })
+
+  it('draws ONE card frame on a mode-canvas block, exactly as a trend block does', async () => {
+    const report = (await getReport('RPT-7')).data
+    mountPage('DSH-3')
+
+    const title = await screen.findByRole('button', { name: report.name })
+    const block = title.closest('[data-slot="card"]') as HTMLElement
+    await waitFor(() => expect(block.querySelector('table')).toBeTruthy(), { timeout: 5000 })
+
+    /* `ReportModeCanvas` takes `framed={false}` for the same reason
+       `ResultCanvas` does (`ReportBlockView`'s own comment) — no NESTED card. */
+    expect(block.querySelectorAll('[data-slot="card"]').length).toBe(0)
+  })
+})
+
+describe('AC-1187 — page scope reaches report and metric blocks, and a refused range says so', () => {
+  const refusingScope = { range: { kind: 'preset' as const, preset: 'last-7d' as const }, filters: [] }
+
+  it.fails('DEFECT — a report block under a refused range never shows the Own range badge', async () => {
+    const block = await reportBlockOn('RPT-7')
+    await mountBlock(block, { scope: refusingScope })
+
+    await screen.findByRole('button')
+    expect(await screen.findByText(copy('rb.dashboard.tile.ownRange'))).toBeInTheDocument()
+  })
+
+  it.fails('DEFECT — a metric block under a refused range never shows the Own range badge', async () => {
+    const { measures, dimensions } = await catalogue()
+    const block = { id: 'blk-m1', type: 'metric' as const, reportId: 'RPT-7', seriesId: null, format: 'value' as const }
+    render(
+      <MemoryRouter>
+        <PageBlocksProvider
+          value={{
+            pageId: 'PAGE-TEST',
+            blocks: [block],
+            measures,
+            dimensions,
+            scope: refusingScope,
+            today: localDayOf(new Date().toISOString()),
+            noDataSentence: 'No data.',
+            t: noopTranslator,
+            language: 'en',
+            dir: 'ltr',
+            editing: false,
+            actions: null,
+            onOpenReport: () => {},
+          }}
+        >
+          <MetricBlockView block={block} />
+        </PageBlocksProvider>
+      </MemoryRouter>,
+    )
+
+    expect(await screen.findByText(copy('rb.dashboard.tile.ownRange'))).toBeInTheDocument()
   })
 })

@@ -1231,20 +1231,6 @@ export const REPORTS_EN: Dictionary = {
      not fire and shared a namespace with the tab strip. */
   'rb.alerts.filter.state': 'State',
 
-  /* **R10 — a standing condition is a banner, not a footnote**, and this one
-     contradicts the most authoritative element on every row. `Armed` and
-     `Cooling` are present-tense words for a running machine; with
-     `cadence: null` nothing is running, and the correction used to be a 12px
-     grey paragraph rendered AFTER the table and below pagination. §5.2 permits
-     ONE page-level banner, so the cadence sentence and the re-arm sentence are
-     merged into it rather than stacked. */
-  'rb.alerts.banner.title': 'Nothing is checking these rules',
-  'rb.alerts.banner.body':
-    'Every state below is the last one recorded, and no schedule will change it.',
-  /* T9.15 — one sentence, then the action that answers it. The row note it
-     replaces said the same thing once per row (R10). */
-  'rb.alerts.banner.action': 'Test a rule',
-
   /* R5a permits red in four places and a threshold breach is none of them. The
      state is carried by the WORD plus a `warning`-tone badge from R7's closed
      five-tone set (AC-885). */
