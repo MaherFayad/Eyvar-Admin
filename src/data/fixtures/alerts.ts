@@ -8,19 +8,12 @@
  * (`AFR-1`, `AFR-2`). `ALR-6` … `ALR-11` are new, one per v2 condition kind
  * plus the delivery and acknowledgement states §7 of the alerting doc adds.
  *
- * ## Two states this file cannot fully seed, and why
+ * ## States 23 and 24, now seedable
  *
- * `AlertFiring` (`types/alert.ts`) has no `deliveries[]` or `band` field yet,
- * though `04-alerting-v2.md` §5 says the history "gains `deliveries[]` and
- * `band`". Until that type is widened, **state 24 (delivery failed)** has no
- * field to carry the failed Slack attempt — `ALR-11` is wired with a `slack`
- * channel so it is ready the day the type lands, and `AFR-4` is its ordinary
- * firing. Likewise `AlertEvaluation.outcome` has no `'no-baseline'` member
- * (`clients/alerts.ts` says the same thing: "widening that type is WP-1.7's"),
- * so **state 23 (no baseline)** — `ALR-9`, seven daily buckets against a
- * 28-bucket default lookback — evaluates today and folds into
- * `no-complete-bucket` rather than naming itself. Both are real fixture gaps,
- * not fixtures I chose not to write; see the handoff for who owns each type.
+ * WP-1.7 widened `AlertFiring` with `deliveries[]` and `band` (§5); `AFR-4`
+ * (`ALR-11`'s slack channel) carries a failed delivery for **state 24**.
+ * `ALR-9` (seven buckets against a 28-bucket lookback) reaches
+ * `AlertEvaluation.outcome === 'no-baseline'` for **state 23**.
  *
  * Every cadence stays `null`, for the same reason the v1 set gave: no
  * scheduler exists yet and an invented window is indistinguishable from a
@@ -402,6 +395,9 @@ export const alertFiringFixtures: AlertFiring[] = [
     notificationId: null,
   },
   {
+    /* State 24 (delivery failed) — the type gap WP-1.8 could not fill is
+       WP-1.7's `AlertFiring.deliveries[]`. The in-app delivery succeeded; the
+       webhook `ALR-11` names (`WHK-1`) did not, and the firing itself stands. */
     id: 'AFR-4',
     ruleId: 'ALR-11',
     firedAt: offsetFromNow({ days: -2 }),
@@ -409,5 +405,15 @@ export const alertFiringFixtures: AlertFiring[] = [
     value: 27,
     threshold: 30,
     notificationId: null,
+    deliveries: [
+      { channelType: 'in-app', target: 'USR-1', status: 'sent', error: null, at: offsetFromNow({ days: -2 }) },
+      {
+        channelType: 'slack',
+        target: 'WHK-1',
+        status: 'failed',
+        error: 'Webhook returned 404. The channel was archived.',
+        at: offsetFromNow({ days: -2 }),
+      },
+    ],
   },
 ]

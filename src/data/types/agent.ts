@@ -158,6 +158,24 @@ export interface CaseStudy {
   followUps: string[]
 }
 
+/* ─────────────────────────── the runner (§4, §5) ─────────────────────────── */
+
+/**
+ * `GET /api/v1/agent/status` — the runner's own state, read by the analyst
+ * view's header line (`01-analyst-agent.md` §4: `Runner online · last seen
+ * 12:03` / `Runner offline` / `At usage limit until 14:00`). A gap WP-1.8
+ * found seeding real data: this had no type, only an object shaped like it.
+ */
+export interface AgentRunner {
+  online: boolean
+  /** `null` before the runner has ever heartbeat. The backend marks it offline after 90 s without one. */
+  lastHeartbeatAt: IsoDateTime | null
+  /** A deadline, not a duration — mirrors `AlertRule.mutedUntil`. `null` when not rate-limited. */
+  limitedUntil: IsoDateTime | null
+  /** Jobs queued and not yet claimed. */
+  queueDepth: number
+}
+
 /* ─────────────────────── scheduled reviews (§8) ──────────────────────────── */
 
 /** A `weekly-review` schedule row (`agent_schedules`). Cron is restricted to weekly/daily. */

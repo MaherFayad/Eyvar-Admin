@@ -148,6 +148,17 @@ export function normaliseAlertRule(
   }
 }
 
+/** One attempt to deliver a firing down one channel — `04-alerting-v2.md` §5, `alert_deliveries`. */
+export interface AlertDelivery {
+  channelType: AlertChannel['type']
+  /** The recipient the channel resolved to (a user id, a webhook id). `null` for `in-app`, which has none. */
+  target: string | null
+  status: 'sent' | 'failed'
+  /** Present only when `status` is `'failed'` — state 24, the delivery itself unaffected. */
+  error: string | null
+  at: IsoDateTime
+}
+
 /** One past crossing. `alerts.history`. */
 export interface AlertFiring {
   id: string
@@ -159,6 +170,15 @@ export interface AlertFiring {
   threshold: number
   /** The `Notification.id` this firing produced, so the two can be reconciled. */
   notificationId: string | null
+  /** v2, `04-alerting-v2.md` §5. **Absent means `[]`** — a firing seeded before delivery tracking existed. */
+  deliveries?: AlertDelivery[]
+  /** v2 — the anomaly band this firing evaluated against, mirroring `AlertRule.lastBand`. `undefined` for a non-anomaly condition. */
+  band?: { low: number; high: number } | null
+}
+
+/** The **one** reader of `firing.deliveries`. See `AlertFiring.deliveries`. */
+export function alertDeliveries(firing: Pick<AlertFiring, 'deliveries'>): AlertDelivery[] {
+  return firing.deliveries ?? []
 }
 
 /**

@@ -10,17 +10,16 @@
  * (§3.2). `AGT-1`'s finding cites `cancellationTrend` (`reports.ts`) and its
  * firing is `ALR-1`'s, so `Explain this firing` has a real destination.
  *
- * No `AgentRunner` type exists yet in `types/agent.ts` (a gap; see the
- * handoff), so `agentRunnerStatusFixture` below is a plain object shaped like
- * `GET /api/v1/agent/status`'s response, not a typed resource.
+ * `AgentRunner` (WP-1.7 mints it in `types/agent.ts`) types
+ * `agentRunnerStatusFixture` below, `GET /api/v1/agent/status`'s response.
  */
 
 import { offsetFromNow } from '../mock/clock'
 import { cancellationTrend } from './reports'
-import type { IsoDateTime } from '../types/common'
 import type {
   AgentEvent,
   AgentJob,
+  AgentRunner,
   AgentSchedule,
   CaseStudy,
 } from '../types/agent'
@@ -297,13 +296,19 @@ export const agentScheduleFixtures: AgentSchedule[] = [
 
 /* ─────────────────────────── runner status ───────────────────────────────── */
 
-/**
- * `GET /api/v1/agent/status` — no `AgentRunner` type exists yet in
- * `types/agent.ts` (a gap; see the handoff), so this is a plain object rather
- * than a typed resource. Online, because `AGT-2` is mid-run.
- */
-export const agentRunnerStatusFixture: { online: boolean; lastHeartbeatAt: IsoDateTime | null; limitedUntil: IsoDateTime | null } = {
+/** `GET /api/v1/agent/status`, the online case. Online, because `AGT-2` is mid-run. */
+export const agentRunnerStatusFixture: AgentRunner = {
   online: true,
   lastHeartbeatAt: offsetFromNow({ seconds: -12 }),
   limitedUntil: null,
+  queueDepth: 1,
+}
+
+/** The offline case — `01-analyst-agent.md` §4's `Runner offline`, reachable via `agent.ts`'s `useOfflineRunner()`. */
+export const agentRunnerOfflineFixture: AgentRunner = {
+  online: false,
+  /* Stale enough to be past the backend's 90 s heartbeat window. */
+  lastHeartbeatAt: offsetFromNow({ minutes: -12 }),
+  limitedUntil: null,
+  queueDepth: 1,
 }

@@ -63,13 +63,14 @@ export type {
   AlertChannel,
   AlertComparator,
   AlertCondition,
+  AlertDelivery,
   AlertEvaluation,
   AlertFiring,
   AlertRule,
   AlertSeverity,
   AlertState,
 } from './alert'
-export { alertChannels, alertCondition, alertSeverity, normaliseAlertRule } from './alert'
+export { alertChannels, alertCondition, alertDeliveries, alertSeverity, normaliseAlertRule } from './alert'
 
 /* ─────────────────────────── the query ─────────────────────────────────── */
 
@@ -863,6 +864,53 @@ export interface SavedReport {
    * confirmation can name the dashboards it will affect (AC-868).
    */
   pinnedToDashboardIds: string[]
+
+  /* ── v2, `02-report-builder-v2.md` §8. Additive and optional, the same
+     contract `DashboardTile.span` states: a report saved before these fields
+     existed is still a valid v2 `SavedReport`. Read through the helpers below,
+     never directly, so a caller cannot forget the default. ── */
+  /** Free-text, operator-set. **Absent means `[]`**. */
+  tags?: string[]
+  /** Set only by `manage_analytics`. **Absent means `false`**. */
+  official?: boolean
+  /** The `TeamUser.id` of the last save. **Absent means `ownerId`** — unedited since creation. */
+  updatedBy?: string
+  /** `TeamUser.id`s who starred this report — server-kept. **Absent means `[]`**. */
+  starredBy?: string[]
+  /** Last 20 saves, newest last, server-kept. **Absent means `[]`**. */
+  versions?: SavedReportVersion[]
+}
+
+/** One entry of `SavedReport.versions` — `02-report-builder-v2.md` §8's `Version history`, `Restore` loads the query into the draft rather than saving. */
+export interface SavedReportVersion {
+  at: IsoDateTime
+  by: string
+  query: ReportQuery
+}
+
+/** The **one** reader of `report.tags`. See `SavedReport.tags`. */
+export function reportTags(report: Pick<SavedReport, 'tags'>): string[] {
+  return report.tags ?? []
+}
+
+/** The **one** reader of `report.official`. See `SavedReport.official`. */
+export function reportOfficial(report: Pick<SavedReport, 'official'>): boolean {
+  return report.official ?? false
+}
+
+/** The **one** reader of `report.updatedBy`. See `SavedReport.updatedBy`. */
+export function reportUpdatedBy(report: Pick<SavedReport, 'ownerId' | 'updatedBy'>): string {
+  return report.updatedBy ?? report.ownerId
+}
+
+/** The **one** reader of `report.starredBy`. See `SavedReport.starredBy`. */
+export function reportStarredBy(report: Pick<SavedReport, 'starredBy'>): string[] {
+  return report.starredBy ?? []
+}
+
+/** The **one** reader of `report.versions`. See `SavedReport.versions`. */
+export function reportVersions(report: Pick<SavedReport, 'versions'>): SavedReportVersion[] {
+  return report.versions ?? []
 }
 
 /**

@@ -33,6 +33,7 @@ import { riderFixtures } from '../fixtures/riders'
 import { allSubscriptionFixtures } from '../fixtures/subscriptions'
 import { allTripFixtures } from '../fixtures/trips'
 import { measuresByKey } from '../fixtures/measures'
+import { segmentFixtures } from '../fixtures/segments'
 import {
   addDays,
   bucketStarts,
@@ -544,10 +545,10 @@ interface SegmentResolution {
 
 /**
  * A segment narrows the measure's population before bucketing (§2.5).
- * `'saved'` resolves to "everyone" (no saved-segment store exists yet — WP-1.6
- * report). `performed` (AC-1122) needs a subject on both the segmented and
- * the performed measure — the join is "the same person" — or it is refused
- * with `segment-performed-unsupported` rather than silently ignored.
+ * `'saved'` resolves against `segmentFixtures` (F-V2-18); an unknown id is a
+ * refusal, `segment-not-found`, never a silent fall-through to "everyone".
+ * `performed` (AC-1122) needs a subject on both measures or is refused with
+ * `segment-performed-unsupported`.
  */
 function resolveSegment(
   segment: SegmentRef | null,
@@ -555,7 +556,15 @@ function resolveSegment(
   window: { from: IsoDate; to: IsoDate },
 ): SegmentResolution {
   if (!segment) return { filters: [], subjectAllow: null, failed: null }
-  if (segment.kind === 'saved') return { filters: [], subjectAllow: null, failed: null }
+  if (segment.kind === 'saved') {
+    const saved = segmentFixtures.find((s) => s.id === segment.id)
+    if (!saved) return { filters: [], subjectAllow: null, failed: { code: 'segment-not-found', retryable: false } }
+    return resolveSegment(
+      { kind: 'inline', label: saved.name, filters: saved.filters, performed: saved.performed ?? undefined },
+      measures,
+      window,
+    )
+  }
 
   const filters = segment.filters ?? []
   if (!segment.performed) return { filters, subjectAllow: null, failed: null }
@@ -1455,4 +1464,56 @@ function matchesAll(row: AnyRow, filters: readonly FilterSpec[], source: RowSour
     if (!get) return false
     return matchesFilter(get(row), f)
   })
+}
+
+/* ────────────────────── sample rows (D44, T10) ──────────────────────────── */
+
+/**
+ * Masked fixture rows behind `reports.sample` (T10) — `resource`-scoped,
+ * never joined across stores. `name → initials`, `phone → last 2 digits`,
+ * every other field (including ids) unmasked, matching the field-name rule
+ * the tool's own contract states rather than a per-resource PII schema.
+ */
+export function sampleRows(
+  resource: string,
+  filters: readonly FilterSpec[],
+  limit: number,
+  bucket?: IsoDate,
+): Array<Record<string, unknown>> {
+  const source = SOURCES[resource]
+  if (!source) return []
+  const capped = source.rows.slice(0, currentRowCap())
+  const matching = capped.filter((row) => {
+    if (!matchesAll(row, filters, source)) return false
+    /* The row's own primary date — most sources ignore `timeField` and
+       return it regardless, which is a reasonable default for a resource-
+       scoped sample that names no measure to read a population field from. */
+    return bucket === undefined || source.dateOf(row, '') === bucket
+  })
+  return matching.slice(0, Math.max(0, Math.min(limit, 50))).map((row) => maskRow(row as unknown as Record<string, unknown>))
+}
+
+function maskRow(row: Record<string, unknown>): Record<string, unknown> {
+  const out: Record<string, unknown> = {}
+  for (const [key, value] of Object.entries(row)) {
+    if (typeof value === 'string' && /name/i.test(key)) out[key] = initialsOf(value)
+    else if (typeof value === 'string' && /phone/i.test(key)) out[key] = lastTwoDigitsOf(value)
+    else out[key] = value
+  }
+  return out
+}
+
+/** `Nora Al-Qahtani` → `N.A.`. Every whitespace-separated part contributes one initial. */
+function initialsOf(name: string): string {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((part) => `${part[0]?.toUpperCase() ?? ''}.`)
+    .join('')
+}
+
+/** `+966501234567` → `•••4567`'s tool-stated shape, the last two digits kept. */
+function lastTwoDigitsOf(phone: string): string {
+  const digits = phone.replace(/\D/g, '')
+  return `••••${digits.slice(-2)}`
 }

@@ -417,6 +417,12 @@ export const savedReportFixtures: SavedReport[] = [
     updatedAt: offsetFromNow({ days: -3 }),
     lastRunAt: offsetFromNow({ hours: -3 }),
     pinnedToDashboardIds: ['DSH-1'],
+    /* §8's `official` and `starredBy` — the owner's own standing question,
+       marked and starred so the `official`/`starred` library views open with
+       real content rather than a state QA has to manufacture. */
+    tags: ['ops'],
+    official: true,
+    starredBy: ['USR-1', 'USR-5'],
   },
   {
     id: 'RPT-2',
@@ -631,6 +637,11 @@ export const savedReportFixtures: SavedReport[] = [
     updatedAt: offsetFromNow({ hours: -12 }),
     lastRunAt: offsetFromNow({ hours: -1 }),
     pinnedToDashboardIds: [],
+    starredBy: ['USR-1'],
+    /* One entry, so `Version history` opens on a real prior save rather than
+       an empty list — the query is identical because no edit is seeded, only
+       the fact that one was made. */
+    versions: [{ at: offsetFromNow({ hours: -12 }), by: 'USR-1', query: tripsThisWeekKpi }],
   },
   {
     id: 'RPT-19',

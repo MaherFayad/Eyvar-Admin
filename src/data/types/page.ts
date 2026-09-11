@@ -144,6 +144,10 @@ export interface Page {
   tags: string[]
   /** Set only by `manage_analytics` (D17 — key not yet minted; see `annotation.ts`). */
   official: boolean
+  /** `03-pages-and-dashboards.md` §6 — a shipped template, copied rather than opened. **Absent means `false`**; read via `pageTemplate()`. */
+  template?: boolean
+  /** §7's index star toggle. Not in §2's model block; a spec gap, mirrored on `SavedReport`. **Absent means `[]`**; read via `pageStarredBy()`. */
+  starredBy?: string[]
   scope: { range: ReportWindow | null; filters: FilterSpec[] }
   blocks: Block[]
   /** Server-incremented. A save against a stale `version` is a 409. */
@@ -153,4 +157,14 @@ export interface Page {
   createdAt: IsoDateTime
   updatedAt: IsoDateTime
   updatedBy: string
+}
+
+/** The **one** reader of `page.template`. See `Page.template`. */
+export function pageTemplate(page: Pick<Page, 'template'>): boolean {
+  return page.template ?? false
+}
+
+/** The **one** reader of `page.starredBy`. See `Page.starredBy`. */
+export function pageStarredBy(page: Pick<Page, 'starredBy'>): string[] {
+  return page.starredBy ?? []
 }

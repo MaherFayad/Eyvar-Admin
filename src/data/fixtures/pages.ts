@@ -3,12 +3,9 @@
  * (`reports.ts`) migrated through `dashboardToPage`, so `DSH-1` … `DSH-3`
  * answer both `/dashboards/:id` and `/pages/:id` with one record.
  *
- * `Page` carries no `template: boolean` yet (§6 names one; `types/page.ts`
- * does not) — `pageTemplateFixtures` below mark themselves with
- * `tags: ['template']` instead, a gap for the types owner, not a fixture
- * choice. `pageFixtures[2]` is the draft case study `AGT-1` produced, built
- * with the real `caseStudyToBlocks()` rather than hand-authored blocks, so a
- * change to that converter is visible here too.
+ * `pageTemplateFixtures` below carry `template: true` (WP-1.7 mints the flag
+ * on `Page`), so `pageFixtures[2]`, the draft case study `AGT-1` produced,
+ * built with the real `caseStudyToBlocks()`, is not mistaken for one.
  */
 
 import { caseStudyToBlocks } from '../reporting/agent/caseStudyToBlocks'
@@ -31,7 +28,8 @@ export const pageTemplateFixtures: Page[] = [
     description: 'The three numbers to check before the stand-up.',
     ownerId: 'USR-1',
     visibility: 'team',
-    tags: ['template'],
+    tags: [],
+    template: true,
     official: true,
     scope: { range: null, filters: [] },
     blocks: [
@@ -54,7 +52,8 @@ export const pageTemplateFixtures: Page[] = [
     description: 'Revenue over the last quarter and a headline for this week’s subscriptions.',
     ownerId: 'USR-2',
     visibility: 'team',
-    tags: ['template'],
+    tags: [],
+    template: true,
     official: true,
     scope: { range: null, filters: [] },
     blocks: [
@@ -76,7 +75,8 @@ export const pageTemplateFixtures: Page[] = [
     description: 'The activation funnel and the retention matrix behind it.',
     ownerId: 'USR-1',
     visibility: 'team',
-    tags: ['template'],
+    tags: [],
+    template: true,
     official: true,
     scope: { range: null, filters: [] },
     blocks: [

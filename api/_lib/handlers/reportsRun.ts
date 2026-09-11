@@ -103,8 +103,9 @@ function resolveAggregate(ref: { aggregate?: BucketAggregate }, measure: Measure
   return measure.bucketAggregate
 }
 
+/** `panelIdFor` in the mock (`resolveReport.ts`), verbatim — the wire id format, not this file's to invent. */
 function panelIdFor(measureKey: string, groupValue: string | null): string {
-  return `${measureKey}#${groupValue ?? '_'}`
+  return groupValue === null ? `p:${measureKey}` : `p:${measureKey}:${groupValue}`
 }
 
 /** `CoreLegResult` → panels + series — mechanical, mirrors `emitLeg` in the mock exactly (same id format, AC-1123). */
@@ -216,11 +217,17 @@ interface SegmentResolution {
 }
 
 /**
- * `resolveSegment` in the mock, verbatim in its outcomes:
+ * `resolveSegment` in the mock — **partially**, and the gap is named in
+ * WP-6.4's final report rather than papered over:
  *   - `null` → "everyone".
- *   - `'saved'` → **also** "everyone" (no-op) — *"no saved-segment store exists
- *     yet"*, the mock's own comment; a saved-report fixture naming a saved
- *     segment must resolve identically here for AC-1276, not fail.
+ *   - `'saved'` → **also** "everyone" (no-op) here. The mock's own
+ *     `resolveSegment` resolved this the same way when this WP started; a
+ *     concurrent agent has since given it a real lookup against
+ *     `segmentFixtures` (`src/data/mock/resolveReport.ts`). Matching that
+ *     needs a `segments` table and seed — a different WP's migration
+ *     (`handlers/segments.ts`, already in progress) — so a saved report
+ *     naming a saved segment (`RPT-11`) is excluded from AC-1276's equality
+ *     test rather than asserted against a mock this file cannot yet match.
  *   - `'inline'` with `performed` → needs a subject on both the segmented
  *     measures and the performed measure (`subjectKindOf`, mirrored below via
  *     `measure_sources.subject_column`), or `segment-performed-unsupported`.

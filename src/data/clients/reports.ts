@@ -50,7 +50,13 @@ import {
 } from '../reporting/plan'
 import { resolveWindow } from '../reporting/buckets'
 import { serialiseReportQuery } from '../reporting/serialise'
-import type { IsoDate, Paginated, QueryParams, Single } from '../types/common'
+import {
+  contribution as runContribution,
+  describe as describeStats,
+  type ContributionResult,
+  type DescribeResult,
+} from '../reporting/stats'
+import type { FilterSpec, IsoDate, Paginated, QueryParams, Single } from '../types/common'
 import type { PermissionKey } from '../types/navigation'
 import {
   REPORT_NAME_MAX,
@@ -94,6 +100,12 @@ export const REPORT_OPERATIONS = {
   save: 'reports.save',
   delete: 'reports.delete',
   export: 'reports.export',
+  duplicate: 'reports.duplicate',
+  star: 'reports.star',
+  versions: 'reports.versions',
+  sample: 'reports.sample',
+  contribution: 'reports.contribution',
+  describe: 'reports.describe',
 } as const
 
 /* Registered at module load, not on first call. `config.ts` says *"each client
@@ -275,6 +287,9 @@ export async function saveReport(
     if (input.id) {
       const existing = reports.find((r) => r.id === input.id)
       if (!existing) throw notFound('report', input.id)
+      /* §8's version history — the PREVIOUS query, kept before it is
+         overwritten, newest last, capped at the last 20 (server-kept). */
+      const priorVersion = { at: existing.updatedAt, by: existing.updatedBy ?? existing.ownerId, query: existing.query }
       const updated: SavedReport = {
         ...existing,
         name: input.name,
@@ -282,6 +297,8 @@ export async function saveReport(
         query: input.query,
         visibility: input.visibility,
         updatedAt: EYVAR_NOW,
+        updatedBy: currentMockUserId(),
+        versions: [...(existing.versions ?? []), priorVersion].slice(-20),
       }
       reports = reports.map((r) => (r.id === updated.id ? updated : r))
       return { status: 'saved' as const, report: { ...updated } }
@@ -341,6 +358,182 @@ export async function deleteReport(
     }
     reports = reports.filter((r) => r.id !== id)
     return { status: 'deleted' as const }
+  })
+}
+
+/* ───────────────────────── §8: library and organisation ────────────────── */
+
+/**
+ * POST /api/v1/reports/:id/duplicate
+ *   -> Single<SavedReport>
+ *
+ * §8's `Duplicate` row action. Owned by the acting operator, private, never
+ * pinned to a dashboard — a copy starts with none of the original's
+ * arrangements, only its query.
+ */
+export async function duplicateReport(id: string, signal?: AbortSignal): Promise<Single<SavedReport>> {
+  if (DATA_SOURCE === 'http') return http.post<Single<SavedReport>>(`/reports/${id}/duplicate`, undefined, { signal })
+  return mockMutation(REPORT_OPERATIONS.duplicate, signal, () => {
+    const row = reports.find((r) => r.id === id)
+    if (!row) throw notFound('report', id)
+    const copy: SavedReport = {
+      ...row,
+      id: `RPT-${reports.length + 1}${reports.length}`,
+      name: `${row.name} copy`,
+      ownerId: currentMockUserId(),
+      visibility: 'private',
+      official: false,
+      starredBy: [],
+      versions: [],
+      updatedBy: currentMockUserId(),
+      createdAt: EYVAR_NOW,
+      updatedAt: EYVAR_NOW,
+      lastRunAt: null,
+      pinnedToDashboardIds: [],
+    }
+    reports = [...reports, copy]
+    return { data: { ...copy } }
+  })
+}
+
+/**
+ * POST /api/v1/reports/:id/star
+ *   -> Single<SavedReport>
+ *
+ * Toggles the acting operator in `starredBy` — the `starred` library view's
+ * source. Mirrors `pages.ts`'s `starPage`, the same control on the sibling resource.
+ */
+export async function starReport(id: string, signal?: AbortSignal): Promise<Single<SavedReport>> {
+  if (DATA_SOURCE === 'http') return http.post<Single<SavedReport>>(`/reports/${id}/star`, undefined, { signal })
+  return mockMutation(REPORT_OPERATIONS.star, signal, () => {
+    const row = reports.find((r) => r.id === id)
+    if (!row) throw notFound('report', id)
+    const me = currentMockUserId()
+    const current = row.starredBy ?? []
+    const starred: SavedReport = {
+      ...row,
+      starredBy: current.includes(me) ? current.filter((u) => u !== me) : [...current, me],
+    }
+    reports = reports.map((r) => (r.id === id ? starred : r))
+    return { data: { ...starred } }
+  })
+}
+
+/**
+ * GET /api/v1/reports/:id/versions
+ *   -> Paginated<SavedReportVersion>
+ *
+ * Newest last on the record (`saveReport` appends), newest **first** on the
+ * wire — the order `Version history` renders (§8, `Restore` loads the query
+ * into the draft, never saves over it).
+ */
+export async function listReportVersions(
+  id: string,
+  params: QueryParams = {},
+  signal?: AbortSignal,
+): Promise<Paginated<{ at: string; by: string; query: ReportQuery }>> {
+  if (DATA_SOURCE === 'http') {
+    return http.get(`/reports/${id}/versions`, { ...params, signal }, { signal })
+  }
+  return mock(REPORT_OPERATIONS.versions, signal, () => {
+    const row = reports.find((r) => r.id === id)
+    if (!row) throw notFound('report', id)
+    return paginate([...(row.versions ?? [])].reverse(), params)
+  })
+}
+
+/* ─────────────────────── the agent's tools (T7, T9, T10) ───────────────── */
+
+export interface SampleRowsInput {
+  resource: string
+  filters: FilterSpec[]
+  bucket?: IsoDate
+  /** ≤ 50 (D44). Values above the cap are silently clamped, never refused. */
+  limit?: number
+}
+
+/**
+ * POST /api/v1/reports/sample
+ *   body: SampleRowsInput
+ *   -> Record<string, unknown>[]
+ *
+ * T10 (D44): masked rows, `name → initials`, `phone → last 2 digits`, ids
+ * intact. Audit-logging the read is the server's job, not this mock's.
+ */
+export async function sampleRows(input: SampleRowsInput, signal?: AbortSignal): Promise<Array<Record<string, unknown>>> {
+  if (DATA_SOURCE === 'http') {
+    return http.post<Array<Record<string, unknown>>>('/reports/sample', input, { signal })
+  }
+  const { sampleRows: resolve } = await import('../mock/resolveReport')
+  return mock(REPORT_OPERATIONS.sample, signal, () =>
+    resolve(input.resource, input.filters, input.limit ?? 50, input.bucket),
+  )
+}
+
+export interface ContributionInput {
+  query: ReportQuery
+  windowA: ReportQuery['window']
+  windowB: ReportQuery['window']
+}
+
+/**
+ * POST /api/v1/reports/contribution
+ *   body: ContributionInput
+ *   -> ContributionResult
+ *
+ * T9: which groups of `query.groupBy[0]` explain the change between two
+ * windows, via `reporting/stats.ts`'s pure `contribution`.
+ */
+export async function contribution(input: ContributionInput, signal?: AbortSignal): Promise<ContributionResult> {
+  if (DATA_SOURCE === 'http') {
+    return http.post<ContributionResult>('/reports/contribution', input, { signal })
+  }
+  const [a, b] = await Promise.all([
+    runReport({ ...input.query, window: input.windowA }, { signal }),
+    runReport({ ...input.query, window: input.windowB }, { signal }),
+  ])
+  return mock(REPORT_OPERATIONS.contribution, signal, () => {
+    const totalOf = (result: ReportResult, groupValue: string | null): number | null => {
+      const series = result.series.find((s) => s.role === 'current' && s.groupValue === groupValue)
+      if (!series) return null
+      const usable = series.points.filter((p, i) => p !== null && !series.partialBucketIndexes.includes(i))
+      return usable.length === 0 ? null : (usable as number[]).reduce((sum, v) => sum + v, 0)
+    }
+    const groupsA = a.status === 'ok' ? a.result.series.filter((s) => s.role === 'current').map((s) => s.groupValue) : []
+    const groupsB = b.status === 'ok' ? b.result.series.filter((s) => s.role === 'current').map((s) => s.groupValue) : []
+    const groupValues = [...new Set([...groupsA, ...groupsB])]
+    return runContribution({
+      totalA: a.status === 'ok' ? totalOf(a.result, null) : null,
+      totalB: b.status === 'ok' ? totalOf(b.result, null) : null,
+      parts: groupValues
+        .filter((g): g is string => g !== null)
+        .map((groupValue) => ({
+          groupValue,
+          totalA: a.status === 'ok' ? totalOf(a.result, groupValue) : null,
+          totalB: b.status === 'ok' ? totalOf(b.result, groupValue) : null,
+        })),
+    })
+  })
+}
+
+/**
+ * POST /api/v1/reports/runs/:runId/describe
+ *   body: { seriesId }
+ *   -> DescribeResult
+ *
+ * T7: descriptive stats over one series of a stored run, read back through
+ * `runs.ts` rather than re-run, so the numbers match what was cited.
+ */
+export async function describeSeries(runId: string, seriesId: string, signal?: AbortSignal): Promise<DescribeResult> {
+  if (DATA_SOURCE === 'http') {
+    return http.post<DescribeResult>(`/reports/runs/${runId}/describe`, { seriesId }, { signal })
+  }
+  const { getRun } = await import('./runs')
+  const run = await getRun(runId, signal)
+  return mock(REPORT_OPERATIONS.describe, signal, () => {
+    const series = run.data.result.series.find((s) => s.id === seriesId)
+    if (!series) throw notFound('series', seriesId)
+    return describeStats(series.points, run.data.result.buckets, run.data.result.query.grain, series.partialBucketIndexes)
   })
 }
 

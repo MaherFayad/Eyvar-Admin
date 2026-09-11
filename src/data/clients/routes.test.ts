@@ -185,27 +185,9 @@ describe('§3.10 — page shapes', () => {
   })
 
   /**
-   * §3.4 named five. **D1a adds two** — `report` and `dashboard` — because a
-   * saved report and a dashboard each address one named record, which `?view=`
-   * cannot carry (§3.8 rule 3).
-   *
-   * **D19 adds an eighth, `conversation`, and it arrived by correcting a
-   * mistake worth recording.** The conversation pane was first built as a
-   * drawer — not on a design argument, but because this row declared
-   * `detailRoutes: []` and `routes.tsx` has a single owner, so a drawer was the
-   * only surface reachable without touching another agent's file. A
-   * file-ownership constraint had decided a page shape.
-   *
-   * On the design: `--ev-drawer-w` is 406px and cannot hold a thread, a 320px
-   * rail and a pinned composer at once — and the rail carries §8.4.2's
-   * countdown, which both D22's SLA and its concurrent-chat cap are read from.
-   * §5.0's drawer is *"a surface consulted against the page behind it"*, and at
-   * a 45-second first-response promise an operator is in the conversation for
-   * twenty minutes.
-   *
-   * **D46 adds two more** — `page` and `analyst-job` — the analytics v2 page
-   * detail and the analyst job detail, each addressing one named record the
-   * same way `report` and `dashboard` already do.
+   * §3.4 named five; D1a adds `report` and `dashboard`; D19 adds
+   * `conversation` (each addresses one named record, which `?view=` cannot
+   * carry, §3.8 rule 3); D46 adds `page` and `analyst-job` the same way.
    */
   it('declares exactly the thirteen level-3 routes — §3.4’s five, D1a’s two, D19’s one, S-7’s one, S-8’s two, D46’s two', () => {
     const kinds = [
@@ -255,7 +237,7 @@ describe('D1a — the Report Builder row', () => {
    * `order`, and a screen listing them differently would put the default in the
    * wrong place.
    */
-  it('declares the same three views, in the same order, as the screen', () => {
+  it('declares the same four views, in the same order, as the screen', () => {
     const declared = [...reports!.views].sort((a, b) => a.order - b.order).map((v) => v.id)
     expect(declared).toEqual([...REPORTS_VIEWS])
   })
