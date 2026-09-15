@@ -44,11 +44,21 @@ import { resolveTrendLeg } from '@/data/reporting/resolve/core'
 import { addDays, bucketEndExclusive, bucketStarts, daysInclusive, partialBucketIndexes } from '@/data/reporting/buckets'
 import { percentile } from '@/data/reporting/distribution'
 import { subjectKindOf } from '@/data/reporting/subjects'
+import { dropoffByGroup, medianDaysToNextStep } from '@/data/reporting/funnelSteps'
 import { DEFAULT_COMPARISON_DISPLAY, DEFAULT_REPORT_TRANSFORM } from '@/data/types/report'
 import type { FilterSpec, IsoDate } from '@/data/types/common'
 import type { Dimension, Measure } from '@/data/types/measure'
 import type { PermissionKey } from '@/data/types/navigation'
-import type { FunnelMode, FunnelStep, ReportPanel, ReportQuery, ReportResult, ReportSeries, ReportWarning } from '@/data/types/report'
+import type {
+  FunnelMode,
+  FunnelStep,
+  FunnelStepDetail,
+  ReportPanel,
+  ReportQuery,
+  ReportResult,
+  ReportSeries,
+  ReportWarning,
+} from '@/data/types/report'
 import {
   blockedFor,
   conversionWindowDays,
@@ -216,6 +226,43 @@ async function computeFunnelCore(
   return { reachedByRung, truncated }
 }
 
+/**
+ * `subjectGroupsOf` (`resolveReport.ts`), over SQL: `subjectId → the entry
+ * rung's own value of the drop-off group dimension`, read once off the same
+ * population that seeds the funnel (AC-1170). One extra query bounded by the
+ * same `rowCap` as every other leg — not more rows than the cap allows,
+ * just a second SELECT over the entry rung's own table.
+ *
+ * The mock keeps the first fixture-array row per subject; this keeps the
+ * earliest-dated one (`earliestEventPerSubject`, already used for
+ * `holdConstant`'s baseline). Both agree whenever the dimension is what
+ * §5's `holdConstant` docs already assume of a rung's own table — a
+ * subject-stable property — which is the only shape `dropoffByGroup` is
+ * meaningful for. A dimension that is not on the entry rung's own resource
+ * resolves to `dimValue: null` for every subject, same as the mock's empty
+ * map (`fetchSubjectEvents`'s own `dimension.resource` guard).
+ */
+async function computeFunnelGroupOf(
+  db: Database,
+  entry: { step: FunnelStep; measure: Measure },
+  groupByDim: Dimension,
+  queryFilters: readonly FilterSpec[],
+  window: { from: IsoDate; to: IsoDate },
+  rowCap: number,
+): Promise<Map<string, string | null>> {
+  const set = await fetchSubjectEvents(
+    db,
+    entry.measure,
+    [...queryFilters, ...(entry.step.filters ?? [])],
+    window,
+    rowCap,
+    groupByDim,
+  )
+  const groups = new Map<string, string | null>()
+  earliestEventPerSubject(set.events).forEach((event, id) => groups.set(id, event.dimValue))
+  return groups
+}
+
 /** §5. `measuredAs` picks the shape; all three read the funnel the same way. */
 export async function resolveFunnel(
   db: Database,
@@ -257,6 +304,8 @@ async function resolveFunnelConversion(
   const funnelMode = query.funnel?.mode ?? 'ordered'
   const windowDays = conversionWindowDays(query.funnel?.conversionWindow ?? null)
   const holdConstant = query.funnel?.holdConstant ? (dimByKey.get(query.funnel.holdConstant) ?? null) : null
+  const groupByKey = query.funnel?.groupBy ?? null
+  const groupByDim = groupByKey ? (dimByKey.get(groupByKey) ?? null) : null
 
   /* The chain actually computed: resolved measures, stopping BEFORE the
      first blocked one — an unresolved measure is invisible to it (mirrors
@@ -270,6 +319,11 @@ async function resolveFunnelConversion(
   }
 
   let reachedByRung: Map<string, IsoDate>[] = []
+  /* AC-1170's `groupOf`: the entry rung's own group value per subject,
+     matching `resolveReport.ts`'s `groupOf` — set once, off `chain[0]`, only
+     when the funnel is followed (`chain[0]` is then always step 0: `follow`
+     requires `kinds[0] !== null`, which requires step 0's measure resolved). */
+  let groupOf: ((subjectId: string) => string | null) | null = null
   if (follow && chain.length > 0) {
     const core = await computeFunnelCore(
       db,
@@ -285,6 +339,11 @@ async function resolveFunnelConversion(
     )
     reachedByRung = core.reachedByRung
     truncated = truncated || core.truncated
+
+    if (groupByDim) {
+      const groups = await computeFunnelGroupOf(db, chain[0]!, groupByDim, query.filters, window, ctx.rowCap)
+      groupOf = (id) => groups.get(id) ?? null
+    }
   }
 
   const totals: (number | null)[] = []
@@ -345,6 +404,22 @@ async function resolveFunnelConversion(
     seriesIds: series.map((s) => s.id),
   }
 
+  /* WP-3.5b/AC-1170's per-rung detail, read off `reachedByRung` — the run
+     already in hand, never a second query (matches `resolveReport.ts`'s
+     `detailSeriesIds` walking the same non-blocked, resolved chain `series`
+     gains above). `current`/`next`/`previous` are `null`, never `0`, for a
+     counted (not followed) funnel and at either edge of the chain. */
+  const funnelStepDetail: FunnelStepDetail[] = chain.map((c, i) => {
+    const current = follow ? (reachedByRung[i] ?? null) : null
+    const next = follow ? (reachedByRung[i + 1] ?? null) : null
+    const previous = follow && i > 0 ? (reachedByRung[i - 1] ?? null) : null
+    return {
+      seriesId: `${c.measure.key}#${c.index + 1}#current`,
+      medianDaysToNext: current && next ? medianDaysToNextStep(current, next) : null,
+      dropoffGroups: groupOf && previous && current ? dropoffByGroup(previous, current, groupOf) : null,
+    }
+  })
+
   return {
     query: original,
     asOf: ctx.asOf,
@@ -355,6 +430,7 @@ async function resolveFunnelConversion(
     truncatedAtRows: truncated ? ctx.rowCap : null,
     warnings: [...warnings],
     foldedGroupCount: null,
+    funnelStepDetail,
   }
 }
 
