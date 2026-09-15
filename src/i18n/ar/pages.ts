@@ -120,6 +120,7 @@ export const PAGES_AR: Dictionary = {
   'pg.block.callout.tone.success': 'نجاح',
   'pg.block.callout.tone.warning': 'تنبيه',
   'pg.block.callout.tone.neutral': 'محايد',
+  'pg.block.callout.namedTone': 'ملاحظة – {tone}',
 
   /* ── the editor's actions ─────────────────────────────────────────────── */
   'pg.edit.enter': 'تعديل',

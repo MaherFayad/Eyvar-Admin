@@ -342,10 +342,14 @@ async function reportPickerEscape() {
   await page.waitForTimeout(150)
   await page.keyboard.press('Enter')
   await page.waitForTimeout(300)
-  const openBefore = await page.evaluate(() => !!document.querySelector('input[placeholder]'))
+  // `input[placeholder]` alone also matches the page-title input, present
+  // for the whole edit session — target the picker's own search box by its
+  // actual placeholder text so this proves the panel, not an unrelated field.
+  const pickerInput = () => page.evaluate(() => !!document.querySelector('input[placeholder="Search dashboards"]'))
+  const openBefore = await pickerInput()
   await page.keyboard.press('Escape')
   await page.waitForTimeout(250)
-  const stillOpen = await page.evaluate(() => !!document.querySelector('input[placeholder]'))
+  const stillOpen = await pickerInput()
   check('report picker panel opened', openBefore)
   check('Escape closes the report picker panel', !stillOpen, stillOpen ? 'the panel is still open — Escape did nothing, see should-fix' : undefined)
   await ctx.close()

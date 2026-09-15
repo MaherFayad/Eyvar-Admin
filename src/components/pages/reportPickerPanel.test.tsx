@@ -4,8 +4,9 @@
  */
 
 import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { disableMockLatency, getReport, resetDataLayer } from '@/data/clients'
 import type { ReportBlock } from '@/data/types/page'
 import { PageBlocksProvider, type PageBlocksValue } from './PageBlocksContext'
@@ -26,7 +27,7 @@ function noopTranslator(key: string, params?: Record<string, string | number>): 
 }
 noopTranslator.plural = (key: string, params: Record<string, string | number>) => noopTranslator(key, params)
 
-function mount(placedReportId: string) {
+function mount(placedReportId: string, onCancel: () => void = () => {}) {
   const placed: ReportBlock = { id: 'blk-placed', type: 'report', reportId: placedReportId, view: 'chart', height: 'M', title: null }
   const value: PageBlocksValue = {
     pageId: 'PAGE-TEST',
@@ -46,7 +47,7 @@ function mount(placedReportId: string) {
   return render(
     <MemoryRouter>
       <PageBlocksProvider value={value}>
-        <ReportPickerPanel kind="report" onPick={() => {}} onCancel={() => {}} />
+        <ReportPickerPanel kind="report" onPick={() => {}} onCancel={onCancel} />
       </PageBlocksProvider>
     </MemoryRouter>,
   )
@@ -77,5 +78,17 @@ describe('AC-1204 — New report opens the builder with ?pinTo=', () => {
 
     const link = screen.getByRole('link', { name: copy('rb.dashboard.addContent.new') })
     expect(link).toHaveAttribute('href', '/management/reports?q=&pinTo=PAGE-TEST')
+  })
+})
+
+describe('S1 — the panel closes on Escape, not just via its own Cancel button', () => {
+  it('calls onCancel when Escape is pressed anywhere on the page', async () => {
+    const onCancel = vi.fn()
+    mount('RPT-4', onCancel)
+    await screen.findByPlaceholderText(copy('rb.dashboards.search'))
+
+    await userEvent.keyboard('{Escape}')
+
+    expect(onCancel).toHaveBeenCalledTimes(1)
   })
 })

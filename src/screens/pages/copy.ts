@@ -123,6 +123,8 @@ export const PAGES_EN: Dictionary = {
   'pg.block.callout.tone.success': 'Success',
   'pg.block.callout.tone.warning': 'Warning',
   'pg.block.callout.tone.neutral': 'Neutral',
+  /* S2 — the callout's accessible-name fallback, so the tone reaches a screen reader too (a11y.md, R7). */
+  'pg.block.callout.namedTone': '{tone} callout',
 
   /* ── the editor's actions (§3.1) ─────────────────────────────────────── */
   'pg.edit.enter': 'Edit',

@@ -19,7 +19,7 @@ const ROUTE = '/operations/people?view=captains'
 const CAPTAIN_NAME = 'Ahmed Salem'
 const CAPTAIN_ID = 'DRV-0101'
 const KEBAB_LABEL = `More actions for ${CAPTAIN_ID}`
-const ROUNDS = 15
+const ROUNDS = Number(process.env.HARNESS_ROUNDS ?? 300)
 
 let failures = 0
 const fail = (message) => {

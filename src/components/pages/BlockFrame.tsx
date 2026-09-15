@@ -58,10 +58,17 @@ export function BlockFrame({ block, containerId, columnIndex, children }: BlockF
   const { editing, t, blocks } = usePageBlocks()
   const [menuOpen, setMenuOpen] = useState(false)
   const ownTitle = blockOwnTitle(block)
+  /* S2 — the tone was carried by colour alone (a11y.md); a callout's own
+     accessible name now says which tone, same as the border fix, so a
+     screen-reader operator gets what a sighted one sees. */
+  const typeName =
+    block.type === 'callout'
+      ? t('pg.block.callout.namedTone', { tone: t(`pg.block.callout.tone.${block.tone}`) })
+      : t(`pg.block.${block.type}.name`)
   const name =
     ownTitle ??
     t('pg.block.positionalName', {
-      type: t(`pg.block.${block.type}.name`),
+      type: typeName,
       position: siblingPosition(blocks, containerId, columnIndex, block.id),
     })
 

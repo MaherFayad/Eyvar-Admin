@@ -9,9 +9,9 @@ this file is stale or when the `defaultValue` ratchet slips.
 
 | | |
 |---|---:|
-| **Translatable keys, all dictionaries** | **7536** |
-| Reachable from `EN` (what the shell renders) | 7166 |
-| Keys in `AR` | 7536 |
+| **Translatable keys, all dictionaries** | **7537** |
+| Reachable from `EN` (what the shell renders) | 7167 |
+| Keys in `AR` | 7537 |
 | **Keys Arabic is missing** | **0** |
 | Keys in `AR` and not in `EN` (plural forms, unregistered screens) | 370 |
 | Plural forms (`key#category`) inside `EN` | 75 |
@@ -439,7 +439,7 @@ Measured on English only, and a placeholder counts as one word.
 | `src/screens/support/inbox/copy.ts` | `CONVERSATIONS_EN`, `INBOX_EN` | 172 |
 | `src/screens/admin/policy/copy.ts` | `POLICY_EN` | 170 |
 | `src/screens/support/disputes/copy.ts` | `DISPUTES_EN` | 168 |
-| `src/screens/pages/copy.ts` | `PAGES_EN` | 150 |
+| `src/screens/pages/copy.ts` | `PAGES_EN` | 151 |
 | `src/screens/operations/subscriptions/copy.ts` | `SUBSCRIPTIONS_EN` | 138 |
 | `src/screens/analyst/copy.ts` | `ANALYST_EN` | 135 |
 | `src/screens/metrics/growth/copy.ts` | `GROWTH_EN` | 123 |

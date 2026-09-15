@@ -5,7 +5,7 @@
  * with a reason (AC-1204), `New report` opens the builder with `?pinTo=`.
  */
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -37,6 +37,18 @@ export function ReportPickerPanel({ kind, onPick, onCancel }: ReportPickerPanelP
     isEmpty: (page) => page.items.length === 0,
   })
 
+  // S1 — a plain Card, not a Radix popover, so Escape is not wired by
+  // default (a11y.md). A window listener, not a keydown on the card itself,
+  // because the block picker this panel replaces has its own closing focus
+  // race that can leave the panel open with focus already off it.
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onCancel()
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [onCancel])
+
   const pick = (reportId: string) => {
     const id = ulid()
     if (kind === 'report') {
@@ -47,15 +59,7 @@ export function ReportPickerPanel({ kind, onPick, onCancel }: ReportPickerPanelP
   }
 
   return (
-    <Card
-      onKeyDown={(event) => {
-        // S1 — a plain Card, not a Radix popover, so Escape is not wired by default (a11y.md).
-        if (event.key === 'Escape') {
-          event.preventDefault()
-          onCancel()
-        }
-      }}
-    >
+    <Card>
       <CardContent className="flex max-h-80 flex-col gap-2 overflow-y-auto">
         <Input
           autoFocus

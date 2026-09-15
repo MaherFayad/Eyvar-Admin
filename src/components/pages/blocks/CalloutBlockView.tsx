@@ -13,10 +13,14 @@ import { TextBlockEditor } from '../TextBlockEditor'
 import { usePageBlocks } from '../PageBlocksContext'
 import type { CalloutBlock, CalloutTone } from '@/data/types/page'
 
+/* WP-8.1a — the border is the tone's only carrier in view mode (a11y.md's
+   3:1 floor for a non-text signal); `border-info` etc. was the same 10%
+   tint as the fill, ~1.1:1. `-graphic` is the full-strength colour instead
+   (globals.css `--tone-*-graphic`), measured 4.3-6.9:1 on every ground. */
 const TONE_CLASS: Record<CalloutTone, string> = {
-  info: 'border-info bg-info/10',
-  success: 'border-success bg-success/10',
-  warning: 'border-warning bg-warning/10',
+  info: 'border-info-graphic bg-info',
+  success: 'border-success-graphic bg-success',
+  warning: 'border-warning-graphic bg-warning',
   neutral: 'border-border bg-muted',
 }
 

@@ -117,11 +117,12 @@ async function toArabic(page) {
   await page.waitForTimeout(1500)
   await page.screenshot({ path: `${OUT}/wp34-AC1169-conversion-over-time.png` })
 
-  const rows = await page.locator('ol > li').count()
+  const resultRegion = page.getByRole('region', { name: 'Result' })
+  const rows = await resultRegion.locator('ol > li').count()
   check(
     'AC-1169 FAIL (expected) — conversion-over-time draws exactly ONE cascade row instead of a multi-bucket trend',
     rows === 1,
-    `cascade <li> rows=${rows}; resolveFunnelOverTime returns one series with a point per grain bucket, the cascade only ever reads points[0]`,
+    `cascade <li> rows in the Result region=${rows}; resolveFunnelOverTime returns one series with a point per grain bucket, the cascade only ever reads points[0]`,
   )
 }
 
@@ -233,9 +234,10 @@ async function toArabic(page) {
   await checkbox.click()
   await page.waitForTimeout(700)
 
-  // Turn on the totals row.
-  await page.getByLabel(/otals/).click().catch(() => {})
-  await page.waitForTimeout(700)
+  // Turn on the totals row. The 350ms debounce plus a mock fetch needs
+  // slightly more than a beat before `tfoot` lands.
+  await page.getByLabel(/otals/).click()
+  await page.locator('tfoot').waitFor({ state: 'attached', timeout: 4000 }).catch(() => {})
 
   const hasTotalsRow = (await page.locator('tfoot tr').count()) > 0
   check('AC-1175 — a totals row renders once "Totals" is ticked', hasTotalsRow)
