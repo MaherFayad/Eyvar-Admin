@@ -1,7 +1,7 @@
 /**
  * AC-1205 — the builder mounted with `?pinTo=<pageId>` (`ReportPickerPanel`'s
- * `New report` link) should offer `Save and pin`, saving the report and
- * appending a `report` block to the page in one step.
+ * `New report` link) offers `Save and pin`, saving the report and appending a
+ * `report` block to the page in one step.
  */
 
 import { render, screen } from '@testing-library/react'
@@ -9,7 +9,7 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { ShellProvider } from '@/shell/ShellContext'
-import { disableMockLatency, resetDataLayer } from '@/data/clients'
+import { disableMockLatency, listReports, reportQueryPath, resetDataLayer } from '@/data/clients'
 import { ReportsScreen } from '@/screens/reports/ReportsScreen'
 import { REPORTS_EN } from '@/screens/reports/copy'
 
@@ -26,9 +26,19 @@ beforeEach(() => {
   if (!Element.prototype.scrollIntoView) Element.prototype.scrollIntoView = () => {}
 })
 
-function mountBuilder(pinTo: string) {
+/**
+ * A **composed** question, not an empty one. An unstarted trend has no measure,
+ * which is a real `no-measure` violation, and §3.2 disables `Save` on it — so a
+ * fixture that mounts `?q=` proves nothing about pinning either way.
+ */
+async function composedQuery() {
+  const saved = await listReports()
+  return saved.items.find((r) => r.id === 'RPT-1')!.query
+}
+
+function mountBuilder(search: string) {
   return render(
-    <MemoryRouter initialEntries={[`/management/reports?q=&pinTo=${pinTo}`]}>
+    <MemoryRouter initialEntries={[search]}>
       <ShellProvider>
         <ReportsScreen />
       </ShellProvider>
@@ -37,15 +47,24 @@ function mountBuilder(pinTo: string) {
 }
 
 describe('AC-1205 — a builder opened with ?pinTo= offers "Save and pin"', () => {
-  it.fails('DEFECT — the builder never reads ?pinTo= and never offers "Save and pin"; the ordinary Save dialog opens instead', async () => {
+  it('offers "Save and pin" as the dialog’s one primary', async () => {
     const user = userEvent.setup()
-    mountBuilder('DSH-1')
+    mountBuilder(`${reportQueryPath(await composedQuery())}&pinTo=DSH-1`)
 
     await user.click(await screen.findByRole('button', { name: copy('rb.save') }))
 
-    /* `ReportBuilder.tsx` never reads `pinTo` from the URL at all — grep
-       confirms it. The dialog that opens is the ordinary `Save this report`
-       one, with no `Save and pin` affordance anywhere in it. */
     expect(await screen.findByRole('button', { name: /save and pin/i })).toBeInTheDocument()
+  })
+
+  it('leaves the ordinary Save alone when no page asked for a pin', async () => {
+    const user = userEvent.setup()
+    mountBuilder(reportQueryPath(await composedQuery()))
+
+    await user.click(await screen.findByRole('button', { name: copy('rb.save') }))
+
+    /* The dialog is the same dialog; only its primary's word changes, so the
+       absence of the pin wording is what proves `pinTo` drove it. */
+    expect(await screen.findByRole('button', { name: copy('rb.save.confirm') })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /save and pin/i })).toBeNull()
   })
 })
