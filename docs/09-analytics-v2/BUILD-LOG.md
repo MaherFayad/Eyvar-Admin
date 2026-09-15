@@ -41,6 +41,32 @@ nothing else — the agent that had it was one of the five stopped. It is the la
 gap and it is held back only because it needs `src/data/clients/routes.ts` and `src/i18n/ar/`,
 which two running agents own.
 
+### Progress since the resume
+
+All 26 failures the resume measured are closed, and the packages opened alongside them landed:
+
+| Package | Outcome |
+|---|---|
+| WP-8.0a `src/components/reports/**` | 261 tests green. One real defect: a disabled option in an off group had lost its `aria-describedby` |
+| WP-8.0c `src/i18n`, `src/commands`, vitest config | AC-74 gap closed; the gate is no longer collected by vitest; **CM-3 found to be a shared-layer defect, not residue** (F-V2-83) |
+| WP-7.5 interactive analyst | `/analyst` proved by a real spawn. **Found the runner's MCP path defect** (see below) |
+| WP-4.10 pages | 82 tests green. `rangeRefused` now visible; AC-1206 regression traced, not reverted |
+| WP-8.0b `src/screens/reports/**` | 268 tests green. F-V2-82 rewritten against pages; the fourth view declared; `?pinTo=` read |
+| WP-6.2c backend | 206 api tests. Audit writes land; **an `ask` job could never have succeeded** (F-V2-89); **api types were in no gate** (F-V2-88) |
+| WP-3.5 unreachable features | 795 tests green; table-columns mode reachable and harness-proved, including RTL |
+
+**The most serious find of the resume** was not in the failure list at all. `agent/mcp.json`
+named the tool server by a path relative to the repo root, and the runner spawns with
+`cwd: agent/sandbox` — so the MCP server would have failed to start on the runner's **first
+real job**. 135 passing tests missed it because they assert the shape of the argv, never that
+the path resolves. Fixed, with a guard confirmed to fail on the old value.
+
+**Two briefs written by the orchestrator were stale**, and in both cases the agent verified
+rather than complying: the six legality-hint failures were caused by WP-1.9, not by the v2
+migration; and two of WP-3.5's four items were already done. Recorded because the pattern
+matters more than either instance — a brief is a hypothesis, and this log has been wrong twice
+in one day.
+
 ## Where this stopped (2026-09-11)
 
 The owner called a halt. Five agents were stopped mid-task; their partial work is committed
