@@ -22,6 +22,12 @@
  * Every run is persisted to `report_runs` (`0005_runs.sql`) before the
  * response is sent, so the analyst path's `runId` (`05-backend.md` §5) is
  * always real.
+ *
+ * F-V2-90: the header used to pick only the `job_id` stamp, so the response
+ * stayed a bare `ReportResult` and `recordRun`'s `RecordRunOutcome` cast lied
+ * — `runId` was `undefined` against a real backend. `persistRun` now returns
+ * the row's id, and the header (`persistAndRespond`) answers the `'ok'`
+ * branch with it and `summariseRunSeries`, shared with the mock.
  */
 
 import {
@@ -29,8 +35,9 @@ import {
   DEFAULT_REPORT_TRANSFORM,
   normaliseReportQuery,
   REPORT_GROUP_BY_MAX,
+  summariseRunSeries,
 } from '@/data/types/report'
-import type { ReportPanel, ReportQuery, ReportResult, ReportSeries, ReportWarning } from '@/data/types/report'
+import type { ReportPanel, ReportQuery, ReportResult, ReportSeries, ReportWarning, RecordRunOutcome } from '@/data/types/report'
 import { planQuery } from '@/data/reporting/plan'
 import {
   OTHER,
@@ -93,18 +100,48 @@ function emptyModeResult(query: ReportQuery, asOf: string, warnings: ReportWarni
   }
 }
 
-/** `jobId` is `null` for an ordinary operator run — `0005_runs.sql`'s own comment names this column's one writer: `X-Eyvar-Record-Run: 1` on a run made through `X-Eyvar-Acting-For` (WP-6.7, `05-backend.md` §5). */
-async function persistRun(db: Database, userId: string, query: ReportQuery, result: ReportResult, jobId: string | null): Promise<void> {
-  await db.sql`
+/**
+ * `jobId` is `null` for an ordinary operator run (`0005_runs.sql`, §5). Every
+ * run is persisted regardless of the header; `RETURNING id` is what lets the
+ * `'ok'` response name the row actually written (F-V2-90).
+ */
+async function persistRun(db: Database, userId: string, query: ReportQuery, result: ReportResult, jobId: string | null): Promise<string> {
+  const rows = await db.sql<{ id: string }>`
     INSERT INTO report_runs (user_id, query_json, result_json, as_of, job_id)
     VALUES (${userId}, ${JSON.stringify(query)}::jsonb, ${JSON.stringify(result)}::jsonb, ${result.asOf}, ${jobId})
+    RETURNING id
   `
+  return rows[0]!.id
 }
 
-/** `X-Eyvar-Record-Run: 1` plus `X-Eyvar-Job` is how the agent path (WP-6.7) asks a run to carry provenance; absent either header, a run is never job-scoped. */
-function jobIdToRecord(req: Request): string | null {
-  if (req.headers.get('x-eyvar-record-run') !== '1') return null
-  return req.headers.get('x-eyvar-job')
+/**
+ * Whether to record (the header alone) and the job to stamp. Kept separate:
+ * `X-Eyvar-Record-Run: 1` with no job header is the operator's own off-ramp,
+ * and collapsing both into one `string | null` made that case indistinguishable
+ * from the header being absent — half of F-V2-90.
+ */
+function recordRunSignal(req: Request): { shouldRecord: boolean; jobId: string | null } {
+  const shouldRecord = req.headers.get('x-eyvar-record-run') === '1'
+  return { shouldRecord, jobId: shouldRecord ? req.headers.get('x-eyvar-job') : null }
+}
+
+/**
+ * Persists the run and answers it — bare `ReportResult`, or, when
+ * `X-Eyvar-Record-Run: 1` was sent, `RecordRunOutcome`'s `'ok'` branch with
+ * `runId` and `summary` (F-V2-90). One function so the three call sites
+ * below cannot answer the header differently by accident.
+ */
+async function persistAndRespond(
+  db: Database,
+  userId: string,
+  query: ReportQuery,
+  result: ReportResult,
+  record: { shouldRecord: boolean; jobId: string | null },
+): Promise<Response> {
+  const runId = await persistRun(db, userId, query, result, record.jobId)
+  if (!record.shouldRecord) return jsonResponse(result)
+  const outcome: RecordRunOutcome = { status: 'ok', runId, result, summary: summariseRunSeries(result) }
+  return jsonResponse(outcome)
 }
 
 /** G1: a legal `MeasureRef.aggregate` override, or the catalogue's own — `resolveAggregate` in the mock. */
@@ -316,7 +353,7 @@ export function createRunReportHandler(db: Database, deps: RunReportDeps = {}): 
     const query = await parseReportQuery(req)
     const catalogue = await loadCatalogue(db)
     const todayDate = today()
-    const jobId = jobIdToRecord(req)
+    const record = recordRunSignal(req)
 
     const plan = planQuery(query, catalogue, todayDate)
     if (plan.violations.length > 0) {
@@ -369,8 +406,7 @@ export function createRunReportHandler(db: Database, deps: RunReportDeps = {}): 
                 modeByKey,
                 catalogue.measures,
               )
-      await persistRun(db, operator.userId, query, result, jobId)
-      return jsonResponse(result)
+      return persistAndRespond(db, operator.userId, query, result, record)
     }
 
     if (q.mode !== 'trend' && q.mode !== 'table') {
@@ -379,8 +415,7 @@ export function createRunReportHandler(db: Database, deps: RunReportDeps = {}): 
       // already described, for a mode a future client adds before a server
       // catches up with it.
       const result = emptyModeResult(query, asOf, ['mode-not-resolved'])
-      await persistRun(db, operator.userId, query, result, jobId)
-      return jsonResponse(result)
+      return persistAndRespond(db, operator.userId, query, result, record)
     }
 
     const buckets = bucketStarts(window.from, window.to, q.grain)
@@ -516,8 +551,7 @@ export function createRunReportHandler(db: Database, deps: RunReportDeps = {}): 
       foldedGroupCount,
     }
 
-    await persistRun(db, operator.userId, query, result, jobId)
-    return jsonResponse(result)
+    return persistAndRespond(db, operator.userId, query, result, record)
   }
 }
 

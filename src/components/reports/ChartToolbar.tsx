@@ -71,6 +71,7 @@
 
 import { useId } from 'react'
 import {
+  AlertRuleIcon,
   BarChartIcon,
   CloseIcon,
   FunnelIcon,
@@ -178,6 +179,14 @@ export interface ChartToolbarProps {
   /** Re-runs the question on screen. The same callback the canvas's error retry uses. */
   onRefresh: () => void
   /**
+   * WP-5.5 (G15) — the bell. The builder decides what "prefilled from the
+   * report in front of the operator" means (a saved report opens the
+   * composer directly; an unsaved one is named and saved first, §04's
+   * standing rule), so this row only renders the trigger. AC-1161: disabled
+   * with the plan's own reason when the question is illegal, never hidden.
+   */
+  onCreateAlert: () => void
+  /**
    * `trend` and `table` — the two modes whose answer is a series the operator
    * chooses a grain for. A funnel, a retention matrix and a journey tree each
    * have their grain decided by the mode, so those three get the range and the
@@ -211,6 +220,7 @@ export function ChartToolbar({
   result,
   stale,
   onRefresh,
+  onCreateAlert,
   seriesMode,
   unstarted,
   today,
@@ -223,6 +233,13 @@ export function ChartToolbar({
   const current = visualisationOf(query)
   const vizLabelId = useId()
   const grainLabelId = useId()
+  const alertReasonId = useId()
+  /* AC-1161 — the bell is off, with a reason, exactly when the question is
+     illegal. `unstarted` (no measure) carries no reason of its own: the
+     canvas already states that R8-empty condition, and repeating it here
+     would be the same sentence twice. */
+  const alertViolation = plan.violations[0] ?? null
+  const alertDisabled = unstarted || alertViolation !== null
 
   /* The planner speaks in enum values; this row owns their labels. A reason may
      never render a raw `week` at an operator. */
@@ -266,8 +283,29 @@ export function ChartToolbar({
          layer floating over it. */
       className="flex shrink-0 flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-xl border border-card-border bg-card px-3 py-2"
     >
-      {/* ── LEFT: the freshness and its refresh ──────────────────────────── */}
+      {/* ── LEFT: the bell, then the freshness and its refresh ───────────── */}
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+        {/* G15 — "create an alert on this chart", from wherever the operator
+            is looking at it rather than only from the library row. */}
+        <div className="flex flex-col gap-0.5">
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-xs"
+            aria-label={t('rb.toolbar.createAlert')}
+            aria-describedby={alertViolation ? alertReasonId : undefined}
+            disabled={alertDisabled}
+            onClick={onCreateAlert}
+          >
+            <AlertRuleIcon aria-hidden="true" className="size-4" />
+          </Button>
+          {alertViolation && (
+            <p id={alertReasonId} className="max-w-40 text-xs text-muted-foreground">
+              {t(alertViolation.reasonKey, alertViolation.reasonParams)}
+            </p>
+          )}
+        </div>
+
         {/* §A7's `Data from … ↻`, in this product's own sentence. The live
             region is the CLAIM about the numbers; the button sits beside it, so
             going dirty does not announce a button label. */}

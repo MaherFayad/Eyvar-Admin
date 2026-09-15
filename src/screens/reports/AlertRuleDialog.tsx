@@ -95,6 +95,10 @@ export interface AlertRuleDialogProps {
   /** Which report a NEW rule starts on — read only when `rule` is `null` (an
    * edit's `reportId` is on the record and always wins). */
   presetReportId?: string
+  /** WP-5.5 (G15) — the series a chart's bell/menu handed the composer, so
+   * "create an alert from this chart" preselects it rather than leaving the
+   * series picker empty. Read only when `rule` is `null`, same as above. */
+  presetSeriesId?: string
   onSaved: (rule: AlertRule) => void
   today: string
   t: Translator
@@ -106,6 +110,7 @@ export function AlertRuleDialog({
   onOpenChange,
   rule,
   presetReportId,
+  presetSeriesId,
   onSaved,
   today,
   t,
@@ -113,7 +118,7 @@ export function AlertRuleDialog({
 }: AlertRuleDialogProps) {
   const [name, setName] = useState(rule?.name ?? '')
   const [reportId, setReportId] = useState<string | null>(rule?.reportId ?? presetReportId ?? null)
-  const [seriesId, setSeriesId] = useState<string>(rule?.seriesId ?? '')
+  const [seriesId, setSeriesId] = useState<string>(rule?.seriesId ?? presetSeriesId ?? '')
 
   /* ── condition — one discriminated draft per kind, so switching kinds
      discards rather than carries stale fields into the payload (§4.2). ──── */
@@ -215,7 +220,7 @@ export function AlertRuleDialog({
     if (!open) return
     setName(rule?.name ?? '')
     setReportId(rule?.reportId ?? presetReportId ?? null)
-    setSeriesId(rule?.seriesId ?? '')
+    setSeriesId(rule?.seriesId ?? presetSeriesId ?? '')
 
     const c: AlertCondition = rule ? alertCondition(rule) : { kind: 'static', comparator: 'gt', threshold: NaN }
     setKind(c.kind)
@@ -271,7 +276,7 @@ export function AlertRuleDialog({
     setReasons([])
     setFailed(false)
     setTestResult(null)
-  }, [open, rule, presetReportId])
+  }, [open, rule, presetReportId, presetSeriesId])
 
   const threshold =
     series?.unit === 'money' ? parseMoneyInput(thresholdText) : parseNumericInput(thresholdText)

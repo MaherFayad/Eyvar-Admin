@@ -9,12 +9,12 @@ this file is stale or when the `defaultValue` ratchet slips.
 
 | | |
 |---|---:|
-| **Translatable keys, all dictionaries** | **7491** |
-| Reachable from `EN` (what the shell renders) | 7125 |
-| Keys in `AR` | 7491 |
+| **Translatable keys, all dictionaries** | **7536** |
+| Reachable from `EN` (what the shell renders) | 7166 |
+| Keys in `AR` | 7536 |
 | **Keys Arabic is missing** | **0** |
-| Keys in `AR` and not in `EN` (plural forms, unregistered screens) | 366 |
-| Plural forms (`key#category`) inside `EN` | 73 |
+| Keys in `AR` and not in `EN` (plural forms, unregistered screens) | 370 |
+| Plural forms (`key#category`) inside `EN` | 75 |
 | `copy.ts` files | 39 |
 | Keys in a `copy.ts` the shell has NOT registered | 194 |
 | **`defaultValue` call sites (the ratchet)** | **0** |
@@ -425,10 +425,10 @@ Measured on English only, and a placeholder counts as one word.
 | File | Exports | Keys |
 |---|---|---:|
 | `src/screens/financials/copy.ts` | `FINANCIALS_EN` | 960 |
-| `src/screens/reports/copy.ts` | `REPORTS_EN` | 918 |
+| `src/screens/reports/copy.ts` | `REPORTS_EN` | 920 |
 | `src/commands/copy.ts` | `COMMANDS_EN` | 390 |
 | `src/screens/operations/people/copy.ts` | `PEOPLE_EN` | 338 |
-| `src/components/profile/copy.ts` | `PROFILE_EN` | 275 |
+| `src/components/profile/copy.ts` | `PROFILE_EN` | 280 |
 | `src/screens/metrics/copy.ts` | `OVERVIEW_EN` | 266 |
 | `src/screens/admin/workspace/copy.ts` | `ADMIN_WORKSPACE_EN` | 238 |
 | `src/screens/support/tickets/copy.ts` | `TICKETS_EN` | 236 |
@@ -439,14 +439,14 @@ Measured on English only, and a placeholder counts as one word.
 | `src/screens/support/inbox/copy.ts` | `CONVERSATIONS_EN`, `INBOX_EN` | 172 |
 | `src/screens/admin/policy/copy.ts` | `POLICY_EN` | 170 |
 | `src/screens/support/disputes/copy.ts` | `DISPUTES_EN` | 168 |
-| `src/screens/pages/copy.ts` | `PAGES_EN` | 149 |
+| `src/screens/pages/copy.ts` | `PAGES_EN` | 150 |
 | `src/screens/operations/subscriptions/copy.ts` | `SUBSCRIPTIONS_EN` | 138 |
+| `src/screens/analyst/copy.ts` | `ANALYST_EN` | 135 |
 | `src/screens/metrics/growth/copy.ts` | `GROWTH_EN` | 123 |
 | `src/screens/operations/assurance/copy.ts` | `ASSURANCE_EN` | 115 |
 | `src/components/profile/driver/copy.ts` | `DRIVER_PROFILE_EN` | 108 |
 | `src/screens/onboarding/copy.ts` | `ONBOARDING_EN` | 104 |
 | `src/screens/operations/trips/copy.ts` | `TRIPS_EN` | 104 |
-| `src/screens/analyst/copy.ts` | `ANALYST_EN` | 102 |
 | `src/components/profile/trip/copy.ts` | `TRIP_PROFILE_EN` | 89 |
 | `src/i18n/vocabulary/copy.ts` | `DRIVER_VOCABULARY_EN`, `RIDER_VOCABULARY_EN`, `VOCABULARY_EN` | 88 |
 | `src/screens/operations/requests/copy.ts` | `REQUESTS_EN` | 80 |

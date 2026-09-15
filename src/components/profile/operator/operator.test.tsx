@@ -3,13 +3,15 @@
  * for everyone else it is the identity card. T5.2: search finds a colleague.
  */
 
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { disableMockLatency, resetDataLayer, search, setPermissionDelta } from '@/data/clients'
+import { disableMockLatency, getUiState, resetDataLayer, search, setPermissionDelta } from '@/data/clients'
 import { EN } from '@/i18n/dictionaries'
 import { createTranslator } from '@/lib'
 import { ProfileLayer } from '@/shell/layers/ProfileLayer'
+import { ShellProvider } from '@/shell/ShellContext'
 
 const t = createTranslator({ dictionary: EN })
 const en = (key: string) => EN[key] as string
@@ -19,18 +21,22 @@ beforeEach(() => {
   resetDataLayer()
 })
 
-function mount(canAdministerTeam: boolean) {
+/* WP-5.6's own card reads `useShell()` for "is this my own card" — a
+   `ShellProvider` inside the router, same nesting `blockMenu.test.tsx` uses. */
+function mount(canAdministerTeam: boolean, entityId = 'USR-3') {
   return render(
     <MemoryRouter>
-      <ProfileLayer
-        entityId="USR-3"
-        open
-        onClose={vi.fn()}
-        onOpenFullProfile={vi.fn()}
-        t={t}
-        language="en"
-        canAdministerTeam={canAdministerTeam}
-      />
+      <ShellProvider>
+        <ProfileLayer
+          entityId={entityId}
+          open
+          onClose={vi.fn()}
+          onOpenFullProfile={vi.fn()}
+          t={t}
+          language="en"
+          canAdministerTeam={canAdministerTeam}
+        />
+      </ShellProvider>
     </MemoryRouter>,
   )
 }
@@ -61,6 +67,43 @@ describe('TA-10 — the operator layer', () => {
     expect(await screen.findByText(en('profile.section.identity'))).toBeInTheDocument()
     expect(screen.queryByText(en('profile.operator.section.holding'))).toBeNull()
     expect(screen.queryByText(en('access.preview.title'))).toBeNull()
+  })
+})
+
+describe('WP-5.6 — the digest preference', () => {
+  it('lets the signed-in operator toggle their own digest, off by default', async () => {
+    const user = userEvent.setup()
+    /* USR-1 is `CURRENT_USER_ID` (`teamUsers.ts`) — the signed-in operator's own card. */
+    mount(true, 'USR-1')
+    /* `defaultOpen={false}` — the same disclosure every collapsed card here needs. */
+    await user.click(
+      await screen.findByRole('button', { name: en('profile.operator.section.notifications') }),
+    )
+    const toggle = await screen.findByRole('switch', {
+      name: en('profile.operator.notifications.digest'),
+    })
+    expect(toggle).toBeEnabled()
+    expect(toggle).toHaveAttribute('aria-checked', 'false')
+
+    await user.click(toggle)
+
+    /* `onCheckedChange` fires the PATCH and refetches; both are async, so the
+       attribute settles a tick after `click` resolves. */
+    await waitFor(() => expect(toggle).toHaveAttribute('aria-checked', 'true'))
+    expect((await getUiState()).state.alertDigest).toBe(true)
+  })
+
+  it("disables a colleague's switch in place, with the reason", async () => {
+    const user = userEvent.setup()
+    mount(true)
+    await user.click(
+      await screen.findByRole('button', { name: en('profile.operator.section.notifications') }),
+    )
+    const toggle = await screen.findByRole('switch', {
+      name: en('profile.operator.notifications.digest'),
+    })
+    expect(toggle).toBeDisabled()
+    expect(screen.getByText(en('profile.operator.notifications.selfOnly'))).toBeInTheDocument()
   })
 })
 

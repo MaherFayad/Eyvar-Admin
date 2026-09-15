@@ -630,8 +630,13 @@ export {
   getAgentStatus,
   useOfflineRunner,
   resetAgent,
+  listAgentSchedules,
+  createAgentSchedule,
+  updateAgentSchedule,
   type AgentJobQuery,
   type CreateAgentJobInput,
+  type CreateAgentScheduleInput,
+  type UpdateAgentScheduleInput,
 } from './agent'
 
 export {

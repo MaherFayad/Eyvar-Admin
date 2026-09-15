@@ -14,10 +14,13 @@ import type { Database } from '../_lib/db'
 import { createApiHandler } from './[...route]'
 import { signSessionId } from '../_lib/auth'
 import type { ApiErrorBody } from '../_lib/errors'
-import type { AgentJob } from '@/data/types/agent'
+import type { AgentJob, AgentSchedule } from '@/data/types/agent'
+import { enqueueDueAgentSchedules } from '../_lib/handlers/agent'
+import { runAgentSchedulesCron } from '../cron/agent-schedules'
 
 const SESSION_SECRET = 'wp-6.7-agent-secret'
 const RUNNER_TOKEN = 'wp-6.7-runner-token'
+const CRON_SECRET = 'wp-7.6-cron-secret'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const EXAMPLES_DIR = path.resolve(__dirname, '../../docs/09-analytics-v2/examples')
 
@@ -168,9 +171,18 @@ describe('AC-1287: acting-for is not a way to become someone else', () => {
       req('POST', '/reports/run', trendQuery('revenue.total'), { ...runnerHeaders(userId, job.id), 'x-eyvar-record-run': '1' }),
     )
     expect(res.status).toBe(200)
-    const result = (await res.json()) as { series: Array<{ blocked: string | null; points: unknown[] }> }
-    expect(result.series[0]?.blocked).toBe('view_finance')
-    expect(result.series[0]?.points).toEqual([])
+    /* `X-Eyvar-Record-Run: 1` answers the `RecordRunOutcome` envelope (WP-6.9),
+       so the report sits under `result`. The guarantee asserted is unchanged:
+       a measure this operator cannot see stays blocked through the agent path. */
+    const outcome = (await res.json()) as {
+      status: string
+      runId: string
+      result: { series: Array<{ blocked: string | null; points: unknown[] }> }
+    }
+    expect(outcome.status).toBe('ok')
+    expect(outcome.runId).toBeTruthy()
+    expect(outcome.result.series[0]?.blocked).toBe('view_finance')
+    expect(outcome.result.series[0]?.points).toEqual([])
 
     // The same query, run directly by the operator (cookie auth), is
     // blocked identically — the agent path resolves to exactly the same
@@ -471,5 +483,136 @@ describe('agent job lifecycle', () => {
     const events = await handler(req('GET', `/agent/jobs/${job.id}/events`, undefined, withCookie({}, cookie)))
     const list = (await events.json()) as Array<{ kind: string }>
     expect(list.map((e) => e.kind)).toEqual(['tool-call', 'finding'])
+  })
+})
+
+/* ─────────────────────────── scheduled reviews — AC-1266 / AC-1267 ─────────────────────────── */
+
+/** Always due: `hour:minute = 00:00` on a daily cadence, so `isScheduleDue` is true at whatever wall-clock time the suite runs (no frozen clock needed for the HTTP-level races). */
+const ALWAYS_DUE_CRON = '0 0 * * *'
+
+async function createSchedule(cookie: string, overrides: Record<string, unknown> = {}): Promise<AgentSchedule> {
+  const res = await handler(req('POST', '/agent/schedules', { cron: ALWAYS_DUE_CRON, reportIds: [], pageId: null, ...overrides }, withCookie({}, cookie)))
+  expect(res.status).toBe(201)
+  const body = (await res.json()) as { data: AgentSchedule }
+  return body.data
+}
+
+async function queuedJobsFor(ownerId: string): Promise<{ id: string }[]> {
+  return db.sql<{ id: string }>`SELECT id FROM agent_jobs WHERE requested_by = ${ownerId} AND kind = 'weekly-review'`
+}
+
+describe('AC-1266: a due schedule enqueues exactly once', () => {
+  it('two concurrent callers of the shared enqueue function — the same one the cron and the runner-side fallback both call — enqueue exactly one job, not two', async () => {
+    const { cookie, userId } = await operatorCookie('sched-race@eyvar.test', 'Owner')
+    await createSchedule(cookie)
+    const fixedNow = () => '2026-09-13T03:30:00.000Z' // 06:30 Riyadh, past 00:00 — due.
+
+    const [a, b] = await Promise.all([enqueueDueAgentSchedules(db, fixedNow), enqueueDueAgentSchedules(db, fixedNow)])
+    const enqueuedCounts = [a.enqueued, b.enqueued].sort()
+    expect(enqueuedCounts).toEqual([0, 1]) // one writer wins the period, the other claims nothing
+
+    const jobs = await queuedJobsFor(userId)
+    expect(jobs).toHaveLength(1)
+
+    // A third check for the same period, after the fact, still finds nothing to do.
+    const c = await enqueueDueAgentSchedules(db, fixedNow)
+    expect(c.enqueued).toBe(0)
+    expect(await queuedJobsFor(userId)).toHaveLength(1)
+  })
+
+  it('a runner and a cron racing through their real entry points enqueue exactly one job between them', async () => {
+    const { cookie, userId } = await operatorCookie('sched-race-http@eyvar.test', 'Owner')
+    await createSchedule(cookie)
+
+    const runnerCall = handler(req('POST', '/agent/schedules/enqueue-due', {}, { authorization: `Bearer ${RUNNER_TOKEN}` }))
+    const cronCall = runAgentSchedulesCron(new Request('http://localhost/api/cron/agent-schedules', { headers: { authorization: `Bearer ${CRON_SECRET}` } }), { db }, CRON_SECRET)
+
+    const [runnerRes] = await Promise.all([runnerCall, cronCall])
+    expect(runnerRes.status).toBe(200)
+
+    const jobs = await queuedJobsFor(userId)
+    expect(jobs).toHaveLength(1)
+  })
+
+  it('a disabled schedule enqueues nothing, even when its cron is due', async () => {
+    const { cookie, userId } = await operatorCookie('sched-disabled@eyvar.test', 'Owner')
+    const schedule = await createSchedule(cookie)
+    const patched = await handler(req('PATCH', `/agent/schedules/${schedule.id}`, { enabled: false }, withCookie({}, cookie)))
+    expect(patched.status).toBe(200)
+    expect(((await patched.json()) as { data: AgentSchedule }).data.enabled).toBe(false)
+
+    const summary = await enqueueDueAgentSchedules(db, () => '2026-09-13T03:30:00.000Z')
+    expect(summary.enqueued).toBe(0)
+    expect(await queuedJobsFor(userId)).toHaveLength(0)
+  })
+
+  it('a weekly schedule enqueues once for the week, then again the following week — not permanently exhausted, not duplicated within the same week', async () => {
+    const { cookie, userId } = await operatorCookie('sched-week-rollover@eyvar.test', 'Owner')
+    // Sunday 06:00 Riyadh (dow 0, matching WEEK_START_DOW) — a real weekly cadence, not the always-due daily cron the other tests use.
+    await createSchedule(cookie, { cron: '0 6 * * 0' })
+
+    const sunday = () => '2026-09-13T03:30:00.000Z' // 2026-09-13 is a Sunday; 06:30 Riyadh, past the 06:00 trigger.
+    const laterSameSunday = () => '2026-09-13T10:00:00.000Z' // 13:00 Riyadh, same Sunday, same period — a re-check, not a new one.
+    const nextSunday = () => '2026-09-20T03:30:00.000Z' // the following Sunday — a new period.
+
+    await enqueueDueAgentSchedules(db, sunday)
+    await enqueueDueAgentSchedules(db, laterSameSunday)
+    expect(await queuedJobsFor(userId)).toHaveLength(1) // still just the one job for the week
+
+    await enqueueDueAgentSchedules(db, nextSunday)
+    expect(await queuedJobsFor(userId)).toHaveLength(2) // a new period, a new job
+  })
+
+  it('a cron restricted finer than daily (day-of-month or month not "*") is refused at creation', async () => {
+    const { cookie } = await operatorCookie('sched-bad-cron@eyvar.test', 'Owner')
+    const res = await handler(req('POST', '/agent/schedules', { cron: '*/15 * * * *', reportIds: [], pageId: null }, withCookie({}, cookie)))
+    expect(res.status).toBe(422)
+  })
+})
+
+describe('AC-1267: an offline runner leaves a scheduled job queued, with the reason visible', () => {
+  it('a schedule enqueues a job independent of the runner — the job sits queued rather than being silently skipped', async () => {
+    const { cookie, userId } = await operatorCookie('sched-offline@eyvar.test', 'Owner')
+    await createSchedule(cookie)
+    // No heartbeat at all in this test — the runner has never been online — yet the cron still enqueues.
+    const summary = await enqueueDueAgentSchedules(db, () => '2026-09-13T03:30:00.000Z')
+    expect(summary.enqueued).toBe(1)
+
+    const jobs = await queuedJobsFor(userId)
+    expect(jobs).toHaveLength(1)
+    const jobRow = await handler(req('GET', `/agent/jobs/${jobs[0]!.id}`, undefined, withCookie({}, cookie)))
+    const body = (await jobRow.json()) as { data: AgentJob }
+    // Queued, not failed and not claimed — nothing marked it failed and nothing silently dropped it.
+    expect(body.data.state).toBe('queued')
+    expect(body.data.failureReason).toBeNull()
+
+    const status = await handler(req('GET', '/agent/status', undefined, withCookie({}, cookie)))
+    const statusBody = (await status.json()) as { online: boolean }
+    expect(statusBody.online).toBe(false) // no heartbeat was ever posted
+  })
+})
+
+describe('agent.schedules CRUD', () => {
+  it('lists, creates and updates a schedule', async () => {
+    const { cookie } = await operatorCookie('sched-crud@eyvar.test', 'Owner')
+    const created = await createSchedule(cookie, { reportIds: ['RPT-1', 'RPT-2'], pageId: 'DSH-1' })
+    expect(created.kind).toBe('weekly-review')
+    expect(created.enabled).toBe(true)
+    expect(created.reportIds).toEqual(['RPT-1', 'RPT-2'])
+
+    const list = await handler(req('GET', '/agent/schedules', undefined, withCookie({}, cookie)))
+    const listBody = (await list.json()) as AgentSchedule[]
+    expect(listBody.map((s) => s.id)).toContain(created.id)
+
+    const patched = await handler(req('PATCH', `/agent/schedules/${created.id}`, { cron: '0 5 * * 1' }, withCookie({}, cookie)))
+    expect(patched.status).toBe(200)
+    const patchedBody = (await patched.json()) as { data: AgentSchedule }
+    expect(patchedBody.data.cron).toBe('0 5 * * 1')
+  })
+
+  it('the runner-token enqueue-due route refuses a request without the runner token', async () => {
+    const res = await handler(req('POST', '/agent/schedules/enqueue-due', {}, {}))
+    expect(res.status).toBe(401)
   })
 })

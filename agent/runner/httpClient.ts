@@ -72,3 +72,20 @@ export type FailBody = { outcome: 'failed'; reason: 'timeout' | 'evidence' | 'sc
 export async function postFail(env: RunnerEnv, jobId: string, body: FailBody): Promise<void> {
   await request(env, `/agent/jobs/${jobId}/fail`, { method: 'POST', body })
 }
+
+export interface EnqueueDueSchedulesSummary {
+  checked: number
+  enqueued: number
+}
+
+/**
+ * `POST /api/v1/agent/schedules/enqueue-due` — `schedule.ts`'s fallback call
+ * (§1a: Vercel Hobby refuses a cron finer than daily, so the runner's own
+ * poll loop is what checks schedules there). Shares the backend's
+ * `enqueueDueAgentSchedules` with `/api/cron/agent-schedules` verbatim —
+ * AC-1266's arbitration is the same unique constraint either way.
+ */
+export async function enqueueDueSchedules(env: RunnerEnv): Promise<EnqueueDueSchedulesSummary> {
+  const { data } = await request<EnqueueDueSchedulesSummary>(env, '/agent/schedules/enqueue-due', { method: 'POST' })
+  return data ?? { checked: 0, enqueued: 0 }
+}

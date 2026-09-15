@@ -115,15 +115,19 @@ import {
   createAgentHeartbeatHandler,
   createClaimAgentJobHandler,
   createCreateAgentJobHandler,
+  createCreateAgentScheduleHandler,
+  createEnqueueDueAgentSchedulesHandler,
   createGetAgentJobHandler,
   createGetAgentStatusHandler,
   createListAgentJobEventsHandler,
   createListAgentJobsHandler,
+  createListAgentSchedulesHandler,
   createPostAgentJobEventsHandler,
   createPostAgentJobFailHandler,
   createPostAgentJobFindingHandler,
   createPostAgentJobResultHandler,
   createSampleRowsHandler,
+  createUpdateAgentScheduleHandler,
 } from '../_lib/handlers/agent'
 import { createSecretsAdapterFromEnv, type SecretsAdapter } from '../_lib/secrets'
 import type { IsoDate, IsoDateTime } from '@/data/types/common'
@@ -296,6 +300,14 @@ export function createApiHandler(deps: ApiDeps): (req: Request) => Promise<Respo
   router.post('/agent/jobs/:id/fail', createPostAgentJobFailHandler(deps.db))
   router.get('/agent/status', createGetAgentStatusHandler(deps.db))
   router.post('/agent/heartbeat', createAgentHeartbeatHandler(deps.db))
+
+  // agent.schedules (WP-7.6, §8, AC-1266/AC-1267) — `/agent/schedules/enqueue-due`
+  // registered before `/agent/schedules/:id` for the same reason `/agent/jobs/claim`
+  // precedes `/agent/jobs/:id` above.
+  router.post('/agent/schedules/enqueue-due', createEnqueueDueAgentSchedulesHandler(deps.db))
+  router.get('/agent/schedules', createListAgentSchedulesHandler(deps.db))
+  router.post('/agent/schedules', createCreateAgentScheduleHandler(deps.db))
+  router.patch('/agent/schedules/:id', createUpdateAgentScheduleHandler(deps.db))
 
   // reports.sample (T10, D44) — see handlers/agent.ts's own header for why it lives there.
   router.post('/reports/sample', createSampleRowsHandler(deps.db))

@@ -21,6 +21,7 @@ import {
   EYVAR_TODAY,
   createAgentJob,
   getAgentJob,
+  getAgentStatus,
   getPage,
   getReport,
   listAgentJobEvents,
@@ -83,6 +84,17 @@ export function JobScreen() {
   const events = polled?.events ?? initial.data?.events ?? []
   const eventsRef = useRef(events)
   eventsRef.current = events
+
+  /* AC-1267 — the "why" a queued job is not moving: `getAgentStatus`
+     already drives the runner-status line elsewhere (`AnalystView.tsx`);
+     `null` while unresolved is the same "a missing fact is honest" default
+     `AskComposer` uses, so a queued job never claims a reason it does not
+     yet know. */
+  const runnerStatus = useAsync((signal) => getAgentStatus(signal), {
+    deps: [job?.state],
+    cacheKey: 'agent.status',
+    enabled: job?.state === 'queued',
+  })
 
   /* AC-1256 — polls the job and its events every 2 s while the job is not
      terminal. The effect's cleanup clears the interval on every state
@@ -251,7 +263,7 @@ export function JobScreen() {
 
   const main = (
     <>
-      <JobTimeline job={job} events={events} onRerun={() => void rerun()} t={t} language={language} />
+      <JobTimeline job={job} events={events} runner={runnerStatus.data} onRerun={() => void rerun()} t={t} language={language} />
       {job.state === 'done' && pageQuery.data && catalogue.data && (
         <PageBlocksProvider
           value={{

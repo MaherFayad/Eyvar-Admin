@@ -248,6 +248,14 @@ export const PROFILE_EN: Dictionary = {
   'profile.operator.onCall.primary': 'Primary on call',
   'profile.operator.onCall.secondary': 'Secondary on call',
   'profile.operator.onCall.none': 'Not on the rota',
+  /* WP-5.6 — the digest is a personal preference; only the signed-in
+     operator's own card can write it (`selfOnly` is the reason a colleague's
+     card gives when the switch is disabled in place, D9 CQ-3). */
+  'profile.operator.section.notifications': 'Notifications',
+  'profile.operator.notifications.digest': 'Daily alert digest',
+  'profile.operator.notifications.digest.hint': 'One notification each morning summarising the alerts that fired in the last 24 hours.',
+  'profile.operator.notifications.selfOnly': 'Only this operator can change their own digest setting.',
+  'profile.operator.notifications.failed': 'Wasn’t saved. Try again.',
   'profile.kind.driver': 'Captain',
   'profile.kind.trip': 'Trip',
   'profile.kind.subscription': 'Subscription',

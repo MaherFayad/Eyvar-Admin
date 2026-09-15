@@ -305,13 +305,10 @@ let reportId = null
 
 /**
  * The core assertion this step exists for: `X-Eyvar-Record-Run: 1` on
- * `reports.run` is documented (`src/data/clients/runs.ts`'s `recordRun`
- * docblock) to answer `{ runId, result, summary }`. A response that omits
- * `runId` is a failure here even at HTTP 200 — a report with no run id is
- * exactly the "answer nobody can cite" `05-backend.md` §5 and
- * `BUILD-LOG.md`'s F-V2-90 describe. See `cutover.md`'s preconditions: this
- * is expected to fail against today's server, which persists the run but
- * never returns its id.
+ * `reports.run` answers the `RecordRunOutcome` envelope — `{ status, runId,
+ * result, summary }`, with the report nested under `result`, not spread flat
+ * beside `runId`. A 200 that omits `runId` is a failure: a report nobody can
+ * cite is what `05-backend.md` §5 and F-V2-90 are about.
  */
 async function runReportAndRecord(query) {
   const res = await call('POST', '/reports/run', {
@@ -320,18 +317,22 @@ async function runReportAndRecord(query) {
     idempotent: true,
   })
   assertOk(res, 'POST /reports/run (X-Eyvar-Record-Run: 1)')
-  const result = res.body
-  if (!result || typeof result !== 'object') fail('reports/run: 200 with an empty body')
-  if (!Array.isArray(result.buckets) || !Array.isArray(result.series)) {
-    fail('reports/run: missing buckets[]/series[] — not a ReportResult')
+  const outcome = res.body
+  if (!outcome || typeof outcome !== 'object') fail('reports/run: 200 with an empty body')
+  if (outcome.status !== 'ok') {
+    fail(`reports/run with X-Eyvar-Record-Run:1 answered status ${JSON.stringify(outcome.status)}, not "ok"`)
   }
-  if (!('runId' in result) || !result.runId) {
-    fail(
-      "reports/run with X-Eyvar-Record-Run:1 did not return a runId — the run is persisted server-side but never cited back; " +
-        'see cutover.md preconditions (provenance is derived, not recorded)',
-    )
+  if (!outcome.runId) {
+    fail('reports/run with X-Eyvar-Record-Run:1 did not cite a runId — the run is persisted but never named back')
   }
-  return result
+  const result = outcome.result
+  if (!result || !Array.isArray(result.buckets) || !Array.isArray(result.series)) {
+    fail('reports/run: the envelope carries no ReportResult under `result`')
+  }
+  if (!outcome.summary || typeof outcome.summary !== 'object') {
+    fail('reports/run: the envelope carries no per-series summary')
+  }
+  return { ...result, runId: outcome.runId }
 }
 
 async function runSavedOrAdHocReport() {

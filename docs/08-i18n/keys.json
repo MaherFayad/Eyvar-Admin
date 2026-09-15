@@ -1,13 +1,13 @@
 {
   "totals": {
-    "keys": 7491,
-    "en": 7125,
-    "ar": 7491,
+    "keys": 7536,
+    "en": 7166,
+    "ar": 7536,
     "arMissing": 0,
-    "arExtra": 366,
+    "arExtra": 370,
     "copyFiles": 39,
     "unregisteredKeys": 194,
-    "pluralForms": 73,
+    "pluralForms": 75,
     "defaultValue": 0,
     "defaultValueForwarded": 2,
     "emDashEn": 83,
@@ -28,7 +28,7 @@
       "exports": [
         "REPORTS_EN"
       ],
-      "keys": 918,
+      "keys": 920,
       "notInEN": 0
     },
     {
@@ -52,7 +52,7 @@
       "exports": [
         "PROFILE_EN"
       ],
-      "keys": 275,
+      "keys": 280,
       "notInEN": 0
     },
     {
@@ -141,7 +141,7 @@
       "exports": [
         "PAGES_EN"
       ],
-      "keys": 149,
+      "keys": 150,
       "notInEN": 0
     },
     {
@@ -150,6 +150,14 @@
         "SUBSCRIPTIONS_EN"
       ],
       "keys": 138,
+      "notInEN": 0
+    },
+    {
+      "file": "src/screens/analyst/copy.ts",
+      "exports": [
+        "ANALYST_EN"
+      ],
+      "keys": 135,
       "notInEN": 0
     },
     {
@@ -190,14 +198,6 @@
         "TRIPS_EN"
       ],
       "keys": 104,
-      "notInEN": 0
-    },
-    {
-      "file": "src/screens/analyst/copy.ts",
-      "exports": [
-        "ANALYST_EN"
-      ],
-      "keys": 102,
       "notInEN": 0
     },
     {

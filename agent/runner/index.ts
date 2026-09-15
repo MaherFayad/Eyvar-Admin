@@ -14,6 +14,7 @@ import { heartbeat, claimJob, postEvents, postResult, postFail, type AgentJobLik
 import { buildJobPrompt, readPromptVersion, type AgentJobKind } from './jobAssembly.js'
 import { runAnalystSpawn, type SpawnOutcome } from './spawn.js'
 import { validate } from './validate.js'
+import { checkSchedulesDue, initialScheduleCheckState, type ScheduleCheckState } from './schedule.js'
 
 function riyadhToday(): string {
   return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Riyadh', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date())
@@ -144,7 +145,13 @@ export interface RunnerState {
   limitedUntil: string | null
 }
 
-async function pollOnce(env: RunnerEnv, state: RunnerState, mcpSource: 'mock' | 'http'): Promise<void> {
+async function pollOnce(env: RunnerEnv, state: RunnerState, mcpSource: 'mock' | 'http', scheduleState: ScheduleCheckState): Promise<void> {
+  // §8's fallback — throttled internally, so this costs nothing on the
+  // ticks it skips. Runs regardless of `limitedUntil`: a usage limit stops
+  // the runner from spawning `claude -p`, not from telling the backend a
+  // schedule is due (that part needs no model turn at all).
+  await checkSchedulesDue(env, scheduleState)
+
   if (state.limitedUntil && new Date(state.limitedUntil).getTime() > Date.now()) return // AC-1248: claim nothing until retryAt
 
   const job = await claimJob(env)
@@ -180,6 +187,7 @@ export async function main(): Promise<void> {
 
   const mcpSource = process.env.EYVAR_MCP_SOURCE === 'mock' ? 'mock' : 'http'
   const state: RunnerState = { limitedUntil: null }
+  const scheduleState = initialScheduleCheckState()
 
   const shutdown = (): void => {
     lock.release()
@@ -196,7 +204,7 @@ export async function main(): Promise<void> {
   try {
     // eslint-disable-next-line no-constant-condition
     while (true) {
-      await pollOnce(env, state, mcpSource).catch((error: unknown) => console.error('poll cycle failed:', error))
+      await pollOnce(env, state, mcpSource, scheduleState).catch((error: unknown) => console.error('poll cycle failed:', error))
       await new Promise((r) => setTimeout(r, env.pollIntervalMs))
     }
   } finally {

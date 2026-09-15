@@ -10,12 +10,14 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
-import type { AgentEvent, AgentJob } from '@/data/types/agent'
+import type { AgentEvent, AgentJob, AgentRunner } from '@/data/types/agent'
 import { formatDate, type Language, type Translator } from '@/lib'
 
 export interface JobTimelineProps {
   job: AgentJob
   events: readonly AgentEvent[]
+  /** AC-1267 — `null` while `agent.status` has not answered yet, the same "a missing fact is honest" default `AskComposer` uses; a queued job then reads as an ordinary wait, never a guessed reason. */
+  runner: AgentRunner | null
   onRerun: () => void
   t: Translator
   language: Language
@@ -81,11 +83,19 @@ function StepList({ events, running, t }: { events: readonly AgentEvent[]; runni
   )
 }
 
-export function JobTimeline({ job, events, onRerun, t, language }: JobTimelineProps) {
+export function JobTimeline({ job, events, runner, onRerun, t, language }: JobTimelineProps) {
   const [open, setOpen] = useState(false)
 
   if (job.state === 'queued') {
-    return <p className="text-sm text-muted-foreground">{t('an.timeline.queued')}</p>
+    /* AC-1267: an offline runner does not leave a queued job looking like an
+       ordinary short wait — the reason is stated in place, the same way a
+       deferred job's timeline names the usage limit below. */
+    const offline = runner !== null && !runner.online
+    return (
+      <p className="text-sm text-muted-foreground">
+        {offline ? t('an.timeline.queued.offline') : t('an.timeline.queued')}
+      </p>
+    )
   }
 
   if (job.state === 'done') {

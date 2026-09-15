@@ -11,7 +11,7 @@ import { EYVAR_NOW } from '../mock/clock'
 import { mock, mockMutation, notFound } from '../mock/delay'
 import { paginate } from '../mock/query'
 import type { Paginated, QueryParams, Single } from '../types/common'
-import type { AgentEvent, AgentJob, AgentJobContext, AgentJobKind, AgentRunner } from '../types/agent'
+import type { AgentEvent, AgentJob, AgentJobContext, AgentJobKind, AgentRunner, AgentSchedule } from '../types/agent'
 import { currentMockUserId } from './session'
 import { http } from './http'
 import { fixturesLoaded, onFixturesLoaded, type Fixtures } from '../mock/fixtures'
@@ -20,13 +20,16 @@ let agentJobFixtures!: Fixtures['agentJobFixtures']
 let agentEventFixtures!: Fixtures['agentEventFixtures']
 let agentRunnerStatusFixture!: Fixtures['agentRunnerStatusFixture']
 let agentRunnerOfflineFixture!: Fixtures['agentRunnerOfflineFixture']
+let agentScheduleFixtures!: Fixtures['agentScheduleFixtures']
 onFixturesLoaded((f) => {
   agentJobFixtures = f.agentJobFixtures
   agentEventFixtures = f.agentEventFixtures
   agentRunnerStatusFixture = f.agentRunnerStatusFixture
   agentRunnerOfflineFixture = f.agentRunnerOfflineFixture
+  agentScheduleFixtures = f.agentScheduleFixtures
   jobs = agentJobFixtures.map((j) => ({ ...j }))
   runnerStatus = { ...agentRunnerStatusFixture }
+  schedules = agentScheduleFixtures.map((s) => ({ ...s }))
 })
 
 export const AGENT_OPERATIONS = {
@@ -35,6 +38,9 @@ export const AGENT_OPERATIONS = {
   events: 'agent.jobs.events',
   create: 'agent.jobs.create',
   status: 'agent.status',
+  schedules: 'agent.schedules.list',
+  scheduleCreate: 'agent.schedules.create',
+  scheduleUpdate: 'agent.schedules.update',
 } as const
 
 registerOperations(...Object.values(AGENT_OPERATIONS))
@@ -42,6 +48,7 @@ registerOperations(...Object.values(AGENT_OPERATIONS))
 /** Mutable copy. **Not persistence** — Q1 is open, the same as every saved-report resource. */
 let jobs!: AgentJob[]
 let runnerStatus!: AgentRunner
+let schedules!: AgentSchedule[]
 
 export interface AgentJobQuery extends QueryParams {
   /** `mine · team` — §4's index. */
@@ -175,4 +182,87 @@ export function resetAgent(): void {
   if (!fixturesLoaded()) return
   jobs = agentJobFixtures.map((j) => ({ ...j }))
   runnerStatus = { ...agentRunnerStatusFixture }
+  schedules = agentScheduleFixtures.map((s) => ({ ...s }))
+}
+
+/* ─────────────────────────── scheduled reviews (§8) ──────────────────────────── */
+
+/**
+ * GET /api/v1/agent/schedules
+ *   -> AgentSchedule[]
+ *
+ * The Schedules tab (§8) — a bare array, the same finding `listAgentJobEvents`
+ * makes: the list is always small (one team's weekly reviews), so there is no
+ * pagination furniture to wire.
+ */
+export async function listAgentSchedules(signal?: AbortSignal): Promise<AgentSchedule[]> {
+  if (DATA_SOURCE === 'http') return http.get<AgentSchedule[]>('/agent/schedules', undefined, { signal })
+  return mock(AGENT_OPERATIONS.schedules, signal, () => schedules.map((s) => ({ ...s })))
+}
+
+export interface CreateAgentScheduleInput {
+  cron: string
+  reportIds: string[]
+  pageId: string | null
+}
+
+/**
+ * POST /api/v1/agent/schedules
+ *   body: CreateAgentScheduleInput
+ *   -> Single<AgentSchedule>
+ *
+ * `kind` is always `weekly-review` (§8) — the server does not accept it from
+ * the body, and neither does this input type.
+ */
+export async function createAgentSchedule(input: CreateAgentScheduleInput, signal?: AbortSignal): Promise<Single<AgentSchedule>> {
+  if (DATA_SOURCE === 'http') return http.post<Single<AgentSchedule>>('/agent/schedules', input, { signal })
+  return mockMutation(AGENT_OPERATIONS.scheduleCreate, signal, () => {
+    const schedule: AgentSchedule = {
+      id: `AGS-${schedules.length + 1}`,
+      kind: 'weekly-review',
+      reportIds: input.reportIds,
+      pageId: input.pageId,
+      cron: input.cron,
+      ownerId: currentMockUserId(),
+      enabled: true,
+      createdAt: EYVAR_NOW,
+      updatedAt: EYVAR_NOW,
+    }
+    schedules = [...schedules, schedule]
+    return { data: { ...schedule } }
+  })
+}
+
+export interface UpdateAgentScheduleInput {
+  cron?: string
+  enabled?: boolean
+  reportIds?: string[]
+  pageId?: string | null
+}
+
+/**
+ * PATCH /api/v1/agent/schedules/:id
+ *   body: UpdateAgentScheduleInput
+ *   -> Single<AgentSchedule>
+ *
+ * The enable/disable toggle (AC-1266's "a disabled schedule enqueues none")
+ * goes through this same endpoint as a cron or template edit.
+ */
+export async function updateAgentSchedule(id: string, input: UpdateAgentScheduleInput, signal?: AbortSignal): Promise<Single<AgentSchedule>> {
+  if (DATA_SOURCE === 'http') return http.patch<Single<AgentSchedule>>(`/agent/schedules/${id}`, input, { signal })
+  return mockMutation(AGENT_OPERATIONS.scheduleUpdate, signal, () => {
+    const index = schedules.findIndex((s) => s.id === id)
+    if (index === -1) throw notFound('schedule', id)
+    const current = schedules[index]!
+    const next: AgentSchedule = {
+      ...current,
+      cron: input.cron ?? current.cron,
+      enabled: input.enabled ?? current.enabled,
+      reportIds: input.reportIds ?? current.reportIds,
+      pageId: input.pageId !== undefined ? input.pageId : current.pageId,
+      updatedAt: EYVAR_NOW,
+    }
+    schedules = schedules.map((s, i) => (i === index ? next : s))
+    return { data: { ...next } }
+  })
 }

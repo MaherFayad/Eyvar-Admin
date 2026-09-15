@@ -313,6 +313,9 @@ export const REPORTS_EN: Dictionary = {
      off by finding "No comparison" in a menu is one an operator leaves on by
      accident. */
   'rb.toolbar.compare.clear': 'Clear the comparison',
+  /* G15 — the bell. Disabled with the plan's own reason when the question is
+     illegal (AC-1161); ChartToolbar renders it beside the refresh action. */
+  'rb.toolbar.createAlert': 'Create alert from this chart',
 
   /* ── the visualisation picker — ONE control, seven shapes ──────────────
      The mode strip is gone. Amplitude's `Line chart ⌄` is the only place a
@@ -905,7 +908,9 @@ export const REPORTS_EN: Dictionary = {
   'rb.export.blocked': 'Image export isn’t built. Export CSV instead.',
   'rb.export.pdf.blocked': 'PDF export isn’t built. Export PNG or CSV instead.',
 
-  /* §8 — the overflow's five new actions. All five need a saved report. */
+  /* §8 — the overflow's five new actions. Pin, duplicate and version history
+     still need a saved report; the alert action no longer does (WP-5.5, G15)
+     — `saveToAlert` names and saves a draft first. */
   'rb.overflow.pin': 'Pin to a page…',
   'rb.overflow.pin.loading': 'Loading the pages',
   'rb.overflow.pin.error': 'The pages didn’t load.',
@@ -913,6 +918,7 @@ export const REPORTS_EN: Dictionary = {
   'rb.overflow.pin.toast': 'Pinned to “{page}”.',
   'rb.overflow.pin.failed': 'Wasn’t pinned. Try again.',
   'rb.overflow.createAlert': 'Create alert…',
+  'rb.overflow.saveToAlert': 'Save to alert…',
   'rb.overflow.ask': 'Ask the analyst',
   'rb.overflow.versions': 'Version history',
   'rb.overflow.versions.heading': 'Version history',

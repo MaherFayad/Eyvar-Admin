@@ -37,7 +37,7 @@ import { savedReportFixtures } from '@/data/fixtures/reports'
 import { resolveReport, type ResolveContext } from '@/data/mock/resolveReport'
 import { EYVAR_NOW, EYVAR_TODAY } from '@/data/mock/clock'
 import { resolveWindow } from '@/data/reporting/buckets'
-import { normaliseReportQuery, type ReportQuery, type ReportResult } from '@/data/types/report'
+import { normaliseReportQuery, type RecordRunOutcome, type ReportQuery, type ReportResult } from '@/data/types/report'
 import type { Measure } from '@/data/types/measure'
 import type { PermissionKey } from '@/data/types/navigation'
 import type { Catalogue } from '@/data/reporting/plan'
@@ -292,6 +292,76 @@ describe('reports.run: auth and legality', () => {
  * resolver, proves the same computation without touching anything another
  * agent's fixture or contract test reads.
  */
+/**
+ * F-V2-90: this used to be a shape assertion (`RecordRunOutcome` typechecks)
+ * that never ran a real request with the header, which is exactly how the
+ * server answered a bare `ReportResult` — `runId: undefined` at runtime —
+ * behind a green suite. These prove the header's behaviour: the id it hands
+ * back names a row `report_runs` really holds, and T5's "always records"
+ * rule (§5) — a second call never reuses one.
+ */
+describe('reports.run: X-Eyvar-Record-Run header (F-V2-90)', () => {
+  function recordRunRequest(query: unknown, cookie: string): Request {
+    return new Request('http://localhost/api/v1/reports/run', {
+      method: 'POST',
+      headers: { cookie, 'content-type': 'application/json', 'x-eyvar-record-run': '1' },
+      body: JSON.stringify(query),
+    })
+  }
+
+  it('the runId names a real report_runs row, and a second call mints a different one', async () => {
+    const rpt1 = savedReportFixtures.find((r) => r.id === 'RPT-1')!
+
+    const first = await handler(recordRunRequest(rpt1.query, analystCookie))
+    expect(first.status).toBe(200)
+    const firstOutcome = (await first.json()) as RecordRunOutcome
+    expect(firstOutcome.status).toBe('ok')
+    if (firstOutcome.status !== 'ok') throw new Error('unreachable')
+
+    const firstRow = await db.sql<{ id: string }>`SELECT id FROM report_runs WHERE id = ${firstOutcome.runId}`
+    expect(firstRow.length).toBe(1)
+
+    const second = await handler(recordRunRequest(rpt1.query, analystCookie))
+    const secondOutcome = (await second.json()) as RecordRunOutcome
+    expect(secondOutcome.status).toBe('ok')
+    if (secondOutcome.status !== 'ok') throw new Error('unreachable')
+
+    expect(secondOutcome.runId).not.toBe(firstOutcome.runId)
+    const secondRow = await db.sql<{ id: string }>`SELECT id FROM report_runs WHERE id = ${secondOutcome.runId}`
+    expect(secondRow.length).toBe(1)
+    const allRows = await db.sql<{ id: string }>`SELECT id FROM report_runs`
+    expect(allRows.length).toBe(2)
+  })
+
+  it('the summary is real arithmetic over the returned series, partial buckets excluded (RPT-13)', async () => {
+    const rpt13 = savedReportFixtures.find((r) => r.id === 'RPT-13')!
+    const response = await handler(recordRunRequest(rpt13.query, analystCookie))
+    const outcome = (await response.json()) as RecordRunOutcome
+    expect(outcome.status).toBe('ok')
+    if (outcome.status !== 'ok') throw new Error('unreachable')
+
+    const current = outcome.result.series.find((s) => s.role === 'current')!
+    expect(current.partialBucketIndexes.length).toBeGreaterThan(0)
+    const usableValues = current.points
+      .map((value, i) => ({ value, partial: current.partialBucketIndexes.includes(i) }))
+      .filter((p): p is { value: number; partial: boolean } => !p.partial && p.value !== null)
+      .map((p) => p.value)
+
+    const summary = outcome.summary[current.id]!
+    expect(summary.total).toBe(usableValues.reduce((a, b) => a + b, 0))
+    expect(summary.partialExcluded).toBe(true)
+  })
+
+  it('without the header, reports.run answers the bare ReportResult it always has', async () => {
+    const rpt1 = savedReportFixtures.find((r) => r.id === 'RPT-1')!
+    const response = await handler(run(rpt1.query, analystCookie))
+    const body = (await response.json()) as Record<string, unknown>
+    expect(body.series).toBeDefined()
+    expect(body.result).toBeUndefined()
+    expect(body.runId).toBeUndefined()
+  })
+})
+
 describe('reports.run: funnel server-only options (WP-6.4c)', () => {
   /** Loads the real catalogue, patches `funnelCapabilities` onto specific measures in memory only, and calls `resolveFunnel` directly — never through `planQuery`. */
   async function resolveFunnelDirect(

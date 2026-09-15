@@ -89,26 +89,30 @@ against a live instance shows exactly where that gap sits:
 - The client docblock for `recordRun` (`src/data/clients/runs.ts`) documents
   `POST /api/v1/reports/run` with header `X-Eyvar-Record-Run: 1` as answering
   `{ runId, result, summary }` — a run id, on the wire, in the same response.
-- `createRunReportHandler` reads that header only to decide which `job_id` to stamp on the
-  `report_runs` row it inserts (`jobIdToRecord`), and **always** returns
-  `jsonResponse(result)` — the bare `ReportResult`, with no `runId` field, regardless of the
-  header. `ReportResult` (`src/data/types/report.ts`) has no `runId` field to put one in.
-- `api/v1/reports-run.test.ts` never exercises the header or asserts a `runId`, so nothing
-  caught the gap before this WP's smoke run did, against a real seeded instance:
+- `createRunReportHandler` used to read that header only to decide which `job_id` to stamp on
+  the `report_runs` row it inserts, and **always** returned the bare `ReportResult` with no
+  `runId` on it, regardless of the header. `api/v1/reports-run.test.ts` never exercised the
+  header, so 207 passing api tests did not catch it; this WP's smoke run, against a real
+  seeded instance, is what found it.
 
-  ```
-  [FAIL] run a saved report (or ad-hoc) (43ms) — reports/run with X-Eyvar-Record-Run:1
-  did not return a runId — the run is persisted server-side but never cited back
-  ```
+**Closed in WP-6.9.** The handler now answers the `RecordRunOutcome` envelope —
+`{ status, runId, result, summary }` — and its test asserts behaviour rather than shape: the
+returned `runId` names a row that really exists in `report_runs`, and a second call mints a
+different one, because T5 always records. `runId` lives on the envelope and **not** on
+`ReportResult`, so AC-1276 still compares the same shape on both sides; `summariseRunSeries`
+moved into `src/data/types/report.ts` so the mock and the server compute a summary with one
+shared function rather than two that can drift.
 
-  This is `scripts/api-smoke.mjs`'s single hard failure on the run described below, and it
-  is expected to keep failing until someone closes the gap — see "Ours to fix" below.
+**What remains open is the wider half of F-V2-90**, and it is the half that matters most: a
+run id still is not recorded on `AgentToolCallEvent` at the moment a tool runs, so the
+analyst's citation chain is still reconstructed from whatever blocks a result page happens to
+have saved. The wire now carries a run id; the agent's own event stream still does not.
 
 ## Ours to fix, versus the owner's to decide
 
 | | Item | Owner |
 |---|---|---|
-| Ours | B3's concrete mechanism: `reportsRun.ts` should return `runId` (and `summary`) when `X-Eyvar-Record-Run: 1` is set, matching `runs.ts`'s own client docblock. A same-file, contained fix — not a schema change, `report_runs.id` already exists. Whoever owns `api/_lib/handlers/reportsRun.ts` next (not this WP — `api/` is read-only here) | api/ owner |
+| ~~Ours~~ | ~~B3's concrete mechanism: `reportsRun.ts` should return `runId` and `summary` under `X-Eyvar-Record-Run: 1`~~ — **done in WP-6.9**, with a test that checks the id names a real row rather than merely being present | closed |
 | Owner's | B1: do not raise the cap; approve "SQL aggregation" as the first production WP | Owner |
 | Owner's | B2: mint `manage_analytics` or accept the current `view_analytics`-for-everything model | Owner |
 | Owner's | F-V2-90's wider shape: put a run id on `AgentToolCallEvent` itself, in `src/data/types/agent.ts` and on the wire, so provenance is recorded at the moment a tool runs rather than reconstructed afterward | Owner + agent/ owner |

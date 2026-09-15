@@ -138,6 +138,7 @@ describe('the store interface', () => {
       'ui.pageSize',
       'ui.paletteRecents',
       'ui.lastView',
+      'ui.alertDigest',
     ])
     expect(Object.values(UI_STATE_KEYS).some((key) => /collaps/i.test(key))).toBe(false)
   })

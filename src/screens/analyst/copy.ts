@@ -35,6 +35,10 @@ export const ANALYST_EN: Dictionary = {
   'an.view.mine': 'Mine',
   'an.view.team': 'Team',
 
+  /* The top-level content switch (§8) — Jobs is the index above; Schedules is new. */
+  'an.contentTab.jobs': 'Jobs',
+  'an.contentTab.schedules': 'Schedules',
+
   /* `AgentJobKind` (`types/agent.ts`), one word or phrase per kind — reused
      by both the index filter and the composer's segmented control. */
   'an.kind.ask': 'Answer',
@@ -95,6 +99,8 @@ export const ANALYST_EN: Dictionary = {
 
   /* ── the job timeline (§5.2, AC-1256/AC-1257/AC-1261) ───────────────── */
   'an.timeline.queued': 'Waiting for the runner to pick this up.',
+  /* AC-1267 — a queued job (a schedule's own enqueue included) while the runner is offline: not a guess, `an.runner.offline`'s own fact restated in place. */
+  'an.timeline.queued.offline': 'The runner is offline. This will stay queued until it reconnects.',
   'an.timeline.showSteps': 'Show steps',
   'an.timeline.deferred': 'Paused. The runner is at its usage limit until {time}.',
   'an.timeline.timedOut': 'This job ran out of time. Here is what it found before stopping.',
@@ -151,4 +157,41 @@ export const ANALYST_EN: Dictionary = {
   'an.provenance.none': 'This job didn’t run a report.',
   'an.provenance.reportGone': 'Report deleted',
   'an.provenance.asOf': 'as of {time}',
+
+  /* ── the Schedules tab (§8, AC-1266/AC-1267) ─────────────────────────── */
+  'an.schedules.loading': 'Loading schedules',
+  'an.schedules.error': 'The schedules didn’t load.',
+  'an.schedules.empty.heading': 'Schedule your first weekly review',
+  'an.schedules.empty.body': 'No schedules yet. A weekly review lands as a draft.',
+  'an.schedules.col.reports#one': '{count} report',
+  'an.schedules.col.reports#other': '{count} reports',
+  'an.schedules.owner': 'Owner {who}',
+  'an.schedules.enabled': 'Enabled',
+  'an.schedules.disabled': 'Disabled',
+  'an.schedules.action.enable': 'Enable',
+  'an.schedules.action.disable': 'Disable',
+  'an.schedules.action.enable.toast': 'Schedule enabled',
+  'an.schedules.action.disable.toast': 'Schedule disabled',
+  'an.schedules.action.toggle.failed': 'That didn’t save.',
+
+  /* One sentence per cadence shape (§8's cron, restricted to daily/weekly) — never the raw cron string, an operator reads neither cron syntax nor `dow` digits. */
+  'an.schedules.cadence.weekly': 'Every {day} at {time} (Riyadh)',
+  'an.schedules.cadence.daily': 'Daily at {time} (Riyadh)',
+
+  'an.schedules.new.heading': 'New weekly review',
+  'an.schedules.new.day': 'Day',
+  'an.schedules.new.time': 'Time (Riyadh)',
+  'an.schedules.new.attach': 'Reports…',
+  'an.schedules.new.action': 'Schedule',
+  'an.schedules.new.toast': 'Scheduled',
+  'an.schedules.new.error': 'That didn’t schedule.',
+
+  /* `Intl` has no "just the weekday name" shape this product's closed `DateStyle` set offers (`src/lib/format/date.ts`), and the day picker needs one independent of any date — `0` = Sunday, matching `WEEK_START_DOW` and the cron `dow` digit (D45). */
+  'an.day.0': 'Sunday',
+  'an.day.1': 'Monday',
+  'an.day.2': 'Tuesday',
+  'an.day.3': 'Wednesday',
+  'an.day.4': 'Thursday',
+  'an.day.5': 'Friday',
+  'an.day.6': 'Saturday',
 }

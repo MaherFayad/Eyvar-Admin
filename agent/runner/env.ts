@@ -26,6 +26,8 @@ export interface RunnerEnv {
   heartbeatIntervalMs: number
   jobTimeoutMs: number
   maxTurns: number
+  /** §8's fallback (`schedule.ts`) — how often the runner itself checks for a due schedule, independent of `/api/cron/agent-schedules`. */
+  scheduleCheckIntervalMs: number
 }
 
 function intFromEnv(name: string, fallback: number): number {
@@ -62,5 +64,6 @@ export function readRunnerEnv(overrides: Partial<RunnerEnv> = {}): RunnerEnv {
     heartbeatIntervalMs: overrides.heartbeatIntervalMs ?? intFromEnv('AGENT_HEARTBEAT_INTERVAL_MS', 30_000),
     jobTimeoutMs: overrides.jobTimeoutMs ?? intFromEnv('AGENT_JOB_TIMEOUT_MS', 20 * 60 * 1000),
     maxTurns: overrides.maxTurns ?? intFromEnv('AGENT_MAX_TURNS', 60),
+    scheduleCheckIntervalMs: overrides.scheduleCheckIntervalMs ?? intFromEnv('AGENT_SCHEDULE_CHECK_INTERVAL_MS', 5 * 60 * 1000),
   }
 }

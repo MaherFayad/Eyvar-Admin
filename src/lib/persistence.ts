@@ -415,6 +415,8 @@ export const UI_STATE_KEYS = {
   paletteRecents: 'ui.paletteRecents',
   /** **Prefix.** The last view an operator chose on a sub-tab: `ui.lastView.<subTabId>`. */
   lastView: 'ui.lastView',
+  /** Whether alert firings arrive as one daily digest instead of singly (WP-5.6). Off by default. */
+  alertDigest: 'ui.alertDigest',
 } as const
 
 /* ────────────────────────────── internals ──────────────────────────────── */

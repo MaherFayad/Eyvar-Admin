@@ -53,6 +53,7 @@ import type { PermissionKey } from './navigation'
 import type { BucketAggregate, DimensionKey, MeasureGrain, MeasureKey, Temporality } from './measure'
 import type { SegmentRef } from './segment'
 import type { AlertRule } from './alert'
+import { usablePoints } from '../reporting/stats'
 
 /**
  * Alert types moved to `alert.ts` (D42). Re-exported here for one phase so
@@ -1155,3 +1156,70 @@ export interface ReportCsv {
 
 /** Re-exported so a caller formatting a threshold does not have to reach into `common`. */
 export type { Halalas }
+
+/* ─────────────────────── run provenance (F-V2-90, AC-1276) ──────────────── */
+
+/**
+ * One series' arithmetic over a recorded run — T5's own stats
+ * (`05-backend.md` §5). Lives here, not in `clients/runs.ts`, so both the
+ * mock's `recordRun` and `handlers/reportsRun.ts` import one function and a
+ * summary cannot drift between them the way `runId` once did (F-V2-90).
+ */
+export interface RunSeriesSummary {
+  total: number | null
+  mean: number | null
+  min: number | null
+  max: number | null
+  first: number | null
+  last: number | null
+  changeAbs: number | null
+  changePct: number | null
+  /** T5's own word for the rule every stat above already follows: partial buckets are excluded. */
+  partialExcluded: true
+}
+
+/** Per-series `RunSeriesSummary` over a `ReportResult` — see `RunSeriesSummary`'s own comment for why this is shared rather than reimplemented. */
+export function summariseRunSeries(result: ReportResult): Record<string, RunSeriesSummary> {
+  const out: Record<string, RunSeriesSummary> = {}
+  for (const series of result.series) {
+    const usable = usablePoints(series.points, result.buckets, series.partialBucketIndexes)
+    if (usable.length === 0) {
+      out[series.id] = {
+        total: null,
+        mean: null,
+        min: null,
+        max: null,
+        first: null,
+        last: null,
+        changeAbs: null,
+        changePct: null,
+        partialExcluded: true,
+      }
+      continue
+    }
+    const values = usable.map((p) => p.value)
+    const first = usable[0]!.value
+    const last = usable[usable.length - 1]!.value
+    out[series.id] = {
+      total: values.reduce((a, b) => a + b, 0),
+      mean: values.reduce((a, b) => a + b, 0) / values.length,
+      min: Math.min(...values),
+      max: Math.max(...values),
+      first,
+      last,
+      changeAbs: last - first,
+      changePct: first === 0 ? null : ((last - first) / Math.abs(first)) * 100,
+      partialExcluded: true,
+    }
+  }
+  return out
+}
+
+/**
+ * `X-Eyvar-Record-Run: 1`'s response shape (`05-backend.md` §5, T5) — the
+ * type `http.post<RecordRunOutcome>('/reports/run', …)` casts through in
+ * `clients/runs.ts`, and now what `handlers/reportsRun.ts` actually answers.
+ */
+export type RecordRunOutcome =
+  | { status: 'ok'; runId: string; result: ReportResult; summary: Record<string, RunSeriesSummary> }
+  | { status: 'invalid-query'; violations: QueryViolation[] }

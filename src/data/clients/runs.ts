@@ -8,9 +8,9 @@
 import { DATA_SOURCE, registerOperations } from '../config'
 import { EYVAR_NOW, EYVAR_TODAY } from '../mock/clock'
 import { mock, mockMutation, notFound } from '../mock/delay'
-import { usablePoints } from '../reporting/stats'
+import { summariseRunSeries } from '../types/report'
 import type { IsoDateTime } from '../types/common'
-import type { QueryViolation, ReportQuery, ReportResult, ReportWindow } from '../types/report'
+import type { ReportQuery, ReportResult, ReportWindow, RecordRunOutcome, RunSeriesSummary } from '../types/report'
 import type { Single } from '../types/common'
 import { runReport } from './reports'
 import { currentMockUserId } from './session'
@@ -24,18 +24,8 @@ export const RUN_OPERATIONS = {
 
 registerOperations(...Object.values(RUN_OPERATIONS))
 
-export interface RunSeriesSummary {
-  total: number | null
-  mean: number | null
-  min: number | null
-  max: number | null
-  first: number | null
-  last: number | null
-  changeAbs: number | null
-  changePct: number | null
-  /** T5's own word for the rule every stat in this module already follows: partial buckets are excluded. */
-  partialExcluded: true
-}
+/** Moved to `types/report.ts` (F-V2-90) so the server can share them; re-exported so existing imports of `./runs` keep resolving. */
+export type { RunSeriesSummary, RecordRunOutcome }
 
 export interface ReportRun {
   id: string
@@ -48,49 +38,9 @@ export interface ReportRun {
   jobId: string | null
 }
 
-export type RecordRunOutcome =
-  | { status: 'ok'; runId: string; result: ReportResult; summary: Record<string, RunSeriesSummary> }
-  | { status: 'invalid-query'; violations: QueryViolation[] }
-
 /** Not persistence — session-scoped, the same as every mutable client store. */
 let runs: ReportRun[] = []
 let nextRunSeq = 1
-
-function summarise(result: ReportResult): Record<string, RunSeriesSummary> {
-  const out: Record<string, RunSeriesSummary> = {}
-  for (const series of result.series) {
-    const usable = usablePoints(series.points, result.buckets, series.partialBucketIndexes)
-    if (usable.length === 0) {
-      out[series.id] = {
-        total: null,
-        mean: null,
-        min: null,
-        max: null,
-        first: null,
-        last: null,
-        changeAbs: null,
-        changePct: null,
-        partialExcluded: true,
-      }
-      continue
-    }
-    const values = usable.map((p) => p.value)
-    const first = usable[0]!.value
-    const last = usable[usable.length - 1]!.value
-    out[series.id] = {
-      total: values.reduce((a, b) => a + b, 0),
-      mean: values.reduce((a, b) => a + b, 0) / values.length,
-      min: Math.min(...values),
-      max: Math.max(...values),
-      first,
-      last,
-      changeAbs: last - first,
-      changePct: first === 0 ? null : ((last - first) / Math.abs(first)) * 100,
-      partialExcluded: true,
-    }
-  }
-  return out
-}
 
 /**
  * POST /api/v1/reports/run, header `X-Eyvar-Record-Run: 1`
@@ -127,7 +77,7 @@ export async function recordRun(
     }
     nextRunSeq += 1
     runs = [...runs, run]
-    return { status: 'ok' as const, runId: run.id, result: run.result, summary: summarise(run.result) }
+    return { status: 'ok' as const, runId: run.id, result: run.result, summary: summariseRunSeries(run.result) }
   })
 }
 
@@ -179,8 +129,8 @@ export async function compareWindows(
   if (a.status !== 'ok' || b.status !== 'ok') return { status: 'invalid-query' }
 
   return mockMutation(RUN_OPERATIONS.compare, options.signal, () => {
-    const totalsA = summarise(a.result)
-    const totalsB = summarise(b.result)
+    const totalsA = summariseRunSeries(a.result)
+    const totalsB = summariseRunSeries(b.result)
     const deltas: SeriesDelta[] = []
     for (const seriesB of b.result.series.filter((s) => s.role === 'current')) {
       const seriesA = a.result.series.find(

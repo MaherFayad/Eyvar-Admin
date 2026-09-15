@@ -42,6 +42,36 @@
     },
     {
       "method": "GET",
+      "path": "/api/v1/agent/schedules",
+      "client": "src/data/clients/agent.ts",
+      "function": "listAgentSchedules",
+      "params": null,
+      "body": null,
+      "returns": "AgentSchedule[]",
+      "statuses": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/agent/schedules",
+      "client": "src/data/clients/agent.ts",
+      "function": "createAgentSchedule",
+      "params": null,
+      "body": "CreateAgentScheduleInput",
+      "returns": "Single<AgentSchedule>",
+      "statuses": []
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/agent/schedules/:id",
+      "client": "src/data/clients/agent.ts",
+      "function": "updateAgentSchedule",
+      "params": null,
+      "body": "UpdateAgentScheduleInput",
+      "returns": "Single<AgentSchedule>",
+      "statuses": []
+    },
+    {
+      "method": "GET",
       "path": "/api/v1/agent/status",
       "client": "src/data/clients/agent.ts",
       "function": "getAgentStatus",

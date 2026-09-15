@@ -1,18 +1,24 @@
 /**
  * The operator's own arrangement in the 360° layer (plan T5.1, TA-10): access
  * as role plus delta (AC-921) with the router's own preview (AC-924), what they
- * hold now, their recent audit entries, their sessions, their onboarding and
- * their place on the rota. Rendered only under `manage_team`.
+ * hold now, their recent audit entries, their sessions, their onboarding,
+ * their place on the rota, and (WP-5.6) their own notification preference.
+ * Rendered only under `manage_team`.
  */
 
+import { useId, useState } from 'react'
+import { toast } from 'sonner'
 import {
   getOnCallRota,
   getOnboarding,
+  getUiState,
   listAuditEntries,
   listDevices,
   listWorkItems,
   resolvePermissions,
+  updateUiState,
 } from '@/data/clients'
+import type { UiStateResult } from '@/data/clients'
 import type {
   AuditEntry,
   DeviceSession,
@@ -27,7 +33,10 @@ import { formatDate, formatLocalisedText, type Language, type Translate } from '
 import { AccessPreview } from '@/components/access/AccessPreview'
 import { StatusBadge } from '@/components/StatusBadge'
 import { Button } from '@/components/ui/button'
+import { Label } from '@/components/ui/label'
+import { Switch } from '@/components/ui/switch'
 import { PERMISSION_KEYS } from '@/shell/permissions'
+import { useShell } from '@/shell/ShellContext'
 import { roleLabel } from '@/screens/auth/copy'
 import { workText } from '@/screens/operations/my-work/MyWorkScreen'
 import { SectionCard, SectionStates } from '../SectionCard'
@@ -66,6 +75,33 @@ export function OperatorProfile({ operator, t, language, onNavigate }: OperatorP
     isEmpty: () => false,
   })
   const rota = useAsync<OnCallRota>((signal) => getOnCallRota(signal), { cacheKey: 'team.rota', isEmpty: () => false })
+
+  /**
+   * WP-5.6 — `alertDigest` is a personal preference, so only the signed-in
+   * operator's own card may write it; a manager viewing a colleague sees the
+   * same switch disabled with the reason (D9 CQ-3), never hidden.
+   */
+  const isSelf = useShell().session?.userId === operator.id
+  const prefs = useAsync<UiStateResult>((signal) => getUiState(signal), {
+    cacheKey: 'preferences.ui',
+    isEmpty: () => false,
+  })
+  const [digestSaving, setDigestSaving] = useState(false)
+  const digestReasonId = useId()
+
+  const setAlertDigest = async (next: boolean) => {
+    setDigestSaving(true)
+    try {
+      await updateUiState({ alertDigest: next })
+      prefs.refetch()
+    } catch {
+      /* D16 — a silent write failure is how a preference appears to work
+         for a week and then does not; the toggle stays put and says so. */
+      toast.error(t('profile.operator.notifications.failed'))
+    } finally {
+      setDigestSaving(false)
+    }
+  }
 
   return (
     <div className="flex flex-col gap-2">
@@ -181,6 +217,41 @@ export function OperatorProfile({ operator, t, language, onNavigate }: OperatorP
                   ? t('profile.operator.onCall.secondary')
                   : t('profile.operator.onCall.none')}
             </p>
+          )}
+        </SectionStates>
+      </SectionCard>
+
+      {/* WP-5.6 — off by default (`04-alerting-v2.md` §6); no numbered AC. */}
+      <SectionCard title={t('profile.operator.section.notifications')} defaultOpen={false}>
+        <SectionStates
+          result={prefs}
+          section={t('profile.operator.section.notifications')}
+          empty={t('profile.state.empty')}
+          t={t}
+        >
+          {({ state }) => (
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex min-w-0 flex-col gap-0.5">
+                <Label htmlFor="operator-alert-digest" className="text-xs font-medium text-foreground">
+                  {t('profile.operator.notifications.digest')}
+                </Label>
+                <span className="text-xs text-muted-foreground">
+                  {t('profile.operator.notifications.digest.hint')}
+                </span>
+                {!isSelf && (
+                  <span id={digestReasonId} className="text-xs text-muted-foreground">
+                    {t('profile.operator.notifications.selfOnly')}
+                  </span>
+                )}
+              </div>
+              <Switch
+                id="operator-alert-digest"
+                checked={state.alertDigest}
+                disabled={!isSelf || digestSaving}
+                aria-describedby={!isSelf ? digestReasonId : undefined}
+                onCheckedChange={(checked) => void setAlertDigest(checked)}
+              />
+            </div>
           )}
         </SectionStates>
       </SectionCard>

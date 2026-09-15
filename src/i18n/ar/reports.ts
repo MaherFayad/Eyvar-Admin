@@ -181,6 +181,7 @@ export const REPORTS_AR: Dictionary = {
   'rb.toolbar.range.last-90d': '90 يومًا',
   'rb.toolbar.range.last-365d': '365 يومًا',
   'rb.toolbar.compare.clear': 'إزالة المقارنة',
+  'rb.toolbar.createAlert': 'إنشاء تنبيه من هذا الرسم',
 
   /* شكل العرض — ضابط واحد لسبعة أشكال. أسماء كاملة لأن الزرّ يعرض المختار
      وحده بلا عنوان بجانبه. */
@@ -537,6 +538,7 @@ export const REPORTS_AR: Dictionary = {
   'rb.overflow.pin.toast': 'ثُبِّت في "{page}".',
   'rb.overflow.pin.failed': 'لم يُثبَّت. حاول مرة أخرى.',
   'rb.overflow.createAlert': 'إنشاء تنبيه…',
+  'rb.overflow.saveToAlert': 'الحفظ لإنشاء تنبيه…',
   'rb.overflow.ask': 'اسأل المحلل',
   'rb.overflow.versions': 'سجل الإصدارات',
   'rb.overflow.versions.heading': 'سجل الإصدارات',

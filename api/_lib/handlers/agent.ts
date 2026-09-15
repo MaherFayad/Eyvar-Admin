@@ -32,12 +32,15 @@ import type {
   AgentJobKind,
   AgentJobState,
   AgentRunner,
+  AgentSchedule,
   CaseStudy,
   CaseStudyFinding,
   CaseStudyFindingValue,
 } from '@/data/types/agent'
 import type { ReportResult } from '@/data/types/report'
 import type { PermissionKey } from '@/data/types/navigation'
+import type { IsoDate, IsoDateTime } from '@/data/types/common'
+import { bucketStartOf, localDayOf } from '@/data/reporting/buckets'
 import { conflictError, notFoundError, validationError, forbiddenError } from '../errors'
 import { jsonResponse, paginated, resolveOffsetPage, single } from '../envelope'
 import { requirePermission, type RequestContext } from '../auth'
@@ -289,6 +292,247 @@ export function createCreateAgentJobHandler(db: Database): RouteHandler<RequestC
       RETURNING *
     `
     return jsonResponse(single(toAgentJob(inserted[0]!)), 201)
+  }
+}
+
+/* ──────────────────────────── scheduled reviews (§8, AC-1266/AC-1267) ──────────────────────────── */
+
+interface AgentScheduleRow {
+  id: string
+  kind: string
+  template_json: unknown
+  cron: string
+  owner_id: string
+  enabled: boolean
+  last_enqueued_at: string | null
+  created_at: string
+  updated_at: string
+}
+
+function toAgentSchedule(row: AgentScheduleRow): AgentSchedule {
+  const template = parseJsonColumn<{ reportIds: string[]; pageId: string | null }>(row.template_json, { reportIds: [], pageId: null })
+  return {
+    id: row.id,
+    kind: row.kind as AgentSchedule['kind'],
+    reportIds: template.reportIds,
+    pageId: template.pageId,
+    cron: row.cron,
+    ownerId: row.owner_id,
+    enabled: row.enabled,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  }
+}
+
+async function fetchScheduleRow(db: Database, id: string): Promise<AgentScheduleRow | null> {
+  const rows = await db.sql<AgentScheduleRow>`SELECT * FROM agent_schedules WHERE id = ${id}`
+  return rows[0] ?? null
+}
+
+/**
+ * A 5-field cron, restricted the way §8 names: day-of-month and month must
+ * be `*` (nothing finer than daily), minute and hour are a single fixed
+ * time, and day-of-week is either `*` (daily) or one fixed day, `0`–`6`
+ * matching `WEEK_START_DOW`'s own Sunday-is-`0` convention
+ * (`src/data/reporting/buckets.ts`) — the same digit means the same day in
+ * both places, deliberately.
+ */
+export interface ParsedScheduleCron {
+  hour: number
+  minute: number
+  dow: number | '*'
+}
+
+function intField(raw: string | undefined, min: number, max: number, field: string): number {
+  const n = Number(raw)
+  if (raw === undefined || !Number.isInteger(n) || n < min || n > max) {
+    throw validationError([{ field: 'cron', code: 'invalid', message: `"${field}" must be an integer between ${min} and ${max}` }])
+  }
+  return n
+}
+
+export function parseScheduleCron(cron: string): ParsedScheduleCron {
+  const fields = cron.trim().split(/\s+/)
+  if (fields.length !== 5) {
+    throw validationError([{ field: 'cron', code: 'invalid', message: 'cron must have exactly 5 fields' }])
+  }
+  const [minute, hour, dom, month, dow] = fields
+  const parsedMinute = intField(minute, 0, 59, 'minute')
+  const parsedHour = intField(hour, 0, 23, 'hour')
+  if (dom !== '*' || month !== '*') {
+    throw validationError([
+      { field: 'cron', code: 'unsupported', message: 'cron is restricted to a daily or weekly cadence: day-of-month and month must be "*"' },
+    ])
+  }
+  if (dow === '*') return { hour: parsedHour, minute: parsedMinute, dow: '*' }
+  return { hour: parsedHour, minute: parsedMinute, dow: intField(dow, 0, 6, 'day-of-week') }
+}
+
+/** The Riyadh wall-clock hour and minute of an instant — `agent/runner/index.ts`'s own `riyadhToday()`, extended with the time of day a cron check needs and `localDayOf` does not carry. */
+function riyadhClock(nowIso: IsoDateTime): { hour: number; minute: number } {
+  const parts = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Riyadh', hour: '2-digit', minute: '2-digit', hour12: false }).formatToParts(
+    new Date(nowIso),
+  )
+  const hour = Number(parts.find((p) => p.type === 'hour')?.value ?? '0')
+  const minute = Number(parts.find((p) => p.type === 'minute')?.value ?? '0')
+  return { hour, minute }
+}
+
+/** A Riyadh calendar date's day-of-week, `0` = Sunday — matching `WEEK_START_DOW` and standard cron's own `dow` digit. Pure arithmetic on the date string, not a second timezone lookup: `date` is already Riyadh-local (from `localDayOf`), so its weekday is timezone-independent. */
+function dowOf(date: IsoDate): number {
+  return new Date(`${date}T00:00:00Z`).getUTCDay()
+}
+
+/** Weekly: the Sunday of the Riyadh week the trigger falls in (D45, reusing `bucketStartOf` rather than re-deriving the week start). Daily: today itself. Either way, this is the period the uniqueness ledger keys on — one enqueue per period, not per check. */
+function periodStartFor(parsed: ParsedScheduleCron, today: IsoDate): IsoDate {
+  return parsed.dow === '*' ? today : bucketStartOf(today, 'week')
+}
+
+function isScheduleDue(parsed: ParsedScheduleCron, today: IsoDate, clock: { hour: number; minute: number }): boolean {
+  if (parsed.dow !== '*' && dowOf(today) !== parsed.dow) return false
+  if (clock.hour < parsed.hour) return false
+  if (clock.hour === parsed.hour && clock.minute < parsed.minute) return false
+  return true
+}
+
+export interface EnqueueDueSchedulesSummary {
+  checked: number
+  enqueued: number
+}
+
+/**
+ * §8 / AC-1266: enqueues exactly one job per due, enabled schedule per
+ * period. Called by both `api/cron/agent-schedules.ts` (`CRON_SECRET`) and
+ * the runner-side fallback's `POST /agent/schedules/enqueue-due` (runner
+ * token) — the two concurrent writers AC-1266 requires the arbitration to
+ * survive. A disabled schedule is skipped outright, before the cron
+ * arithmetic runs, so it enqueues nothing (§8's other half).
+ *
+ * The claim is the `INSERT … ON CONFLICT (schedule_id, period_start) DO
+ * NOTHING RETURNING …` on `agent_schedule_enqueues`: whichever caller's
+ * insert returns a row created the job; the other's returns nothing and it
+ * does nothing further. This is the database arbitrating a unique
+ * constraint, the same mechanism `idempotency.ts`'s `DbIdempotencyStore`
+ * uses — never a read-then-write check in this process.
+ */
+export async function enqueueDueAgentSchedules(db: Database, now: () => IsoDateTime = () => new Date().toISOString()): Promise<EnqueueDueSchedulesSummary> {
+  const nowIso = now()
+  const today = localDayOf(nowIso)
+  const clock = riyadhClock(nowIso)
+  const summary: EnqueueDueSchedulesSummary = { checked: 0, enqueued: 0 }
+
+  const rows = await db.sql<AgentScheduleRow>`SELECT * FROM agent_schedules WHERE enabled = true`
+  for (const row of rows) {
+    summary.checked += 1
+    let parsed: ParsedScheduleCron
+    try {
+      parsed = parseScheduleCron(row.cron)
+    } catch {
+      // A malformed cron is a data problem for whoever edited the schedule,
+      // not a reason to fail this whole cron run — skip it and keep going.
+      continue
+    }
+    if (!isScheduleDue(parsed, today, clock)) continue
+    const periodStart = periodStartFor(parsed, today)
+
+    const claim = await db.sql<{ schedule_id: string }>`
+      INSERT INTO agent_schedule_enqueues (schedule_id, period_start)
+      VALUES (${row.id}, ${periodStart})
+      ON CONFLICT (schedule_id, period_start) DO NOTHING
+      RETURNING schedule_id
+    `
+    if (claim.length === 0) continue // another writer already claimed this period
+
+    const template = parseJsonColumn<{ reportIds: string[]; pageId: string | null }>(row.template_json, { reportIds: [], pageId: null })
+    const contextObjects: AgentJobContext[] = [
+      ...template.reportIds.map((id): AgentJobContext => ({ kind: 'report', id })),
+      ...(template.pageId ? [{ kind: 'page' as const, id: template.pageId }] : []),
+    ]
+    const inserted = await db.sql<{ id: string }>`
+      INSERT INTO agent_jobs (kind, question, language, context_json, requested_by)
+      VALUES ('weekly-review', ${`Weekly review — week of ${periodStart}`}, 'en', ${JSON.stringify(contextObjects)}, ${row.owner_id})
+      RETURNING id
+    `
+    const jobId = inserted[0]!.id
+    await db.sql`UPDATE agent_schedule_enqueues SET job_id = ${jobId} WHERE schedule_id = ${row.id} AND period_start = ${periodStart}`
+    await db.sql`UPDATE agent_schedules SET last_enqueued_at = ${nowIso}, updated_at = ${nowIso} WHERE id = ${row.id}`
+    summary.enqueued += 1
+  }
+  return summary
+}
+
+/** GET /api/v1/agent/schedules -> AgentSchedule[] (bare array — the list is always small; no pagination furniture). */
+export function createListAgentSchedulesHandler(db: Database): RouteHandler<RequestContext> {
+  return async (_req, ctx) => {
+    requirePermission(ctx, READ_PERMISSION)
+    const rows = await db.sql<AgentScheduleRow>`SELECT * FROM agent_schedules ORDER BY created_at ASC`
+    return jsonResponse(rows.map(toAgentSchedule))
+  }
+}
+
+/** POST /api/v1/agent/schedules  body: { cron, reportIds, pageId }  -> Single<AgentSchedule>, 201. `kind` is always `weekly-review` (§8) — not accepted from the body. */
+export function createCreateAgentScheduleHandler(db: Database): RouteHandler<RequestContext> {
+  return async (req, ctx) => {
+    const operator = requirePermission(ctx, CREATE_PERMISSION)
+    const body = (await readJsonBody(req)) as { cron?: unknown; reportIds?: unknown; pageId?: unknown }
+    const cron = typeof body.cron === 'string' ? body.cron.trim() : ''
+    if (!cron) throw validationError([{ field: 'cron', code: 'required', message: 'A cron expression is required' }])
+    parseScheduleCron(cron) // throws on anything finer than daily, or malformed
+
+    const reportIds = Array.isArray(body.reportIds) ? body.reportIds.filter((id): id is string => typeof id === 'string') : []
+    const pageId = typeof body.pageId === 'string' ? body.pageId : null
+
+    const inserted = await db.sql<AgentScheduleRow>`
+      INSERT INTO agent_schedules (kind, template_json, cron, owner_id, enabled)
+      VALUES ('weekly-review', ${JSON.stringify({ reportIds, pageId })}, ${cron}, ${operator.userId}, true)
+      RETURNING *
+    `
+    return jsonResponse(single(toAgentSchedule(inserted[0]!)), 201)
+  }
+}
+
+/** PATCH /api/v1/agent/schedules/:id  body: { enabled?, cron?, reportIds?, pageId? }  -> Single<AgentSchedule>. §8's "a disabled schedule enqueues none" is this toggle. */
+export function createUpdateAgentScheduleHandler(db: Database): RouteHandler<RequestContext> {
+  return async (req, ctx) => {
+    requirePermission(ctx, CREATE_PERMISSION)
+    const id = ctx.params.id ?? ''
+    const existing = await fetchScheduleRow(db, id)
+    if (!existing) throw notFoundError(`agent schedule ${id}`)
+
+    const body = (await readJsonBody(req)) as { enabled?: unknown; cron?: unknown; reportIds?: unknown; pageId?: unknown }
+    const cron = typeof body.cron === 'string' ? body.cron.trim() : existing.cron
+    if (cron !== existing.cron) parseScheduleCron(cron)
+    const enabled = typeof body.enabled === 'boolean' ? body.enabled : existing.enabled
+
+    const existingTemplate = parseJsonColumn<{ reportIds: string[]; pageId: string | null }>(existing.template_json, { reportIds: [], pageId: null })
+    const reportIds = Array.isArray(body.reportIds)
+      ? body.reportIds.filter((v): v is string => typeof v === 'string')
+      : existingTemplate.reportIds
+    const pageId = body.pageId === undefined ? existingTemplate.pageId : (typeof body.pageId === 'string' ? body.pageId : null)
+
+    const rows = await db.sql<AgentScheduleRow>`
+      UPDATE agent_schedules SET
+        cron = ${cron}, enabled = ${enabled}, template_json = ${JSON.stringify({ reportIds, pageId })}, updated_at = now()
+      WHERE id = ${id}
+      RETURNING *
+    `
+    return jsonResponse(single(toAgentSchedule(rows[0]!)))
+  }
+}
+
+/**
+ * POST /api/v1/agent/schedules/enqueue-due  runner token  -> { checked, enqueued }
+ *
+ * `agent/runner/schedule.ts`'s fallback call (§1a: Vercel Hobby refuses a
+ * cron finer than daily, so the long-running runner is the only thing that
+ * checks schedules often enough there). Shares `enqueueDueAgentSchedules`
+ * with the cron entry verbatim — same arbitration, same "exactly once".
+ */
+export function createEnqueueDueAgentSchedulesHandler(db: Database): RouteHandler<RequestContext> {
+  return async (req) => {
+    requireAgentRunnerToken(req)
+    const summary = await enqueueDueAgentSchedules(db)
+    return jsonResponse(summary)
   }
 }
 

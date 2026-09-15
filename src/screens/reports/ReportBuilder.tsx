@@ -174,6 +174,8 @@ import {
 } from '@/components/icons'
 import { StatusBadge } from '@/components/StatusBadge'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -216,6 +218,7 @@ import {
   runReport,
   saveAnnotation,
   savePage,
+  saveReport,
   serialiseReportQuery,
 } from '@/data/clients'
 import type {
@@ -225,11 +228,12 @@ import type {
   QueryViolation,
   ReportQuery,
   ReportResult,
+  SaveInvalidReason,
   SavedReport,
   SavedReportVersion,
 } from '@/data/types'
 import { applyReportMode } from '@/data/clients/reports'
-import { normaliseReportQuery, reportMode, type ReportMode } from '@/data/types'
+import { normaliseReportQuery, REPORT_NAME_MAX, reportMode, type ReportMode } from '@/data/types'
 import { pageTemplate, type Page } from '@/data/types/page'
 import { formatDate, isDeepEqual, type Language, type Translator } from '@/lib'
 import { downloadPng, renderChartPng, type ChartPngCaption } from '@/lib/chartPng'
@@ -448,6 +452,20 @@ export function ReportBuilder({
   /* §8's overflow — WP-2.7. `alertOpen` reuses the library's own dialog so a
      rule created from either surface is one component, one behaviour. */
   const [alertOpen, setAlertOpen] = useState(false)
+  /* G15 — the series the bell/menu resolved, so the composer preselects it
+     rather than leaving the series picker for the operator to redo. */
+  const [alertPresetSeriesId, setAlertPresetSeriesId] = useState<string | undefined>(undefined)
+  /**
+   * WP-5.5 — an alert must point at a SAVED report (`04-alerting-v2.md`
+   * §"From a chart"). An unsaved question is named and saved here, inline,
+   * rather than in `SaveReportDialog` stacked on top of the composer: two
+   * modals for one decision reads as two decisions. Cancelling saves nothing.
+   */
+  const [alertNamePrompt, setAlertNamePrompt] = useState(false)
+  const [alertNameDraft, setAlertNameDraft] = useState('')
+  const [alertNameReasons, setAlertNameReasons] = useState<readonly SaveInvalidReason[]>([])
+  const [alertNameFailed, setAlertNameFailed] = useState(false)
+  const [alertNameSaving, setAlertNameSaving] = useState(false)
   const [versionsOpen, setVersionsOpen] = useState(false)
   /* The chart's own DOM node, for PNG export (`chartPng.ts` rasterises the
      `<svg>` it finds inside). A ref rather than a prop into `ResultCanvas`:
@@ -1045,6 +1063,70 @@ export function ReportBuilder({
     [t, language],
   )
 
+  /* G15 — a saved report opens the composer directly, preselecting the first
+     `current`, unblocked series (the same filter `AlertRuleDialog`'s own
+     picker applies); an unsaved one opens the inline name prompt instead,
+     and nothing is saved until that prompt's own `Save`. */
+  const openCreateAlert = useCallback(() => {
+    const seriesId = result?.series.find((s) => s.role === 'current' && !s.blocked)?.id
+    setAlertPresetSeriesId(seriesId)
+    if (report !== null) {
+      setAlertOpen(true)
+      return
+    }
+    setAlertNameDraft(draftName)
+    setAlertNameReasons([])
+    setAlertNameFailed(false)
+    setAlertNamePrompt(true)
+  }, [report, result, draftName])
+
+  /* `onSaved` (the prop) is a plain `navigate` with no way to carry "and open
+     the alert composer" through it, so this calls `saveReport` directly and
+     amends its OWN navigation with `openAlert=<seriesId>` — read back by the
+     effect below, the same one-shot param pattern `pinTo` already uses (G15,
+     04-alerting-v2.md §"From a chart"). */
+  const confirmAlertName = useCallback(async () => {
+    setAlertNameSaving(true)
+    setAlertNameFailed(false)
+    try {
+      const outcome = await saveReport({
+        id: null,
+        name: alertNameDraft,
+        description: draftDescription.trim() === '' ? null : draftDescription,
+        query,
+        visibility: 'private',
+      })
+      if (outcome.status === 'invalid') {
+        setAlertNameReasons(outcome.reasons)
+        return
+      }
+      setAlertNamePrompt(false)
+      const params = new URLSearchParams()
+      if (alertPresetSeriesId) params.set('openAlert', alertPresetSeriesId)
+      const search = params.toString()
+      navigate(`/management/reports/${outcome.report.id}${search ? `?${search}` : ''}`)
+    } catch {
+      setAlertNameFailed(true)
+    } finally {
+      setAlertNameSaving(false)
+    }
+  }, [alertNameDraft, draftDescription, query, alertPresetSeriesId, navigate])
+
+  /* The other side of the hand-off above: a freshly saved report, opened
+     with `?openAlert=<seriesId>`, opens the composer once and then strips
+     its own parameter so a reload or `Back` does not reopen it. */
+  const openAlertSeriesId = new URLSearchParams(location.search).get('openAlert')
+  useEffect(() => {
+    if (!openAlertSeriesId || report === null) return
+    setAlertPresetSeriesId(openAlertSeriesId)
+    setAlertOpen(true)
+    const params = new URLSearchParams(location.search)
+    params.delete('openAlert')
+    const search = params.toString()
+    navigate({ pathname: location.pathname, search: search ? `?${search}` : '' }, { replace: true })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openAlertSeriesId, report])
+
   /**
    * **The header — §8's anatomy, wearing §A5 and §A6.**
    *
@@ -1224,9 +1306,12 @@ export function ReportBuilder({
                 </DropdownMenuSubContent>
               </DropdownMenuSub>
 
-              <DropdownMenuItem onSelect={() => setAlertOpen(true)} disabled={report === null}>
+              {/* G15 — `Create alert…` on a saved report opens the composer
+                  directly; `Save to alert…` on an unsaved one names and saves
+                  it first (the inline prompt below), then does the same. */}
+              <DropdownMenuItem onSelect={openCreateAlert} disabled={plan.violations.length > 0}>
                 <AlertRuleIcon aria-hidden="true" className="size-4" />
-                {t('rb.overflow.createAlert')}
+                {report === null ? t('rb.overflow.saveToAlert') : t('rb.overflow.createAlert')}
               </DropdownMenuItem>
 
               <DropdownMenuItem
@@ -1536,6 +1621,54 @@ export function ReportBuilder({
         </p>
       )}
 
+      {/* G15 — the name required before an unsaved question can carry an
+          alert, INLINE rather than `SaveReportDialog` stacked on the
+          composer (§"From a chart"). Cancel saves nothing and opens nothing. */}
+      {alertNamePrompt && (
+        <div className="mb-3 flex shrink-0 flex-col gap-2 rounded-xl border border-border bg-card p-3">
+          <h2 className="text-sm font-medium text-foreground">{t('rb.alert.form.report.unsaved')}</h2>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="rb-alert-save-name">{t('rb.save.name')}</Label>
+            <Input
+              id="rb-alert-save-name"
+              dir="auto"
+              autoFocus
+              maxLength={REPORT_NAME_MAX}
+              value={alertNameDraft}
+              onChange={(event) => setAlertNameDraft(event.target.value)}
+            />
+          </div>
+          {alertNameReasons.length > 0 && (
+            <ul role="alert" className="flex list-none flex-col gap-0.5">
+              {alertNameReasons.map((reason) => (
+                <li key={reason} className="text-xs text-muted-foreground">
+                  {t(`rb.save.invalid.${reason}`, { max: REPORT_NAME_MAX })}
+                </li>
+              ))}
+            </ul>
+          )}
+          {alertNameFailed && (
+            <p role="alert" className="text-xs text-muted-foreground">
+              {t('rb.save.failed')}
+            </p>
+          )}
+          <div className="flex items-center justify-end gap-2">
+            <Button type="button" variant="secondary" size="xs" onClick={() => setAlertNamePrompt(false)}>
+              {t('rb.save.cancel')}
+            </Button>
+            <Button
+              type="button"
+              variant="default"
+              size="xs"
+              disabled={alertNameSaving}
+              onClick={() => void confirmAlertName()}
+            >
+              {t('rb.save.confirm')}
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* §8's `Version history` — a panel UNDER the header, not a dialog:
           `Restore` loads the query into the draft and never saves (AC-1162),
           so an operator can look at an old version and walk away. */}
@@ -1633,6 +1766,7 @@ export function ReportBuilder({
             result={shownResult}
             stale={stale}
             onRefresh={() => void run(ranQuery ?? query, 'auto')}
+            onCreateAlert={openCreateAlert}
             seriesMode={seriesMode}
             /* AC-807's unstarted rule reaches the toolbar unchanged — and ONLY
                for the two series modes. A retention window decides how many
@@ -1723,13 +1857,15 @@ export function ReportBuilder({
       />
 
       {/* §8's `Create alert…` — the same dialog `ReportLibrary`'s row action
-          opens, so a rule created from either surface is one component. */}
+          opens, so a rule created from either surface is one component. G15
+          adds `presetSeriesId`, resolved by `openCreateAlert` above. */}
       {alertOpen && report !== null && (
         <AlertRuleDialog
           open
           onOpenChange={(open) => !open && setAlertOpen(false)}
           rule={null}
           presetReportId={report.id}
+          presetSeriesId={alertPresetSeriesId}
           today={today}
           onSaved={(saved) => {
             setAlertOpen(false)

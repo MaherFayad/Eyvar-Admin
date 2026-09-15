@@ -81,10 +81,8 @@ describe('the bag', () => {
     const { state } = await getUiState()
     const fields = Object.values(UI_STATE_KEYS).map((key) => key.replace(/^ui\./, ''))
     expect(fields.every((field) => field in state)).toBe(true)
-    // The reverse direction: every field except the version is a named key.
-    expect(Object.keys(state).filter((key) => key !== 'schemaVersion').sort()).toEqual(
-      [...fields].sort(),
-    )
+    // The reverse direction: every field is a named key.
+    expect(Object.keys(state).filter((key) => key !== 'schemaVersion').sort()).toEqual([...fields].sort())
   })
 
   it('round-trips a patch and does not accept a caller-supplied schema version', async () => {
@@ -108,6 +106,20 @@ describe('the bag', () => {
     const { state } = await getUiState()
     expect(state.columnPins['drivers.all']).toStrictEqual([{ id: 'name', edge: 'start' }])
     expect(state.paletteRecents.length).toBe(2)
+  })
+
+  /* WP-5.6 — off by default, round-trips through the same PATCH as every
+     other class-2 field, and a non-boolean on the wire falls back rather
+     than half-reading. */
+  it('alertDigest defaults to false and persists through a patch', async () => {
+    expect((await getUiState()).state.alertDigest).toBe(false)
+    const written = await updateUiState({ alertDigest: true })
+    expect(written.state.alertDigest).toBe(true)
+    expect((await getUiState()).state.alertDigest).toBe(true)
+  })
+
+  it('alertDigest falls back to the default when the wire sends a non-boolean', () => {
+    expect(readUiState({ ...DEFAULT_UI_STATE, alertDigest: 'yes' })?.alertDigest).toBe(false)
   })
 })
 

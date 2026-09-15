@@ -1,7 +1,7 @@
 /**
- * The job timeline — AC-1257 (interim findings appear as they arrive) and
- * the domain states AC-1261 names (`deferred`, `failed:timeout`,
- * `failed:evidence`, `failed:schema`).
+ * The job timeline — AC-1257 (interim findings appear as they arrive),
+ * AC-1261 (the domain states) and AC-1267 (an offline runner states why a
+ * queued job is not moving).
  */
 
 import { render, screen } from '@testing-library/react'
@@ -10,7 +10,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { EN } from '@/i18n/dictionaries'
 import { createTranslator } from '@/lib'
 import { JobTimeline } from './JobTimeline'
-import type { AgentEvent, AgentJob } from '@/data/types/agent'
+import type { AgentEvent, AgentJob, AgentRunner } from '@/data/types/agent'
 
 const t = createTranslator({ dictionary: EN })
 
@@ -53,16 +53,21 @@ const finding = (id: string, text: string): AgentEvent => ({
   ts: '2026-06-24T09:00:05.000Z',
 })
 
+function runner(overrides: Partial<AgentRunner>): AgentRunner {
+  return { online: true, lastHeartbeatAt: '2026-06-24T08:59:50.000Z', limitedUntil: null, queueDepth: 0, ...overrides }
+}
+
 describe('AC-1257 — interim findings from note_finding appear in the timeline as they arrive', () => {
   it('shows a finding already in the events list, and a second one appended on re-render', () => {
     const events = [step('E1', 'catalogue_measures', 'Looked up trips.completed', 400)]
-    const { rerender } = render(<JobTimeline job={job({})} events={events} onRerun={() => {}} t={t} language="en" />)
+    const { rerender } = render(<JobTimeline job={job({})} events={events} runner={null} onRerun={() => {}} t={t} language="en" />)
     expect(screen.queryByText('Riyadh North fell week over week.')).not.toBeInTheDocument()
 
     rerender(
       <JobTimeline
         job={job({})}
         events={[...events, finding('F1', 'Riyadh North fell week over week.')]}
+        runner={null}
         onRerun={() => {}}
         t={t}
         language="en"
@@ -78,6 +83,7 @@ describe('AC-1261 — deferred and the three failure reasons each state what hap
       <JobTimeline
         job={job({ state: 'deferred', retryAt: '2026-06-24T14:00:00.000Z' })}
         events={[]}
+        runner={null}
         onRerun={() => {}}
         t={t}
         language="en"
@@ -92,6 +98,7 @@ describe('AC-1261 — deferred and the three failure reasons each state what hap
       <JobTimeline
         job={job({ state: 'failed', failureReason: 'timeout' })}
         events={[finding('F1', 'Partial finding kept.')]}
+        runner={null}
         onRerun={() => {}}
         t={t}
         language="en"
@@ -106,6 +113,7 @@ describe('AC-1261 — deferred and the three failure reasons each state what hap
       <JobTimeline
         job={job({ state: 'failed', failureReason: 'evidence' })}
         events={[finding('F1', 'Churn was concentrated among Gold plan riders.')]}
+        runner={null}
         onRerun={() => {}}
         t={t}
         language="en"
@@ -119,15 +127,15 @@ describe('AC-1261 — deferred and the three failure reasons each state what hap
     const user = userEvent.setup()
     const onRerun = vi.fn()
     render(
-      <JobTimeline job={job({ state: 'failed', failureReason: 'schema' })} events={[]} onRerun={onRerun} t={t} language="en" />,
+      <JobTimeline job={job({ state: 'failed', failureReason: 'schema' })} events={[]} runner={null} onRerun={onRerun} t={t} language="en" />,
     )
     expect(screen.getByText('This job’s answer didn’t come back in the expected shape.')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Re-run' }))
     expect(onRerun).toHaveBeenCalledOnce()
   })
 
-  it('queued shows the waiting sentence and no steps', () => {
-    render(<JobTimeline job={job({ state: 'queued', startedAt: null })} events={[]} onRerun={() => {}} t={t} language="en" />)
+  it('queued shows the waiting sentence and no steps, when the runner status is unknown', () => {
+    render(<JobTimeline job={job({ state: 'queued', startedAt: null })} events={[]} runner={null} onRerun={() => {}} t={t} language="en" />)
     expect(screen.getByText('Waiting for the runner to pick this up.')).toBeInTheDocument()
   })
 
@@ -137,6 +145,7 @@ describe('AC-1261 — deferred and the three failure reasons each state what hap
       <JobTimeline
         job={job({ state: 'done', finishedAt: '2026-06-24T09:05:00.000Z' })}
         events={[step('E1', 'run_report', 'Completed a query', 1800)]}
+        runner={null}
         onRerun={() => {}}
         t={t}
         language="en"
@@ -146,5 +155,36 @@ describe('AC-1261 — deferred and the three failure reasons each state what hap
     await user.click(screen.getByRole('button', { name: 'Show steps' }))
     expect(await screen.findByText('Ran a report')).toBeInTheDocument()
     expect(screen.getByText('Completed a query', { exact: false })).toBeInTheDocument()
+  })
+})
+
+describe('AC-1267 — a scheduled job stays queued while the runner is offline, and the job page states why', () => {
+  it('shows the ordinary waiting sentence when the runner is online', () => {
+    render(
+      <JobTimeline job={job({ state: 'queued', startedAt: null })} events={[]} runner={runner({ online: true })} onRerun={() => {}} t={t} language="en" />,
+    )
+    expect(screen.getByText('Waiting for the runner to pick this up.')).toBeInTheDocument()
+  })
+
+  it('states the runner is offline instead of the ordinary waiting sentence', () => {
+    render(
+      <JobTimeline job={job({ state: 'queued', startedAt: null })} events={[]} runner={runner({ online: false })} onRerun={() => {}} t={t} language="en" />,
+    )
+    expect(screen.queryByText('Waiting for the runner to pick this up.')).not.toBeInTheDocument()
+    expect(screen.getByText('The runner is offline. This will stay queued until it reconnects.')).toBeInTheDocument()
+  })
+
+  it('a running job is unaffected by the runner status — the offline reason is queued-only', () => {
+    render(
+      <JobTimeline
+        job={job({ state: 'running' })}
+        events={[step('E1', 'run_report', 'Ran a report', 500)]}
+        runner={runner({ online: false })}
+        onRerun={() => {}}
+        t={t}
+        language="en"
+      />,
+    )
+    expect(screen.queryByText('The runner is offline. This will stay queued until it reconnects.')).not.toBeInTheDocument()
   })
 })

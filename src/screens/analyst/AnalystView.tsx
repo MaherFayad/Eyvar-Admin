@@ -21,6 +21,7 @@ import type { AgentJob, AgentJobKind, AgentJobState, AgentRunner } from '@/data/
 import { formatDate, isolatedRunProps, type Language, type Translator } from '@/lib'
 import { reportsViewTabs, type ReportsView } from '@/screens/reports/views'
 import { AskComposer } from './AskComposer'
+import { SchedulesPanel } from './SchedulesPanel'
 
 export interface AnalystViewProps {
   title: string
@@ -50,6 +51,10 @@ const KIND_KEY: Record<AgentJobKind, string> = {
 
 type AnalystIndexView = 'mine' | 'team'
 const ANALYST_INDEX_VIEWS: readonly AnalystIndexView[] = ['mine', 'team']
+
+/** §8 — the top-level content switch. `jobs` is what the screen has always shown; `schedules` is new. Exactly one of the two is mounted at a time, so the screen still has exactly one primary button (R3) regardless of which tab is active. */
+type AnalystContentTab = 'jobs' | 'schedules'
+const ANALYST_CONTENT_TABS: readonly AnalystContentTab[] = ['jobs', 'schedules']
 
 /** §5.4 — a leading dot plus text, `role="status"`. Omitted entirely when the request itself fails (a missing fact is honest, a guessed one is not). */
 function RunnerStatusLine({ runner, language, t }: { runner: AgentRunner; language: Language; t: Translator }) {
@@ -83,6 +88,7 @@ export function AnalystView({ title, activeView = 'analyst', onSelectView, curre
   const navigate = useNavigate()
   const table = useIndexTable<AgentJob>({ mode: 'index', getRowId: (row) => row.id })
   const [indexView, setIndexView] = useState<AnalystIndexView>('team')
+  const [contentTab, setContentTab] = useState<AnalystContentTab>('jobs')
   const [submitting, setSubmitting] = useState(false)
 
   const status = useAsync((signal) => getAgentStatus(signal), { cacheKey: 'agent.status' })
@@ -187,39 +193,55 @@ export function AnalystView({ title, activeView = 'analyst', onSelectView, curre
       }
     >
       <div className="flex flex-col gap-3">
-        <AskComposer runner={status.data ?? null} submitting={submitting} onAsk={ask} t={t} language={language} />
-
-        <Tabs value={indexView} onValueChange={(value) => setIndexView(value as AnalystIndexView)}>
+        <Tabs value={contentTab} onValueChange={(value) => setContentTab(value as AnalystContentTab)}>
           <TabsList variant="segmented">
-            {ANALYST_INDEX_VIEWS.map((view) => (
-              <TabsTrigger key={view} value={view}>
-                {t(`an.view.${view}`)}
+            {ANALYST_CONTENT_TABS.map((tab) => (
+              <TabsTrigger key={tab} value={tab}>
+                {t(`an.contentTab.${tab}`)}
               </TabsTrigger>
             ))}
           </TabsList>
         </Tabs>
 
-        <DataTable
-          table={table}
-          rows={rows}
-          columns={columns}
-          getRowId={(row) => row.id}
-          status={jobs.status}
-          total={jobs.data?.total ?? 0}
-          t={t}
-          language={language}
-          tableId="management-reports-analyst"
-          view={activeView}
-          tabs={reportsViewTabs(t)}
-          activeTab={activeView}
-          onSelectTab={(id) => onSelectView?.(id as ReportsView)}
-          rowActions={rowActions}
-          skeletonPattern="P1"
-          searchPlaceholder={t('an.index.search')}
-          firstRun={{ heading: t('an.index.firstRun.heading'), body: t('an.index.firstRun.body'), actions: [] }}
-          noMatch={{ message: t('an.index.noMatch'), action: { label: t('an.index.noMatch.action'), onClick: table.clearAll } }}
-          error={{ message: t('an.index.error'), onRetry: jobs.refetch }}
-        />
+        {contentTab === 'schedules' ? (
+          <SchedulesPanel currentUserId={currentUserId} t={t} language={language} />
+        ) : (
+          <>
+            <AskComposer runner={status.data ?? null} submitting={submitting} onAsk={ask} t={t} language={language} />
+
+            <Tabs value={indexView} onValueChange={(value) => setIndexView(value as AnalystIndexView)}>
+              <TabsList variant="segmented">
+                {ANALYST_INDEX_VIEWS.map((view) => (
+                  <TabsTrigger key={view} value={view}>
+                    {t(`an.view.${view}`)}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </Tabs>
+
+            <DataTable
+              table={table}
+              rows={rows}
+              columns={columns}
+              getRowId={(row) => row.id}
+              status={jobs.status}
+              total={jobs.data?.total ?? 0}
+              t={t}
+              language={language}
+              tableId="management-reports-analyst"
+              view={activeView}
+              tabs={reportsViewTabs(t)}
+              activeTab={activeView}
+              onSelectTab={(id) => onSelectView?.(id as ReportsView)}
+              rowActions={rowActions}
+              skeletonPattern="P1"
+              searchPlaceholder={t('an.index.search')}
+              firstRun={{ heading: t('an.index.firstRun.heading'), body: t('an.index.firstRun.body'), actions: [] }}
+              noMatch={{ message: t('an.index.noMatch'), action: { label: t('an.index.noMatch.action'), onClick: table.clearAll } }}
+              error={{ message: t('an.index.error'), onRetry: jobs.refetch }}
+            />
+          </>
+        )}
       </div>
     </SingleColumnPage>
   )

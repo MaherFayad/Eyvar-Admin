@@ -8,7 +8,7 @@ The source of truth is the docblock above each exported function in
 client and regenerate. Conventions, envelopes, auth and error shapes live in
 [CONTRACT.md](CONTRACT.md); this file is only *what exists*.
 
-**377 endpoints across 53 client modules.**
+**380 endpoints across 53 client modules.**
 
 ## `src/data/clients/agent.ts`
 
@@ -18,6 +18,9 @@ client and regenerate. Conventions, envelopes, auth and error shapes live in
 | POST | `/api/v1/agent/jobs` | `Single<AgentJob>` | `CreateAgentJobInput` | - | `createAgentJob()` |
 | GET | `/api/v1/agent/jobs/:id` | `Single<AgentJob>` | - | - | `getAgentJob()` |
 | GET | `/api/v1/agent/jobs/:id/events?after=seq` | `AgentEvent[]` | - | - | `listAgentJobEvents()` |
+| GET | `/api/v1/agent/schedules` | `AgentSchedule[]` | - | - | `listAgentSchedules()` |
+| POST | `/api/v1/agent/schedules` | `Single<AgentSchedule>` | `CreateAgentScheduleInput` | - | `createAgentSchedule()` |
+| PATCH | `/api/v1/agent/schedules/:id` | `Single<AgentSchedule>` | `UpdateAgentScheduleInput` | - | `updateAgentSchedule()` |
 | GET | `/api/v1/agent/status` | `AgentRunner` | - | - | `getAgentStatus()` |
 
 ## `src/data/clients/alerts.ts`

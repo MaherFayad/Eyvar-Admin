@@ -11,7 +11,7 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ShellProvider } from '@/shell/ShellContext'
 import { Toaster } from '@/components/ui/sonner'
-import { disableMockLatency, resetDataLayer } from '@/data/clients'
+import { disableMockLatency, resetDataLayer, useOfflineRunner } from '@/data/clients'
 import { JobScreen } from './JobScreen'
 
 /* AC-1256's own words: "asserted with the seam instrument, not a spy" — the
@@ -146,5 +146,17 @@ describe('AC-1263 — the chrome around the agent’s prose is a keyed sentence 
     mountJob('AGT-7')
     expect(await screen.findByText('Queued')).toBeInTheDocument()
     expect(screen.getByText('Waiting for the runner to pick this up.')).toBeInTheDocument()
+  })
+})
+
+describe('AC-1267 — a scheduled job stays queued with the runner offline, and the job page states why', () => {
+  it('shows the offline reason instead of the ordinary waiting sentence when the runner is offline', async () => {
+    useOfflineRunner()
+    mountJob('AGT-7')
+    expect(await screen.findByText('Queued')).toBeInTheDocument()
+    expect(await screen.findByText('The runner is offline. This will stay queued until it reconnects.')).toBeInTheDocument()
+    expect(screen.queryByText('Waiting for the runner to pick this up.')).not.toBeInTheDocument()
+    // Nothing marked it failed — it is queued, plainly.
+    expect(screen.queryByText('Failed')).not.toBeInTheDocument()
   })
 })

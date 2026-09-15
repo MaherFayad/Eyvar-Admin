@@ -120,6 +120,12 @@ export interface UiState {
   readonly paletteRecents: readonly string[]
   /** The last view chosen per sub-tab, keyed by sub-tab id. */
   readonly lastView: Readonly<Record<string, string>>
+  /**
+   * WP-5.6 — a daily 08:00 Riyadh in-app notification summarising alert
+   * firings across the rules this operator receives (`04-alerting-v2.md`
+   * §6). Off by default; the operator's own profile is the only writer.
+   */
+  readonly alertDigest: boolean
 }
 
 /** Everything a client may write. `schemaVersion` is the server's, never the caller's. */
@@ -155,6 +161,7 @@ const UI_STATE_DEFAULTS: UiState = {
   columnPins: {},
   paletteRecents: [],
   lastView: {},
+  alertDigest: false,
 }
 
 export const DEFAULT_UI_STATE: UiState = Object.freeze(UI_STATE_DEFAULTS)
@@ -188,6 +195,11 @@ export function isUiPageSize(value: unknown): value is number {
 /** One string, for the `ui.lastView.<subTabId>` entries. */
 export function isUiViewName(value: unknown): value is string {
   return typeof value === 'string'
+}
+
+/** WP-5.6's `alertDigest`, and any future plain on/off field. */
+export function isUiBoolean(value: unknown): value is boolean {
+  return typeof value === 'boolean'
 }
 
 export function isUiStringList(value: unknown): value is readonly string[] {
@@ -241,6 +253,7 @@ export function readUiState(value: unknown): UiState | null {
       ? [...raw.paletteRecents]
       : DEFAULT_UI_STATE.paletteRecents,
     lastView: readRecord(raw.lastView, isUiViewName),
+    alertDigest: isUiBoolean(raw.alertDigest) ? raw.alertDigest : DEFAULT_UI_STATE.alertDigest,
   }
 }
 
@@ -279,6 +292,11 @@ export function cachedUiState(): UiStatePatch {
    * key directly through `defaultUiStore`. That is the whole reason the cache is
    * per key rather than one blob: `useColumnPinning` paints from
    * `ui.columnPins.<tableId>.<view>` without waiting for the bag.
+   *
+   * `alertDigest` (WP-5.6) is not cached here either: it needs its own
+   * `UI_STATE_KEYS` entry, which belongs to `src/lib/persistence.ts` and
+   * this work package does not own. The server bag still round-trips it
+   * correctly — only the synchronous first-paint cache is skipped.
    */
   return patch
 }
@@ -428,11 +446,9 @@ export function resetMockUiState(): void {
 
 /**
  * Reset the mock bag, its hydration flag, **and** the cache it was seeded from.
- *
- * **Not yet wired into `resetDataLayer()`.** That function sits mid-file in
- * `clients/index.ts` and several agents are appending to that barrel at once, so
- * editing its body would corrupt their work. Raised in the handoff; until then a
- * test that touches preferences calls this itself.
+ * Called by `resetDataLayer()` (`clients/index.ts`), so most test files never
+ * call this directly; it stays exported for the ones that reset preferences
+ * on their own.
  */
 export function resetPreferences(): void {
   resetMockUiState()

@@ -451,17 +451,15 @@ describe('P7-T5 — the third view exists and is reachable', () => {
        keyboard-operable through the menu Radix builds rather than a drag
        target — §7 does not exempt drag-and-drop.
 
-       Scoped to the FIRST block frame, in document order, rather than
-       queried by name alone: `BlockFrame`'s accessible name is the block
-       TYPE (`pg.block.report.name`), not the block's own title, so three
-       "Report" blocks on one page share one name — a `BlockFrame` defect
-       outside this file's set, reported rather than fixed here. */
-    const reportFrame = (
-      await screen.findAllByRole('group', { name: pagesCopy('pg.block.report.name') })
-    )[0]!
-    const kebab = within(reportFrame).getByRole('button', {
-      name: pagesCopy('pg.edit.blockMenu').replace('{name}', pagesCopy('pg.block.report.name')),
-    })
+       Scoped to the FIRST block frame in document order, and found without
+       naming it: since F-V2-87 a frame is named after its own title, so
+       pinning this to any one name would break again the next time a fixture
+       is retitled. The kebab is the frame's one menu trigger. */
+    const reportFrame = (await screen.findAllByRole('group'))[0]!
+    const kebab = within(reportFrame)
+      .getAllByRole('button')
+      .find((button) => button.getAttribute('aria-haspopup') === 'menu')!
+    expect(kebab, 'the first block frame carries a menu trigger').toBeTruthy()
     await user.click(kebab)
 
     const down = await screen.findByRole('menuitem', { name: pagesCopy('pg.edit.moveDown') })
