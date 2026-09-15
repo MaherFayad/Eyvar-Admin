@@ -191,7 +191,9 @@ export default defineConfig({
     /* Agent worktrees live under `.claude/worktrees/` inside the repo; their
        test files must not run against this tree's modules. `api/**` has its
        own project (`api/vitest.config.ts`, `npm run test:api`) — node, not
-       jsdom — so it must not double-run here. */
-    exclude: ['**/node_modules/**', '**/dist/**', '**/.claude/**', 'api/**'],
+       jsdom — so it must not double-run here. `scripts/**` holds
+       `node --test` files (`npm run wp:gate`-adjacent), a different runner
+       with its own assertion API; vitest must not collect them too. */
+    exclude: ['**/node_modules/**', '**/dist/**', '**/.claude/**', 'api/**', 'scripts/**'],
   },
 })

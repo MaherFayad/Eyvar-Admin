@@ -154,6 +154,10 @@ const IDENTIFIER_KEY_FIELDS = [
   'measureKey',
   'anchorMeasureKey',
   'rootMeasureKey',
+  /* `CohortSpecV1.returnMeasureKey` (report.ts:345) — v1's single-measure form
+     of `CohortSpec.returnMeasureKeys`; a measure id, same family as
+     `anchorMeasureKey`, not copy. */
+  'returnMeasureKey',
   'planKey',
   'supersededByKey',
   /* **Operation ids in an `INTEGRATION_OPERATIONS` registry, not copy** —

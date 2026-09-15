@@ -88,6 +88,9 @@ export const REPORTS_EN: Dictionary = {
   'rb.view.dashboards': 'Dashboards',
   'rb.view.pages': 'Pages',
   'rb.view.alerts': 'Alerts',
+  /* D46 — the fourth view; the screen behind it is WP-7.4's, not built yet. */
+  'rb.view.analyst': 'Analyst',
+  'rb.view.analyst.unbuilt': 'The analyst isn’t built yet.',
 
   /* ───────────────────────────── measures ───────────────────────────────── */
 
@@ -433,6 +436,8 @@ export const REPORTS_EN: Dictionary = {
   'rb.violation.illegalDimension': 'These measures cannot be split by {dimension}.',
   /* G1 (§2.1). Referenced by `plan.ts` since `illegal-aggregate` first landed; missing here until WP-2.6b. */
   'rb.violation.illegalAggregate': 'This measure cannot be measured as {aggregate}.',
+  /* G5 / AC-1122 (plan.ts `segment-performed-unsupported`): the server has no per-person activity for this measure. */
+  'rb.violation.segmentPerformedUnsupported': 'This server has no per-person activity for {measure} to count against.',
   /* WP-2.6b, gap 3 (G4). Shared by the plan's refusal and the rail's disabled "add a third split" row. */
   'rb.violation.tooManyGroupLevels': 'A split is capped at {max} levels. Remove one to add another.',
   'rb.violation.filterFieldNotShared': 'Both measures must be filterable on {field}.',
