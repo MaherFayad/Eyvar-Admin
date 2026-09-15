@@ -84,6 +84,12 @@ export function PageDetailScreen() {
 
   return (
     <PageView
+      /* `usePageEditor` seeds its draft from `page` once, at mount, and never
+         re-syncs it: a stale `pages.get` cache hit followed by `useAsync`'s
+         background revalidation lands a fresher `page` on the same `PageView`
+         mount, but the draft stays on the stale snapshot. Keying on `version`
+         forces the one re-seed that needs it; a save alone never bumps it. */
+      key={`${page.id}:${page.version}`}
       page={page}
       measures={catalogue.data?.measures ?? []}
       dimensions={catalogue.data?.dimensions ?? []}

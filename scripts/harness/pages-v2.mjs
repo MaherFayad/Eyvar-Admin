@@ -410,9 +410,64 @@ async function addReportBlockPersists() {
     'the block is still on the page a full second after the save completes',
     (await page.getByRole('button', { name: 'Gross revenue · 90 days vs previous' }).count()) > 0,
   )
-  /* Not proven here: a fresh mount of this page after client-side nav away
-     and back re-reading the saved block (`PageDetailScreen`'s `useAsync`,
-     outside this work package's file set) — see the handoff report. */
+  // The client-side-nav-away-and-back case this comment used to defer is
+  // now proven below, by `remountShowsRevalidatedContent`.
+  await ctx.close()
+}
+
+async function remountShowsRevalidatedContent() {
+  /* Confirmed defect, fixed at `PageDetailScreen.tsx` (the `key` on
+     `PageView`): a stale `pages.get` cache hit first-paints the pre-save
+     page on a client-side remount; `useAsync` self-corrects in the
+     background, but `usePageEditor`'s draft, seeded once at mount, did not
+     follow, so the save looked silently lost. */
+  section('REMOUNT AFTER SAVE — client-side nav away and back shows the SAVED content, not the pre-save snapshot')
+  const ctx = await browser.newContext({ viewport: { width: 1280, height: 1000 } })
+  const page = await ctx.newPage()
+  await page.goto(`${BASE}/management/reports?view=pages`, { waitUntil: 'networkidle' })
+  await page.waitForTimeout(500)
+
+  await page.getByText('Monday morning', { exact: false }).first().click()
+  await page.waitForURL(new RegExp(`/management/reports/pages/${PAGE_ID}`), { timeout: 5000 })
+  await page.waitForTimeout(400)
+
+  await page.getByRole('button', { name: 'Edit' }).click()
+  await page.waitForTimeout(300)
+  await page.getByRole('button', { name: 'Add block' }).first().click()
+  await page.waitForTimeout(250)
+  await page.keyboard.type('Heading')
+  await page.waitForTimeout(150)
+  await page.keyboard.press('Enter')
+  await page.waitForTimeout(300)
+
+  const marker = 'HARNESS-MARKER-' + Date.now()
+  const headingInput = page.locator('[data-block-id]').first().locator('input').first()
+  await headingInput.fill(marker)
+  const saved = await page.getByText(/^Saved ·/).waitFor({ timeout: 5000 }).then(() => true).catch(() => false)
+  check('the marker block saves (the header shows "Saved · <time>")', saved)
+
+  await page.getByRole('button', { name: 'Done' }).click()
+  await page.waitForTimeout(200)
+
+  const before = page.url()
+  await page.goBack() // client-side pop, not a fresh document load
+  await page.waitForURL((u) => u.toString() !== before, { timeout: 5000 })
+  await page.waitForTimeout(300)
+  await page.getByText('Monday morning', { exact: false }).first().click()
+  await page.waitForURL(new RegExp(`/management/reports/pages/${PAGE_ID}`), { timeout: 5000 })
+
+  await page.waitForTimeout(1500) // past the mock latency, so the background revalidation has landed
+  const markerBack = await page.evaluate((m) => document.body.innerText.includes(m), marker)
+  check('the saved marker block is on the page after a client-side nav away and back', markerBack)
+
+  await page.getByRole('button', { name: 'Edit' }).click()
+  await page.waitForTimeout(300)
+  await page.locator('input[maxlength="120"]').first().fill('Monday morning (harness edit)')
+  await page.waitForTimeout(1200)
+  check(
+    'editing again does not throw a false "someone else saved this page" conflict',
+    (await page.getByRole('alert').count()) === 0,
+  )
   await ctx.close()
 }
 
@@ -436,6 +491,7 @@ await rtlMirroring()
 await newPageDialogFocus()
 await reportPickerEscape()
 await addReportBlockPersists()
+await remountShowsRevalidatedContent()
 await reducedMotion()
 
 await browser.close()

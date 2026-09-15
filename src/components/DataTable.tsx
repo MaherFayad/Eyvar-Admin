@@ -1848,16 +1848,25 @@ export function DataTable<T>(props: DataTableProps<T>) {
         </DropdownMenuTrigger>
         <DropdownMenuContent
           align="end"
-          /* F-V2-83 — the one point Radix guarantees runs after this menu's
-             own `FocusScope` has finished tearing down (`focus-scope.tsx`'s
-             unmount effect dispatches it from inside its own deferred
-             callback). Not prevented: letting focus land back on the kebab
-             first is what gives a dialog opened here a sane place to restore
-             focus TO when it closes. */
+          /* F-V2-83 — `onCloseAutoFocus` is the one point Radix guarantees
+             runs after this menu's own `FocusScope` has finished tearing
+             down (`focus-scope.tsx`'s unmount effect dispatches it from
+             inside its own deferred callback), but that callback still has
+             `focusScopesStack.remove(focusScope)` to run AFTER dispatching —
+             the closing scope is still the stack's head while this fires.
+             Running `run()` here synchronously let a dialog it opens mount
+             its own trapped `FocusScope` while the old one was still being
+             popped, which the measured 1-in-240 keyboard failure traced to.
+             One `requestAnimationFrame` lands after that pop (a rAF is a
+             later macrotask than the `setTimeout(0)` queueing this whole
+             callback) so the dialog's scope stacks onto settled bookkeeping.
+             Not prevented: letting focus land back on the kebab first is
+             what gives a dialog opened here a sane place to restore focus TO
+             when it closes. */
           onCloseAutoFocus={() => {
             const run = pendingKebabActionRef.current
             pendingKebabActionRef.current = null
-            run?.()
+            if (run) requestAnimationFrame(run)
           }}
         >
           {declaredActions.map((action) => (
