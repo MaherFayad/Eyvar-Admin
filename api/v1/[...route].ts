@@ -17,7 +17,11 @@ import { resolveOperator } from '../_lib/agentAuth'
 import { withIdempotency, DbIdempotencyStore } from '../_lib/idempotency'
 import { single } from '../_lib/envelope'
 import { createDatabaseFromEnv, type Database } from '../_lib/db'
-import { createGetSessionHandler } from '../_lib/handlers/session'
+import {
+  createGetPreferencesHandler,
+  createGetSessionHandler,
+  createUpdatePreferencesHandler,
+} from '../_lib/handlers/session'
 import {
   createActivateInviteHandler,
   createBeginTotpEnrolmentHandler,
@@ -34,6 +38,8 @@ import {
 } from '../_lib/handlers/auth'
 import { generateCode as generateOtpCode } from '../_lib/otp'
 import {
+  createChangeRoleHandler,
+  createGetOnCallRotaHandler,
   createGetTeamUserHandler,
   createInviteOperatorHandler,
   createListTeamUsersHandler,
@@ -41,9 +47,18 @@ import {
   createReinstateOperatorHandler,
   createResendInviteHandler,
   createRevokeInviteHandler,
+  createSetCompensationCapHandler,
   createSetPermissionDeltaHandler,
   createSuspendOperatorHandler,
+  createUpdateOnCallRotaHandler,
 } from '../_lib/handlers/team'
+import {
+  createCreateRoleHandler,
+  createDeleteRoleHandler,
+  createHoldersOfHandler,
+  createListRolesHandler,
+  createUpdateRoleHandler,
+} from '../_lib/handlers/rbac'
 import {
   createListMeasuresHandler,
   createListDimensionsHandler,
@@ -187,6 +202,22 @@ export function createApiHandler(deps: ApiDeps): (req: Request) => Promise<Respo
   router.post('/team/operators/:id/reinstate', createReinstateOperatorHandler(deps.db))
   router.delete('/team/operators/:id', createOffboardOperatorHandler(deps.db))
   router.put('/team/operators/:id/override', createSetPermissionDeltaHandler(deps.db))
+  // WP-6.2c / F-V2-21's gap list.
+  router.post('/team/operators/:id/role', createChangeRoleHandler(deps.db))
+  router.put('/team/operators/:id/compensation-cap', createSetCompensationCapHandler(deps.db))
+  router.get('/team/on-call', createGetOnCallRotaHandler(deps.db))
+  router.put('/team/on-call', createUpdateOnCallRotaHandler(deps.db))
+
+  // rbac.* — see handlers/rbac.ts — WP-6.2c / F-V2-21.
+  router.get('/rbac/roles', createListRolesHandler(deps.db))
+  router.post('/rbac/roles', createCreateRoleHandler(deps.db))
+  router.put('/rbac/roles/:name', createUpdateRoleHandler(deps.db))
+  router.delete('/rbac/roles/:name', createDeleteRoleHandler(deps.db))
+  router.get('/rbac/holders/:key', createHoldersOfHandler(deps.db))
+
+  // me.preferences — WP-6.2c / F-V2-21's `preferences` gap (see handlers/session.ts).
+  router.get('/me/preferences', createGetPreferencesHandler(deps.db))
+  router.patch('/me/preferences', createUpdatePreferencesHandler(deps.db))
 
   // catalogue.* (see handlers/catalogue.ts) — WP-6.3
   router.get('/catalogue/measures', createListMeasuresHandler(deps.db))

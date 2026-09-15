@@ -16,6 +16,7 @@ import type { RouteHandler } from '../router'
 import type { Database } from '../db'
 import type { SecretsAdapter } from '../secrets'
 import type { PermissionKey } from '@/data/types/navigation'
+import { recordAudit } from '../audit'
 
 /** Slack webhook creation is `manage_team` under Admin › Integrations (04-alerting-v2.md §2). */
 const WRITE_PERMISSION: PermissionKey = 'manage_team'
@@ -86,16 +87,21 @@ export function createCreateWebhookHandler(db: Database, secrets: SecretsAdapter
     const rows = await db.sql<WebhookRow>`
       INSERT INTO webhooks (name, url_encrypted, created_by) VALUES (${name}, ${encrypted}, ${operator.userId}) RETURNING *
     `
-    return jsonResponse(single(toWire(rows[0]!)), 201)
+    const row = rows[0]!
+    // Never the URL, plaintext or encrypted — see the file header.
+    await recordAudit(db, { userId: operator.userId, action: 'webhook.create', entityType: 'webhook', entityId: row.id, summary: { name } })
+    return jsonResponse(single(toWire(row)), 201)
   }
 }
 
 /** DELETE /api/v1/webhooks/:id -> void, 204 */
 export function createDeleteWebhookHandler(db: Database): RouteHandler<RequestContext> {
   return async (_req, ctx) => {
-    requirePermission(ctx, WRITE_PERMISSION)
-    const deleted = await db.sql<{ id: string }>`DELETE FROM webhooks WHERE id = ${ctx.params.id ?? ''} RETURNING id`
-    if (deleted.length === 0) throw notFoundError(`webhook ${ctx.params.id}`)
+    const operator = requirePermission(ctx, WRITE_PERMISSION)
+    const id = ctx.params.id ?? ''
+    const deleted = await db.sql<{ id: string }>`DELETE FROM webhooks WHERE id = ${id} RETURNING id`
+    if (deleted.length === 0) throw notFoundError(`webhook ${id}`)
+    await recordAudit(db, { userId: operator.userId, action: 'webhook.delete', entityType: 'webhook', entityId: id })
     return new Response(null, { status: 204 })
   }
 }

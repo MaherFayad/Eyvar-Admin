@@ -127,10 +127,18 @@ export function toMeasure(row: MeasureRow): Measure {
 
   if (row.supports_performed !== null) measure.supportsPerformed = row.supports_performed
 
-  const funnelCapabilities = parseJsonColumn<{ sequential: boolean; holdConstant: boolean }>(
-    row.funnel_capabilities_json,
-  )
-  if (funnelCapabilities !== null) measure.funnelCapabilities = funnelCapabilities
+  /* `exclude` is required on `Measure` but absent from rows seeded before it
+     existed, and F-V2-62 says the feature is implemented nowhere — so a row
+     that does not declare it does not support it. Defaulting beats widening
+     the type, which would let a real capability read as `undefined`. */
+  const funnelCapabilities = parseJsonColumn<{
+    sequential: boolean
+    holdConstant: boolean
+    exclude?: boolean
+  }>(row.funnel_capabilities_json)
+  if (funnelCapabilities !== null) {
+    measure.funnelCapabilities = { exclude: false, ...funnelCapabilities }
+  }
 
   return measure
 }

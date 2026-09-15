@@ -15,6 +15,7 @@ import type { RouteHandler } from '../router'
 import type { Database } from '../db'
 import type { Annotation, AnnotationKind } from '@/data/types/annotation'
 import type { PermissionKey } from '@/data/types/navigation'
+import { recordAudit } from '../audit'
 
 /** `manage_analytics` is not yet minted (D17) — see `handlers/pages.ts`'s identical note. */
 const WRITE_PERMISSION: PermissionKey = 'view_analytics'
@@ -109,17 +110,20 @@ export function createCreateAnnotationHandler(db: Database): RouteHandler<Reques
       VALUES (${date}, ${label}, ${note}, ${kind}, ${operator.userId})
       RETURNING *
     `
-    return jsonResponse(single(toAnnotation(inserted[0]!)), 201)
+    const row = inserted[0]!
+    await recordAudit(db, { userId: operator.userId, action: 'annotation.create', entityType: 'annotation', entityId: row.id, summary: { date, label, kind } })
+    return jsonResponse(single(toAnnotation(row)), 201)
   }
 }
 
 /** DELETE /api/v1/annotations/:id -> { deleted: true } */
 export function createDeleteAnnotationHandler(db: Database): RouteHandler<RequestContext> {
   return async (_req, ctx) => {
-    requirePermission(ctx, WRITE_PERMISSION)
+    const operator = requirePermission(ctx, WRITE_PERMISSION)
     const id = ctx.params.id ?? ''
     const deleted = await db.sql<{ id: string }>`DELETE FROM annotations WHERE id = ${id} RETURNING id`
     if (deleted.length === 0) throw notFoundError(`annotation ${id}`)
+    await recordAudit(db, { userId: operator.userId, action: 'annotation.delete', entityType: 'annotation', entityId: id })
     return jsonResponse({ deleted: true })
   }
 }

@@ -28,6 +28,7 @@ import { loadCatalogue } from '../compile'
 import { createRunReportHandler } from './reportsRun'
 import { fetchAlertRuleRow, legacyFieldsOf, measureKeyOfSeriesId, toWireAlertRule, type AlertRuleRow } from '../alertRuleRow'
 import { holdsPermission, loadOperatorPermissions } from '../permissions'
+import { recordAudit } from '../audit'
 
 const WRITE_PERMISSION: PermissionKey = 'view_analytics'
 const READ_PERMISSION: PermissionKey = 'view_analytics'
@@ -261,6 +262,13 @@ function createSaveAlertRuleHandler(db: Database, mode: 'create' | 'update'): Ro
       row = inserted[0]!
     }
 
+    await recordAudit(db, {
+      userId: operator.userId,
+      action: existing ? 'alert.update' : 'alert.create',
+      entityType: 'alert_rule',
+      entityId: row.id,
+      summary: { name },
+    })
     return jsonResponse(single(toWireAlertRule(row)), existing ? 200 : 201)
   }
 }
@@ -285,9 +293,11 @@ async function recordConfigChange(db: Database, by: string, before: AlertRule, a
 /** DELETE /api/v1/alerts/:id -> void, 204 */
 export function createDeleteAlertRuleHandler(db: Database): RouteHandler<RequestContext> {
   return async (_req, ctx) => {
-    requirePermission(ctx, WRITE_PERMISSION)
-    const deleted = await db.sql<{ id: string }>`DELETE FROM alert_rules WHERE id = ${ctx.params.id ?? ''} RETURNING id`
-    if (deleted.length === 0) throw notFoundError(`alert rule ${ctx.params.id}`)
+    const operator = requirePermission(ctx, WRITE_PERMISSION)
+    const id = ctx.params.id ?? ''
+    const deleted = await db.sql<{ id: string }>`DELETE FROM alert_rules WHERE id = ${id} RETURNING id`
+    if (deleted.length === 0) throw notFoundError(`alert rule ${id}`)
+    await recordAudit(db, { userId: operator.userId, action: 'alert.delete', entityType: 'alert_rule', entityId: id })
     return new Response(null, { status: 204 })
   }
 }
@@ -377,11 +387,13 @@ export function createEvaluateAlertRuleHandler(db: Database, deps: EvaluateAlert
 /** POST /api/v1/alerts/:id/mute  body: { until: IsoDateTime | null }  -> Single<AlertRule> */
 export function createMuteAlertRuleHandler(db: Database): RouteHandler<RequestContext> {
   return async (req, ctx) => {
-    requirePermission(ctx, WRITE_PERMISSION)
+    const operator = requirePermission(ctx, WRITE_PERMISSION)
+    const id = ctx.params.id ?? ''
     const body = await readJsonBody(req)
     const until = typeof body.until === 'string' ? body.until : null
-    const rows = await db.sql<AlertRuleRow>`UPDATE alert_rules SET muted_until = ${until} WHERE id = ${ctx.params.id ?? ''} RETURNING *`
-    if (rows.length === 0) throw notFoundError(`alert rule ${ctx.params.id}`)
+    const rows = await db.sql<AlertRuleRow>`UPDATE alert_rules SET muted_until = ${until} WHERE id = ${id} RETURNING *`
+    if (rows.length === 0) throw notFoundError(`alert rule ${id}`)
+    await recordAudit(db, { userId: operator.userId, action: 'alert.mute', entityType: 'alert_rule', entityId: id, summary: { until } })
     return jsonResponse(single(toWireAlertRule(rows[0]!)))
   }
 }
@@ -503,6 +515,7 @@ export function createAcknowledgeFiringHandler(db: Database): RouteHandler<Reque
     const row = rows[0]
     if (!row) throw notFoundError(`alert firing ${ctx.params.id}`)
     await db.sql`UPDATE alert_rules SET last_ack_at = ${now}, last_ack_by = ${operator.userId} WHERE id = ${row.rule_id}`
+    await recordAudit(db, { userId: operator.userId, action: 'alert.acknowledge', entityType: 'alert_firing', entityId: row.id, summary: { ruleId: row.rule_id } })
     const wire = await firingsWithDeliveries(db, [row])
     return jsonResponse(wire[0])
   }

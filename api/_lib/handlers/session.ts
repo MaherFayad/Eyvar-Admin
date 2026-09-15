@@ -8,7 +8,7 @@
  * WP-6.2's placeholders; `sessionDerive.ts` (WP-6.2b) resolves all four from
  * `roles`, the route table and `claims`.
  */
-import type { Session } from '@/data/types/session'
+import type { Session, UserPreferences } from '@/data/types/session'
 import type { IsoDateTime } from '@/data/types/common'
 import { unauthorizedError } from '../errors'
 import { jsonResponse } from '../envelope'
@@ -48,5 +48,57 @@ export function createGetSessionHandler(db: Database): RouteHandler<RequestConte
     if (!ctx.operator) throw unauthorizedError()
     const session = await buildSessionPayload(db, ctx.operator)
     return jsonResponse(session)
+  }
+}
+
+/** Default matches `session.ts`'s own mock default (§8.3): expanded, English, until changed. */
+const DEFAULT_PREFERENCES: UserPreferences = { subTabNavCollapsed: false, language: 'en' }
+
+function parsePreferences(raw: unknown): UserPreferences {
+  if (typeof raw === 'string') {
+    try {
+      return { ...DEFAULT_PREFERENCES, ...(JSON.parse(raw) as Partial<UserPreferences>) }
+    } catch {
+      return DEFAULT_PREFERENCES
+    }
+  }
+  return { ...DEFAULT_PREFERENCES, ...((raw as Partial<UserPreferences> | null) ?? {}) }
+}
+
+/**
+ * `GET /api/v1/me/preferences` — WP-6.2c / F-V2-21's `preferences` gap.
+ * `session.ts`'s own docblock on the client is explicit that this is the
+ * *old*, two-field pair (`subTabNavCollapsed`, `language`), not the D16
+ * versioned preferences model `clients/preferences.ts` describes — that one
+ * has no server endpoint of its own yet in `05-backend.md` §7 and is out of
+ * this WP's scope; naming the distinction so a future WP does not conflate
+ * the two on the wire.
+ */
+export function createGetPreferencesHandler(db: Database): RouteHandler<RequestContext> {
+  return async (_req, ctx) => {
+    if (!ctx.operator) throw unauthorizedError()
+    const rows = await db.sql<{ preferences_json: unknown }>`SELECT preferences_json FROM users WHERE id = ${ctx.operator.userId}`
+    return jsonResponse(parsePreferences(rows[0]?.preferences_json))
+  }
+}
+
+/** `PATCH /api/v1/me/preferences`  body: `Partial<UserPreferences>`  -> `UserPreferences`. A merge, never a replace — an omitted field keeps its stored value. */
+export function createUpdatePreferencesHandler(db: Database): RouteHandler<RequestContext> {
+  return async (req, ctx) => {
+    if (!ctx.operator) throw unauthorizedError()
+    const text = await req.text()
+    let patch: Partial<UserPreferences> = {}
+    if (text) {
+      try {
+        const parsed: unknown = JSON.parse(text)
+        if (typeof parsed === 'object' && parsed !== null) patch = parsed as Partial<UserPreferences>
+      } catch {
+        // A malformed body changes nothing rather than 500s — the merge below is then a no-op read-back.
+      }
+    }
+    const rows = await db.sql<{ preferences_json: unknown }>`SELECT preferences_json FROM users WHERE id = ${ctx.operator.userId}`
+    const merged: UserPreferences = { ...parsePreferences(rows[0]?.preferences_json), ...patch }
+    await db.sql`UPDATE users SET preferences_json = ${JSON.stringify(merged)} WHERE id = ${ctx.operator.userId}`
+    return jsonResponse(merged)
   }
 }

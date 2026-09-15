@@ -33,7 +33,6 @@ import type {
   AgentJobState,
   AgentRunner,
   CaseStudy,
-  CaseStudyAlternative,
   CaseStudyFinding,
   CaseStudyFindingValue,
 } from '@/data/types/agent'
@@ -48,6 +47,8 @@ import type { Database } from '../db'
 import { holdsPermission } from '../permissions'
 import { quoteIdent, SAFE_IDENTIFIER, SqlBuilder } from '../compile'
 import { rebuildPageReports } from './pages'
+import { recordAudit } from '../audit'
+import { validateAgentResult } from '../agentResultSchemas'
 
 const READ_PERMISSION: PermissionKey = 'view_analytics'
 const CREATE_PERMISSION: PermissionKey = 'view_analytics'
@@ -514,65 +515,7 @@ export function createPostAgentJobFailHandler(db: Database): RouteHandler<Reques
   }
 }
 
-/* ──────────────────────────── result validation — AC-1288 ──────────────────────────────────── */
-
-function isNonEmptyString(v: unknown): v is string {
-  return typeof v === 'string' && v.length > 0
-}
-
-/** Structural re-check of a `CaseStudy` — never trusts the runner's own `--json-schema` pass. Every violation is a schema failure; the caller collects them all before refusing once. */
-function validateCaseStudyShape(raw: unknown): { study: CaseStudy | null; violations: string[] } {
-  const violations: string[] = []
-  if (!raw || typeof raw !== 'object') return { study: null, violations: ['result is not an object'] }
-  const s = raw as Partial<CaseStudy> & Record<string, unknown>
-
-  if (!isNonEmptyString(s.title)) violations.push('title is required')
-  if (s.language !== 'ar' && s.language !== 'en') violations.push('language must be "ar" or "en"')
-  if (!isNonEmptyString(s.question)) violations.push('question is required')
-  if (!isNonEmptyString(s.decision)) violations.push('decision is required')
-
-  const headline = s.headline as CaseStudy['headline'] | undefined
-  if (!headline || !isNonEmptyString(headline.text) || !['high', 'medium', 'low'].includes(headline.confidence)) {
-    violations.push('headline is invalid')
-  }
-
-  const baseline = s.baseline as CaseStudy['baseline'] | undefined
-  if (!baseline || !isNonEmptyString(baseline.measureKey) || !isNonEmptyString(baseline.runId) || typeof baseline.level !== 'number') {
-    violations.push('baseline is invalid')
-  }
-
-  const findings = Array.isArray(s.findings) ? (s.findings as CaseStudyFinding[]) : null
-  if (!findings) {
-    violations.push('findings must be an array')
-  } else {
-    findings.forEach((f, i) => {
-      if (!isNonEmptyString(f.id) || !isNonEmptyString(f.text)) violations.push(`findings[${i}] is invalid`)
-      if (!Array.isArray(f.values)) violations.push(`findings[${i}].values must be an array`)
-      if (!Array.isArray(f.evidence)) violations.push(`findings[${i}].evidence must be an array`)
-    })
-  }
-
-  const alternatives = Array.isArray(s.alternatives) ? (s.alternatives as CaseStudyAlternative[]) : []
-  // §7 method step 6 / the schema rule: fewer than two alternatives fails schema validation.
-  if (alternatives.length < 2) violations.push('alternatives must have at least two entries')
-  alternatives.forEach((a, i) => {
-    if (!isNonEmptyString(a.hypothesis) || a.tested !== true || !['supported', 'not-supported', 'inconclusive'].includes(a.verdict)) {
-      violations.push(`alternatives[${i}] is invalid`)
-    }
-  })
-
-  const dataQuality = s.dataQuality as CaseStudy['dataQuality'] | undefined
-  if (!dataQuality || dataQuality.partialBucketsExcluded !== true || !Array.isArray(dataQuality.gaps) || !Array.isArray(dataQuality.blockedSeries)) {
-    violations.push('dataQuality is invalid or missing')
-  }
-
-  if (!Array.isArray(s.contributors)) violations.push('contributors must be an array')
-  if (!Array.isArray(s.recommendations)) violations.push('recommendations must be an array')
-  if (!Array.isArray(s.followUps)) violations.push('followUps must be an array')
-
-  if (violations.length > 0) return { study: null, violations }
-  return { study: s as CaseStudy, violations: [] }
-}
+/* ──────────────────────────── result validation — AC-1288 / F-V2-38 ──────────────────────────── */
 
 /** Every runId a `CaseStudy` cites, from every place §7's schema allows one. */
 function citedRunIds(study: CaseStudy): string[] {
@@ -584,6 +527,16 @@ function citedRunIds(study: CaseStudy): string[] {
   }
   for (const contributor of study.contributors) ids.add(contributor.runId)
   for (const alternative of study.alternatives) for (const id of alternative.evidence) ids.add(id)
+  return Array.from(ids)
+}
+
+/** The `ask` kind's narrower citation set — `findings[]` only, per `agent/schemas/ask.schema.json` (no `baseline`/`contributors`/`alternatives`). */
+function citedRunIdsFromFindings(findings: readonly CaseStudyFinding[]): string[] {
+  const ids = new Set<string>()
+  for (const finding of findings) {
+    for (const id of finding.evidence) ids.add(id)
+    for (const value of finding.values) ids.add(value.runId)
+  }
   return Array.from(ids)
 }
 
@@ -620,9 +573,13 @@ interface EvidenceCheck {
  * **belonging to this job** (`job_id = jobId` — a real run from a different
  * job is exactly as refused as a run id that does not exist at all), and
  * every `finding.values[]` entry must match what that run actually recorded.
+ *
+ * Takes the citation set and the findings array directly rather than a
+ * `CaseStudy` — `ask` cites a narrower set (`citedRunIdsFromFindings`, no
+ * `baseline`/`contributors`/`alternatives`) but its `findings[]` shape is
+ * otherwise identical, so this one function serves both.
  */
-async function checkEvidence(db: Database, jobId: string, study: CaseStudy): Promise<EvidenceCheck> {
-  const ids = citedRunIds(study)
+async function checkEvidence(db: Database, jobId: string, ids: string[], findings: readonly CaseStudyFinding[]): Promise<EvidenceCheck> {
   const violations: string[] = []
   if (ids.length === 0) return { ok: true, violations: [] }
 
@@ -633,7 +590,7 @@ async function checkEvidence(db: Database, jobId: string, study: CaseStudy): Pro
     if (!byId.has(id)) violations.push(`runId "${id}" does not belong to this job`)
   }
 
-  for (const finding of study.findings) {
+  for (const finding of findings) {
     for (const value of finding.values) {
       const result = byId.get(value.runId)
       if (!result) continue // already reported above
@@ -649,14 +606,17 @@ async function checkEvidence(db: Database, jobId: string, study: CaseStudy): Pro
   return { ok: violations.length === 0, violations }
 }
 
-async function storeCaseStudyPage(db: Database, jobId: string, requestedBy: string, study: CaseStudy): Promise<Page> {
-  const blocks = caseStudyToBlocks(study, jobId)
+async function storeRenderedPage(
+  db: Database,
+  opts: { kind: PageKind; title: string; description: string; requestedBy: string; blocks: Block[] },
+): Promise<Page> {
+  const { kind, title, description, requestedBy, blocks } = opts
   const candidate: Page = {
     id: 'pending',
-    kind: 'case-study',
-    title: study.title.slice(0, 200),
+    kind,
+    title: title.slice(0, 200),
     icon: null,
-    description: study.question,
+    description,
     ownerId: requestedBy,
     visibility: 'private',
     tags: ['analyst'],
@@ -722,6 +682,71 @@ async function storeCaseStudyPage(db: Database, jobId: string, requestedBy: stri
   }
 }
 
+async function storeCaseStudyPage(db: Database, jobId: string, requestedBy: string, study: CaseStudy): Promise<Page> {
+  return storeRenderedPage(db, {
+    kind: 'case-study',
+    title: study.title,
+    description: study.question,
+    requestedBy,
+    blocks: caseStudyToBlocks(study, jobId),
+  })
+}
+
+/** `id`s stable within one page — `validatePage`'s `duplicate-block-id` rule. */
+function textBlock(id: string, md: string): Block {
+  return { id, type: 'text', md } as Block
+}
+function headingBlock(id: string, text: string): Block {
+  return { id, type: 'heading', level: 1, text } as Block
+}
+
+/**
+ * `ask` has no renderer of its own in `src/data/reporting/agent/` —
+ * `caseStudyToBlocks()` is the only one that exists, and it reads
+ * `decision`/`headline`/`baseline`/`contributors`/`alternatives`/
+ * `recommendations`, none of which an `AskResult` (`agent/schemas/
+ * ask.schema.json`: `answer`, `findings`, `dataQuality`, `followUps`) has.
+ * `src/data/types/agent.ts`'s `AgentJob`/`CaseStudy` types have no
+ * `AskResult` member either — both are `src/` files this WP does not own.
+ * Rather than force an `ask` result through `caseStudyToBlocks` (which
+ * would either throw on the missing fields or silently drop `answer`), this
+ * is a small, self-contained renderer using only block types (`heading`,
+ * `text`) already in `@/data/types/page` — every field the answer actually
+ * has reaches the page; nothing is invented to fill a `CaseStudy` shape it
+ * was never in. Flagged in this WP's report as the gap a real `AskResult`
+ * type + renderer on the `src/` side should close.
+ */
+function askResultToBlocks(answer: {
+  title: string
+  answer: { text: string; confidence: string; confidenceReason: string }
+  findings: CaseStudyFinding[]
+  followUps: string[]
+  dataQuality: { coverageNote: string }
+}): Block[] {
+  const blocks: Block[] = [headingBlock('ask-title', answer.title), textBlock('ask-answer', answer.answer.text)]
+  answer.findings.forEach((f, i) => blocks.push(textBlock(`ask-finding-${i}`, f.text)))
+  if (answer.followUps.length > 0) {
+    blocks.push(textBlock('ask-followups', answer.followUps.map((f) => `- ${f}`).join('\n')))
+  }
+  blocks.push(textBlock('ask-coverage', answer.dataQuality.coverageNote))
+  return blocks
+}
+
+async function storeAskResultPage(
+  db: Database,
+  requestedBy: string,
+  question: string,
+  answer: Parameters<typeof askResultToBlocks>[0],
+): Promise<Page> {
+  return storeRenderedPage(db, {
+    kind: 'note',
+    title: answer.title,
+    description: question,
+    requestedBy,
+    blocks: askResultToBlocks(answer),
+  })
+}
+
 /**
  * POST /api/v1/agent/jobs/:id/result  runner token  body: the kind's output
  *   -> Single<AgentJob>
@@ -730,79 +755,87 @@ async function storeCaseStudyPage(db: Database, jobId: string, requestedBy: stri
  * an evidence violation — AC-1288's two named cases: a foreign `runId`, and
  * a finding whose numbers do not match its cited run. Only a successful
  * validation writes anything: the page, then the job's `done` state.
+ *
+ * F-V2-38 (WP-6.2c): every kind now validates against its **own**
+ * `agent/schemas/*.json` file (`validateAgentResult`), not one hand-rolled
+ * `CaseStudy` shape applied to all five. Before this WP, `'ask'` results
+ * were checked against the `case-study`/`triage-alert`/`weekly-review`
+ * shape (`decision`/`headline`/`baseline`/`contributors`/`alternatives`/
+ * `recommendations`) — fields an `AskResult` (`answer`/`findings`/
+ * `dataQuality`/`followUps`) does not have, so a genuinely correct `ask`
+ * result would always have been refused. `case-study`/`triage-alert`/
+ * `weekly-review` share one wire shape by design (`jobAssembly.ts`'s own
+ * comment: "triage and review are literally the case-study shape") and keep
+ * going through `checkEvidence`/`storeCaseStudyPage` unchanged; `'ask'` gets
+ * its own, narrower evidence check and its own renderer (`storeAskResultPage`
+ * — see that function's header for the `src/`-side gap this leaves).
  */
+function throwSchemaViolations(violations: readonly { path: string; message: string }[], summary: string): never {
+  throw validationError(
+    violations.map((v) => ({ field: v.path, code: 'schema', message: v.message })),
+    summary,
+  )
+}
+
 export function createPostAgentJobResultHandler(db: Database): RouteHandler<RequestContext> {
   return async (req, ctx) => {
     requireAgentRunnerToken(req)
     const jobId = ctx.params.id ?? ''
     const job = await requireRunningJob(db, jobId)
+    const kind = job.kind as AgentJobKind
     const body = (await readJsonBody(req)) as { turns?: unknown } & Record<string, unknown>
+    const turns = typeof body.turns === 'number' ? body.turns : null
 
-    if (job.kind === 'build-page') {
+    let resultPageId: string
+
+    if (kind === 'build-page') {
       const blocks = Array.isArray(body.blocks) ? (body.blocks as Block[]) : null
       if (!blocks) throw validationError([{ field: 'blocks', code: 'required', message: 'blocks must be an array' }])
-      const candidate: Page = {
-        id: 'pending',
-        kind: 'dashboard',
-        title: (typeof body.title === 'string' ? body.title : job.question).slice(0, 200),
-        icon: null,
-        description: job.question,
-        ownerId: job.requested_by,
-        visibility: 'private',
-        tags: ['analyst'],
-        official: false,
-        scope: { range: null, filters: [] },
-        blocks,
-        version: 1,
-        publishedAt: null,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        updatedBy: job.requested_by,
+      const schemaViolations = validateAgentResult(kind, blocks)
+      if (schemaViolations.length > 0) throwSchemaViolations(schemaViolations, 'The result does not match the build-page schema')
+
+      const title = typeof body.title === 'string' ? body.title : job.question
+      const page = await storeRenderedPage(db, { kind: 'dashboard', title, description: job.question, requestedBy: job.requested_by, blocks })
+      resultPageId = page.id
+    } else if (kind === 'ask') {
+      const schemaViolations = validateAgentResult(kind, body)
+      if (schemaViolations.length > 0) throwSchemaViolations(schemaViolations, 'The result does not match the ask schema')
+
+      const answer = body as {
+        title: string
+        answer: { text: string; confidence: string; confidenceReason: string }
+        findings: CaseStudyFinding[]
+        followUps: string[]
+        dataQuality: { coverageNote: string }
       }
-      const violations = validatePage(candidate)
-      if (violations.length > 0) {
-        throw validationError(violations.map((v) => ({ field: v.blockId ?? (v.path || 'blocks'), code: v.code, message: v.message })))
+      const evidence = await checkEvidence(db, jobId, citedRunIdsFromFindings(answer.findings), answer.findings)
+      if (!evidence.ok) {
+        throw validationError(
+          evidence.violations.map((message) => ({ field: 'result', code: 'evidence', message })),
+          'The result cites numbers this job cannot substantiate',
+        )
       }
-      const inserted = await db.sql<{ id: string }>`
-        INSERT INTO pages (kind, title, icon, description, owner_id, visibility, tags_json, official, scope_json, blocks_json, updated_by)
-        VALUES (${candidate.kind}, ${candidate.title}, ${candidate.icon}, ${candidate.description}, ${job.requested_by}, ${candidate.visibility},
-                ${JSON.stringify(candidate.tags)}, ${candidate.official}, ${JSON.stringify(candidate.scope)}, ${JSON.stringify(blocks)}, ${job.requested_by})
-        RETURNING id
-      `
-      await rebuildPageReports(db, inserted[0]!.id, blocks)
-      const rows = await db.sql<AgentJobRow>`
-        UPDATE agent_jobs SET state = 'done', result_page_id = ${inserted[0]!.id}, finished_at = now(), updated_at = now(),
-          turns = ${typeof body.turns === 'number' ? body.turns : null}
-        WHERE id = ${jobId} RETURNING *
-      `
-      return jsonResponse(single(toAgentJob(rows[0]!)))
+      const page = await storeAskResultPage(db, job.requested_by, job.question, answer)
+      resultPageId = page.id
+    } else {
+      // 'case-study' | 'triage-alert' | 'weekly-review' — one shared wire shape (see the docblock above).
+      const schemaViolations = validateAgentResult(kind, body)
+      if (schemaViolations.length > 0) throwSchemaViolations(schemaViolations, `The result does not match the ${kind} schema`)
+
+      const study = body as unknown as CaseStudy
+      const evidence = await checkEvidence(db, jobId, citedRunIds(study), study.findings)
+      if (!evidence.ok) {
+        throw validationError(
+          evidence.violations.map((message) => ({ field: 'result', code: 'evidence', message })),
+          'The result cites numbers this job cannot substantiate',
+        )
+      }
+      const page = await storeCaseStudyPage(db, jobId, job.requested_by, study)
+      resultPageId = page.id
     }
 
-    // 'ask' | 'case-study' | 'triage-alert' | 'weekly-review' — every kind
-    // that is not a raw page is a `CaseStudy` shape (§7: "the `answer`,
-    // `page`, `triage` and `review` schemas are subsets or arrangements of
-    // the same parts"). This WP validates the one full shape `types/agent.ts`
-    // defines; noted in the handoff as the scope this covers.
-    const { study, violations: shapeViolations } = validateCaseStudyShape(body)
-    if (!study) {
-      throw validationError(
-        shapeViolations.map((message) => ({ field: 'result', code: 'schema', message })),
-        'The result does not match the case-study schema',
-      )
-    }
-
-    const evidence = await checkEvidence(db, jobId, study)
-    if (!evidence.ok) {
-      throw validationError(
-        evidence.violations.map((message) => ({ field: 'result', code: 'evidence', message })),
-        'The result cites numbers this job cannot substantiate',
-      )
-    }
-
-    const page = await storeCaseStudyPage(db, jobId, job.requested_by, study)
     const rows = await db.sql<AgentJobRow>`
-      UPDATE agent_jobs SET state = 'done', result_page_id = ${page.id}, finished_at = now(), updated_at = now(),
-        turns = ${typeof body.turns === 'number' ? body.turns : null}
+      UPDATE agent_jobs SET state = 'done', result_page_id = ${resultPageId}, finished_at = now(), updated_at = now(), turns = ${turns}
       WHERE id = ${jobId} RETURNING *
     `
     return jsonResponse(single(toAgentJob(rows[0]!)))
@@ -929,11 +962,14 @@ export function createSampleRowsHandler(db: Database): RouteHandler<RequestConte
 
     const actingVia = req.headers.get('x-eyvar-job') ? 'analyst-agent' : 'operator'
     const jobId = req.headers.get('x-eyvar-job')
-    await db.sql`
-      INSERT INTO audit_log (user_id, acting_via, action, entity_type, entity_id, summary_json)
-      VALUES (${operator.userId}, ${actingVia}, 'sample_rows', 'resource', ${resource},
-              ${JSON.stringify({ filters, limit: cap, rowCount: rows.length, jobId })})
-    `
+    await recordAudit(db, {
+      userId: operator.userId,
+      actingVia,
+      action: 'sample_rows',
+      entityType: 'resource',
+      entityId: resource,
+      summary: { filters, limit: cap, rowCount: rows.length, jobId },
+    })
 
     return jsonResponse({ rows })
   }

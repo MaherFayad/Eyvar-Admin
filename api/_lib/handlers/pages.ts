@@ -29,6 +29,7 @@ import type { Block, IconName, Page, PageKind, PageVisibility } from '@/data/typ
 import type { FilterSpec } from '@/data/types/common'
 import type { ReportWindow } from '@/data/types/report'
 import type { PermissionKey } from '@/data/types/navigation'
+import { recordAudit } from '../audit'
 
 /**
  * `manage_analytics` (`02-report-builder-v2.md`, `annotation.ts`, `page.ts`)
@@ -251,6 +252,7 @@ export function createCreatePageHandler(db: Database): RouteHandler<RequestConte
     `
     const row = inserted[0]!
     await rebuildPageReports(db, row.id, blocks)
+    await recordAudit(db, { userId: operator.userId, action: 'page.create', entityType: 'page', entityId: row.id, summary: { title, kind } })
     return jsonResponse(single(toPage(row)), 201)
   }
 }
@@ -319,6 +321,7 @@ export function createUpdatePageHandler(db: Database): RouteHandler<RequestConte
 
     const row = updatedRows[0]!
     await rebuildPageReports(db, id, merged.blocks)
+    await recordAudit(db, { userId: operator.userId, action: 'page.update', entityType: 'page', entityId: id, summary: { title: merged.title, version: row.version } })
     return jsonResponse(single(toPage(row)))
   }
 }
@@ -326,10 +329,11 @@ export function createUpdatePageHandler(db: Database): RouteHandler<RequestConte
 /** DELETE /api/v1/pages/:id -> { deleted: true }. `page_reports`/`page_stars` cascade via FK. */
 export function createDeletePageHandler(db: Database): RouteHandler<RequestContext> {
   return async (_req, ctx) => {
-    requirePermission(ctx, WRITE_PERMISSION)
+    const operator = requirePermission(ctx, WRITE_PERMISSION)
     const id = ctx.params.id ?? ''
     const deleted = await db.sql<{ id: string }>`DELETE FROM pages WHERE id = ${id} RETURNING id`
     if (deleted.length === 0) throw notFoundError(`page ${id}`)
+    await recordAudit(db, { userId: operator.userId, action: 'page.delete', entityType: 'page', entityId: id })
     return jsonResponse({ deleted: true })
   }
 }
@@ -348,6 +352,7 @@ export function createPublishPageHandler(db: Database): RouteHandler<RequestCont
       WHERE id = ${id}
       RETURNING *
     `
+    await recordAudit(db, { userId: operator.userId, action: 'page.publish', entityType: 'page', entityId: id })
     return jsonResponse(single(toPage(updated[0]!)))
   }
 }
@@ -371,6 +376,7 @@ export function createDuplicatePageHandler(db: Database): RouteHandler<RequestCo
     `
     const row = inserted[0]!
     await rebuildPageReports(db, row.id, parseJsonColumn<Block[]>(row.blocks_json, []))
+    await recordAudit(db, { userId: operator.userId, action: 'page.create', entityType: 'page', entityId: row.id, summary: { title, duplicatedFrom: id } })
     return jsonResponse(single(toPage(row)), 201)
   }
 }

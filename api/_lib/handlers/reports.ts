@@ -24,6 +24,7 @@ import type { RouteHandler } from '../router'
 import type { Database } from '../db'
 import { REPORT_NAME_MAX } from '@/data/types/report'
 import type { PermissionKey } from '@/data/types/navigation'
+import { recordAudit } from '../audit'
 
 /** `manage_analytics` is not yet minted (D17) — see `handlers/pages.ts`'s identical note. */
 const WRITE_PERMISSION: PermissionKey = 'view_analytics'
@@ -227,6 +228,7 @@ export function createCreateReportHandler(db: Database): RouteHandler<RequestCon
     `
     const row = inserted[0]!
     await insertVersion(db, row.id, operator.userId, body.query)
+    await recordAudit(db, { userId: operator.userId, action: 'report.create', entityType: 'report', entityId: row.id, summary: { name } })
     return jsonResponse(single(toWire(row, [])), 201)
   }
 }
@@ -266,6 +268,7 @@ export function createUpdateReportHandler(db: Database): RouteHandler<RequestCon
     const row = updated[0]!
     if ('query' in body) await insertVersion(db, id, operator.userId, query)
     const pinnedPageIds = await pinnedPageIdsOf(db, id)
+    await recordAudit(db, { userId: operator.userId, action: 'report.update', entityType: 'report', entityId: id, summary: { name } })
     return jsonResponse(single(toWire(row, pinnedPageIds)))
   }
 }
@@ -279,7 +282,7 @@ export function createUpdateReportHandler(db: Database): RouteHandler<RequestCon
  */
 export function createDeleteReportHandler(db: Database): RouteHandler<RequestContext> {
   return async (_req, ctx) => {
-    requirePermission(ctx, WRITE_PERMISSION)
+    const operator = requirePermission(ctx, WRITE_PERMISSION)
     const id = ctx.params.id ?? ''
 
     const pinning = await db.sql<{ id: string; title: string }>`
@@ -294,6 +297,7 @@ export function createDeleteReportHandler(db: Database): RouteHandler<RequestCon
 
     const deleted = await db.sql<{ id: string }>`DELETE FROM saved_reports WHERE id = ${id} RETURNING id`
     if (deleted.length === 0) throw notFoundError(`report ${id}`)
+    await recordAudit(db, { userId: operator.userId, action: 'report.delete', entityType: 'report', entityId: id })
     return jsonResponse({ deleted: true })
   }
 }
@@ -315,6 +319,7 @@ export function createDuplicateReportHandler(db: Database): RouteHandler<Request
     `
     const row = inserted[0]!
     await insertVersion(db, row.id, operator.userId, parseJsonColumn(source.query_json, null))
+    await recordAudit(db, { userId: operator.userId, action: 'report.create', entityType: 'report', entityId: row.id, summary: { name, duplicatedFrom: id } })
     return jsonResponse(single(toWire(row, [])), 201)
   }
 }

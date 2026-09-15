@@ -31,13 +31,15 @@ export class HttpError extends Error {
   readonly code: string
   readonly details: ApiErrorDetail[]
   readonly retryable: boolean
+  /** Extra response headers (e.g. `Retry-After` on a 429) — empty for every ordinary refusal. */
+  readonly headers: Record<string, string>
 
   constructor(
     status: number,
     code: string,
     message: string,
     details: ApiErrorDetail[] = [],
-    opts: { kind?: ApiErrorKind; retryable?: boolean } = {},
+    opts: { kind?: ApiErrorKind; retryable?: boolean; headers?: Record<string, string> } = {},
   ) {
     super(message)
     this.name = 'HttpError'
@@ -46,6 +48,7 @@ export class HttpError extends Error {
     this.details = details
     this.kind = opts.kind ?? kindForStatus(status)
     this.retryable = opts.retryable ?? isRetryableStatus(status)
+    this.headers = opts.headers ?? {}
   }
 }
 
@@ -96,6 +99,14 @@ export function idempotencyInProgressError(): HttpError {
   )
 }
 
+/** A transport-level rate limit (`05-backend.md`'s own `429 with Retry-After` note on `auth.signIn`, WP-6.2c/F-V2-21). Never a domain refusal — `SignInOutcome.retryAfter` is a separate, still-`null`, field for a different mechanism. */
+export function rateLimitedError(retryAfterSeconds: number): HttpError {
+  return new HttpError(429, 'rate_limited', 'Too many attempts. Try again later.', [], {
+    retryable: true,
+    headers: { 'Retry-After': String(Math.max(1, Math.ceil(retryAfterSeconds))) },
+  })
+}
+
 function internalError(cause: unknown): HttpError {
   // The cause is for server logs; the wire body never leaks internals.
   console.error(cause)
@@ -119,6 +130,6 @@ export function errorResponse(err: unknown, requestId: string): Response {
   }
   return new Response(JSON.stringify(body), {
     status: httpError.status,
-    headers: { 'content-type': 'application/json', 'x-request-id': requestId },
+    headers: { 'content-type': 'application/json', 'x-request-id': requestId, ...httpError.headers },
   })
 }

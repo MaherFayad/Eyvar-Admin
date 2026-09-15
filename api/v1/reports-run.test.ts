@@ -296,7 +296,7 @@ describe('reports.run: funnel server-only options (WP-6.4c)', () => {
   /** Loads the real catalogue, patches `funnelCapabilities` onto specific measures in memory only, and calls `resolveFunnel` directly — never through `planQuery`. */
   async function resolveFunnelDirect(
     query: ReportQuery,
-    capabilities: Record<string, { sequential?: boolean; holdConstant?: boolean }>,
+    capabilities: Record<string, { sequential?: boolean; holdConstant?: boolean; exclude?: boolean }>,
   ) {
     const catalogue = await loadCatalogue(db)
     const byKey = new Map<string, Measure>(
@@ -305,7 +305,16 @@ describe('reports.run: funnel server-only options (WP-6.4c)', () => {
         if (!extra) return [m.key, m]
         return [
           m.key,
-          { ...m, funnelCapabilities: { sequential: false, holdConstant: false, ...m.funnelCapabilities, ...extra } },
+          {
+            ...m,
+            funnelCapabilities: {
+              sequential: false,
+              holdConstant: false,
+              exclude: false,
+              ...m.funnelCapabilities,
+              ...extra,
+            },
+          },
         ]
       }),
     )

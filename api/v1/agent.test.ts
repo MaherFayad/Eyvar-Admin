@@ -261,7 +261,18 @@ function baseCaseStudy(runId: string, findingValue: number): Record<string, unkn
       { hypothesis: 'A pricing change', tested: true, evidence: [runId], verdict: 'inconclusive', text: 'No annotation in range' },
     ],
     dataQuality: { gaps: [], partialBucketsExcluded: true, blockedSeries: [], truncated: false, coverageNote: 'Full coverage' },
-    recommendations: [],
+    // `agent/schemas/case-study.schema.json` requires at least one recommendation
+    // (§7's own field list) — an empty array passed the old hand-rolled shape
+    // checker (F-V2-38's whole point) but fails the real schema this WP wires in.
+    recommendations: [
+      {
+        text: 'Run a promo to recover the dip',
+        ownerRole: 'Ops Manager',
+        expectedEffect: { measureKey: 'trips.completed', direction: 'up', magnitude: null },
+        verifyWith: { reportQuery: null, alertCondition: null },
+        reviewBy: '2026-06-10',
+      },
+    ],
     followUps: [],
   }
 }

@@ -14,6 +14,7 @@ import type { Database } from '../db'
 import type { PerformedSpec, Segment, SegmentVisibility } from '@/data/types/segment'
 import type { FilterSpec } from '@/data/types/common'
 import type { PermissionKey } from '@/data/types/navigation'
+import { recordAudit } from '../audit'
 
 /** `manage_analytics` is not yet minted (D17) — see `handlers/pages.ts`'s identical note. */
 const WRITE_PERMISSION: PermissionKey = 'view_analytics'
@@ -132,14 +133,16 @@ export function createCreateSegmentHandler(db: Database): RouteHandler<RequestCo
               ${operator.userId}, ${visibility})
       RETURNING *
     `
-    return jsonResponse(single(toSegment(inserted[0]!)), 201)
+    const row = inserted[0]!
+    await recordAudit(db, { userId: operator.userId, action: 'segment.create', entityType: 'segment', entityId: row.id, summary: { name } })
+    return jsonResponse(single(toSegment(row)), 201)
   }
 }
 
 /** PATCH /api/v1/segments/:id  body: { name?, description?, filters?, performed?, visibility? }  -> Single<Segment> */
 export function createUpdateSegmentHandler(db: Database): RouteHandler<RequestContext> {
   return async (req, ctx) => {
-    requirePermission(ctx, WRITE_PERMISSION)
+    const operator = requirePermission(ctx, WRITE_PERMISSION)
     const id = ctx.params.id ?? ''
     const body = await parseJsonBody(req)
 
@@ -163,6 +166,7 @@ export function createUpdateSegmentHandler(db: Database): RouteHandler<RequestCo
       WHERE id = ${id}
       RETURNING *
     `
+    await recordAudit(db, { userId: operator.userId, action: 'segment.update', entityType: 'segment', entityId: id, summary: { name } })
     return jsonResponse(single(toSegment(updated[0]!)))
   }
 }
@@ -170,10 +174,11 @@ export function createUpdateSegmentHandler(db: Database): RouteHandler<RequestCo
 /** DELETE /api/v1/segments/:id -> { deleted: true } */
 export function createDeleteSegmentHandler(db: Database): RouteHandler<RequestContext> {
   return async (_req, ctx) => {
-    requirePermission(ctx, WRITE_PERMISSION)
+    const operator = requirePermission(ctx, WRITE_PERMISSION)
     const id = ctx.params.id ?? ''
     const deleted = await db.sql<{ id: string }>`DELETE FROM segments WHERE id = ${id} RETURNING id`
     if (deleted.length === 0) throw notFoundError(`segment ${id}`)
+    await recordAudit(db, { userId: operator.userId, action: 'segment.delete', entityType: 'segment', entityId: id })
     return jsonResponse({ deleted: true })
   }
 }

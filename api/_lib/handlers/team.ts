@@ -34,6 +34,8 @@ import type { Database } from '../db'
 import { generateToken } from '../otp'
 import { hashPassword } from '../password'
 import { createEmailAdapterFromEnv } from '../email'
+import { recordAudit } from '../audit'
+import type { OnCallRota } from '@/data/types/team'
 
 const INVITE_TOKEN_DAYS = 7
 
@@ -56,6 +58,28 @@ async function parseJsonBody(req: Request): Promise<Record<string, unknown> | nu
 function refuse(code: string, message: string, field?: string): HttpError {
   const details: ApiErrorDetail[] = field ? [{ field, code, message }] : []
   return new HttpError(409, code, message, details, { kind: 'conflict', retryable: false })
+}
+
+/**
+ * T6.4 / F-V2-21's `releaseHoldingsOf` gap. The frontend's own version
+ * (`src/data/clients/team.ts`) releases per-domain work-item queues
+ * (applications, disputes, tickets, …) that have no server table in this
+ * migration set — those operational tables are still the owner's to name
+ * (`05-backend.md` §11 item 1). The one holding mechanism this schema
+ * *does* have is `claims` (`0004_team.sql`), named there as "the work-queue
+ * take affordance… no WP has built a claim-writing endpoint yet" — nothing
+ * writes a `claims` row today, so this reads as `0` until something does,
+ * honestly rather than by fabricating a queue. Wired into `suspend` and
+ * `offboard` so the day a claim-writer exists, releasing on exit is already
+ * in place.
+ */
+async function releaseHoldingsOf(db: Database, userId: string): Promise<number> {
+  const released = await db.sql<{ key: string }>`
+    UPDATE claims SET state = 'released', released_at = now(), release_reason = 'operator-offline'
+    WHERE owner_id = ${userId} AND state = 'claimed'
+    RETURNING key
+  `
+  return released.length
 }
 
 const LAST_HOLDER_MESSAGE =
@@ -92,7 +116,7 @@ interface UserRow {
  * `db.ts`'s `makeSqlTag`). So this SELECT is written out at each of its two
  * call sites rather than built from a shared string constant.
  */
-async function fetchUserRow(db: Database, id: string): Promise<UserRow | null> {
+export async function fetchUserRow(db: Database, id: string): Promise<UserRow | null> {
   const rows = await db.sql<UserRow>`
     SELECT u.id, u.email, u.name_en, u.role_id, u.status, u.phone, u.photo_url,
            u.second_factor_method, u.permission_granted, u.permission_revoked,
@@ -106,7 +130,7 @@ async function fetchUserRow(db: Database, id: string): Promise<UserRow | null> {
   return rows[0] ?? null
 }
 
-async function fetchAllUserRows(db: Database): Promise<UserRow[]> {
+export async function fetchAllUserRows(db: Database): Promise<UserRow[]> {
   return db.sql<UserRow>`
     SELECT u.id, u.email, u.name_en, u.role_id, u.status, u.phone, u.photo_url,
            u.second_factor_method, u.permission_granted, u.permission_revoked,
@@ -151,7 +175,7 @@ function effectivePermissionsOf(row: UserRow): PermissionKey[] {
   return out
 }
 
-function toTeamUser(row: UserRow): TeamUser {
+export function toTeamUser(row: UserRow): TeamUser {
   return {
     id: row.id,
     name: row.name_en,
@@ -204,7 +228,7 @@ export function createGetTeamUserHandler(db: Database): RouteHandler<RequestCont
  */
 export function createInviteOperatorHandler(db: Database): RouteHandler<RequestContext> {
   return async (req, ctx) => {
-    requirePermission(ctx, 'manage_team')
+    const operator = requirePermission(ctx, 'manage_team')
     const body = await parseJsonBody(req)
     const name = typeof body?.name === 'string' ? body.name.trim() : ''
     const email = typeof body?.email === 'string' ? body.email.trim() : ''
@@ -242,6 +266,13 @@ export function createInviteOperatorHandler(db: Database): RouteHandler<RequestC
 
     const row = await fetchUserRow(db, userId)
     if (!row) throw notFoundError(`operator ${userId}`)
+    await recordAudit(db, {
+      userId: operator.userId,
+      action: 'team.invite',
+      entityType: 'operator',
+      entityId: userId,
+      summary: { name, role, email },
+    })
     return jsonResponse(toTeamUser(row), 201)
   }
 }
@@ -254,7 +285,7 @@ export function createInviteOperatorHandler(db: Database): RouteHandler<RequestC
  */
 export function createResendInviteHandler(db: Database): RouteHandler<RequestContext> {
   return async (_req, ctx) => {
-    requirePermission(ctx, 'manage_team')
+    const operator = requirePermission(ctx, 'manage_team')
     const userId = ctx.params.userId ?? ''
     const userRows = await db.sql<{ email: string; status: string }>`SELECT email, status FROM users WHERE id = ${userId}`
     const user = userRows[0]
@@ -276,6 +307,13 @@ export function createResendInviteHandler(db: Database): RouteHandler<RequestCon
         SET token = EXCLUDED.token, sent_at = now(), expires_at = EXCLUDED.expires_at, resend_count = EXCLUDED.resend_count
     `
     await deliverInviteEmail(user.email, token)
+    await recordAudit(db, {
+      userId: operator.userId,
+      action: 'team.inviteResend',
+      entityType: 'operator',
+      entityId: userId,
+      summary: { resendCount },
+    })
 
     return jsonResponse<TeamInvite>({
       userId,
@@ -297,13 +335,14 @@ export function createResendInviteHandler(db: Database): RouteHandler<RequestCon
  */
 export function createRevokeInviteHandler(db: Database): RouteHandler<RequestContext> {
   return async (_req, ctx) => {
-    requirePermission(ctx, 'manage_team')
+    const operator = requirePermission(ctx, 'manage_team')
     const userId = ctx.params.userId ?? ''
     const userRows = await db.sql<{ status: string }>`SELECT status FROM users WHERE id = ${userId}`
     const user = userRows[0]
     if (!user) throw notFoundError(`operator ${userId}`)
     if (user.status !== 'Invited') throw refuse('not_invited', `Operator ${userId} has no outstanding invitation to revoke`)
     await db.sql`DELETE FROM users WHERE id = ${userId}`
+    await recordAudit(db, { userId: operator.userId, action: 'team.inviteRevoke', entityType: 'operator', entityId: userId })
     return jsonResponse({ revoked: true })
   }
 }
@@ -325,9 +364,11 @@ export function createRevokeInviteHandler(db: Database): RouteHandler<RequestCon
  * holder, then flip status only if the target is not the sole one.
  */
 export function createSuspendOperatorHandler(db: Database): RouteHandler<RequestContext> {
-  return async (_req, ctx) => {
-    requirePermission(ctx, 'manage_team')
+  return async (req, ctx) => {
+    const operator = requirePermission(ctx, 'manage_team')
     const userId = ctx.params.id ?? ''
+    const body = await parseJsonBody(req)
+    const reason = typeof body?.reason === 'string' ? body.reason : null
     const statusRows = await db.sql<{ status: string }>`SELECT status FROM users WHERE id = ${userId}`
     const current = statusRows[0]
     if (!current) throw notFoundError(`operator ${userId}`)
@@ -355,8 +396,16 @@ export function createSuspendOperatorHandler(db: Database): RouteHandler<Request
     `
     if (updated.length === 0) throw refuse('last_manage_team_holder', LAST_HOLDER_MESSAGE)
 
+    const released = await releaseHoldingsOf(db, userId)
     const row = await fetchUserRow(db, userId)
     if (!row) throw notFoundError(`operator ${userId}`)
+    await recordAudit(db, {
+      userId: operator.userId,
+      action: 'team.suspend',
+      entityType: 'operator',
+      entityId: userId,
+      summary: { reason, released },
+    })
     return jsonResponse(toTeamUser(row))
   }
 }
@@ -369,7 +418,7 @@ export function createSuspendOperatorHandler(db: Database): RouteHandler<Request
  */
 export function createReinstateOperatorHandler(db: Database): RouteHandler<RequestContext> {
   return async (_req, ctx) => {
-    requirePermission(ctx, 'manage_team')
+    const operator = requirePermission(ctx, 'manage_team')
     const userId = ctx.params.id ?? ''
     const statusRows = await db.sql<{ status: string }>`SELECT status FROM users WHERE id = ${userId}`
     const current = statusRows[0]
@@ -379,6 +428,7 @@ export function createReinstateOperatorHandler(db: Database): RouteHandler<Reque
     await db.sql`UPDATE users SET status = 'Active' WHERE id = ${userId}`
     const row = await fetchUserRow(db, userId)
     if (!row) throw notFoundError(`operator ${userId}`)
+    await recordAudit(db, { userId: operator.userId, action: 'team.reinstate', entityType: 'operator', entityId: userId })
     return jsonResponse(toTeamUser(row))
   }
 }
@@ -392,7 +442,7 @@ export function createReinstateOperatorHandler(db: Database): RouteHandler<Reque
  */
 export function createOffboardOperatorHandler(db: Database): RouteHandler<RequestContext> {
   return async (_req, ctx) => {
-    requirePermission(ctx, 'manage_team')
+    const operator = requirePermission(ctx, 'manage_team')
     const userId = ctx.params.id ?? ''
     const existing = await db.sql<{ id: string }>`SELECT id FROM users WHERE id = ${userId}`
     if (existing.length === 0) throw notFoundError(`operator ${userId}`)
@@ -417,6 +467,10 @@ export function createOffboardOperatorHandler(db: Database): RouteHandler<Reques
       RETURNING id
     `
     if (deleted.length === 0) throw refuse('last_manage_team_holder', LAST_HOLDER_MESSAGE)
+    // After the row is gone: `claims.owner_id` carries no FK (so this still runs cleanly), and
+    // releasing only once the offboard itself is committed means a refused offboard releases nothing.
+    const released = await releaseHoldingsOf(db, userId)
+    await recordAudit(db, { userId: operator.userId, action: 'team.offboard', entityType: 'operator', entityId: userId, summary: { released } })
     return jsonResponse({ offboarded: true })
   }
 }
@@ -434,7 +488,7 @@ export function createOffboardOperatorHandler(db: Database): RouteHandler<Reques
  */
 export function createSetPermissionDeltaHandler(db: Database): RouteHandler<RequestContext> {
   return async (req, ctx) => {
-    requirePermission(ctx, 'manage_team')
+    const operator = requirePermission(ctx, 'manage_team')
     const userId = ctx.params.id ?? ''
     const body = await parseJsonBody(req)
     const grantedInput = Array.isArray(body?.granted)
@@ -484,6 +538,177 @@ export function createSetPermissionDeltaHandler(db: Database): RouteHandler<Requ
 
     const row = await fetchUserRow(db, userId)
     if (!row) throw notFoundError(`operator ${userId}`)
+    await recordAudit(db, {
+      userId: operator.userId,
+      action: 'team.permissions',
+      entityType: 'operator',
+      entityId: userId,
+      summary: { granted: granted.length, revoked: revoked.length },
+    })
     return jsonResponse(toTeamUser(row))
+  }
+}
+
+/**
+ * POST /api/v1/team/operators/:id/role
+ *   body: { role, reason }
+ *   -> TeamUser
+ *
+ * WP-6.2c / F-V2-21's `changeRole` gap. The override is cleared, not
+ * carried: a delta signed against the old role is void against the new one
+ * (D17), so an exception dies with a demotion — `clients/rbac.ts`'s
+ * `changeRole`, verbatim. F-016 applies the same lock-then-decide statement
+ * as `suspend`/`offboard`, because a role change to something that does not
+ * hold `manage_team` is exactly as capable of stripping the last holder.
+ */
+export function createChangeRoleHandler(db: Database): RouteHandler<RequestContext> {
+  return async (req, ctx) => {
+    const operator = requirePermission(ctx, 'manage_team')
+    const userId = ctx.params.id ?? ''
+    const body = await parseJsonBody(req)
+    const role = typeof body?.role === 'string' ? body.role : ''
+    const reason = typeof body?.reason === 'string' ? body.reason : null
+    if (!role) throw validationError([{ field: 'role', code: 'required', message: 'A role is required' }])
+
+    const userRows = await db.sql<{ role_id: string }>`SELECT role_id FROM users WHERE id = ${userId}`
+    const user = userRows[0]
+    if (!user) throw notFoundError(`operator ${userId}`)
+    const roleRows = await db.sql<{ id: string }>`SELECT id FROM roles WHERE id = ${role}`
+    if (roleRows.length === 0) throw refuse('role_unknown', `No role named ${role}`)
+
+    const nextHoldsManageTeam = (
+      await db.sql<{ permission_key: string }>`SELECT permission_key FROM role_permissions WHERE role_id = ${role} AND permission_key = 'manage_team'`
+    ).length > 0
+
+    if (nextHoldsManageTeam) {
+      await db.sql`UPDATE users SET role_id = ${role}, permission_granted = '{}', permission_revoked = '{}' WHERE id = ${userId}`
+    } else {
+      const updated = await db.sql<{ id: string }>`
+        WITH holders AS (
+          SELECT u.id FROM users u
+          WHERE u.status = 'Active'
+            AND 'manage_team' = ANY(
+              COALESCE((SELECT array_agg(rp.permission_key) FROM role_permissions rp WHERE rp.role_id = u.role_id), ARRAY[]::text[])
+              || u.permission_granted
+            )
+            AND NOT ('manage_team' = ANY(u.permission_revoked))
+          ORDER BY u.id
+          FOR UPDATE OF u
+        )
+        UPDATE users SET role_id = ${role}, permission_granted = '{}', permission_revoked = '{}'
+        WHERE id = ${userId}
+          AND (
+            NOT EXISTS (SELECT 1 FROM holders WHERE id = ${userId})
+            OR (SELECT count(*) FROM holders) > 1
+          )
+        RETURNING id
+      `
+      if (updated.length === 0) throw refuse('last_manage_team_holder', LAST_HOLDER_MESSAGE)
+    }
+
+    const row = await fetchUserRow(db, userId)
+    if (!row) throw notFoundError(`operator ${userId}`)
+    await recordAudit(db, {
+      userId: operator.userId,
+      action: 'team.roleChange',
+      entityType: 'operator',
+      entityId: userId,
+      summary: { from: user.role_id, to: role, reason },
+    })
+    return jsonResponse(toTeamUser(row))
+  }
+}
+
+/**
+ * PUT /api/v1/team/operators/:id/compensation-cap
+ *   body: { capHalalas }
+ *   -> TeamUser
+ *
+ * WP-6.2c / F-V2-21's `setCompensationCap` gap. The operator's own cap, over
+ * the role default (O-T5). `null` is no cap.
+ */
+export function createSetCompensationCapHandler(db: Database): RouteHandler<RequestContext> {
+  return async (req, ctx) => {
+    const operator = requirePermission(ctx, 'manage_team')
+    const userId = ctx.params.id ?? ''
+    const body = await parseJsonBody(req)
+    const capHalalas = typeof body?.capHalalas === 'number' ? body.capHalalas : null
+
+    const existing = await db.sql<{ id: string }>`SELECT id FROM users WHERE id = ${userId}`
+    if (existing.length === 0) throw notFoundError(`operator ${userId}`)
+
+    await db.sql`UPDATE users SET compensation_cap_halalas = ${capHalalas} WHERE id = ${userId}`
+    const row = await fetchUserRow(db, userId)
+    if (!row) throw notFoundError(`operator ${userId}`)
+    await recordAudit(db, { userId: operator.userId, action: 'team.cap', entityType: 'operator', entityId: userId, summary: { capHalalas } })
+    return jsonResponse(toTeamUser(row))
+  }
+}
+
+/* ──────────────────────────── on-call rota ────────────────────────────── */
+
+interface OnCallRow {
+  primary_user_id: string | null
+  secondary_user_id: string | null
+  updated_at: string | null
+  updated_by: string | null
+}
+
+function toOnCallRota(row: OnCallRow): OnCallRota {
+  return {
+    primaryUserId: row.primary_user_id,
+    secondaryUserId: row.secondary_user_id,
+    updatedAt: row.updated_at as OnCallRota['updatedAt'],
+    updatedBy: row.updated_by,
+  }
+}
+
+/** GET /api/v1/team/on-call -> OnCallRota */
+export function createGetOnCallRotaHandler(db: Database): RouteHandler<RequestContext> {
+  return async (_req, ctx) => {
+    requirePermission(ctx, 'manage_team')
+    const rows = await db.sql<OnCallRow>`SELECT primary_user_id, secondary_user_id, updated_at, updated_by FROM on_call_rota WHERE id = true`
+    return jsonResponse(toOnCallRota(rows[0] ?? { primary_user_id: null, secondary_user_id: null, updated_at: null, updated_by: null }))
+  }
+}
+
+/**
+ * PUT /api/v1/team/on-call
+ *   body: { primaryUserId, secondaryUserId }
+ *   -> OnCallRota
+ *
+ * Only an `Active` operator can be on call — a suspended or never-activated
+ * operator on the rota is a rota that names somebody who cannot sign in.
+ */
+export function createUpdateOnCallRotaHandler(db: Database): RouteHandler<RequestContext> {
+  return async (req, ctx) => {
+    const operator = requirePermission(ctx, 'manage_team')
+    const body = await parseJsonBody(req)
+    const primaryUserId = typeof body?.primaryUserId === 'string' ? body.primaryUserId : null
+    const secondaryUserId = typeof body?.secondaryUserId === 'string' ? body.secondaryUserId : null
+
+    for (const id of [primaryUserId, secondaryUserId]) {
+      if (id === null) continue
+      const rows = await db.sql<{ status: string }>`SELECT status FROM users WHERE id = ${id}`
+      const found = rows[0]
+      if (!found) throw notFoundError(`operator ${id}`)
+      if (found.status !== 'Active') throw refuse('not_active', `Operator ${id} is ${found.status} and cannot be on call`)
+    }
+
+    const updated = await db.sql<OnCallRow>`
+      UPDATE on_call_rota SET primary_user_id = ${primaryUserId}, secondary_user_id = ${secondaryUserId},
+        updated_at = now(), updated_by = ${operator.userId}
+      WHERE id = true
+      RETURNING primary_user_id, secondary_user_id, updated_at, updated_by
+    `
+    const primary = primaryUserId ? await fetchUserRow(db, primaryUserId) : null
+    await recordAudit(db, {
+      userId: operator.userId,
+      action: 'team.rota',
+      entityType: 'workspace',
+      entityId: 'on-call-rota',
+      summary: { primary: primary?.name_en ?? null },
+    })
+    return jsonResponse(toOnCallRota(updated[0]!))
   }
 }

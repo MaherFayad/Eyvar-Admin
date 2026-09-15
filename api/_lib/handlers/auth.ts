@@ -31,8 +31,9 @@ import type {
   VerifyFailureReason,
 } from '@/data/types/auth'
 import type { ApiErrorDetail } from '../errors'
-import { notFoundError, unauthorizedError, validationError } from '../errors'
+import { notFoundError, rateLimitedError, unauthorizedError, validationError } from '../errors'
 import { jsonResponse } from '../envelope'
+import { checkRateLimit, clientIp } from '../rateLimit'
 import {
   DEVICE_TRUST_SECONDS,
   clearSessionCookieHeader,
@@ -262,8 +263,14 @@ function failVerify(
  * until the second factor actually clears, on `verifyCode` (the client
  * docblock's own rule).
  */
+/** IP-based, not per-account: `failed_password_attempts`/`password_locked_until` already rate-limit a known account (`recordFailedPassword`); this guards the transport itself against an unauthenticated flood — an unknown or freshly-typo'd email has no account row to lock. */
+const SIGN_IN_RATE_LIMIT = { windowMs: 15 * 60_000, max: 10 }
+
 export function createSignInHandler(db: Database, generateCode: () => string = generateOtpCode): RouteHandler<RequestContext> {
   return async (req) => {
+    const limit = await checkRateLimit(db, `signin:${clientIp(req)}`, SIGN_IN_RATE_LIMIT)
+    if (limit.limited) throw rateLimitedError(limit.retryAfterSeconds)
+
     const body = await parseJsonBody(req)
     const email = typeof body?.email === 'string' ? body.email.trim().toLowerCase() : ''
     const password = typeof body?.password === 'string' ? body.password : ''
@@ -381,7 +388,7 @@ export function createVerifyCodeHandler(db: Database): RouteHandler<RequestConte
     await db.sql`UPDATE users SET last_login_at = now(), failed_password_attempts = 0 WHERE id = ${challenge.user_id}`
 
     const sessionRows = await db.sql<{ id: string }>`
-      INSERT INTO sessions (user_id, device) VALUES (${challenge.user_id}, ${req.headers.get('user-agent')})
+      INSERT INTO sessions (user_id, device, ip) VALUES (${challenge.user_id}, ${req.headers.get('user-agent')}, ${clientIp(req)})
       RETURNING id
     `
     const session = await buildSessionFor(db, challenge.user_id)
