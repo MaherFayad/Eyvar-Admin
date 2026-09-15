@@ -33,6 +33,8 @@ export type PageContent = Pick<Page, 'title' | 'icon' | 'description' | 'visibil
 export interface UsePageEditorOptions {
   page: Page
   t: Translator
+  /** AC-1212 — a page opened from `?edit=1` (template creation) starts in edit mode, not view mode. */
+  initialEditing?: boolean
 }
 
 const AUTOSAVE_DELAY_MS = 800
@@ -49,8 +51,8 @@ function contentOf(page: Page): PageContent {
   }
 }
 
-export function usePageEditor({ page, t }: UsePageEditorOptions) {
-  const [editing, setEditing] = useState(false)
+export function usePageEditor({ page, t, initialEditing = false }: UsePageEditorOptions) {
+  const [editing, setEditing] = useState(initialEditing)
   const [content, setContent] = useState<PageContent>(() => contentOf(page))
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle')
   const [savedAt, setSavedAt] = useState<string | null>(page.publishedAt ? page.updatedAt : null)

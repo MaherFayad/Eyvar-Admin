@@ -223,15 +223,17 @@ describe('AC-873 (ported) — a report block draws what the report draws', () =>
 describe('AC-1187 — page scope reaches report and metric blocks, and a refused range says so', () => {
   const refusingScope = { range: { kind: 'preset' as const, preset: 'last-7d' as const }, filters: [] }
 
-  it.fails('DEFECT — a report block under a refused range never shows the Own range badge', async () => {
+  it('AC-1187 — a report block under a refused range shows the Own range badge', async () => {
     const block = await reportBlockOn('RPT-7')
     await mountBlock(block, { scope: refusingScope })
 
-    await screen.findByRole('button')
+    /* A readiness gate only — RPT-7's chart mode also renders a "View"
+       button group once content lands, so more than one button is expected. */
+    await screen.findAllByRole('button')
     expect(await screen.findByText(copy('rb.dashboard.tile.ownRange'))).toBeInTheDocument()
   })
 
-  it.fails('DEFECT — a metric block under a refused range never shows the Own range badge', async () => {
+  it('AC-1187 — a metric block under a refused range shows the Own range badge', async () => {
     const { measures, dimensions } = await catalogue()
     const block = { id: 'blk-m1', type: 'metric' as const, reportId: 'RPT-7', seriesId: null, format: 'value' as const }
     render(

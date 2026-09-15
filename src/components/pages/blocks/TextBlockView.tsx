@@ -25,7 +25,11 @@ export function TextBlockView({ block }: { block: TextBlock }) {
   const [focused, setFocused] = useState(false)
   const [slash, setSlash] = useState<SlashState | null>(null)
 
-  if (editing && (focused || block.md === '')) {
+  /* `slash !== null` keeps the editor (and the open picker) mounted once
+     typing `/` makes `block.md` non-empty (AC-1197) — otherwise the
+     `focused || md === ''` check alone flips this block back to its
+     preview branch mid-keystroke and the picker vanishes with it. */
+  if (editing && (focused || block.md === '' || slash !== null)) {
     const insert = (next: Block) => {
       actions?.onReplace(block.id, next)
       setSlash(null)

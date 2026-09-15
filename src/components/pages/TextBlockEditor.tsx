@@ -105,7 +105,7 @@ export function TextBlockEditor({ md, onChange, onBlur, placeholder, onSlashQuer
         value={md}
         maxLength={MAX_MARKDOWN_LENGTH}
         placeholder={placeholder}
-        aria-label={slashActive ? t('pg.picker.search') : undefined}
+        aria-label={slashActive ? t('pg.picker.search') : placeholder}
         onChange={handleChange}
         onBlur={onBlur}
         className="field-sizing-content min-h-16 font-sans text-sm"

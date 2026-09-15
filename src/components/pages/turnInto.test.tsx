@@ -70,9 +70,11 @@ describe('AC-1206 — Turn into converts text ↔ heading ↔ callout', () => {
     /* Keyboard, not hover+click — a Radix `DropdownMenuSub` has no stable
        geometry in jsdom, so a synthetic pointer click on a nested item
        reliably lands on the parent menu instead (§7.3's own concern, proven
-       the hard way). `Move up · Move down · Move to column… · Duplicate ·
-       Turn into…` — four steps down, then in. */
-    await user.keyboard('{ArrowDown}{ArrowDown}{ArrowDown}{ArrowDown}{ArrowRight}')
+       the hard way). This is the only block on the page, so `Move up`,
+       `Move down` and `Move to column…` are all disabled in place (AC-1198)
+       and Radix's roving focus skips them: `Duplicate · Turn into…` — two
+       steps down, then in. */
+    await user.keyboard('{ArrowDown}{ArrowDown}{ArrowRight}')
     await screen.findByRole('menuitem', { name: copy('pg.block.heading.name') })
     await user.keyboard('{Enter}')
 
@@ -88,7 +90,9 @@ describe('AC-1206 — Turn into converts report ↔ metric without losing the re
 
     await user.click(screen.getByRole('button', { name: copy('pg.edit.blockMenu').replace('{name}', 'Report') }))
     await screen.findByRole('menuitem', { name: copy('pg.edit.moveUp') })
-    await user.keyboard('{ArrowDown}{ArrowDown}{ArrowDown}{ArrowDown}{ArrowRight}')
+    /* Same single-block page, same skip of the three disabled items —
+       `Duplicate · Turn into…` — two steps down, then in. */
+    await user.keyboard('{ArrowDown}{ArrowDown}{ArrowRight}')
     await screen.findByRole('menuitem', { name: copy('pg.block.metric.name') })
     await user.keyboard('{Enter}')
 

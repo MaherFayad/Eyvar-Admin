@@ -61,8 +61,11 @@ async function mountEditing(pageId: string) {
   return utils
 }
 
-async function openMenu(user: ReturnType<typeof userEvent.setup>, blockName: string) {
-  const trigger = screen.getByRole('button', { name: copy('pg.edit.blockMenu').replace('{name}', blockName) })
+async function openMenu(user: ReturnType<typeof userEvent.setup>, blockName: string, index = 0) {
+  /* The trigger's accessible name is the block's type only (BlockFrame.tsx),
+     so a page with two blocks of the same type needs the DOM position to
+     disambiguate which one — `index` picks among same-named triggers. */
+  const trigger = screen.getAllByRole('button', { name: copy('pg.edit.blockMenu').replace('{name}', blockName) })[index]!
   await user.click(trigger)
   return screen.findByRole('menu')
 }

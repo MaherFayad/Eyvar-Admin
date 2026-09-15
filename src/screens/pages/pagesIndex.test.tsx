@@ -189,7 +189,7 @@ describe('AC-1215 — Duplicate copies blocks, with new block ids, and the same 
 })
 
 describe('AC-1212 — New page → From template creates a draft copy owned by the operator, in edit mode', () => {
-  it.fails('DEFECT — the page opens in view mode; ?edit=1 is set on the URL but never read', async () => {
+  it.fails('DEFECT — duplicatePage titles the draft "Monday morning copy", so no page is found by the template\'s own title', async () => {
     const user = userEvent.setup()
     mountIndex()
 
@@ -202,9 +202,12 @@ describe('AC-1212 — New page → From template creates a draft copy owned by t
     expect(draft, 'a draft copy owned by the operator').toBeTruthy()
     expect(draft?.ownerId).toBe('USR-1')
 
-    /* `PagesView.openPageForEdit` navigates to `?edit=1`, but neither
-       `PageDetailScreen` nor `PageView` reads it — the page opens in view
-       mode, with `Edit` as an unpressed control rather than already active. */
+    /* `?edit=1` itself is fixed — `PageDetailScreen` now reads it and passes
+       `initialEditing` through `PageView` into `usePageEditor`. What still
+       blocks this test is a second, unrelated defect: `duplicatePage`
+       (`src/data/clients/pages.ts`, outside this file's owner) titles every
+       copy `"<title> copy"`, including a from-template draft, so the lookup
+       above by the template's own title never finds it. */
     expect(screen.getByRole('button', { name: copy('pg.edit.done') })).toBeInTheDocument()
   })
 })

@@ -4,7 +4,8 @@
  * gap renders `ABSENT`, never a zero.
  */
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ErrorState } from '@/components/ErrorState'
 import { LoadingSkeleton } from '@/components/LoadingSkeleton'
 import { MetricDelta } from '@/components/metrics/MetricTile'
@@ -31,6 +32,8 @@ export function MetricBlockView({ block }: { block: MetricBlockData }) {
   const previous = latestIndex > 0 ? (points[latestIndex - 1] ?? null) : null
   const deltaPercent = latest !== null && previous !== null && previous !== 0 ? ((latest - previous) / Math.abs(previous)) * 100 : null
   const measure = series ? measures.find((m) => m.key === series.measureKey) : null
+  /* Same indication as `ReportBlockView` — carried over from `DashboardTile` (03 §1). */
+  const rangeRefused = state !== null && state.kind !== 'missing' && scope.range !== null && state.scoped.rangeRefused
 
   return (
     <Card size="sm" className="min-w-0">
@@ -40,6 +43,11 @@ export function MetricBlockView({ block }: { block: MetricBlockData }) {
             <bdi {...isolatedRunProps().run}>{title}</bdi>
           </span>
         </CardTitle>
+        {rangeRefused && (
+          <CardAction>
+            <Badge tone="neutral">{t('rb.dashboard.tile.ownRange')}</Badge>
+          </CardAction>
+        )}
       </CardHeader>
       <CardContent className="min-w-0">
         {resolved.status === 'loading' ? (

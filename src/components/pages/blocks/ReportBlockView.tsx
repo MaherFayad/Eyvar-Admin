@@ -5,6 +5,7 @@
  * block, matching the fidelity fix `DashboardTile.tsx` made for a tile.
  */
 
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ErrorState } from '@/components/ErrorState'
@@ -33,6 +34,10 @@ export function ReportBlockView({ block }: { block: ReportBlockData }) {
   const report = state && state.kind !== 'missing' ? state.report : null
   const title = report ? report.name : (block.title ?? t('pg.block.report.name'))
   const seriesShape = state?.kind === 'ok' ? isSeriesMode(reportMode(state.scoped.query)) : false
+  /* §C4/DashboardTile's per-block indication, carried over unchanged (03 §1):
+     a board that could not impose its range here must say which window these
+     numbers really cover — `neutral`, a fact about the block, not a warning (R7). */
+  const rangeRefused = state !== null && state.kind !== 'missing' && scope.range !== null && state.scoped.rangeRefused
 
   return (
     <Card size="sm" className={`min-w-0 ${HEIGHT_CLASS[block.height]}`}>
@@ -52,7 +57,10 @@ export function ReportBlockView({ block }: { block: ReportBlockData }) {
         </CardTitle>
         {report && (
           <CardAction>
-            <p className="text-xs text-muted-foreground">{t(`rb.mode.${reportMode(report.query)}`)}</p>
+            <div className="flex items-center gap-1.5">
+              <p className="text-xs text-muted-foreground">{t(`rb.mode.${reportMode(report.query)}`)}</p>
+              {rangeRefused && <Badge tone="neutral">{t('rb.dashboard.tile.ownRange')}</Badge>}
+            </div>
           </CardAction>
         )}
       </CardHeader>

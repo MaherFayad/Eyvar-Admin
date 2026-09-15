@@ -5,7 +5,7 @@
  */
 
 import { useCallback, useMemo, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { ErrorState } from '@/components/ErrorState'
 import { LoadingSkeleton } from '@/components/LoadingSkeleton'
 import { PageHeader } from '@/components/PageHeader'
@@ -25,6 +25,9 @@ export function PageDetailScreen() {
   const shell = useShell()
   const navigate = useNavigate()
   const { pageId = '' } = useParams()
+  /* AC-1212 — `PagesView.openPageForEdit` sends a fresh template copy here with `?edit=1` so it opens already editable. */
+  const [searchParams] = useSearchParams()
+  const initialEditing = searchParams.get('edit') === '1'
   const t = useMemo(() => withFallback(shell.language.t, { ...REPORTS_EN, ...PAGES_EN }), [shell.language.t])
   const { dir, language } = shell.language
   const now = useNowIso()
@@ -92,6 +95,7 @@ export function PageDetailScreen() {
       onDeleted={() => navigate(listRoute)}
       onDuplicated={(next) => navigate(`/management/reports/pages/${next.id}`)}
       onPublished={(next) => setLocalPage(next)}
+      initialEditing={initialEditing}
       t={t}
       language={language}
       dir={dir}

@@ -45,6 +45,8 @@ export interface PageViewProps {
   onDuplicated: (page: Page) => void
   /** The record changed under the same id (publish sets `publishedAt`) — the parent refreshes its own copy. */
   onPublished: (page: Page) => void
+  /** AC-1212 — `PageDetailScreen` reads `?edit=1` and passes it through so a fresh template copy opens already editable. */
+  initialEditing?: boolean
   t: Translator
   language: Language
   dir: Direction
@@ -62,17 +64,19 @@ export function PageView({
   onDeleted,
   onDuplicated,
   onPublished,
+  initialEditing = false,
   t,
   language,
   dir,
 }: PageViewProps) {
-  const editor = usePageEditor({ page, t })
-  const [deleting, setDeleting] = useState<{ failed: boolean } | null>(null)
-  const [publishing, setPublishing] = useState(false)
-
   const isOwner = page.ownerId === currentUserId
   const canEdit = canWrite && (isOwner || page.visibility === 'team')
   const isDraft = page.publishedAt === null
+
+  /* Only a permitted operator opens already editing — `?edit=1` alone never grants the chrome. */
+  const editor = usePageEditor({ page, t, initialEditing: initialEditing && canEdit })
+  const [deleting, setDeleting] = useState<{ failed: boolean } | null>(null)
+  const [publishing, setPublishing] = useState(false)
 
   const setTitle = (title: string) => editor.setContent((c) => ({ ...c, title }))
   const setDescription = (description: string) => editor.setContent((c) => ({ ...c, description: description === '' ? null : description }))
