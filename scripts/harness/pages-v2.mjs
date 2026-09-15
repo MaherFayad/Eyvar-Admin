@@ -355,6 +355,73 @@ async function reportPickerEscape() {
   await ctx.close()
 }
 
+async function addReportBlockPersists() {
+  /* The defect: picking `Report`/`Metric` mounted `ReportPickerPanel` and
+     unmounted it in the same tick (BlockList.tsx's `onOpenChange`, a Radix
+     dismiss-layer race — same family as F-V2-83). jsdom cannot see a
+     portal-teardown race, so this proves it in a real browser: the panel
+     must survive the pick, the block must land, and a reload must still
+     show it — an actual save, not a same-tick optimistic flash. */
+  section('ADD A REPORT BLOCK — survives the pick and a reload (the defect this harness exists to catch)')
+  const ctx = await browser.newContext({ viewport: { width: 1280, height: 1000 } })
+  const page = await ctx.newPage()
+  await page.goto(`${BASE}/management/reports/pages/${PAGE_ID}`, { waitUntil: 'networkidle' })
+  await page.waitForTimeout(500)
+  await page.getByRole('button', { name: 'Edit' }).click()
+  await page.waitForTimeout(400)
+
+  // Keyboard, matching the exact repro: type to filter, Enter to pick "Report".
+  await page.getByRole('button', { name: 'Add block' }).first().click()
+  await page.waitForTimeout(250)
+  await page.keyboard.type('Report')
+  await page.waitForTimeout(150)
+  await page.keyboard.press('Enter')
+  await page.waitForTimeout(300)
+
+  const pickerInput = () => page.evaluate(() => !!document.querySelector('input[placeholder="Search dashboards"]'))
+  check('the report picker panel opens and is still there a moment later (not a same-tick flicker)', await pickerInput())
+
+  // RPT-3 is not pinned to DSH-1 (reports.ts), so its row is enabled.
+  // The mock's fixed latency (320ms, `src/data/config.ts`) applies to every
+  // keystroke's refetch, so this waits past it rather than racing it.
+  await page.locator('input[placeholder="Search dashboards"]').fill('Gross revenue')
+  await page.getByRole('button', { name: 'Gross revenue · 90 days vs previous' }).waitFor({ timeout: 2000 })
+  await page.getByRole('button', { name: 'Gross revenue · 90 days vs previous' }).click()
+  await page.waitForTimeout(300)
+  check('the picker panel closes once a report is chosen', !(await pickerInput()))
+  // The new block's title starts as the "Report" fallback until
+  // `useResolvedReport` resolves (its own mock latency) — wait for the real
+  // title rather than racing that fetch with a fixed timeout.
+  const titled = await page
+    .getByRole('button', { name: 'Gross revenue · 90 days vs previous' })
+    .waitFor({ timeout: 2000 })
+    .then(() => true)
+    .catch(() => false)
+  check('the report block is on the page, titled with the chosen report', titled)
+
+  // AC-1201's 800ms debounce, then the mutation's own (1.5×) mock latency —
+  // wait for the real "Saved" indicator rather than a fixed guess at both.
+  await page.getByText(/^Saved ·/).waitFor({ timeout: 5000 }).catch(() => {})
+
+  // A hard `page.reload()` re-runs the whole module graph and resets the
+  // in-memory mock store to its seeded rows (`reports.ts`'s own "Needs Q1:
+  // without a storage adapter this serves seeded rows" — a documented mock
+  // limitation, not this defect). Clicking the rail's own `Reports` link and
+  // then going back is client-side History API navigation, so the SPA and
+  // its in-memory store survive — this is the proof the save reached the
+  // mock's canonical store, not just this component's optimistic state.
+  await page.locator('a[href="/management/reports"]').first().click()
+  await page.waitForTimeout(400)
+  await page.goBack({ waitUntil: 'networkidle' })
+  const survived = await page
+    .getByRole('button', { name: 'Gross revenue · 90 days vs previous' })
+    .waitFor({ timeout: 3000 })
+    .then(() => true)
+    .catch(() => false)
+  check('the block survives client-side navigation away and back — a real save, not an optimistic flash (AC-1201)', survived)
+  await ctx.close()
+}
+
 async function reducedMotion() {
   section('REDUCED MOTION')
   const ctx = await browser.newContext({ viewport: { width: 1280, height: 1000 }, reducedMotion: 'reduce' })
@@ -374,6 +441,7 @@ await calloutContrast()
 await rtlMirroring()
 await newPageDialogFocus()
 await reportPickerEscape()
+await addReportBlockPersists()
 await reducedMotion()
 
 await browser.close()

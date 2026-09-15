@@ -213,6 +213,109 @@ describe('AC-1170 — the drop-off group table renders the planner-free rows the
   })
 })
 
+describe('AC-1169 — funnel `measuredAs` routes to the shape §5 requires, never always the cascade', () => {
+  function trendResult(): ReportResult {
+    const query: ReportQuery = {
+      ...baseFunnelQuery,
+      grain: 'day',
+      funnel: { ...baseFunnelQuery.funnel!, measuredAs: 'conversion-over-time' },
+    }
+    return {
+      query,
+      asOf: '2026-06-25T09:14:00+03:00',
+      buckets: ['2026-06-01', '2026-06-02', '2026-06-03'],
+      panels: [
+        {
+          panelId: 'p:funnel-trend',
+          titleKey: 'rb.panel.funnel',
+          titleParams: { measure: 'rb.measure.riders.joined' },
+          unit: 'percent',
+          currency: null,
+          seriesIds: ['trips.completed#_#current'],
+        },
+      ],
+      series: [
+        {
+          id: 'trips.completed#_#current',
+          measureKey: 'trips.completed',
+          groupValue: null,
+          role: 'current',
+          panelId: 'p:funnel-trend',
+          unit: 'percent',
+          currency: null,
+          temporality: 'flow',
+          points: [40, null, 55],
+          partialBucketIndexes: [],
+          blocked: null,
+          failed: null,
+        },
+      ],
+      truncated: false,
+      truncatedAtRows: null,
+      warnings: [],
+      foldedGroupCount: null,
+    }
+  }
+
+  it('conversion-over-time draws through SeriesChart\'s own accessible region, and no cascade `<ol>` renders', async () => {
+    const { container } = renderCanvas(trendResult())
+    expect(await screen.findByRole('group', { name: copy('rb.panel.funnel') })).toBeInTheDocument()
+    expect(container.querySelector('ol')).toBeNull()
+    expect(screen.getAllByText(copy('rb.funnel.measuredAs.conversion-over-time')).length).toBeGreaterThan(0)
+  })
+
+  function timeToConvertResult(): ReportResult {
+    const query: ReportQuery = {
+      ...baseFunnelQuery,
+      grain: 'none',
+      funnel: { ...baseFunnelQuery.funnel!, measuredAs: 'time-to-convert' },
+    }
+    const percentiles = [25, 50, 75, 90, 95]
+    return {
+      query,
+      asOf: '2026-06-25T09:14:00+03:00',
+      buckets: ['2026-06-01'],
+      panels: percentiles.map((p) => ({
+        panelId: `p:funnel-ttc-p${p}`,
+        titleKey: 'rb.funnel.timeToConvert.percentile',
+        titleParams: { percentile: p },
+        unit: 'minutes',
+        currency: null,
+        seriesIds: [`riders.joined#p${p}#current`],
+      })),
+      series: percentiles.map((p) => ({
+        id: `riders.joined#p${p}#current`,
+        measureKey: 'riders.joined',
+        groupValue: `p${p}`,
+        role: 'current',
+        panelId: `p:funnel-ttc-p${p}`,
+        unit: 'minutes',
+        currency: null,
+        temporality: 'flow',
+        points: [p * 60],
+        partialBucketIndexes: [],
+        blocked: null,
+        failed: null,
+      })),
+      truncated: false,
+      truncatedAtRows: null,
+      warnings: [],
+      foldedGroupCount: null,
+    }
+  }
+
+  it('time-to-convert draws through DistributionCard, labelled P25…P95 off `groupValue` — never the first rung\'s measure name or a "% of step 1" sentence', async () => {
+    const { container } = renderCanvas(timeToConvertResult())
+    expect(await screen.findByRole('img', { name: copy('rb.funnel.measuredAs.time-to-convert') })).toBeInTheDocument()
+    expect(container.querySelector('ol')).toBeNull()
+    for (const label of ['P25', 'P50', 'P75', 'P90', 'P95']) {
+      expect(screen.getByText(label)).toBeInTheDocument()
+    }
+    expect(screen.queryByText(/Riders who joined/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/% of step 1/)).not.toBeInTheDocument()
+  })
+})
+
 const cohortQuery: ReportQuery = {
   measures: [],
   groupBy: [],

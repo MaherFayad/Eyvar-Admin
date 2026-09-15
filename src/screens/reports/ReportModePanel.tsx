@@ -546,7 +546,18 @@ function FunnelFields({
 
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="rb-funnel-measured-as">{t('rb.funnel.measuredAs')}</Label>
-        <Select value={spec.measuredAs} onValueChange={(value) => set({ measuredAs: value as FunnelMeasuredAs })}>
+        <Select
+          value={spec.measuredAs}
+          onValueChange={(value) => {
+            const measuredAs = value as FunnelMeasuredAs
+            /* AC-1169 §5 — a prior cascade/time-to-convert run already
+               collapsed `grain` to `'none'` (`modeFixesGrainToNone`); this
+               rail has no grain control to set it back by hand, so switching
+               here does it once, to the same default `EMPTY_QUERY` uses. */
+            const grain = measuredAs === 'conversion-over-time' && query.grain === 'none' ? 'day' : query.grain
+            onChange({ ...query, funnel: { ...spec, measuredAs }, grain })
+          }}
+        >
           <SelectTrigger id="rb-funnel-measured-as" className="w-full">
             <SelectValue />
           </SelectTrigger>
@@ -793,7 +804,11 @@ function CohortFields({
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="rb-cohort-return-add">{t('rb.cohort.return')}</Label>
+        {/* No `htmlFor`: this labels the SECTION, and a `<label for>` also
+            names a `Select` trigger (labelable, same as a button) — pointing
+            it at the picker below would swallow "Add a return event" and
+            announce "Still here means" instead, `Exclude`'s own defect shape. */}
+        <Label>{t('rb.cohort.return')}</Label>
         {/* §6: OR-combined, so this is a list like the funnel's steps rather
             than one `Select` — `[]` still reads as a sentence (rule 10), not
             as a blank. */}
@@ -823,7 +838,10 @@ function CohortFields({
           value={NONE}
           onValueChange={(key) => set({ returnMeasureKeys: [...returnKeys, key] })}
         >
-          <SelectTrigger id="rb-cohort-return-add" className="w-full">
+          {/* `aria-label` wins the accname computation over the section's
+              `<Label>` above (neither `for` nor `aria-labelledby` points here
+              any more), so the trigger keeps its own name even unopened. */}
+          <SelectTrigger id="rb-cohort-return-add" className="w-full" aria-label={t('rb.cohort.return.add')}>
             <SelectValue placeholder={t('rb.cohort.return.add')} />
           </SelectTrigger>
           <SelectContent>

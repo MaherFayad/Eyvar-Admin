@@ -6,13 +6,14 @@
  */
 
 import { daysInclusive } from './buckets'
+import { OTHER } from './resolve/core'
 import type { IsoDate } from '../types/common'
 import type { FunnelDropoffGroup } from '../types/report'
 
 /** §7.4's own fold threshold, applied to a rung's drop-off breakdown. */
 export const MAX_DROPOFF_GROUPS = 8
-/** §7.4's fold bucket, reused rather than a second sentinel for the same idea. */
-export const DROPOFF_OTHER = '__other__'
+/** §7.4's fold bucket — `resolve/core.ts`'s own `OTHER`, not a second sentinel that only agrees with it by coincidence of literal value. */
+export const DROPOFF_OTHER = OTHER
 
 /**
  * The median days from `from` to `to`, over subjects present in both — the

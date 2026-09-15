@@ -158,6 +158,18 @@ describe('F-V2-50 — the steps group is labelled "Steps", and `Add a step` keep
   })
 })
 
+describe('F-V2-50\'s sibling — the cohort return-add picker keeps its own name, not "Still here means"', () => {
+  it('the trigger is reachable as "Add a return event", and not at all under the section heading', () => {
+    render(<Harness initial={cohortQuery} />)
+    expect(screen.getByText(copy('rb.cohort.return'))).toBeInTheDocument()
+    expect(screen.getByRole('combobox', { name: copy('rb.cohort.return.add') })).toBeInTheDocument()
+    /* The defect this repeats `Add a step`'s shape: a `<label for>` on the
+       trigger swallowed its own name and announced the section heading
+       instead — reproduced live in `docs/02-verification/analytics-v2-modes-a11y.md`. */
+    expect(screen.queryByRole('combobox', { name: copy('rb.cohort.return') })).not.toBeInTheDocument()
+  })
+})
+
 describe('funnel v2 — measuredAs and the conversion window (AC-1167, AC-1169)', () => {
   it('offers all three measuredAs values and changes the query on selection', async () => {
     const user = userEvent.setup()
@@ -254,7 +266,9 @@ describe('cohort v2 — method and custom brackets (AC-1172)', () => {
     render(<Harness initial={cohortQuery} />)
     expect(screen.getByText(copy('rb.cohort.return.own'))).toBeInTheDocument()
 
-    await user.click(screen.getByRole('combobox', { name: copy('rb.cohort.return') }))
+    /* Named by its own action, not the section heading above it — see the
+       F-V2-50 sibling fix and its own describe block below. */
+    await user.click(screen.getByRole('combobox', { name: copy('rb.cohort.return.add') }))
     const measure = measureFixtures.find((m) => m.key !== 'riders.joined')!
     await user.click(await screen.findByRole('option', { name: t(measure.labelKey) }))
     expect(screen.getByText(t(measure.labelKey))).toBeInTheDocument()

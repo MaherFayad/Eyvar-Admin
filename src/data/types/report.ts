@@ -730,7 +730,7 @@ export type QueryViolationCode =
   /** The window is shorter than the horizon it is asked to show. */
   | 'cohort-window-too-short'
   | 'cohort-horizon-out-of-range'
-  /** No engine here buckets retention by day or week. See `CohortGrain`. */
+  /** Reserved for a grain with no engine; day, week and month all compute today (`COMPUTED_COHORT_GRAINS`), so this is unreached. */
   | 'cohort-grain-unavailable'
   /** §6 / AC-1172: two `method: 'bracket'` windows share a period. `cohorts.ts`'s `bracketsOverlap`. */
   | 'cohort-brackets-overlap'

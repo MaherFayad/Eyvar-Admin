@@ -612,6 +612,10 @@ export const REPORTS_EN: Dictionary = {
   'rb.funnel.dropoff': '{percent} of the previous step did not reach this one.',
   'rb.funnel.step.median': 'Median {days} days to the next step.',
   'rb.funnel.step.median.none': 'No reading for the next step.',
+  /* AC-1169's refusal: a rung's bar and its "of step 1" sentence are
+     conversion-only maths, so a result measured any other way is stated
+     as unreadable here rather than divided through them anyway. */
+  'rb.funnel.cascade.wrongShape': "This result isn't a set of funnel steps, and can't be shown as one.",
   'rb.cohort.col.cohort': 'Joined',
   /* R5-15 — the base travels with the percentage. */
   'rb.cohort.col.size': 'People',

@@ -44,15 +44,15 @@ async function toArabic(page) {
   await page.waitForTimeout(600)
 }
 
-/* ═════════════ AC-1169 — funnel measuredAs draws the wrong shape ═════════ */
+/* ═════════════ AC-1169 — funnel measuredAs now draws the right shape ═════ */
 /*
- * §5: `conversion-over-time` must re-enable the grain and draw a TREND;
- * `time-to-convert` must draw p25…p95 with `DistributionCard`. The resolver
- * (`resolveFunnelOverTime`, `resolveFunnelTimeToConvert`, `resolveReport.ts`)
- * builds the right shape; nothing in `ReportBuilder.tsx` or
- * `ReportModeCanvas.tsx` reads `funnel.measuredAs` to route to it — both
- * stay on `FunnelCascade`, which was written for `measuredAs: 'conversion'`
- * only. This check proves the wrong component draws and states plainly how.
+ * §5: `conversion-over-time` re-enables the grain and draws a TREND through
+ * `SeriesChart`; `time-to-convert` draws p25…p95 through `DistributionCard`.
+ * The resolver (`resolveFunnelOverTime`, `resolveFunnelTimeToConvert`,
+ * `resolveReport.ts`) always built the right shape; `ReportModeCanvas.tsx`'s
+ * `Body` now reads `funnel.measuredAs` to route to it instead of leaving
+ * every funnel on `FunnelCascade`. This asserts the CORRECTED render, not
+ * the defect — inverting it back would hide a regression behind a green run.
  */
 {
   const { page, errors } = await newPage()
@@ -77,28 +77,33 @@ async function toArabic(page) {
   await page.getByRole('button', { name: 'Refresh' }).click()
   await page.waitForTimeout(1500)
 
+  const distribution = page.getByRole('img', { name: 'Time to convert' })
+  await distribution.waitFor({ state: 'attached', timeout: 4000 }).catch(() => {})
   const bodyText = await page.evaluate(() => document.body.innerText)
   await page.screenshot({ path: `${OUT}/wp34-AC1169-time-to-convert.png` })
 
-  const fiveMislabelledSteps = (bodyText.match(/Riders who joined/g) ?? []).length >= 5
+  const resultRegion = page.getByRole('region', { name: 'Result' })
+  check('AC-1169 — time-to-convert draws through DistributionCard, named "Time to convert"', await distribution.count() > 0)
+  check('AC-1169 — no cascade rows draw for time-to-convert', (await resultRegion.locator('ol > li').count()) === 0)
+  const fivePercentiles = ['P25', 'P50', 'P75', 'P90', 'P95'].every((label) => bodyText.includes(label))
   check(
-    'AC-1169 FAIL (expected) — time-to-convert draws five cascade "steps", all mislabelled with the FIRST rung\'s measure name instead of P25…P95',
-    fiveMislabelledSteps,
-    'FunnelCascade reads series.measureKey, never groupValue, which is where p25…p95 actually live (resolveReport.ts:1230-1243)',
+    'AC-1169 — all five percentile labels render, resolved from `groupValue`, never the first rung\'s measure name',
+    fivePercentiles,
+    bodyText.includes('Riders who joined') ? 'still found "Riders who joined" — the old mislabel' : '',
   )
-  const impossiblePercent = /4\d\d% of step 1|3\d\d% of step 1/.test(bodyText)
+  const impossiblePercent = /\d{3,}% of step 1/.test(bodyText)
   check(
-    'AC-1169 FAIL (expected) — a percentile duration is drawn through the cascade\'s "% of step 1" bar math, producing a "conversion" over 100%',
-    impossiblePercent,
-    'observed 194%/318%/394%/418% "of step 1" — a duration is not a count, the ratio is meaningless',
+    'AC-1169 — no duration is drawn through a "% of step 1" conversion sentence',
+    !impossiblePercent,
+    impossiblePercent ? bodyText.match(/\d{3,}% of step 1/)?.[0] : '',
   )
-  check('no console/page errors from the mis-route itself', errors.length === 0, errors.join(' | '))
+  check('no console/page errors', errors.length === 0, errors.join(' | '))
 }
 
-/* Second manifestation, same root cause: conversion-over-time collapses an
-   entire trend to the single first bucket's reading. */
+/* Second shape: conversion-over-time draws a real multi-bucket trend, not
+   one cascade row reading only `points[0]`. */
 {
-  const { page } = await newPage()
+  const { page, errors } = await newPage()
   await page.goto(`${BASE}/management/reports/RPT-6`, { waitUntil: 'load' })
   await page.waitForTimeout(1500)
   await page.getByRole('button', { name: 'Remove step 3' }).click()
@@ -115,15 +120,20 @@ async function toArabic(page) {
   await page.waitForTimeout(300)
   await page.getByRole('button', { name: 'Refresh' }).click()
   await page.waitForTimeout(1500)
+
+  const trend = page.getByRole('group', { name: 'Conversion funnel' })
+  await trend.waitFor({ state: 'attached', timeout: 4000 }).catch(() => {})
   await page.screenshot({ path: `${OUT}/wp34-AC1169-conversion-over-time.png` })
 
   const resultRegion = page.getByRole('region', { name: 'Result' })
-  const rows = await resultRegion.locator('ol > li').count()
-  check(
-    'AC-1169 FAIL (expected) — conversion-over-time draws exactly ONE cascade row instead of a multi-bucket trend',
-    rows === 1,
-    `cascade <li> rows in the Result region=${rows}; resolveFunnelOverTime returns one series with a point per grain bucket, the cascade only ever reads points[0]`,
-  )
+  check('AC-1169 — conversion-over-time draws through SeriesChart, not the cascade', await trend.count() > 0)
+  check('AC-1169 — no cascade rows draw for conversion-over-time', (await resultRegion.locator('ol > li').count()) === 0)
+  // `kind="line"` draws through `SeriesChart`'s `Area` layer (zero fill,
+  // stroked as a line) — `.recharts-area-dot`, one per bucket with a
+  // reading, is the real per-point mark, not `.recharts-line-curve`.
+  const marks = await page.locator('[data-slot="chart"] .recharts-area-dot').count()
+  check('AC-1169 — the trend draws more than a single point', marks > 1, `marks=${marks}`)
+  check('no console/page errors', errors.length === 0, errors.join(' | '))
 }
 
 /* ═════════════ AC-1170 — already proven; light re-check only ═══════════ */
@@ -175,6 +185,10 @@ async function toArabic(page) {
   const { page } = await newPage()
   await page.goto(`${BASE}/management/reports/RPT-7`, { waitUntil: 'load' })
   await page.waitForTimeout(1500)
+  /* Waits for a real cell rather than a fixed timeout — under concurrent
+     harness runs against one dev server the fixed 1500ms alone was observed
+     to sample before the matrix painted, reading a false `count: 0`. */
+  await page.locator('td span[class*="bg-heat-"]').first().waitFor({ state: 'attached', timeout: 4000 }).catch(() => {})
   const cellCheck = await page.evaluate(() => {
     const spans = [...document.querySelectorAll('td span[class*="bg-heat-"]')]
     return {
@@ -254,5 +268,5 @@ async function toArabic(page) {
 }
 
 await browser.close()
-console.log(failures === 0 ? '\nALL PASS' : `\n${failures} FAILURE(S) — the AC-1169 ones are EXPECTED FAILURES proving the defect; see the visual-qa report`)
-process.exit(0)
+console.log(failures === 0 ? '\nALL PASS' : `\n${failures} FAILURE(S)`)
+process.exit(failures === 0 ? 0 : 1)

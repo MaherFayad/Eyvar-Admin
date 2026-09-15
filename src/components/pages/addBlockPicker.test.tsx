@@ -13,8 +13,9 @@ import { disableMockLatency, resetDataLayer } from '@/data/clients'
 import { savePage } from '@/data/clients/pages'
 import { PageDetailScreen } from '@/screens/pages/PageDetailScreen'
 import { PAGES_EN } from '@/screens/pages/copy'
+import { REPORTS_EN } from '@/screens/reports/copy'
 
-const copy = (key: string) => PAGES_EN[key] as string
+const copy = (key: string) => (PAGES_EN[key] ?? REPORTS_EN[key]) as string
 
 beforeEach(() => {
   disableMockLatency()
@@ -96,6 +97,50 @@ describe('AC-1196 — the add-block affordance sits between every pair of blocks
        "Divider 1" (type + 1-indexed position), not the bare type name. */
     const frames = screen.getAllByRole('group')
     expect(frames[0]).toHaveAttribute('aria-label', `${copy('pg.block.divider.name')} 1`)
+  })
+})
+
+/* The defect this file exists to catch: picking `report`/`metric` used to
+   mount `ReportPickerPanel` and unmount it in the same tick (a Radix
+   dismiss-layer race, BlockList.tsx's `onOpenChange` guard), so the block
+   was never added. Each test proves the panel survives long enough to pick
+   a report AND that the resulting block carries that report's id — jsdom
+   cannot see the portal-teardown race itself (see the harness), but it can
+   catch a regression that brings back "the panel never opens". */
+describe('AC-1204 — Report and Metric hand off to the report picker, and the pick lands on the page', () => {
+  it('adds a report block, by pointer, for the chosen report', async () => {
+    const user = userEvent.setup()
+    const pageId = await onePage([])
+    await mountEditing(pageId)
+
+    await user.click(screen.getByRole('button', { name: copy('pg.edit.addBlock') }))
+    await user.click(await screen.findByRole('option', { name: new RegExp(copy('pg.block.report.name')) }))
+
+    const search = await screen.findByPlaceholderText(copy('rb.dashboards.search'))
+    await user.click(await screen.findByRole('button', { name: 'New subscriptions by plan' }))
+
+    expect(search).not.toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: 'New subscriptions by plan' })).toBeInTheDocument()
+  })
+
+  it('adds a metric block, by keyboard, for the chosen report', async () => {
+    const user = userEvent.setup()
+    const pageId = await onePage([])
+    await mountEditing(pageId)
+
+    screen.getByRole('button', { name: copy('pg.edit.addBlock') }).focus()
+    await user.keyboard('{Enter}')
+    await user.keyboard('Metric')
+    await user.keyboard('{Enter}')
+
+    const search = await screen.findByPlaceholderText(copy('rb.dashboards.search'))
+    await user.type(search, 'Completed trips')
+    const reportRow = await screen.findByRole('button', { name: 'Completed trips by pickup district' })
+    reportRow.focus()
+    await user.keyboard('{Enter}')
+
+    expect(search).not.toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: 'Completed trips by pickup district' })).toBeInTheDocument()
   })
 })
 

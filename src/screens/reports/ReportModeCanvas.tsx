@@ -50,21 +50,28 @@
  *               numbers are navigable and announced.
  */
 
-import { useState } from 'react'
+import { lazy, Suspense, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-/* Deep import, not the `@/components/reports` barrel, which does not export it.
-   `PanelFrame` is the product's one answer to *"draw this surface, or draw it
-   without a frame because my caller already drew one"* — `PanelCard` and
-   `DistributionCard` are both on it. A second implementation here would be a
-   second set of rules about what an unframed surface keeps. */
-import { PanelFrame } from '@/components/reports/PanelCard'
+/* Deep import, not the `@/components/reports` barrel, which does not export
+   `PanelFrame` — the one answer to "framed, or my caller already drew one" —
+   or `panelTitle`, a pure function that costs nothing extra to pull in
+   alongside it (AC-1169: it titles the trend and distribution panels
+   below). */
+import { PanelFrame, panelTitle } from '@/components/reports/PanelCard'
 import { EmptyState } from '@/components/EmptyState'
 import { ErrorState } from '@/components/ErrorState'
 import { LoadingSkeleton } from '@/components/LoadingSkeleton'
 import type { CanvasStatus } from '@/components/reports'
 import { OTHER_GROUP } from '@/data/clients'
-import { reportMode, type Measure, type QueryViolation, type ReportResult, type ReportSeries } from '@/data/types'
+import {
+  reportMode,
+  type Measure,
+  type QueryViolation,
+  type ReportPanel,
+  type ReportResult,
+  type ReportSeries,
+} from '@/data/types'
 /* Deep import, NOT the `@/components/metrics` barrel. The barrel also exports
    `TrendChart`, which pulls recharts -- a 337 kB chunk (104 kB gzip) that then
    loads on `/management/reports` where no chart renders. `formatMetric.ts` has
@@ -73,6 +80,19 @@ import { formatMetricValue } from '@/components/metrics/formatMetric'
 import { formatDate, formatDecimal, type Language, type Translator } from '@/lib'
 import { cn } from '@/lib/utils'
 import { Reasons } from './ReportModePanel'
+
+/**
+ * AC-1169 §5 routes `conversion-over-time`/`time-to-convert` through these.
+ * Both pull recharts (see the `formatMetricValue` note above), so `lazy`
+ * keeps a cascade-only funnel or a cohort/journey tile from downloading it
+ * — `WindowControl.tsx`'s `Calendar` is the same pattern.
+ */
+const LazySeriesChart = lazy(() =>
+  import('@/components/reports/SeriesChart').then((m) => ({ default: m.SeriesChart })),
+)
+const LazyDistributionCard = lazy(() =>
+  import('@/components/reports/DistributionCard').then((m) => ({ default: m.DistributionCard })),
+)
 
 /** The resolver's sentinel for *this subject did nothing after the root event*. */
 const NO_PATH = '__none__'
@@ -216,6 +236,17 @@ function Conditions({ result, t }: { result: ReportResult; t: Translator }) {
   )
 }
 
+/**
+ * §5's third field, the one `isSeriesMode` and this file's own `mode ===
+ * 'funnel'` branch used to skip entirely (AC-1169). `'conversion'` is the
+ * default every normalised query already carries
+ * (`normaliseReportQuery`, `report.ts:471`), so a non-funnel result reads
+ * the same as an unset one — never a crash, never a guess.
+ */
+function funnelMeasuredAsOf(result: ReportResult): 'conversion' | 'conversion-over-time' | 'time-to-convert' {
+  return result.query.mode === 'funnel' ? (result.query.funnel?.measuredAs ?? 'conversion') : 'conversion'
+}
+
 function Body({
   result,
   measuresByKey,
@@ -232,6 +263,12 @@ function Body({
   language: Language
 }) {
   const mode = reportMode(result.query)
+  const measuredAs = funnelMeasuredAsOf(result)
+  /* AC-1169 §5 — a funnel measured a different way is not the cascade under
+     a new name; the heading says trend or distribution, reusing the rail's
+     own `Measured as` keys (`rb.funnel.measuredAs.*`). */
+  const headingKey =
+    mode === 'funnel' && measuredAs !== 'conversion' ? `rb.funnel.measuredAs.${measuredAs}` : `rb.${mode}.heading`
 
   /* A blocked series carries no points at all (§13.1), so *this ran and found
      nothing* and *you may not see this* have to be told apart before either
@@ -242,7 +279,7 @@ function Body({
   if (result.series.length === 0) {
     return (
       <NoData
-        title={t(`rb.${mode}.heading`)}
+        title={t(headingKey)}
         sentence={noDataSentence}
         framed={framed}
         t={t}
@@ -253,7 +290,7 @@ function Body({
   return (
     <PanelFrame framed={framed} className="w-full min-w-0">
       <CardHeader>
-        <CardTitle className={framed ? undefined : 'text-sm'}>{t(`rb.${mode}.heading`)}</CardTitle>
+        <CardTitle className={framed ? undefined : 'text-sm'}>{t(headingKey)}</CardTitle>
       </CardHeader>
       <CardContent className="min-w-0">
         {blocked.length > 0 && (
@@ -270,6 +307,10 @@ function Body({
 
         {readable.length === 0 ? (
           <p className="py-10 text-center text-sm text-muted-foreground">{noDataSentence}</p>
+        ) : mode === 'funnel' && measuredAs === 'conversion-over-time' ? (
+          <FunnelTrend result={result} t={t} language={language} />
+        ) : mode === 'funnel' && measuredAs === 'time-to-convert' ? (
+          <FunnelDistribution result={result} measuresByKey={measuresByKey} t={t} language={language} />
         ) : mode === 'funnel' ? (
           <FunnelCascade result={result} measuresByKey={measuresByKey} t={t} language={language} />
         ) : mode === 'cohort' ? (
@@ -311,6 +352,85 @@ function NoData({
   )
 }
 
+/* ──────────────── conversion-over-time — a trend, not a cascade ────────── */
+
+/**
+ * AC-1169 §5 — `resolveFunnelOverTime` already buckets by entry date at the
+ * query's own grain; this only has to hand its one panel to `SeriesChart`
+ * instead of letting it fall through to `FunnelCascade`, which reads
+ * `points[0]` and drops every other bucket. No zoom, no annotations, no
+ * view menu — a funnel gets no operator-chosen chart type (`MODE_CHART`).
+ */
+function FunnelTrend({ result, t, language }: { result: ReportResult; t: Translator; language: Language }) {
+  const panel = result.panels[0]
+  if (!panel) return null
+  const title = panelTitle(panel, t).text
+  return (
+    <Suspense fallback={<div className="h-72 w-full" aria-hidden="true" />}>
+      <LazySeriesChart
+        panels={[panel]}
+        result={result}
+        kind="line"
+        unit={panel.unit}
+        description={title}
+        titles={[title]}
+        colorIndexes={[0]}
+        t={t}
+        language={language}
+      />
+    </Suspense>
+  )
+}
+
+/* ──────────────── time-to-convert — a distribution, not a cascade ──────── */
+
+/**
+ * AC-1169 §5 — five p25…p95 panels, meant for `DistributionCard`'s `bar`
+ * kind (`resolveReport.ts:1169`). `panelTitle` never reads `.percentile` and
+ * throws on the unmatched placeholder (`translate.ts:172`), so the panels
+ * below keep the real `panelId`/`seriesIds` and only swap the title fields,
+ * resolving P25…P95 once here as an already-translated `group`.
+ */
+function FunnelDistribution({
+  result,
+  measuresByKey,
+  t,
+  language,
+}: {
+  result: ReportResult
+  measuresByKey: Readonly<Record<string, Measure>>
+  t: Translator
+  language: Language
+}) {
+  const firstStepKey = result.query.mode === 'funnel' ? result.query.funnel?.steps[0]?.measureKey : undefined
+  const measure = firstStepKey ? (measuresByKey[firstStepKey] ?? null) : null
+  const panels: ReportPanel[] = result.panels.map((panel) => ({
+    ...panel,
+    titleKey: 'rb.panel.measureByGroup',
+    titleParams: {
+      measure: 'rb.funnel.measuredAs.time-to-convert',
+      group: t('rb.funnel.timeToConvert.percentile', {
+        percentile: panel.titleParams['percentile'] ?? panel.panelId,
+      }),
+    },
+  }))
+
+  return (
+    <Suspense fallback={<div className="h-52 w-full" aria-hidden="true" />}>
+      <LazyDistributionCard
+        panels={panels}
+        result={result}
+        measure={measure}
+        kind="bar"
+        title={t('rb.funnel.measuredAs.time-to-convert')}
+        framed={false}
+        t={t}
+        language={language}
+      />
+    </Suspense>
+  )
+}
+
 /* ──────────────────────────── the cascade ──────────────────────────────── */
 
 /**
@@ -337,6 +457,15 @@ function FunnelCascade({
   t: Translator
   language: Language
 }) {
+  /* Defence in depth (AC-1169): `Body` now routes every `measuredAs` other
+     than `'conversion'` away from this component, but the cascade's own
+     maths — a bar's length and its "of step 1" sentence — is conversion-only.
+     If it is ever reached with a different shape anyway, refuse rather than
+     divide a duration by a duration and print a confident wrong number. */
+  if (funnelMeasuredAsOf(result) !== 'conversion') {
+    return <p className="py-10 text-center text-sm text-muted-foreground">{t('rb.funnel.cascade.wrongShape')}</p>
+  }
+
   const rungs = result.series.filter((s) => s.blocked === null)
   const first = Number(rungs[0]?.points[0] ?? 0)
   /* AC-1170 — the split a click opens. `result.query` is the query that

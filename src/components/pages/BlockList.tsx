@@ -65,7 +65,17 @@ export function BlockList({ blocks, containerId, columnIndex }: BlockListProps) 
       <div className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-border opacity-0 group-hover/gap:opacity-100 group-focus-within/gap:opacity-100" />
       <AddBlockPicker
         open={insertAt?.index === index && insertAt.picking === 'type'}
-        onOpenChange={(open) => !open && setInsertAt(null)}
+        /* Same family as F-V2-83 (DataTable.tsx): picking `report`/`metric`
+           mounts ReportPickerPanel with an autofocused input in the same
+           commit that unmounts this popover, and the focus steal reaches the
+           still-attached DismissableLayer of the closing popover, which fires
+           one more `onOpenChange(false)` after `picking` has already moved
+           past `'type'`. Null only when THIS gap is still mid-`'type'`-pick,
+           so that stale call cannot wipe a selection that already landed. */
+        onOpenChange={(open) => {
+          if (open) return
+          setInsertAt((current) => (current?.index === index && current.picking === 'type' ? null : current))
+        }}
         query={insertAt?.index === index ? insertAt.query : ''}
         onQueryChange={(query) => setInsertAt((current) => (current ? { ...current, query } : current))}
         totalBlocks={countBlocks(allBlocks)}

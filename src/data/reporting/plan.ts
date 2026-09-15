@@ -144,8 +144,8 @@ export const MAX_COHORT_HORIZON = 12
 export const MIN_COHORT_HORIZON = 1
 
 /**
- * All three offered, and two disabled with a reason rather than removed.
- * See `CohortGrain` for why only `'month'` computes today.
+ * All three offered. `COMPUTED_COHORT_GRAINS` below is the actual wiring —
+ * today, all three compute, so nothing here is disabled.
  */
 export const COHORT_GRAINS: CohortGrain[] = ['day', 'week', 'month']
 

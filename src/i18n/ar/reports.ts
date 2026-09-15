@@ -380,6 +380,7 @@ export const REPORTS_AR: Dictionary = {
   'rb.funnel.dropoff': '{percent} من الخطوة السابقة لم يبلغوا هذه.',
   'rb.funnel.step.median': 'الوسيط {days} يومًا حتى الخطوة التالية.',
   'rb.funnel.step.median.none': 'لا قراءة للخطوة التالية.',
+  'rb.funnel.cascade.wrongShape': 'هذه النتيجة ليست مجموعة من خطوات المسار، ولا يمكن عرضها على هذا النحو.',
   'rb.cohort.col.cohort': 'تاريخ الانضمام',
   'rb.cohort.col.size': 'الأشخاص',
   'rb.cohort.cell.none': 'لا قراءة',
