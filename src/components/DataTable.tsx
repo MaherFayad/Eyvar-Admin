@@ -1230,6 +1230,13 @@ export function DataTable<T>(props: DataTableProps<T>) {
   const refusalIdPrefix = useId()
   /** T6.2 — the row whose kebab is open, so `.` and a click reach one state. */
   const [openActionsRow, setOpenActionsRow] = useState<string | null>(null)
+  /**
+   * F-V2-83 — an action picked from the kebab, held until the menu's own
+   * `onCloseAutoFocus` says its close is done. Running it any earlier (even
+   * one tick later, via a caller's own timer) can still land inside Radix's
+   * teardown and lose a dialog it opens; see `rowActions.tsx`'s `deferTo`.
+   */
+  const pendingKebabActionRef = useRef<(() => void) | null>(null)
   const narrowed = table.isFiltered || emptyKind === 'no-match'
   const nothingToNarrow = status === 'empty' && !narrowed
   const emptyDescribedBy = status === 'empty' ? emptyReasonId : undefined
@@ -1839,11 +1846,29 @@ export function DataTable<T>(props: DataTableProps<T>) {
             <Ellipsis aria-hidden="true" className="size-4" />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
+        <DropdownMenuContent
+          align="end"
+          /* F-V2-83 — the one point Radix guarantees runs after this menu's
+             own `FocusScope` has finished tearing down (`focus-scope.tsx`'s
+             unmount effect dispatches it from inside its own deferred
+             callback). Not prevented: letting focus land back on the kebab
+             first is what gives a dialog opened here a sane place to restore
+             focus TO when it closes. */
+          onCloseAutoFocus={() => {
+            const run = pendingKebabActionRef.current
+            pendingKebabActionRef.current = null
+            run?.()
+          }}
+        >
           {declaredActions.map((action) => (
             /* §11.2 — disabled in place, and with its reason on a second line
                inside the item (§8.4.4). Never a tooltip. */
-            <RowActionMenuItem key={action.label} action={action} row={row} />
+            <RowActionMenuItem
+              key={action.label}
+              action={action}
+              row={row}
+              deferTo={pendingKebabActionRef}
+            />
           ))}
         </DropdownMenuContent>
       </DropdownMenu>

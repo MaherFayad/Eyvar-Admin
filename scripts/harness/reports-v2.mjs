@@ -124,6 +124,17 @@ for (const [id, kind] of CHART_TYPE_REPORTS) {
     [...document.querySelectorAll('.recharts-yAxis-tick-labels text')].map((n) => n.textContent),
   )
   check('AC-1133 the y-axis reads a percent scale', axisText.some((t) => t?.includes('%')), axisText.join(', '))
+  /* `02-report-builder-v2.md` §4.1 and AC-1133 both say "0–100 %", not
+     "0–however far Recharts' nice-tick padding reaches" — `SeriesChart.tsx`'s
+     domain is `[0, 'auto']` for every bar family, stacked-100 included, so
+     Recharts pads the max tick past the data's own 100. Caught here rather
+     than only by eye: this FAILS on the current tree (finding in
+     analytics-v2-charts-visual.md) until the domain is `[0, 100]` for kind
+     `stacked-100` specifically. */
+  const maxTick = Math.max(
+    ...axisText.map((t) => Number.parseFloat((t ?? '').replace('%', ''))).filter((n) => Number.isFinite(n)),
+  )
+  check('AC-1133 the y-axis domain is clamped to 0–100, not padded past it', maxTick <= 100, `highest tick: ${maxTick}%`)
 
   /* The accessibility layer's `<svg role="application">` intercepts a
      Playwright `.hover()` on a nested bar, so this moves the mouse directly

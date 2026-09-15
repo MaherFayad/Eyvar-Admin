@@ -297,7 +297,18 @@ export function SeriesChart({
         axisLine={false}
         tickCount={5}
         scale={yScale === 'log' ? 'log' : 'linear'}
-        domain={yScale === 'log' ? ['auto', 'auto'] : startAtZero ? [0, 'auto'] : ['auto', 'auto']}
+        /* AC-1133 — a 100% stack is bounded by definition, so its axis is
+           pinned to [0,100]. Recharts' "nice" padding otherwise runs the ticks
+           past the data max and draws a share axis reaching 120%. */
+        domain={
+          kind === 'stacked-100'
+            ? [0, 100]
+            : yScale === 'log'
+              ? ['auto', 'auto']
+              : startAtZero
+                ? [0, 'auto']
+                : ['auto', 'auto']
+        }
         allowDataOverflow={false}
         /* A count axis over a 0–2 domain rounds its ticks to `0 1 1 2`. Only counts are integral. */
         allowDecimals={unit !== 'count' || kind === 'stacked-100'}

@@ -268,7 +268,7 @@ export function ReportLibrary({
       id: 'lastRun',
       emphasis: 'data',
       header: t('rb.library.col.lastRun'),
-      width: 130,
+      width: 168,
       sortField: 'lastRunAt',
       dataType: 'date',
       filter: { kind: 'date-range', field: 'lastRunAt' },
@@ -282,7 +282,7 @@ export function ReportLibrary({
     {
       id: 'visibility',
       header: t('rb.library.col.visibility'),
-      width: 100,
+      width: 128,
       /* H7 — a property, not a state. Six of seven rows carried the same fill,
          which is a badge nobody reads; muted text says the same thing (T9.13). */
       cell: (row) => (

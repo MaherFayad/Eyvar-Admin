@@ -14,7 +14,7 @@
  * keeps finding it.
  */
 
-import { useId } from 'react'
+import { useId, type MutableRefObject } from 'react'
 import { Button } from '@/components/ui/button'
 import { DropdownMenuItem } from '@/components/ui/dropdown-menu'
 import { cn } from '@/lib/utils'
@@ -180,14 +180,32 @@ export function SingleRowAction<T>({
  * The kebab's item. §8.4.4's construction exactly: disabled in place, with the
  * reason on a second line **inside** the item.
  */
-export function RowActionMenuItem<T>({ action, row }: { action: RowAction<T>; row: T }) {
+export function RowActionMenuItem<T>({
+  action,
+  row,
+  deferTo,
+}: {
+  action: RowAction<T>
+  row: T
+  /**
+   * F-V2-83 — hand the action to the caller instead of running it inline.
+   * `onSelect` fires while this menu's own close is still tearing down, and a
+   * dialog opened here raced that teardown and lost about 1 run in 3.
+   * `onCloseAutoFocus` is the point proven safe; `deferTo` is what its
+   * `DropdownMenuContent` drains once that fires.
+   */
+  deferTo?: MutableRefObject<(() => void) | null>
+}) {
   const disabled = action.disabled?.(row) ?? false
   const reason = refusalFor(action, row)
   const reasonId = useId()
 
   return (
     <DropdownMenuItem
-      onSelect={() => action.onSelect(row)}
+      onSelect={() => {
+        if (deferTo) deferTo.current = () => action.onSelect(row)
+        else action.onSelect(row)
+      }}
       disabled={disabled}
       /* The name is the label and the description is the reason — see the
          header. Neither attribute is set when there is no reason, so an
