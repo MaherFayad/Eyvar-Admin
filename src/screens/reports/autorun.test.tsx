@@ -33,10 +33,10 @@
  * namespace, which passes vacuously on a negative assertion.
  */
 
-import { render, screen, waitFor } from '@testing-library/react'
+import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, useLocation, useNavigate } from 'react-router-dom'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ShellProvider } from '@/shell/ShellContext'
 import {
   REPORT_QUERY_PARAM,
@@ -343,32 +343,51 @@ describe('the owner’s second sentence — the report runs itself', () => {
 
 describe('history — an auto-run replaces, a deliberate act pushes', () => {
   it('leaves one Back between an edited report and where the operator came from', async () => {
-    const user = userEvent.setup()
-    const query = (await savedReports()).find((r) => r.id === 'RPT-1')!.query
-    renderAt(['/management/reports', reportQueryPath(query)])
-    await screen.findByText(AS_OF, { exact: false })
+    /* Three chained real debounce waits (~2.8 s each) left this test ~11.7 s
+       deep in a 15 s ceiling — comfortable in isolation, gone the moment the
+       process is sharing CPU with other workers. The guarantee is about HOW
+       MANY history entries three edits cost, not about how long they take to
+       settle, so the debounce is driven by fake timers instead of waited out
+       — same fix as `pageEditorAutosave.test.tsx` (AC-1201). */
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    try {
+      const user = userEvent.setup({ delay: null })
+      const query = (await savedReports()).find((r) => r.id === 'RPT-1')!.query
+      renderAt(['/management/reports', reportQueryPath(query)])
+      await screen.findByText(AS_OF, { exact: false })
 
-    /* Three edits — three auto-runs, and all three REPLACE. Pushing here would
-       make `Back` walk the operator's own clicks. */
-    await pickGrain(user, 'week')
-    await waitFor(() => expect(questionInUrl()?.grain).toBe('week'), { timeout: SETTLE })
-    /* The quick-range strip is gone — it duplicated four of the nine presets
-       the range popover already carries. The popover IS the range control now,
-       and this is the same edit through it. */
-    await user.click(screen.getByRole('button', { name: copy('rb.control.window') }))
-    await user.click(await screen.findByRole('button', { name: copy('rb.preset.last-7d') }))
-    await waitFor(
-      () => expect(questionInUrl()?.window).toEqual({ kind: 'preset', preset: 'last-7d' }),
-      { timeout: SETTLE },
-    )
-    await pickShape(user, 'bar')
-    await waitFor(() => expect(questionInUrl()?.chartType).toBe('bar'), { timeout: SETTLE })
+      /* Three edits — three auto-runs, and all three REPLACE. Pushing here would
+         make `Back` walk the operator's own clicks. */
+      await pickGrain(user, 'week')
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(AUTO_RUN_DEBOUNCE_MS * 6)
+      })
+      await waitFor(() => expect(questionInUrl()?.grain).toBe('week'))
+      /* The quick-range strip is gone — it duplicated four of the nine presets
+         the range popover already carries. The popover IS the range control now,
+         and this is the same edit through it. */
+      await user.click(screen.getByRole('button', { name: copy('rb.control.window') }))
+      await user.click(await screen.findByRole('button', { name: copy('rb.preset.last-7d') }))
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(AUTO_RUN_DEBOUNCE_MS * 6)
+      })
+      await waitFor(() =>
+        expect(questionInUrl()?.window).toEqual({ kind: 'preset', preset: 'last-7d' }),
+      )
+      await pickShape(user, 'bar')
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(AUTO_RUN_DEBOUNCE_MS * 6)
+      })
+      await waitFor(() => expect(questionInUrl()?.chartType).toBe('bar'))
 
-    await user.click(screen.getByRole('button', { name: 'history-back' }))
+      await user.click(screen.getByRole('button', { name: 'history-back' }))
 
-    /* One press, and the operator is back on the library they opened the report
-       from — not three presses through their own grain, range and chart type. */
-    expect(await screen.findByRole('button', { name: copy('rb.library.new') })).toBeInTheDocument()
+      /* One press, and the operator is back on the library they opened the report
+         from — not three presses through their own grain, range and chart type. */
+      expect(await screen.findByRole('button', { name: copy('rb.library.new') })).toBeInTheDocument()
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('spends a history entry on Refresh, because a person asked for that one', async () => {

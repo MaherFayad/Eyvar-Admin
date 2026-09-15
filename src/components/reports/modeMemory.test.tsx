@@ -38,10 +38,10 @@
  * that the canvas never blanks and the lens never resets.
  */
 
-import { render, screen, waitFor } from '@testing-library/react'
+import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, useLocation } from 'react-router-dom'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ShellProvider } from '@/shell/ShellContext'
 import {
   REPORT_QUERY_PARAM,
@@ -177,26 +177,40 @@ const FUNNEL: ReportQuery = {
 
 describe('a round trip through another mode costs no request', () => {
   it('gives the trend back from memory — Trend → Funnel → Trend asks nothing', async () => {
-    const user = userEvent.setup()
-    renderAt(reportQueryPath(TREND))
-    await screen.findByText(AS_OF, { exact: false })
-    const columns = columnCount()
-    expect(columns).toBeGreaterThan(0)
+    /* Two real 2100 ms waits left this test's only margin exposed to whatever
+       else the process was doing at the same real-clock moment — the same
+       class of flake `pageEditorAutosave.test.tsx` (AC-1201) fixed by driving
+       the debounce with fake timers instead of waiting it out. The guarantee
+       is a REQUEST COUNT, not an elapsed duration, so nothing about it moves. */
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    try {
+      const user = userEvent.setup({ delay: null })
+      renderAt(reportQueryPath(TREND))
+      await screen.findByText(AS_OF, { exact: false })
+      const columns = columnCount()
+      expect(columns).toBeGreaterThan(0)
 
-    /* Armed after the seed has landed, so what follows counts the SWITCHES. */
-    mockFailures.once(RUN)
+      /* Armed after the seed has landed, so what follows counts the SWITCHES. */
+      mockFailures.once(RUN)
 
-    await mode(user, 'funnel')
-    await settle()
-    await mode(user, 'line')
-    await settle()
+      await mode(user, 'funnel')
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(AUTO_RUN_DEBOUNCE_MS * 6)
+      })
+      await mode(user, 'line')
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(AUTO_RUN_DEBOUNCE_MS * 6)
+      })
 
-    expect(mockFailures.peek(RUN)).not.toBeNull()
-    /* And the answer is back on screen, not a skeleton and not the unstarted
-       sentence: the same freshness line over the same number of buckets. */
-    expect(screen.getByText(AS_OF, { exact: false })).toBeInTheDocument()
-    expect(columnCount()).toBe(columns)
-    expect(questionInUrl()?.grain).toBe('day')
+      expect(mockFailures.peek(RUN)).not.toBeNull()
+      /* And the answer is back on screen, not a skeleton and not the unstarted
+         sentence: the same freshness line over the same number of buckets. */
+      expect(screen.getByText(AS_OF, { exact: false })).toBeInTheDocument()
+      expect(columnCount()).toBe(columns)
+      expect(questionInUrl()?.grain).toBe('day')
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('keeps a funnel’s rungs across a trip through Trend', async () => {
