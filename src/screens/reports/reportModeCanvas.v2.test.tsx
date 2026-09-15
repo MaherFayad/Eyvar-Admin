@@ -3,7 +3,7 @@
  * matrix's heat tokens and curve view.
  */
 
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
 import { createTranslator } from '@/lib'
@@ -70,7 +70,7 @@ function funnelSeries(): ReportSeries[] {
   ]
 }
 
-function funnelResult(query: ReportQuery): ReportResult {
+function funnelResult(query: ReportQuery, funnelStepDetail?: ReportResult['funnelStepDetail']): ReportResult {
   return {
     query,
     asOf: '2026-06-25T09:14:00+03:00',
@@ -81,6 +81,7 @@ function funnelResult(query: ReportQuery): ReportResult {
     truncatedAtRows: null,
     warnings: [],
     foldedGroupCount: null,
+    funnelStepDetail,
   }
 }
 
@@ -119,6 +120,96 @@ describe('AC-1170 — a funnel step opens the drop-off region only when a split 
     renderCanvas(funnelResult(noSplit))
     expect(screen.queryByRole('button', { name: /Step 1/ })).not.toBeInTheDocument()
     expect(screen.getByText(/Step 1/)).toBeInTheDocument()
+  })
+})
+
+describe('AC-1170 — median time to next step, beside the drop-off line', () => {
+  it('reads the median off `funnelStepDetail`, next to the drop-off it already draws', () => {
+    renderCanvas(
+      funnelResult(baseFunnelQuery, [
+        { seriesId: 'riders.joined#1#current', medianDaysToNext: 2.5, dropoffGroups: null },
+        { seriesId: 'trips.completed#2#current', medianDaysToNext: null, dropoffGroups: null },
+      ]),
+    )
+    expect(screen.getByText(copy('rb.funnel.step.median').replace('{days}', '2.5'))).toBeInTheDocument()
+  })
+
+  it('is a stated "no reading", never a zero, with nobody to measure', () => {
+    renderCanvas(
+      funnelResult(baseFunnelQuery, [
+        { seriesId: 'riders.joined#1#current', medianDaysToNext: null, dropoffGroups: null },
+        { seriesId: 'trips.completed#2#current', medianDaysToNext: null, dropoffGroups: null },
+      ]),
+    )
+    expect(screen.getByText(copy('rb.funnel.step.median.none'))).toBeInTheDocument()
+    expect(screen.queryByText(/0 days/)).not.toBeInTheDocument()
+  })
+
+  it('shows no median row at all for the last rung — there is no next step to measure', () => {
+    renderCanvas(
+      funnelResult(baseFunnelQuery, [
+        { seriesId: 'riders.joined#1#current', medianDaysToNext: 1, dropoffGroups: null },
+        { seriesId: 'trips.completed#2#current', medianDaysToNext: null, dropoffGroups: null },
+      ]),
+    )
+    /* One "no reading" only — for rung 1, since rung 2 has no slot for it. */
+    expect(screen.queryAllByText(copy('rb.funnel.step.median.none'))).toHaveLength(0)
+  })
+})
+
+describe('AC-1170 — the drop-off group table renders the planner-free rows the mock resolved', () => {
+  it('renders a real `<table>` of the resolved groups, ranked as the mock returned them', async () => {
+    const user = userEvent.setup()
+    renderCanvas(
+      funnelResult(baseFunnelQuery, [
+        { seriesId: 'riders.joined#1#current', medianDaysToNext: 3, dropoffGroups: null },
+        {
+          seriesId: 'trips.completed#2#current',
+          medianDaysToNext: null,
+          dropoffGroups: [
+            { groupValue: 'Riyadh', count: 40 },
+            { groupValue: 'Jeddah', count: 20 },
+          ],
+        },
+      ]),
+    )
+    await user.click(screen.getByRole('button', { name: /Step 2/ }))
+    const region = screen.getByRole('region', { name: copy('rb.funnel.dropoff.region') })
+    const table = within(region).getByRole('table')
+    expect(within(table).getByText('Riyadh')).toBeInTheDocument()
+    expect(within(table).getByText('Jeddah')).toBeInTheDocument()
+    expect(within(table).getByText('40')).toBeInTheDocument()
+  })
+
+  it('folds the sentinel group into the localised "Other", not the raw key', async () => {
+    const user = userEvent.setup()
+    renderCanvas(
+      funnelResult(baseFunnelQuery, [
+        { seriesId: 'riders.joined#1#current', medianDaysToNext: null, dropoffGroups: null },
+        {
+          seriesId: 'trips.completed#2#current',
+          medianDaysToNext: null,
+          dropoffGroups: [{ groupValue: '__other__', count: 5 }],
+        },
+      ]),
+    )
+    await user.click(screen.getByRole('button', { name: /Step 2/ }))
+    expect(screen.getByText(copy('rb.panel.other'))).toBeInTheDocument()
+    expect(screen.queryByText('__other__')).not.toBeInTheDocument()
+  })
+
+  it('states the empty case in words rather than an empty table — the first step has no previous rung to drop from', async () => {
+    const user = userEvent.setup()
+    renderCanvas(
+      funnelResult(baseFunnelQuery, [
+        { seriesId: 'riders.joined#1#current', medianDaysToNext: 2, dropoffGroups: null },
+        { seriesId: 'trips.completed#2#current', medianDaysToNext: null, dropoffGroups: null },
+      ]),
+    )
+    await user.click(screen.getByRole('button', { name: /Step 1/ }))
+    const region = screen.getByRole('region', { name: copy('rb.funnel.dropoff.region') })
+    expect(within(region).getByText(copy('rb.funnel.dropoff.empty'))).toBeInTheDocument()
+    expect(within(region).queryByRole('table')).not.toBeInTheDocument()
   })
 })
 

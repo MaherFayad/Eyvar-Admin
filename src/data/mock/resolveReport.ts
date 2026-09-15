@@ -54,6 +54,7 @@ import {
 } from '../reporting/plan'
 import { buildCohortMatrix } from '../reporting/cohorts'
 import { subjectKindOf, type SubjectKind } from '../reporting/subjects'
+import { dropoffByGroup, medianDaysToNextStep } from '../reporting/funnelSteps'
 import {
   OTHER,
   resolveFormulaLeg,
@@ -75,6 +76,7 @@ import {
 } from '../types/report'
 import type {
   FunnelStep,
+  FunnelStepDetail,
   ReportPanel,
   ReportQuery,
   ReportResult,
@@ -791,6 +793,37 @@ function eventsOf(
   }
 }
 
+/**
+ * `subjectId → the entry rung's own value of `groupBy`` — the same field
+ * accessor `buildMeasureRows`' `level0` reads for a trend column, read once
+ * off the population that seeds the funnel (AC-1170). `groupBy` naming a
+ * field the entry resource does not have resolves to an empty map, same
+ * silent no-op `level0` already makes when a resource lacks the field.
+ */
+function subjectGroupsOf(
+  measure: Measure,
+  filters: readonly FilterSpec[],
+  window: { from: IsoDate; to: IsoDate },
+  groupBy: string,
+): Map<string, string | null> {
+  const source = SOURCES[measure.population.resource]
+  const field = source?.fields[groupBy]
+  const out = new Map<string, string | null>()
+  if (!source || !field || !source.subject) return out
+
+  for (const row of source.rows.slice(0, currentRowCap())) {
+    if (!matchesAll(row, measure.population.predicate, source)) continue
+    if (!matchesAll(row, filters, source)) continue
+    const date = source.dateOf(row, measure.population.timeField)
+    if (date === null || date < window.from || date > window.to) continue
+    const id = source.subject.idOf(row)
+    if (!id || out.has(id)) continue
+    const value = field(row)
+    out.set(id, value === null ? null : String(value))
+  }
+  return out
+}
+
 /** §13.1 — authorised per viewer, per measure, at the data layer. */
 function blockedFor(measure: Measure, ctx: ResolveContext): PermissionKey | null {
   const required = measure.permission
@@ -922,6 +955,7 @@ function resolveFunnelConversion(
 
   const funnelMode = query.funnel?.mode ?? 'ordered'
   const windowDays = conversionWindowDays(query.funnel?.conversionWindow ?? null)
+  const groupByKey = query.funnel?.groupBy ?? null
 
   /* `subjectId → the date of its event at the rung reached so far`, and the
      date of its FIRST rung, which the conversion window is measured from. */
@@ -931,6 +965,14 @@ function resolveFunnelConversion(
      a population this viewer may not read, so reporting a number for it would
      leak the blocked one by subtraction. */
   let blockedFrom = false
+
+  /* AC-1170 — one run, one query. `reachedByRung`/`detailSeriesIds` walk in
+     lockstep with the non-blocked, measure-found rungs `series` gains below —
+     the same set `FunnelCascade` renders as `rungs` — so a rung's detail is
+     read off the query that already ran, never a second one (WP-3.5 ruling). */
+  const reachedByRung: (ReadonlyMap<string, IsoDate> | null)[] = []
+  const detailSeriesIds: string[] = []
+  let groupOf: ((subjectId: string) => string | null) | null = null
 
   rungs.forEach(({ step, measure }, index) => {
     const groupValue = String(index + 1)
@@ -959,6 +1001,15 @@ function resolveFunnelConversion(
       reached = earliestPerSubject(set.events)
       reached.forEach((date, id) => entered.set(id, date))
       count = reached.size
+      /* The entry rung's own row carries the subject's group value — a rider's
+         city does not change mid-funnel, so one read here stands for the whole
+         cascade rather than a lookup repeated, and possibly disagreeing, per
+         rung (AC-1170). `undefined` when the entry resource has no such field,
+         same silent no-op a trend's own `groupBy` already makes (`level0`). */
+      if (groupByKey) {
+        const groups = subjectGroupsOf(measure, [...query.filters, ...(step.filters ?? [])], window, groupByKey)
+        groupOf = (id) => groups.get(id) ?? null
+      }
     } else {
       const bySubject = groupBySubject(set.events)
       const next = new Map<string, IsoDate>()
@@ -978,6 +1029,9 @@ function resolveFunnelConversion(
       count = reached.size
     }
 
+    reachedByRung.push(follow ? reached : null)
+    detailSeriesIds.push(`${measure.key}#${groupValue}#current`)
+
     series.push({
       id: `${measure.key}#${groupValue}#current`,
       measureKey: measure.key,
@@ -995,6 +1049,21 @@ function resolveFunnelConversion(
       blocked: null,
       failed: null,
     })
+  })
+
+  /* AC-1170 — the rung's own median-to-next and drop-off-by-group, built from
+     the maps this same run already produced (`reachedByRung`), never a second
+     `eventsOf` pass. A `null` at either edge of a pair (no next rung, no
+     previous rung, or nobody followed) reads as "no one", not `0`. */
+  const funnelStepDetail: FunnelStepDetail[] = detailSeriesIds.map((seriesId, i) => {
+    const current = reachedByRung[i] ?? null
+    const next = reachedByRung[i + 1] ?? null
+    const previous = i > 0 ? reachedByRung[i - 1] ?? null : null
+    return {
+      seriesId,
+      medianDaysToNext: current && next ? medianDaysToNextStep(current, next) : null,
+      dropoffGroups: groupByKey && groupOf && previous && current ? dropoffByGroup(previous, current, groupOf) : null,
+    }
   })
 
   const firstMeasure = rungs[0]?.measure ?? null
@@ -1025,6 +1094,7 @@ function resolveFunnelConversion(
     truncatedAtRows: truncated ? currentRowCap() : null,
     warnings: [...warnings],
     foldedGroupCount: null,
+    funnelStepDetail,
   }
 }
 

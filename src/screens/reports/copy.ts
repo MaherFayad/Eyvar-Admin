@@ -543,8 +543,9 @@ export const REPORTS_EN: Dictionary = {
   'rb.funnel.exclude.add': 'Add an exclusion',
   'rb.funnel.timeToConvert.percentile': 'P{percentile}',
   'rb.funnel.dropoff.region': 'Drop-off by group',
-  'rb.funnel.dropoff.needsServer':
-    'A breakdown by group needs computation this server does not do yet. The cascade above is unaffected.',
+  'rb.funnel.dropoff.col.group': 'Group',
+  'rb.funnel.dropoff.col.count': 'People',
+  'rb.funnel.dropoff.empty': 'Nobody dropped off at this step.',
 
   /* ────────────────────── composing a retention report ──────────────────── */
 
@@ -606,6 +607,8 @@ export const REPORTS_EN: Dictionary = {
   'rb.funnel.conversion': '{percent} of step 1',
   'rb.funnel.conversion.none': 'No reading for this step',
   'rb.funnel.dropoff': '{percent} of the previous step did not reach this one.',
+  'rb.funnel.step.median': 'Median {days} days to the next step.',
+  'rb.funnel.step.median.none': 'No reading for the next step.',
   'rb.cohort.col.cohort': 'Joined',
   /* R5-15 — the base travels with the percentage. */
   'rb.cohort.col.size': 'People',

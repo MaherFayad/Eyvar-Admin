@@ -146,6 +146,18 @@ describe('funnel v2 — order, and the server-only options (AC-1168)', () => {
   })
 })
 
+describe('F-V2-50 — the steps group is labelled "Steps", and `Add a step` keeps its own name', () => {
+  it('names the steps group "Steps" and the add button "Add a step", not "Steps"', () => {
+    render(<Harness initial={funnelQuery} />)
+    expect(screen.getByRole('group', { name: copy('rb.funnel.steps') })).toBeInTheDocument()
+    const add = screen.getByRole('button', { name: copy('rb.funnel.step.add') })
+    /* The defect: a `<Label htmlFor>` on the button won the accessible-name
+       computation over the button's own visible text, so it announced itself
+       as "Steps" instead of "Add a step". */
+    expect(add).not.toHaveAccessibleName(copy('rb.funnel.steps'))
+  })
+})
+
 describe('funnel v2 — measuredAs and the conversion window (AC-1167, AC-1169)', () => {
   it('offers all three measuredAs values and changes the query on selection', async () => {
     const user = userEvent.setup()
@@ -221,6 +233,20 @@ describe('cohort v2 — method and custom brackets (AC-1172)', () => {
     await addBracket('3', '10')
     expect(screen.getByText(copy('rb.cohort.brackets.overlap'))).toBeInTheDocument()
     expect(screen.getByRole('button', { name: copy('rb.cohort.brackets.add') })).toBeDisabled()
+  })
+
+  it('F-V2-48 — an already-overlapping query (a hand-edited URL) shows the planner\'s own violation, not a second sentence', () => {
+    const overlapping: ReportQuery = {
+      ...cohortQuery,
+      cohort: { ...cohortQuery.cohort!, method: 'bracket', brackets: [[0, 7], [3, 10]] },
+    }
+    render(<Harness initial={overlapping} />)
+    /* Read straight through `planQuery` — the same run `reports.run` makes —
+       rather than a hand-written duplicate of its reason. */
+    const plan = planQuery(overlapping, catalogue, EYVAR_TODAY)
+    const violation = plan.violations.find((v) => v.code === 'cohort-brackets-overlap')
+    expect(violation).toBeDefined()
+    expect(screen.getByText(t(violation!.reasonKey, violation!.reasonParams))).toBeInTheDocument()
   })
 
   it('the return event is a list: add, then remove, and the empty state reads as a sentence (rule 10)', async () => {

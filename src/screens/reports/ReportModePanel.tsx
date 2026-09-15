@@ -408,12 +408,16 @@ function FunnelFields({
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex flex-col gap-1.5">
+      {/* F-V2-50 — `role="group"` + `aria-labelledby` names the list "Steps".
+          The old `<Label htmlFor="rb-funnel-add">` named the same element, but
+          a `<label>` wins a labelable control's accessible name over its own
+          text, so `Add a step` announced itself as "Steps". */}
+      <div className="flex flex-col gap-1.5" role="group" aria-labelledby="rb-funnel-steps-label">
         {/* The hint is a SIBLING of the `<Label>`, never a child: a `<button>`
             inside a `<label>` joins the control's accessible name, and `Add a
             step` would be called "Steps What this means". */}
         <div className="flex items-center gap-1.5">
-          <Label htmlFor="rb-funnel-add">{t('rb.funnel.steps')}</Label>
+          <Label id="rb-funnel-steps-label">{t('rb.funnel.steps')}</Label>
           <InfoHint t={t}>
             {hintLines([
               steps.length >= MAX_FUNNEL_STEPS && t('rb.funnel.step.atMax', { max: MAX_FUNNEL_STEPS }),
@@ -862,7 +866,7 @@ function CohortFields({
       </div>
 
       {spec.method === 'bracket' && (
-        <CohortBrackets brackets={spec.brackets ?? []} onChange={(brackets) => set({ brackets })} t={t} />
+        <CohortBrackets brackets={spec.brackets ?? []} onChange={(brackets) => set({ brackets })} violations={reasons} t={t} />
       )}
 
       <div className="flex flex-col gap-1.5">
@@ -911,10 +915,13 @@ function CohortFields({
 function CohortBrackets({
   brackets,
   onChange,
+  violations,
   t,
 }: {
   brackets: readonly [number, number][]
   onChange: (brackets: [number, number][]) => void
+  /** `reasons('cohort')` from the panel — the planner's own violations for this field. */
+  violations: readonly QueryViolation[]
   t: Translator
 }) {
   const [lo, setLo] = useState('')
@@ -922,7 +929,16 @@ function CohortBrackets({
   const loNum = Number(lo)
   const hiNum = Number(hi)
   const candidateValid = lo !== '' && hi !== '' && Number.isFinite(loNum) && Number.isFinite(hiNum) && loNum >= 0 && hiNum > loNum
-  const overlaps = candidateValid && bracketsOverlap([...brackets, [loNum, hiNum]])
+  const candidateOverlaps = candidateValid && bracketsOverlap([...brackets, [loNum, hiNum]])
+  /* F-V2-48 — a committed overlap (a hand-edited URL) reads the planner's OWN
+     violation (`plan.ts:879`) verbatim, never a second sentence written here.
+     A candidate not yet added is the one case the planner cannot see; it gets
+     the same code and key, rendered through the same line below. */
+  const overlapReason: QueryViolation | null =
+    violations.find((v) => v.code === 'cohort-brackets-overlap') ??
+    (candidateOverlaps
+      ? { code: 'cohort-brackets-overlap', field: 'cohort', reasonKey: 'rb.cohort.brackets.overlap', reasonParams: {} }
+      : null)
 
   return (
     <div className="flex flex-col gap-1.5">
@@ -973,7 +989,7 @@ function CohortBrackets({
           type="button"
           size="xs"
           variant="secondary"
-          disabled={!candidateValid || overlaps || brackets.length >= MAX_COHORT_BRACKETS}
+          disabled={!candidateValid || candidateOverlaps || brackets.length >= MAX_COHORT_BRACKETS}
           onClick={() => {
             onChange([...brackets, [loNum, hiNum]])
             setLo('')
@@ -983,7 +999,11 @@ function CohortBrackets({
           {t('rb.cohort.brackets.add')}
         </Button>
       </div>
-      {overlaps && <p className="text-xs text-muted-foreground">{t('rb.cohort.brackets.overlap')}</p>}
+      {overlapReason && (
+        <p className="text-xs text-muted-foreground">
+          {t(overlapReason.reasonKey, resolveReasonParams(overlapReason.reasonParams, t))}
+        </p>
+      )}
     </div>
   )
 }

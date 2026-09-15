@@ -70,7 +70,7 @@ import { reportMode, type Measure, type QueryViolation, type ReportResult, type 
    loads on `/management/reports` where no chart renders. `formatMetric.ts` has
    no React in it. */
 import { formatMetricValue } from '@/components/metrics/formatMetric'
-import { formatDate, type Language, type Translator } from '@/lib'
+import { formatDate, formatDecimal, type Language, type Translator } from '@/lib'
 import { cn } from '@/lib/utils'
 import { Reasons } from './ReportModePanel'
 
@@ -344,6 +344,10 @@ function FunnelCascade({
      never opens a table for a split the operator has since changed. */
   const groupBy = result.query.mode === 'funnel' ? (result.query.funnel?.groupBy ?? null) : null
   const [openId, setOpenId] = useState<string | null>(null)
+  /* AC-1170 — the run that produced `result` already carries this; no second
+     query. `undefined` (a mode the mock has not been taught) reads the same
+     as "nothing found" below, which is the one reading a gap gets. */
+  const detailBySeriesId = new Map((result.funnelStepDetail ?? []).map((d) => [d.seriesId, d]))
 
   return (
     <ol className="flex list-none flex-col gap-4">
@@ -364,6 +368,8 @@ function FunnelCascade({
             : Math.round((1 - value / previous) * 100)
         const panelId = `funnel-dropoff-${series.id}`
         const open = openId === series.id
+        const detail = detailBySeriesId.get(series.id) ?? null
+        const hasNextRung = index < rungs.length - 1
 
         const header = (
           <>
@@ -424,23 +430,66 @@ function FunnelCascade({
               />
             </div>
 
-            {dropOff !== null && dropOff > 0 && (
+            {((dropOff !== null && dropOff > 0) || hasNextRung) && (
               /* Not red. R5a permits red in four places and a drop-off is none
-                 of them; the word carries the meaning. */
-              <p className="text-xs text-muted-foreground">
-                {t('rb.funnel.dropoff', {
-                  percent: formatMetricValue(dropOff, 'percent', language),
-                })}
+                 of them; the word carries the meaning. Median sits beside it
+                 (AC-1170): both are read off the one rung this run already
+                 produced, never a second query for either. */
+              <p className="flex flex-wrap items-center gap-x-3 text-xs text-muted-foreground">
+                {dropOff !== null && dropOff > 0 && (
+                  <span>
+                    {t('rb.funnel.dropoff', {
+                      percent: formatMetricValue(dropOff, 'percent', language),
+                    })}
+                  </span>
+                )}
+                {hasNextRung && (
+                  <span>
+                    {detail && detail.medianDaysToNext !== null
+                      ? t('rb.funnel.step.median', {
+                          days: formatDecimal(detail.medianDaysToNext, 1, language),
+                        })
+                      : t('rb.funnel.step.median.none')}
+                  </span>
+                )}
               </p>
             )}
 
             {groupBy && open && (
-              /* The mock resolves the cascade, not a per-group breakdown of
-                 it — see the handoff. The region opens and says so, rather
-                 than the button doing nothing or the split silently going
-                 unhonoured. */
               <div id={panelId} role="region" aria-label={t('rb.funnel.dropoff.region')} className="rounded-md border border-border p-2">
-                <p className="text-xs text-muted-foreground">{t('rb.funnel.dropoff.needsServer')}</p>
+                {detail?.dropoffGroups && detail.dropoffGroups.length > 0 ? (
+                  <div className="w-full overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-border">
+                          <th scope="col" className="p-1.5 text-start font-medium text-muted-foreground">
+                            {t('rb.funnel.dropoff.col.group')}
+                          </th>
+                          <th scope="col" className="p-1.5 text-end font-medium text-muted-foreground">
+                            {t('rb.funnel.dropoff.col.count')}
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {detail.dropoffGroups.map((group) => (
+                          <tr key={group.groupValue} className="border-b border-border last:border-b-0">
+                            <th scope="row" className="p-1.5 text-start font-normal text-foreground">
+                              {group.groupValue === OTHER_GROUP ? t('rb.panel.other') : group.groupValue}
+                            </th>
+                            <td className="p-1.5 text-end tabular-nums text-muted-foreground">
+                              {formatMetricValue(group.count, 'count', language)}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  /* No previous rung (the first step) and nobody dropped off
+                     both read the same here: no rows to show (§ two kinds of
+                     empty — this is the structural one, not a fetch error). */
+                  <p className="text-xs text-muted-foreground">{t('rb.funnel.dropoff.empty')}</p>
+                )}
               </div>
             )}
           </li>

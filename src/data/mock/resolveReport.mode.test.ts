@@ -239,6 +239,54 @@ describe('2 — a funnel follows subjects', () => {
   })
 })
 
+/* ───────────────────────── funnel step detail ───────────────────────────── */
+
+describe('AC-1170 — funnelStepDetail: median time to next, drop-off by group', () => {
+  it('aligns one detail entry per rung, the last with no next step and the first with no previous one to drop from', () => {
+    const result = run(funnel)
+    const detail = result.funnelStepDetail
+    expect(detail?.map((d) => d.seriesId)).toEqual(result.series.map((s) => s.id))
+    expect(detail?.[detail.length - 1]?.medianDaysToNext).toBeNull()
+    expect(detail?.[0]?.dropoffGroups).toBeNull()
+  })
+
+  it('measures the median days from a rung to the next, over who reached both', () => {
+    const first = run(funnel).funnelStepDetail?.[0]
+    expect(typeof first?.medianDaysToNext).toBe('number')
+  })
+
+  it('leaves `dropoffGroups` null with no `groupBy`, and fills it, per group, once one is set', () => {
+    expect(run(funnel).funnelStepDetail?.every((d) => d.dropoffGroups === null)).toBe(true)
+
+    const grouped: ReportQuery = { ...funnel, funnel: { ...funnel.funnel!, groupBy: 'rider.city' } }
+    const result = run(grouped)
+    const enteredCount = Number(result.series[0]?.points[0] ?? 0)
+    const convertedCount = Number(result.series[1]?.points[0] ?? 0)
+    const groups = result.funnelStepDetail?.[1]?.dropoffGroups ?? []
+    expect(groups.length).toBeGreaterThan(0)
+    /* Every counted subject reached step one but not step two, by their own
+       city off the entry row — never more than the raw drop-off the cascade
+       itself counts (a subject with no city on the row is excluded, not
+       invented one). */
+    const total = groups.reduce((sum, g) => sum + g.count, 0)
+    expect(total).toBeGreaterThan(0)
+    expect(total).toBeLessThanOrEqual(enteredCount - convertedCount)
+    for (const group of groups) expect(group.count).toBeGreaterThan(0)
+  })
+
+  it('leaves every rung `null` for a counted-not-followed funnel — there is nobody to measure between rungs', () => {
+    const counted: ReportQuery = {
+      ...funnel,
+      funnel: funnelSpec([
+        { measureKey: 'trips.quickRides', filters: [] },
+        { measureKey: 'trips.completed', filters: [] },
+      ]),
+    }
+    const detail = run(counted).funnelStepDetail
+    expect(detail?.every((d) => d.medianDaysToNext === null && d.dropoffGroups === null)).toBe(true)
+  })
+})
+
 /* ──────────────────────────────  cohort  ───────────────────────────────── */
 
 describe('3 — a cohort is `reporting/cohorts.ts`, transposed onto the result', () => {
