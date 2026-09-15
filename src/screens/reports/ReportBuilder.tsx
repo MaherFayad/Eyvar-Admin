@@ -414,6 +414,11 @@ export function ReportBuilder({
      resolves it" (`ResultCanvas.tsx`'s own doc comment) means today. */
   const canAnnotate = useShell().permissions.permissions.includes('view_analytics')
 
+  /* AC-1205 — `ReportPickerPanel`'s `New report` link (§5's inline "add a
+     report" panel). `undefined`, not `null`: `SaveReportDialog` takes its
+     absence as "the dialog is exactly as it is today" (D9 optional-prop rule). */
+  const pinTo = new URLSearchParams(location.search).get('pinTo') ?? undefined
+
   /* The question, restored from the URL when there is one, then from the saved
      report, then empty. Reading the URL FIRST is what makes a link to a
      modified version of a saved report reproduce the modification. */
@@ -1707,6 +1712,7 @@ export function ReportBuilder({
            name twice. */
         draftName={draftName}
         draftDescription={draftDescription}
+        pinTo={pinTo}
         query={query}
         onSaved={(saved) => {
           setSaveOpen(false)

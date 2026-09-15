@@ -47,11 +47,13 @@ import {
   resetDataLayer,
 } from '@/data/clients'
 import { normaliseReportQuery, type ReportQuery, type SavedReport } from '@/data/types'
+import { PAGES_EN } from '@/screens/pages/copy'
 import { REPORTS_EN } from './copy'
 import { AUTO_RUN_DEBOUNCE_MS } from './ReportBuilder'
 import { ReportsScreen } from './ReportsScreen'
 
 const copy = (key: string) => REPORTS_EN[key] as string
+const pagesCopy = (key: string) => PAGES_EN[key] as string
 
 /** The debounce plus room for the mock to resolve, for a `waitFor` that must outlast it. */
 const SETTLE = AUTO_RUN_DEBOUNCE_MS * 8
@@ -166,13 +168,13 @@ const pickGrain = (user: ReturnType<typeof userEvent.setup>, grain: string) =>
 const pickShape = (user: ReturnType<typeof userEvent.setup>, viz: string) =>
   pick(user, 'rb.viz.label', `rb.viz.${viz}`)
 
-const tab = (view: 'reports' | 'dashboards' | 'alerts') =>
+const tab = (view: 'reports' | 'pages' | 'alerts') =>
   screen.findByRole('tab', { name: copy(`rb.view.${view}`) })
 
 /* ════════════════ 1 — a tab change costs the operator nothing ════════════ */
 
 describe('the owner’s first sentence — changing a tab keeps every value', () => {
-  it('keeps the library’s own search text across Dashboards and back', async () => {
+  it('keeps the library’s own search text across Pages and back', async () => {
     const user = userEvent.setup()
     renderAt(['/management/reports'])
 
@@ -188,10 +190,10 @@ describe('the owner’s first sentence — changing a tab keeps every value', ()
     await waitFor(() => expect(rawParam(LIBRARY_SEARCH_PARAM)).toBe('growth'), { timeout: SETTLE })
     expect(rawParam(REPORT_QUERY_PARAM)).toBeNull()
 
-    await user.click(await tab('dashboards'))
+    await user.click(await tab('pages'))
     /* Still in the address on the other tab — a view is a control, not a new
        page, and it does not get to clear the one it left. */
-    expect(await screen.findByRole('button', { name: copy('rb.dashboards.new') })).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: pagesCopy('pg.index.new') })).toBeInTheDocument()
     expect(rawParam(LIBRARY_SEARCH_PARAM)).toBe('growth')
 
     await user.click(await tab('reports'))
@@ -204,12 +206,14 @@ describe('the owner’s first sentence — changing a tab keeps every value', ()
   it('keeps a composed report across a view switch, in both directions', async () => {
     const user = userEvent.setup()
     const query = (await savedReports()).find((r) => r.id === 'RPT-1')!.query
-    /* Landing on the Dashboards tab **with a question retained** is the state
-       the old code could not represent at all: `?q=` won over `?view=`, so this
-       address rendered the builder and the tab strip looked broken. */
+    /* Landing on the Pages tab **with a question retained** is the state the
+       old code could not represent at all: `?q=` won over `?view=`, so this
+       address rendered the builder and the tab strip looked broken.
+       `?view=dashboards` is the pre-D46 alias (AC-1210) and still resolves
+       here, exercised alongside the retained question. */
     renderAt([`${reportQueryPath(query)}&view=dashboards`])
 
-    expect(await screen.findByRole('button', { name: copy('rb.dashboards.new') })).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: pagesCopy('pg.index.new') })).toBeInTheDocument()
     expect(questionInUrl()).toEqual(normaliseReportQuery(query))
 
     /* → Alerts. Still carried. */
@@ -303,12 +307,21 @@ describe('the owner’s second sentence — the report runs itself', () => {
        numbers are replaced in place. A skeleton here would be AC-810's blanked
        canvas, ninety times an hour. */
     expect(screen.getAllByText(measure).length).toBeGreaterThan(0)
+    /* Scoped by text, not by role alone: `SeriesChart`'s own sr-only
+       description span is also `role="status"` on a series chart, so two
+       such regions coexist and only this one carries the stale sentence. */
     const stale = copy('rb.canvas.stale')
-    expect(screen.getByRole('status').textContent).toContain(stale.slice(0, stale.indexOf('{')))
+    const staleText = await screen.findByText(stale.slice(0, stale.indexOf('{')), { exact: false })
+    expect(staleText).toHaveAttribute('role', 'status')
 
     await waitFor(() => expect(questionInUrl()?.grain).toBe('week'), { timeout: SETTLE })
-    /* And it settles: `stale` is an in-flight state now, not a standing one. */
-    await waitFor(() => expect(screen.queryByRole('status')).toBeNull(), { timeout: SETTLE })
+    /* And it settles: `stale` is an in-flight state now, not a standing one.
+       `SeriesChart`'s own `status` region is not stale-specific and stays
+       mounted, so the STALE SENTENCE going away is what is asserted. */
+    await waitFor(
+      () => expect(screen.queryByText(stale.slice(0, stale.indexOf('{')), { exact: false })).toBeNull(),
+      { timeout: SETTLE },
+    )
   })
 
   it('runs a question that arrived composed exactly once, and writes nothing', async () => {

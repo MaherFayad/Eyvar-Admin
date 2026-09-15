@@ -338,9 +338,13 @@ describe('AC-810 — an edited query keeps the previous answer, visibly marked',
        became. The canvas must NOT blank and must NOT stay silent. */
     await pick(user, 'rb.control.grain', 'rb.grain.week')
 
-    await waitFor(() => expect(screen.getByRole('status')).toBeInTheDocument())
+    /* Two `status` regions coexist on a series chart now: this sentence and
+       `SeriesChart`'s own sr-only description span (`describeId`), so the
+       stale one is found by its text and then checked for the role, rather
+       than assumed to be the only `status` on screen. */
     const stale = REPORTS_EN['rb.canvas.stale'] as string
-    expect(screen.getByRole('status').textContent).toContain(stale.slice(0, stale.indexOf('{')))
+    const staleText = await screen.findByText(stale.slice(0, stale.indexOf('{')), { exact: false })
+    expect(staleText).toHaveAttribute('role', 'status')
     /* Still there — the previous picture, not a spinner and not a blank. */
     expect(
       screen.getAllByText(REPORTS_EN['rb.measure.captains.registered'] as string).length,

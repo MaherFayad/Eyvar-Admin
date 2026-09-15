@@ -196,7 +196,7 @@ describe('the trigger states the window, not just the word for it', () => {
 /* ──────────────── DESIGN.md §3.7 — all four conjuncts ─────────────────── */
 
 describe('§3.7 — the range popover offers presets AND inputs AND two months AND Apply', () => {
-  it('offers all nine presets, with a pressed state on the live one', async () => {
+  it('offers all thirteen presets, with a pressed state on the live one', async () => {
     const user = userEvent.setup()
     renderAt(reportQueryPath(RAILS.trend))
     const popover = await openWindow(user)
@@ -204,7 +204,24 @@ describe('§3.7 — the range popover offers presets AND inputs AND two months A
     for (const preset of REPORT_PRESETS) {
       expect(within(popover).getByRole('button', { name: copy(`rb.preset.${preset}`) })).toBeInTheDocument()
     }
-    expect(REPORT_PRESETS).toHaveLength(9)
+    /* §2.7 — four calendar presets joined the original nine to match
+       Amplitude's range list; the SET is asserted, not a bare count that
+       would pass just as readily against the wrong nine. */
+    expect(REPORT_PRESETS).toEqual([
+      'today',
+      'yesterday',
+      'last-7d',
+      'last-30d',
+      'last-90d',
+      'last-365d',
+      'last-month',
+      'last-12-months',
+      'last-year',
+      'this-quarter',
+      'last-quarter',
+      'this-year',
+      'year-to-date',
+    ])
 
     /* Asserted through `aria-pressed`, not through text: every one of the nine
        labels is on screen at once, so a text check would pass for the wrong

@@ -831,6 +831,8 @@ export const REPORTS_EN: Dictionary = {
   'rb.save.visibility.private.consequence': 'Only you can open this report.',
   'rb.save.visibility.team.consequence': 'Anyone on the team can open and run it.',
   'rb.save.confirm': 'Save report',
+  /* AC-1205 — the builder opened with `?pinTo=`; the one primary names both halves of what it now does. */
+  'rb.save.pin.confirm': 'Save and pin',
   'rb.save.cancel': 'Cancel',
   'rb.save.failed': 'The report wasn’t saved. Nothing was changed.',
   'rb.save.invalid.name-required': 'Enter a name.',

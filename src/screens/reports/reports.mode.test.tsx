@@ -29,12 +29,18 @@ import {
   REPORT_QUERY_PARAM,
   deserialiseReportQuery,
   disableMockLatency,
-  listDashboards,
+  listPages,
   reportQueryPath,
   resetDataLayer,
 } from '@/data/clients'
 import { normaliseReportQuery, type ReportMode, type ReportQuery } from '@/data/types'
-import { DashboardDetailScreen } from './DashboardDetailScreen'
+import type { Block } from '@/data/types/page'
+/* Read-only reference into the pages team's own tree (`src/screens/pages/**`,
+   `src/components/pages/**`): the detail route a page opens on is theirs to
+   build and test; this file only proves the three-view surface is reachable
+   from `ReportsScreen`, which is this file's. */
+import { PageDetailScreen } from '@/screens/pages/PageDetailScreen'
+import { PAGES_EN } from '@/screens/pages/copy'
 import { EN } from '@/i18n/dictionaries'
 import { REPORTS_EN } from './copy'
 import { ReportsScreen } from './ReportsScreen'
@@ -55,6 +61,37 @@ beforeEach(() => {
 })
 
 const copy = (key: string) => REPORTS_EN[key] as string
+const pagesCopy = (key: string) => PAGES_EN[key] as string
+
+/** Depth-first, across `toggle`/`columns` containers — the shape `usePageEditor.findBlockFor` walks. */
+function findBlock(blocks: readonly Block[], predicate: (b: Block) => boolean): Block | null {
+  for (const block of blocks) {
+    if (predicate(block)) return block
+    if (block.type === 'toggle') {
+      const found = findBlock(block.blocks, predicate)
+      if (found) return found
+    }
+    if (block.type === 'columns') {
+      for (const column of block.columns) {
+        const found = findBlock(column.blocks, predicate)
+        if (found) return found
+      }
+    }
+  }
+  return null
+}
+
+function mountPage(pageId: string) {
+  return render(
+    <MemoryRouter initialEntries={[`/management/reports/pages/${pageId}`]}>
+      <ShellProvider>
+        <Routes>
+          <Route path="/management/reports/pages/:pageId" element={<PageDetailScreen />} />
+        </Routes>
+      </ShellProvider>
+    </MemoryRouter>,
+  )
+}
 
 /** Reads the address bar out of the router, so a push can be asserted on. */
 function LocationProbe() {
@@ -320,112 +357,122 @@ describe('P7-T3 — the mode switcher does not compose an illegal query', () => 
   })
 })
 
-/* ─────────────────────── P7-T5 — the dashboards view ───────────────────── */
+/* ──────────────────── P7-T5 — the third view exists (pages) ────────────── */
 
+/**
+ * D39/F-V2-82: `listDashboards` and `Dashboard`/`DashboardTile` are deleted; a
+ * dashboard is one `kind` of `Page`, holding `blocks` not `tiles`. Every
+ * guarantee this block proved against tiles is re-proved against blocks, read
+ * through `listPages` (never the fixture module, `seam.test.ts`). `DSH-1` …
+ * `DSH-3` are the same three v1 boards, migrated under their original ids.
+ */
 describe('P7-T5 — the third view exists and is reachable', () => {
-  it('renders the dashboards list at `?view=dashboards` instead of the library', async () => {
+  it('renders the pages list at `?view=dashboards` instead of the library', async () => {
     renderAt('/management/reports?view=dashboards', <ReportsScreen />)
-    /* It used to fall through the screen's two-value guard and render the
-       report library — unreachable rather than broken. */
-    expect(await screen.findByRole('button', { name: copy('rb.dashboards.new') })).toBeInTheDocument()
+    /* `?view=dashboards` is the pre-D46 id; `normaliseReportsView` still
+       resolves it to `pages` (AC-1210) rather than falling through the
+       screen's view guard to the report library — unreachable rather than
+       broken, F-V2-82's original failure mode. */
+    expect(await screen.findByRole('button', { name: pagesCopy('pg.index.new') })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: copy('rb.library.new') })).not.toBeInTheDocument()
   })
 
-  it('offers all three views as tabs, so none of them is a URL you have to know', async () => {
+  it('offers the pages view as a tab, so it is not a URL you have to know', async () => {
     renderAt('/management/reports?view=dashboards', <ReportsScreen />)
-    for (const key of ['rb.view.reports', 'rb.view.dashboards', 'rb.view.alerts'] as const) {
+    /* Not asserted as an exact count: D46 also declares a fourth view,
+       `analyst`, disabled in place until WP-7.4 (`views.ts`). What this
+       guarantee is actually about is that `reports`, `pages` and `alerts`
+       are each one click away, not a parameter you have to already know. */
+    for (const key of ['rb.view.reports', 'rb.view.pages', 'rb.view.alerts'] as const) {
       expect(await screen.findByRole('tab', { name: copy(key) })).toBeInTheDocument()
     }
   })
 
-  it('renders one dashboard’s tiles, and the missing one says what it used to be', async () => {
-    /* Read through the client, never out of the fixture module. The dangling
-       tile is the state §11.3 requires and only a fixture can reach (AC-869). */
-    const dashboards = (await listDashboards({ pageSize: 50 })).items
-    const withMissing = dashboards.find((d) => d.tiles.some((tile) => tile.reportId === 'RPT-DELETED'))
-    expect(withMissing, 'a dashboard with a dangling tile').toBeTruthy()
-
-    render(
-      <MemoryRouter initialEntries={[`/management/reports/dashboards/${withMissing!.id}`]}>
-        <ShellProvider>
-          <Routes>
-            <Route
-              path="/management/reports/dashboards/:dashboardId"
-              element={<DashboardDetailScreen />}
-            />
-          </Routes>
-        </ShellProvider>
-      </MemoryRouter>,
+  it('renders one page’s blocks, and the missing one says what it used to be', async () => {
+    /* The dangling reference is the state §11.3 requires and only a fixture
+       can reach (AC-869): `DSH-3`'s `RPT-DELETED` tile, migrated into a
+       `report` block nested inside the pair it was pinned beside. */
+    const pages = (await listPages({ pageSize: 50 })).items
+    const withMissing = pages.find((p) =>
+      findBlock(p.blocks, (b) => b.type === 'report' && b.reportId === 'RPT-DELETED') !== null,
     )
+    expect(withMissing, 'a page with a dangling report block').toBeTruthy()
+    const gone = findBlock(withMissing!.blocks, (b) => b.type === 'report' && b.reportId === 'RPT-DELETED')
+
+    mountPage(withMissing!.id)
 
     expect(await screen.findByText(copy('rb.dashboard.tile.missing'))).toBeInTheDocument()
-    /* `pinnedName` is a display fallback and this is the only case it is read
-       in — so a tile whose report has vanished can still say what it was. */
-    const gone = withMissing!.tiles.find((tile) => tile.reportId === 'RPT-DELETED')!
-    expect(screen.getByText(gone.pinnedName)).toBeInTheDocument()
+    /* `pinnedName` is gone from the model (§2); `block.title` is what carries
+       it forward, and this is the only case it is read in — a report block
+       whose report has vanished can still say what it used to be. */
+    expect(gone?.type === 'report' && gone.title).toBeTruthy()
+    expect(screen.getByText((gone as { title: string }).title)).toBeInTheDocument()
   })
 
-  it('gives a dashboard with no tiles the first-run empty for that dashboard', async () => {
-    const dashboards = (await listDashboards({ pageSize: 50 })).items
-    const empty = dashboards.find((d) => d.tiles.length === 0)
-    expect(empty, 'a dashboard with no tiles').toBeTruthy()
+  it('gives a page with no blocks the empty for that page, and a way to add one', async () => {
+    const pages = (await listPages({ pageSize: 50 })).items
+    const empty = pages.find((p) => p.blocks.length === 0)
+    expect(empty, 'a page with no blocks').toBeTruthy()
 
-    render(
-      <MemoryRouter initialEntries={[`/management/reports/dashboards/${empty!.id}`]}>
-        <ShellProvider>
-          <Routes>
-            <Route
-              path="/management/reports/dashboards/:dashboardId"
-              element={<DashboardDetailScreen />}
-            />
-          </Routes>
-        </ShellProvider>
-      </MemoryRouter>,
-    )
+    mountPage(empty!.id)
 
-    /* R8's FIRST kind, and it is about THIS dashboard rather than about there
-       being no dashboards: a heading, a line and an action (AC-865). */
-    expect(await screen.findByText(copy('rb.dashboard.empty.heading'))).toBeInTheDocument()
-    /* Two of them, deliberately: the page header carries the same action for
-       a board that already has tiles, and R8 requires the empty state to carry
-       one of its own rather than point at the header. */
-    expect(
-      screen.getAllByRole('button', { name: copy('rb.dashboard.empty.action') }).length,
-    ).toBeGreaterThan(0)
+    /* R8's second kind (§8's own table): one grey sentence, about THIS page
+       rather than about there being no pages — the page's own title is still
+       on screen, proving it exists rather than reporting an absence. */
+    expect(await screen.findByText(pagesCopy('pg.page.empty'))).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: empty!.title })).toBeInTheDocument()
+
+    /* The page's own way to add a block: the header's `Edit` primary opens
+       the block picker's insertion affordance in place — never a dialog
+       (§5, the owner's standing ruling). */
+    const user = userEvent.setup()
+    await user.click(await screen.findByRole('button', { name: pagesCopy('pg.edit.enter') }))
+    expect(await screen.findByRole('button', { name: pagesCopy('pg.edit.addBlock') })).toBeInTheDocument()
   })
 
-  it('moves a tile with a button, because §7 does not exempt drag-and-drop', async () => {
-    const dashboards = (await listDashboards({ pageSize: 50 })).items
-    const many = dashboards.find((d) => d.tiles.length > 1)
-    expect(many, 'a dashboard with more than one tile').toBeTruthy()
-    const first = [...many!.tiles].sort((a, b) => a.order - b.order)[0]!
+  it('moves a block with a button, because §7 does not exempt drag-and-drop', async () => {
+    /* `DSH-1`: a `full` tile (alone) then two `half` tiles (paired into a
+       `columns` block) — two blocks at the page root, so `Move up` on the
+       first is a real disabled-in-place boundary and `Move down` is live. */
+    const many = (await listPages({ pageSize: 50 })).items.find((p) => p.id === 'DSH-1')
+    expect(many, 'a page with more than one root block').toBeTruthy()
+    expect(many!.blocks.length).toBeGreaterThan(1)
+    const first = many!.blocks[0]!
+    expect(first.type, 'the first root block is a lone report').toBe('report')
 
-    render(
-      <MemoryRouter initialEntries={[`/management/reports/dashboards/${many!.id}`]}>
-        <ShellProvider>
-          <Routes>
-            <Route
-              path="/management/reports/dashboards/:dashboardId"
-              element={<DashboardDetailScreen />}
-            />
-          </Routes>
-        </ShellProvider>
-      </MemoryRouter>,
-    )
+    mountPage(many!.id)
 
-    /* AC-871 — a real button with an accessible name that says which tile it
-       moves, present always rather than on hover (§7.3). */
-    const down = await screen.findByRole('button', {
-      name: copy('rb.dashboard.tile.moveDown').replace('{name}', first.pinnedName),
+    const user = userEvent.setup()
+    await user.click(await screen.findByRole('button', { name: pagesCopy('pg.edit.enter') }))
+
+    /* AC-1198/AC-1199 — the kebab is a real button, present in the DOM at
+       rest (not only on `:hover`, §7.3: `BlockFrame` also reveals it on
+       `:focus-within`); `Move up`/`Move down` are menu items reached from it,
+       keyboard-operable through the menu Radix builds rather than a drag
+       target — §7 does not exempt drag-and-drop.
+
+       Scoped to the FIRST block frame, in document order, rather than
+       queried by name alone: `BlockFrame`'s accessible name is the block
+       TYPE (`pg.block.report.name`), not the block's own title, so three
+       "Report" blocks on one page share one name — a `BlockFrame` defect
+       outside this file's set, reported rather than fixed here. */
+    const reportFrame = (
+      await screen.findAllByRole('group', { name: pagesCopy('pg.block.report.name') })
+    )[0]!
+    const kebab = within(reportFrame).getByRole('button', {
+      name: pagesCopy('pg.edit.blockMenu').replace('{name}', pagesCopy('pg.block.report.name')),
     })
-    expect(down).toBeEnabled()
+    await user.click(kebab)
 
-    /* `Move up` on the FIRST tile is disabled in place, not missing: a control
-       that disappears at the end of a list teaches nothing about the list. */
-    expect(
-      screen.getByRole('button', {
-        name: copy('rb.dashboard.tile.moveUp').replace('{name}', first.pinnedName),
-      }),
-    ).toBeDisabled()
+    const down = await screen.findByRole('menuitem', { name: pagesCopy('pg.edit.moveDown') })
+    expect(down).not.toHaveAttribute('aria-disabled', 'true')
+
+    /* `Move up` on the FIRST block is disabled in place, not missing: a
+       control that disappears at the start of a list teaches nothing about
+       the list, and its own reason (`pg.edit.moveUp.first`) is read out with
+       it rather than left for the operator to infer. */
+    const up = screen.getByRole('menuitem', { name: pagesCopy('pg.edit.moveUp') })
+    expect(up).toHaveAttribute('aria-disabled', 'true')
+    expect(within(up).getByText(pagesCopy('pg.edit.moveUp.first'))).toBeInTheDocument()
   })
 })

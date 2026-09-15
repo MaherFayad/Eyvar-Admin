@@ -476,6 +476,7 @@ export const REPORTS_AR: Dictionary = {
   'rb.save.visibility.private.consequence': 'أنت وحدك تستطيع فتح هذا التقرير.',
   'rb.save.visibility.team.consequence': 'أي شخص في الفريق يستطيع فتحه وتشغيله.',
   'rb.save.confirm': 'حفظ التقرير',
+  'rb.save.pin.confirm': 'حفظ وتثبيت',
   'rb.save.cancel': 'إلغاء',
   'rb.save.failed': 'لم يُحفظ التقرير. لم يتغيّر شيء.',
   'rb.save.invalid.name-required': 'أدخل اسمًا.',

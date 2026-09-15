@@ -204,9 +204,15 @@ describe('a chart ships with its numbers', () => {
        drawable path, and the population sentence became an `InfoHint` on the
        measure's label row. The plot is now asserted directly, which is what the
        test meant all along: the marks are inert, so the plot's accessible name
-       is what a reader is told is in it, and it names the measure asked for. */
+       is what a reader is told is in it, and it names the measure asked for.
+
+       `role="group"`, not `role="img"` (`SeriesChart.tsx` §2.2): the region is
+       keyboard-navigable — arrow keys walk the points — rather than a static
+       picture, so it is announced and operated as a group, not an image. */
     const canvas = await screen.findByRole('region', { name: copy('rb.canvas.heading') })
-    const plot = await within(canvas).findByRole('img')
+    const plot = await within(canvas).findByRole('group', {
+      name: copy('rb.measure.captains.registered'),
+    })
     expect(plot).toHaveAccessibleName(copy('rb.measure.captains.registered'))
 
     /* The numbers, in the same render — under their own heading, so the table

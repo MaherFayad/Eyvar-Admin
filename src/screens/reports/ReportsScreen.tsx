@@ -85,6 +85,10 @@
 
 import { useCallback, useMemo } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
+import { EmptyState } from '@/components/EmptyState'
+import { PageHeader } from '@/components/PageHeader'
+import { SingleColumnPage } from '@/components/PageShell'
+import { ViewTabs } from '@/components/ViewTabs'
 import { useAsync } from '@/hooks'
 import { useNowIso } from '@/screens/queues'
 import { useShell } from '@/shell/ShellContext'
@@ -104,7 +108,7 @@ import { AlertsView } from './AlertsView'
 import { PagesView } from '@/screens/pages/PagesView'
 import { ReportBuilder } from './ReportBuilder'
 import { ReportLibrary } from './ReportLibrary'
-import { REPORTS_VIEWS, normaliseReportsView, type ReportsView } from './views'
+import { REPORTS_VIEWS, normaliseReportsView, reportsViewTabs, type ReportsView } from './views'
 import { withFallback } from '../operations/localCopy'
 import { REPORTS_EN } from './copy'
 import { PAGES_EN } from '@/screens/pages/copy'
@@ -258,6 +262,25 @@ export function ReportsScreen({ row }: ReportsScreenProps) {
         language={language}
         dir={dir}
       />
+    )
+  }
+
+  /* D46 — the fourth view, reachable so the tab strip agrees with the route
+     table, disabled in place rather than hidden (AGENT-BRIEF traps table)
+     until WP-7.4 builds `src/screens/analyst/AnalystView`. */
+  if (view === 'analyst') {
+    return (
+      <SingleColumnPage header={<PageHeader title={title} meta={null} t={t} dir={dir} />}>
+        <div className="flex flex-col gap-3">
+          <ViewTabs
+            tabs={reportsViewTabs(t)}
+            activeTab={view}
+            onSelectTab={(id) => selectView(id as ReportsView)}
+            label={title}
+          />
+          <EmptyState kind="no-match" message={t('rb.view.analyst.unbuilt')} />
+        </div>
+      </SingleColumnPage>
     )
   }
 

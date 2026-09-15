@@ -1,16 +1,16 @@
 /**
- * The sub-tab's views (§3.8 rule 3), `reports · pages · alerts` in
- * `routeTable.ts`'s own order. D46 renames `dashboards` to `pages`;
- * `normaliseReportsView` still accepts the old id (AC-1210). `routeTable.ts`
- * also declares a fourth, `analyst`, ahead of its own screen and copy — the
- * analyst work package's gap, not this file's.
+ * The sub-tab's views (§3.8 rule 3), `reports · pages · alerts · analyst` in
+ * `routeTable.ts`'s own order (D46). `normaliseReportsView` still accepts the
+ * pre-rename `dashboards` id (AC-1210). `analyst`'s tab is reachable so this
+ * list agrees with the route table; its screen is WP-7.4's and renders
+ * disabled-in-place until then.
  */
 
 /** A view id. Not a route: `?view=` is a control, not a level (§3.8 rule 3). */
-export type ReportsView = 'reports' | 'pages' | 'alerts'
+export type ReportsView = 'reports' | 'pages' | 'alerts' | 'analyst'
 
 /** In tab order, with the default first. */
-export const REPORTS_VIEWS: readonly ReportsView[] = ['reports', 'pages', 'alerts']
+export const REPORTS_VIEWS: readonly ReportsView[] = ['reports', 'pages', 'alerts', 'analyst']
 
 /** `dashboards` is the pre-D46 id; every other string that is not a known view falls back to the caller's own default. */
 export function normaliseReportsView(raw: string | null): ReportsView | null {

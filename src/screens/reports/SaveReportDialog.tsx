@@ -141,6 +141,8 @@ export interface SaveReportDialogProps {
    */
   draftName?: string
   draftDescription?: string
+  /** AC-1205 — the page id `?pinTo=` named. Preselects `Add to` and swaps the primary's label; absent, the dialog is unchanged. */
+  pinTo?: string
   query: ReportQuery
   onSaved: (report: SavedReport) => void
   t: Translator
@@ -162,6 +164,7 @@ export function SaveReportDialog({
   report,
   draftName,
   draftDescription,
+  pinTo,
   query,
   onSaved,
   t,
@@ -171,7 +174,7 @@ export function SaveReportDialog({
   const [visibility, setVisibility] = useState<SavedReport['visibility']>(
     report?.visibility ?? 'private',
   )
-  const [pageId, setPageId] = useState<string>(NO_DASHBOARD)
+  const [pageId, setPageId] = useState<string>(pinTo ?? NO_DASHBOARD)
   /** §8 — free-text, operator-set. `tagDraft` is the field's own uncommitted text. */
   const [tags, setTags] = useState<string[]>(reportTags(report ?? {}))
   const [tagDraft, setTagDraft] = useState('')
@@ -215,7 +218,7 @@ export function SaveReportDialog({
     setName(draftName ?? report?.name ?? '')
     setDescription(draftDescription ?? report?.description ?? '')
     setVisibility(report?.visibility ?? 'private')
-    setPageId(NO_DASHBOARD)
+    setPageId(pinTo ?? NO_DASHBOARD)
     setTags(reportTags(report ?? {}))
     setTagDraft('')
     setReasons([])
@@ -506,7 +509,11 @@ export function SaveReportDialog({
             disabled={saving || name.trim() === ''}
             onClick={() => void submit()}
           >
-            {pinFailed ? t('rb.save.addTo.failed.retry') : t('rb.save.confirm')}
+            {pinFailed
+              ? t('rb.save.addTo.failed.retry')
+              : pinTo !== undefined
+                ? t('rb.save.pin.confirm')
+                : t('rb.save.confirm')}
           </Button>
         </DialogFooter>
       </DialogContent>
