@@ -74,6 +74,9 @@ export const PAGES_AR: Dictionary = {
   'pg.page.conflict': 'حفظ شخص آخر هذه الصفحة. تعديلاتك محفوظة هنا. أعد التحميل لحفظها مرة أخرى.',
   'pg.page.conflict.reload': 'إعادة التحميل',
 
+  /* F-V2-87 — fallback accessible name for a block with no title of its own. */
+  'pg.block.positionalName': '{type} {position}',
+
   /* ── block names and descriptions ────────────────────────────────────── */
   'pg.block.text.name': 'نص',
   'pg.block.text.desc': 'فقرة من نص منسَّق',

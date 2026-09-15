@@ -62,9 +62,9 @@ async function mountEditing(pageId: string) {
 }
 
 async function openMenu(user: ReturnType<typeof userEvent.setup>, blockName: string, index = 0) {
-  /* The trigger's accessible name is the block's type only (BlockFrame.tsx),
-     so a page with two blocks of the same type needs the DOM position to
-     disambiguate which one — `index` picks among same-named triggers. */
+  /* A block's trigger is named after its own title, falling back to type plus
+     position when it has none (F-V2-87) — so `blockName` is "Solo" or
+     "Divider 1", not the bare type. `index` remains for genuine ties. */
   const trigger = screen.getAllByRole('button', { name: copy('pg.edit.blockMenu').replace('{name}', blockName) })[index]!
   await user.click(trigger)
   return screen.findByRole('menu')
@@ -76,7 +76,7 @@ describe('AC-1198 — Move to column… is disabled in place, with a reason, whe
     const pageId = await onePage([{ id: 'h1', type: 'heading', level: 2, text: 'Solo' }])
     await mountEditing(pageId)
 
-    const menu = await openMenu(user, 'Heading')
+    const menu = await openMenu(user, 'Solo')
     const submenu = within(menu).getByRole('menuitem', { name: copy('pg.edit.moveToColumn') })
     expect(submenu).toHaveAttribute('aria-disabled', 'true')
 
@@ -95,7 +95,7 @@ describe('AC-1198 — Turn into… is disabled in place, with a reason, for a bl
     const pageId = await onePage([{ id: 'd1', type: 'divider' }])
     await mountEditing(pageId)
 
-    const menu = await openMenu(user, 'Divider')
+    const menu = await openMenu(user, 'Divider 1')
     const submenu = within(menu).getByRole('menuitem', { name: copy('pg.edit.turnInto') })
     expect(submenu).toHaveAttribute('aria-disabled', 'true')
 
@@ -108,7 +108,7 @@ describe('AC-1198 — Turn into… is disabled in place, with a reason, for a bl
     const pageId = await onePage([{ id: 't1', type: 'text', md: 'Some text' }])
     await mountEditing(pageId)
 
-    const menu = await openMenu(user, 'Text')
+    const menu = await openMenu(user, 'Text 1')
     const submenu = within(menu).getByRole('menuitem', { name: copy('pg.edit.turnInto') })
     expect(submenu).not.toHaveAttribute('aria-disabled', 'true')
     await user.hover(submenu)
@@ -124,7 +124,7 @@ describe('AC-1198 — every action is offered, none of them hidden', () => {
     const pageId = await onePage([{ id: 't1', type: 'text', md: 'Some text' }])
     await mountEditing(pageId)
 
-    const menu = await openMenu(user, 'Text')
+    const menu = await openMenu(user, 'Text 1')
     for (const label of [
       copy('pg.edit.moveUp'),
       copy('pg.edit.moveDown'),
@@ -142,7 +142,7 @@ describe('AC-1198 — every action is offered, none of them hidden', () => {
     const pageId = await onePage([{ id: 'r1', type: 'report', reportId: 'RPT-4', view: 'chart', height: 'M', title: null }])
     await mountEditing(pageId)
 
-    const menu = await openMenu(user, 'Report')
+    const menu = await openMenu(user, 'Report 1')
     expect(within(menu).getByRole('menuitem', { name: copy('pg.edit.height') })).toBeInTheDocument()
     expect(within(menu).getByRole('menuitem', { name: copy('pg.edit.view') })).toBeInTheDocument()
   })
@@ -155,7 +155,7 @@ describe('AC-1198 — every action is offered, none of them hidden', () => {
     ])
     await mountEditing(pageId)
 
-    const menu = await openMenu(user, 'Heading')
+    const menu = await openMenu(user, 'First')
     /* `blockOps.moveBlock` is a documented no-op at either end (AC-1199), and
        `BlockMenu.tsx` disables `Move up`/`Move down` to say so, exactly as
        `moveToColumn`/`turnInto` already did. */

@@ -200,8 +200,9 @@ export function PageView({
 
   return (
     <SingleColumnPage header={header} body="flow">
+      {/* AC-1217 — none of this is content; a printed page shows none of it. */}
       {editor.editing && (
-        <div className="flex flex-col gap-2 pb-3">
+        <div className="flex flex-col gap-2 pb-3 print:hidden">
           <Input
             value={editor.content.title}
             placeholder={t('pg.page.untitled')}
@@ -220,7 +221,7 @@ export function PageView({
       )}
 
       {editor.conflict && (
-        <div role="alert" className="mb-3 flex items-center justify-between gap-2 rounded-card border border-border bg-muted p-3 text-sm">
+        <div role="alert" className="mb-3 flex items-center justify-between gap-2 rounded-card border border-border bg-muted p-3 text-sm print:hidden">
           <span>{t('pg.page.conflict')}</span>
           <Button type="button" size="xs" variant="secondary" onClick={editor.reload}>
             {t('pg.page.conflict.reload')}
@@ -229,25 +230,29 @@ export function PageView({
       )}
 
       {editor.saveStatus === 'invalid' && editor.violations.length > 0 && (
-        <div role="alert" className="mb-3 flex flex-col gap-0.5 rounded-card border border-border bg-muted p-3 text-xs text-muted-foreground">
+        <div role="alert" className="mb-3 flex flex-col gap-0.5 rounded-card border border-border bg-muted p-3 text-xs text-muted-foreground print:hidden">
           {editor.violations.map((v, i) => (
             <p key={i}>{v.message}</p>
           ))}
         </div>
       )}
 
-      <PageScopeBar
-        scope={editor.content.scope}
-        onChange={(scope) => editor.setContent((c) => ({ ...c, scope }))}
-        measures={measures}
-        dimensions={dimensions}
-        editable={editor.editing}
-        today={today}
-        t={t}
-        language={language}
-      />
+      {/* AC-1217 — the scope bar is a question the operator can still change; a printed page answers as of the moment it was printed and drops the control. `data-pages-scope-bar` is the print harness's language-independent hook. */}
+      <div data-pages-scope-bar className="print:hidden">
+        <PageScopeBar
+          scope={editor.content.scope}
+          onChange={(scope) => editor.setContent((c) => ({ ...c, scope }))}
+          measures={measures}
+          dimensions={dimensions}
+          editable={editor.editing}
+          today={today}
+          t={t}
+          language={language}
+        />
+      </div>
 
-      <div onKeyDown={onKeyDown}>
+      {/* `data-pages-block-tree` — the print layer's scope hook (globals.css), so the one-column override touches only a page's own blocks. */}
+      <div data-pages-block-tree onKeyDown={onKeyDown}>
         <PageBlocksProvider
           value={{
             pageId: page.id,
@@ -269,7 +274,7 @@ export function PageView({
             <p className="py-8 text-center text-sm text-muted-foreground">{t('pg.page.empty')}</p>
           ) : null}
           {countBlocks(editor.content.blocks) >= PAGE_BLOCK_MAX && editor.editing && (
-            <p className="pb-2 text-xs text-muted-foreground">{t('pg.edit.blockLimit')}</p>
+            <p className="pb-2 text-xs text-muted-foreground print:hidden">{t('pg.edit.blockLimit')}</p>
           )}
           <BlockList blocks={editor.content.blocks} containerId={null} columnIndex={null} />
         </PageBlocksProvider>

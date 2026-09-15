@@ -57,9 +57,17 @@ async function mountEditing(pageId: string) {
   return utils
 }
 
-/** Order is read off the heading frames, not the headings' own text alone — two blocks can carry the same name. */
+/**
+ * F-V2-87 gave each frame the block's own title as its accessible name, so
+ * two headings no longer share one name — read order off `data-block-id`
+ * (present on every frame in edit mode) rather than a name lookup.
+ */
+function blockFrames(): HTMLElement[] {
+  return screen.getAllByRole('group').filter((frame) => frame.hasAttribute('data-block-id'))
+}
+
 function frameOrder(): string[] {
-  return screen.getAllByRole('group', { name: copy('pg.block.heading.name') }).map((frame) => within(frame).getByRole('heading').textContent ?? '')
+  return blockFrames().map((frame) => within(frame).getByRole('heading').textContent ?? '')
 }
 
 describe('Alt+ArrowDown / Alt+ArrowUp move the focused block — AC-1199', () => {
@@ -69,7 +77,7 @@ describe('Alt+ArrowDown / Alt+ArrowUp move the focused block — AC-1199', () =>
 
     expect(frameOrder()).toEqual(['First', 'Second'])
 
-    const frames = screen.getAllByRole('group', { name: copy('pg.block.heading.name') })
+    const frames = blockFrames()
     frames[0]!.focus()
     await userEvent.keyboard('{Alt>}{ArrowDown}{/Alt}')
 
@@ -82,7 +90,7 @@ describe('Ctrl+D duplicates the focused block — AC-1199', () => {
     const pageId = await twoHeadingPage()
     await mountEditing(pageId)
 
-    const frames = screen.getAllByRole('group', { name: copy('pg.block.heading.name') })
+    const frames = blockFrames()
     frames[0]!.focus()
     await userEvent.keyboard('{Control>}d{/Control}')
 
@@ -95,7 +103,7 @@ describe('Delete removes the focused block and offers Undo — AC-1199, AC-1200'
     const pageId = await twoHeadingPage()
     await mountEditing(pageId)
 
-    const frames = screen.getAllByRole('group', { name: copy('pg.block.heading.name') })
+    const frames = blockFrames()
     frames[0]!.focus()
     await userEvent.keyboard('{Delete}')
 

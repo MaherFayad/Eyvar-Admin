@@ -5,7 +5,9 @@
  * (AC-1198), never hidden.
  */
 
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
+import { toast } from 'sonner'
+import { AlertRuleIcon } from '@/components/icons'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,6 +21,10 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+/* Cross-domain, deliberately: an alert always points at a SAVED report, and a
+   page's report block already does (`reportId` is required), so this reuses
+   the reports module's own composer rather than a second one (G15). */
+import { AlertRuleDialog } from '@/screens/reports/AlertRuleDialog'
 import { findBlock, listColumnsBlocks } from './blockOps'
 import { usePageBlocks } from './PageBlocksContext'
 import type { Block, ReportBlockHeight, ReportBlockView } from '@/data/types/page'
@@ -54,11 +60,17 @@ export interface BlockMenuProps {
 }
 
 export function BlockMenu({ block, containerId, columnIndex, open, onOpenChange, trigger }: BlockMenuProps) {
-  const { blocks, actions, t } = usePageBlocks()
+  const { blocks, actions, t, today, language } = usePageBlocks()
+  /* Before the `!actions` return — a Hook cannot follow a conditional one. */
+  const [alertOpen, setAlertOpen] = useState(false)
   if (!actions) return null
 
   const columnsBlocks = listColumnsBlocks(blocks).filter((c) => c.id !== containerId)
   const isReport = block.type === 'report'
+  /* A page's report block always names a SAVED report (`reportId` is
+     required, never optional) — G15's unsaved-report save applies only to
+     the builder's own bell, never here. */
+  const reportId = block.type === 'report' ? block.reportId : null
   const turnable = TURN_INTO.filter((to) => to !== block.type && canTurnInto(block.type, to))
   const siblings = siblingsOf(blocks, containerId, columnIndex)
   const ownIndex = siblings.findIndex((b) => b.id === block.id)
@@ -66,9 +78,10 @@ export function BlockMenu({ block, containerId, columnIndex, open, onOpenChange,
   const isLast = ownIndex === siblings.length - 1
 
   return (
-    <DropdownMenu open={open} onOpenChange={onOpenChange}>
-      <DropdownMenuTrigger asChild>{trigger}</DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
+    <>
+      <DropdownMenu open={open} onOpenChange={onOpenChange}>
+        <DropdownMenuTrigger asChild>{trigger}</DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
         {/* `moveBlock` is a documented no-op at either end (AC-1199) — disabled in place, with the reason, rather than silently doing nothing. */}
         <DropdownMenuItem
           disabled={isFirst}
@@ -189,11 +202,38 @@ export function BlockMenu({ block, containerId, columnIndex, open, onOpenChange,
           </DropdownMenuSub>
         )}
 
+        {isReport && (
+          <DropdownMenuItem onSelect={() => setAlertOpen(true)}>
+            <AlertRuleIcon aria-hidden="true" className="size-4" />
+            {t('rb.overflow.createAlert')}
+          </DropdownMenuItem>
+        )}
+
         <DropdownMenuSeparator />
         <DropdownMenuItem variant="destructive" onSelect={() => actions.onDelete(block.id)}>
           {t('pg.edit.delete')}
         </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      {/* G15 — always a SAVED report here, so no name-first step (see
+          `reportId` above); `AlertRuleDialog` is its own inline panel and
+          renders below the block rather than inside this menu's popover. */}
+      {alertOpen && reportId !== null && (
+        <AlertRuleDialog
+          open
+          onOpenChange={(next) => !next && setAlertOpen(false)}
+          rule={null}
+          presetReportId={reportId}
+          today={today}
+          onSaved={(saved) => {
+            setAlertOpen(false)
+            toast.success(t('rb.alert.toast.saved', { name: saved.name }))
+          }}
+          t={t}
+          language={language}
+        />
+      )}
+    </>
   )
 }

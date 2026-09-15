@@ -65,7 +65,8 @@ describe('AC-1206 — Turn into converts text ↔ heading ↔ callout', () => {
     const pageId = await onePage([{ id: 't1', type: 'text', md: 'A note' }])
     await mountEditing(pageId)
 
-    await user.click(screen.getByRole('button', { name: copy('pg.edit.blockMenu').replace('{name}', 'Text') }))
+    /* F-V2-87 — a title-less block's frame name is "Text 1" (type + position), not the bare type name. */
+    await user.click(screen.getByRole('button', { name: copy('pg.edit.blockMenu').replace('{name}', 'Text 1') }))
     await screen.findByRole('menuitem', { name: copy('pg.edit.moveUp') })
     /* Keyboard, not hover+click — a Radix `DropdownMenuSub` has no stable
        geometry in jsdom, so a synthetic pointer click on a nested item
@@ -88,7 +89,8 @@ describe('AC-1206 — Turn into converts report ↔ metric without losing the re
     const pageId = await onePage([{ id: 'r1', type: 'report', reportId: 'RPT-4', view: 'chart', height: 'M', title: null }])
     await mountEditing(pageId)
 
-    await user.click(screen.getByRole('button', { name: copy('pg.edit.blockMenu').replace('{name}', 'Report') }))
+    /* F-V2-87 — an untitled report block's frame name is "Report 1" (type + position). */
+    await user.click(screen.getByRole('button', { name: copy('pg.edit.blockMenu').replace('{name}', 'Report 1') }))
     await screen.findByRole('menuitem', { name: copy('pg.edit.moveUp') })
     /* Same single-block page, same skip of the three disabled items —
        `Duplicate · Turn into…` — two steps down, then in. */
@@ -98,6 +100,7 @@ describe('AC-1206 — Turn into converts report ↔ metric without losing the re
 
     /* Still resolves the SAME report — `New subscriptions by plan`. */
     expect(await screen.findByText('New subscriptions by plan')).toBeInTheDocument()
-    expect(screen.getByRole('group', { name: copy('pg.block.metric.name') })).toBeInTheDocument()
+    /* F-V2-87 — a metric block has no title field, so it always falls back to "Metric 1". */
+    expect(screen.getByRole('group', { name: `${copy('pg.block.metric.name')} 1` })).toBeInTheDocument()
   })
 })

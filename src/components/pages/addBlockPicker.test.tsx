@@ -92,8 +92,10 @@ describe('AC-1196 — the add-block affordance sits between every pair of blocks
     await user.click(affordances[0]!)
     await user.click(await screen.findByRole('option', { name: new RegExp(copy('pg.block.divider.name')) }))
 
+    /* F-V2-87 — a divider has no title of its own, so its frame name is
+       "Divider 1" (type + 1-indexed position), not the bare type name. */
     const frames = screen.getAllByRole('group')
-    expect(frames[0]).toHaveAttribute('aria-label', copy('pg.block.divider.name'))
+    expect(frames[0]).toHaveAttribute('aria-label', `${copy('pg.block.divider.name')} 1`)
   })
 })
 

@@ -77,6 +77,9 @@ export const PAGES_EN: Dictionary = {
   'pg.page.conflict': 'Someone else saved this page. Your edits are kept here. Reload to save them again.',
   'pg.page.conflict.reload': 'Reload',
 
+  /* F-V2-87 — the accessible-name fallback for a block with no title of its own, so two blocks of the same type never present one identical name. */
+  'pg.block.positionalName': '{type} {position}',
+
   /* ── block names and descriptions (§3.2) ─────────────────────────────── */
   'pg.block.text.name': 'Text',
   'pg.block.text.desc': 'A paragraph of formatted text',

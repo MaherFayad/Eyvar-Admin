@@ -3914,3 +3914,26 @@
     }
   }
 }
+
+/* --- WP-4.7, AC-1217. A page prints as one column, with the tone that
+   carries meaning (a callout, a badge) surviving ink-saving defaults.
+   Everything else `@media print` needs — hiding the scope bar and the
+   edit-only chrome — is a `print:` utility at the call site (`PageView.tsx`,
+   `BlockFrame.tsx`), Tailwind's own variant for `@media print`. `.grid-cols-12`
+   only belongs to `ColumnsBlockView` and is scoped to `[data-pages-block-tree]`
+   (`PageView.tsx`) so no screen outside Pages is touched; the `wide:` stacking
+   breakpoint (1280px) already collapses it under A4/Letter width, this is the
+   guarantee that does not depend on that coincidence. */
+@media print {
+  [data-pages-block-tree] {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+  [data-pages-block-tree] .grid-cols-12 {
+    display: block;
+  }
+  [data-pages-block-tree] .grid-cols-12 > * {
+    display: block;
+    width: 100%;
+  }
+}
