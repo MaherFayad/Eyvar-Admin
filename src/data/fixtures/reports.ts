@@ -49,6 +49,7 @@
  * | `RPT-19` money over count | G2, WP-1.4b — `A / B`, a currency measure over a count one |
  * | `RPT-20` a split with ≥8 real groups | AC-1136 — `--chart-s7`/`-s8` and the muted `Other` fold, drawn (not the catalogue's static hint) |
  * | `RPT-21` `stacked-bar` with a comparison | AC-1132 — two series, so the dashed outline behind the stack is reachable |
+ * | `RPT-22` the activation funnel, grouped | WP-6.4e, AC-1170/AC-1276 — `funnel.groupBy: 'rider.city'`, so the server's drop-off-by-group path is equality-tested |
  * | `oneRungFunnel` (not saved) | AC-825's hand-edited URL: legal to link, refused when planned |
  * | `DSH-1` three tiles, the first `span: 'full'` | a rendered dashboard, and §C5's hero-over-grid layout |
  * | `DSH-2` no tiles | §11.4's first-run empty *for that dashboard* |
@@ -167,6 +168,38 @@ const riderActivationFunnel: ReportQuery = {
     exclude: [],
     measuredAs: 'conversion',
     groupBy: null,
+  },
+}
+
+/**
+ * AC-1170/AC-1276 — `riderActivationFunnel` with `funnel.groupBy` set, so the
+ * server's grouped drop-off is equality-tested against the mock at least once.
+ * `rider.city` is the only dimension on the entry rung's own resource, which
+ * holds one row per subject — the property `subjectGroupsOf`/
+ * `computeFunnelGroupOf` both assume; `trip.*`/`subscription.*` do not have it.
+ * Seven distinct cities in the fixture, one short of §7.4's eight-group fold.
+ */
+const riderActivationFunnelByCity: ReportQuery = {
+  measures: [],
+  groupBy: [],
+  filters: [],
+  window: { kind: 'preset', preset: 'last-90d' },
+  grain: 'none',
+  periodComparison: 'none',
+  chartType: 'bar',
+  mode: 'funnel',
+  funnel: {
+    steps: [
+      { measureKey: 'riders.joined', filters: [] },
+      { measureKey: 'trips.completed', filters: [{ field: 'trip.kind', op: 'eq', value: 'quick' }] },
+      { measureKey: 'subscriptions.started', filters: [] },
+    ],
+    conversionWindow: null,
+    mode: 'ordered',
+    holdConstant: null,
+    exclude: [],
+    measuredAs: 'conversion',
+    groupBy: 'rider.city',
   },
 }
 
@@ -713,6 +746,18 @@ export const savedReportFixtures: SavedReport[] = [
     createdAt: offsetFromNow({ days: -4 }),
     updatedAt: offsetFromNow({ days: -4 }),
     lastRunAt: offsetFromNow({ hours: -2 }),
+    pinnedToDashboardIds: [],
+  },
+  {
+    id: 'RPT-22',
+    name: 'Rider activation funnel by city · 90 days',
+    description: 'The same three rungs as the activation funnel, split by the rider’s own city so a step opens its drop-off group table.',
+    query: riderActivationFunnelByCity,
+    ownerId: 'USR-1',
+    visibility: 'team',
+    createdAt: offsetFromNow({ days: -1 }),
+    updatedAt: offsetFromNow({ days: -1 }),
+    lastRunAt: offsetFromNow({ hours: -1 }),
     pinnedToDashboardIds: [],
   },
 ]
