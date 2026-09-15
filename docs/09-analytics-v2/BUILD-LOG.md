@@ -13,6 +13,34 @@ implementing agents do not edit it.
 
 Everything else in the plan stands, including every gate.
 
+## Resumed (2026-09-15)
+
+The owner said continue. The tree was re-measured before anything was touched, rather than
+trusting the numbers recorded at the stop:
+
+| Suite | At the stop | At the resume |
+|---|---|---|
+| `npm test` (frontend) | 5,658 passing, 25 failing / 13 files | 5,657 passing, **26 failing / 13 files** |
+| `npm run typecheck` | 7 errors | 7 errors |
+
+The count moved by one because the earlier figure was taken from a run that had not collected
+`scripts/wp-gate.test.mjs`. The 26 are grouped into four disjoint file sets and handed to four
+agents, with two further packages opened on trees that collide with nothing:
+
+| Set | Failures | Package |
+|---|---|---|
+| `src/components/pages/**`, `src/screens/pages/**` | 4 + 2 pinned defects | WP-4.10 finish |
+| `src/components/reports/**` | 7 (6 legality, 1 mode memory) + 1 typecheck | WP-8.0 part A |
+| `src/screens/reports/**`, `src/data/clients/routes*` | 12 + 6 typecheck | WP-8.0 part B, incl. F-V2-82 |
+| `src/i18n/**`, `src/commands/**`, `vitest.config.ts`, `scripts/wp-gate*` | 3 | WP-8.0 part C |
+| `api/**` | — | WP-6.2c: audit-log writes, the F-V2-21 gap list, F-V2-38 |
+| `.claude/**`, `.mcp.json`, `studies/` | — | WP-7.5: the interactive path, proved by a real spawn |
+
+**WP-7.4 (the analyst frontend) was never built.** `src/screens/analyst/` holds `copy.ts` and
+nothing else — the agent that had it was one of the five stopped. It is the largest remaining
+gap and it is held back only because it needs `src/data/clients/routes.ts` and `src/i18n/ar/`,
+which two running agents own.
+
 ## Where this stopped (2026-09-11)
 
 The owner called a halt. Five agents were stopped mid-task; their partial work is committed
@@ -125,6 +153,8 @@ instead; that trades a marked wrong answer for an unmarked slow one.
 
 | # | Finding | Raised by | Disposition |
 |---|---|---|---|
+| **F-V2-83** | **`commands.test.tsx`'s CM-3 is a real intermittent defect in the shared table layer, not analytics-v2 residue.** `RowActionMenuItem`'s `onSelect` (`src/components/table/rowActions.tsx:190`) opens a `ConfirmDialog` synchronously from inside a *controlled* `DropdownMenu` (`DataTable.tsx:1826`), so the menu's closing `DismissableLayer`/`FocusScope` cleanup can run after the dialog's layer registers. The dialog then never mounts: the losing run's DOM shows `body[data-scroll-locked="1"]` and a focus guard, but no `role="dialog"`. An operator suspending a captain from the row kebab sees the menu close and nothing happen | WP-8.0c | **Not fixed, deliberately.** A change to `DataTable`/`rowActions` lands on forty screens (CLAUDE.md), it is outside the analytics-v2 scope, and jsdom cannot settle portal-unmount ordering — it needs a Playwright harness. Recommended fix: defer the side effect out of the synchronous `onSelect`, into `DropdownMenuContent`'s `onCloseAutoFocus` or a microtask hop. **For the owner to schedule against the shared-layer owner** |
+| **F-V2-84** | **The frontend failure count is not deterministic.** F-V2-83 fails roughly 3 runs in 5 in isolation and passed in the combined run. Any single-run figure for this suite — including the 25 recorded at the stop and the 26 recorded at the resume — carries one flake inside it | WP-8.0c | Recorded so that a later "one more failure than yesterday" is not mistaken for a regression. The fix is F-V2-83, not a retry loop |
 | F-V2-1 | D33 … D37 exist only as prose in `RULINGS.md`'s "Standing owner overrides", never as headed entries in `DECISIONS.md`, though the ID-namespace table says their text lives there | WP-0.1 | Backlog; not fixed in this build. The owner decides whether they get retroactive entries |
 | F-V2-2 | Q-RB-3 (week start) and Q-RB-7 (alert cadence) are not in `docs/07-api/OPEN-QUESTIONS.md`; they live in `specs/06-report-builder.md`. D45 and D41 answer them but the spec still poses them | WP-0.1 | Fixed in WP-8.5 |
 | ~~F-V2-30~~ | **Fixed in WP-6.4b** via a real live-window model (`live_to_bounds_json`, combined with `LEAST`), not a special case. `subscriptions.active` and `subscriptions.cancelled` do not equal the mock: the mock's liveness is a three-condition window (`startedOn`, `endsOn`, **and** `cancelledAt`), while `measure_sources.live_to_column` is a two-bound scheme that ignores an early cancellation. A cancelled subscription counts as active on the server | WP-6.4 | **WP-6.4b opened.** This is a wrong number, not a missing feature |
