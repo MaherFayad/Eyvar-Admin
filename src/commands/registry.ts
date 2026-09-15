@@ -166,8 +166,11 @@ export interface CommandSession {
  * knows it can ask a question. Everything else it does, it does through
  * `@/data/clients` inside its own `run`.
  *
- * Deliberately two methods. `navigate` belongs to the `go` section and arrives
- * with `shell.ts` (P2-T7); adding it now would be a seam with nothing behind it.
+ * `navigate` arrived with WP-7.4 (`analyst.ask`, AC-1262): `usePalette.ts`
+ * already threads a router `navigate` through for its own destination rows
+ * (`destinationRow`), so exposing the same closure on the host costs no new
+ * seam. Optional, on the F6 pattern below — a route command in a host that
+ * has not wired it refuses with a sentence rather than a silent no-op.
  */
 export interface CommandHost {
   /**
@@ -175,6 +178,12 @@ export interface CommandHost {
    * overlay search param, never a route change.
    */
   openProfile(entityType: ProfileEntityType, entityId: string): void
+  /**
+   * A route change, for a command with `scope: { kind: 'global' }` and
+   * nothing else to reach the address bar with — `analyst.ask` is the first.
+   * Not `openProfile`'s overlay: this changes the path.
+   */
+  navigate?(path: string): void
   /**
    * **The shell's three settings, as capabilities — F6, `sessionCommands.ts`.**
    *

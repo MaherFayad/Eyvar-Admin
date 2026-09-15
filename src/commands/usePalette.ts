@@ -742,6 +742,8 @@ export function usePalette(options: UsePaletteOptions): PaletteModel {
       setLanguage,
       setTheme,
       signOut,
+      /* WP-7.4 — the same closure `destinationRow` already navigates with. */
+      navigate,
       confirm: (next) =>
         new Promise<string | null>((resolve) => {
           answer.current = resolve
@@ -755,7 +757,7 @@ export function usePalette(options: UsePaletteOptions): PaletteModel {
           setBusy(false)
         }),
     }),
-    [openProfile, setLanguage, setTheme, signOut],
+    [navigate, openProfile, setLanguage, setTheme, signOut],
   )
 
   const context = useCallback(

@@ -10,7 +10,7 @@
  * mounts the field, and everything the field does is declared in this
  * directory.
  *
- * ## The domain registries — **fifteen**, as of F6
+ * ## The domain registries — **sixteen**, as of WP-7.4
  *
  * | registry | scope | commands |
  * |---|---|---|
@@ -29,13 +29,16 @@
  * | `DISPUTE_COMMANDS` | route `support-disputes` | refund, decline |
  * | `FAIRNESS_COMMANDS` | route `support-fairness` | overturn, uphold |
  * | `SESSION_COMMANDS` | global | Arabic, English, three themes, sign out |
+ * | `ANALYST_COMMANDS` | global | ask the analyst |
  *
- * **The last five have no `TARGET_SOURCES` entry and cannot.** Session commands
- * act on no record; safety incidents, cash reports, disputes and fairness cases
- * have **no `ProfileEntityType`**, so `search()` cannot rank one. Every command
- * in those four carries `hiddenFromPalette` saying exactly that (CM-4), and
- * `COMMAND_GROUPS` (`targets.ts`) is the table that holds all fifteen — the one
- * a surface iterates for *commands*, where `TARGET_SOURCES` answers *targets*.
+ * **The last six have no `TARGET_SOURCES` entry and cannot.** Session and
+ * analyst commands act on no record; safety incidents, cash reports, disputes
+ * and fairness cases have **no `ProfileEntityType`**, so `search()` cannot
+ * rank one. Every command in those four carries `hiddenFromPalette` saying
+ * exactly that (CM-4) — `scope: { kind: 'global' }` says it for the other two.
+ * `COMMAND_GROUPS` (`targets.ts`) is the table that holds all sixteen — the
+ * one a surface iterates for *commands*, where `TARGET_SOURCES` answers
+ * *targets*.
  *
  * C-1 shipped captains alone, and this header said so for long enough that the
  * palette executed with one screen's worth of commands behind it while the
@@ -88,6 +91,7 @@ export { CASH_COMMANDS } from './cash'
 export { DISPUTE_COMMANDS } from './disputes'
 export { FAIRNESS_COMMANDS } from './fairness'
 export { SESSION_COMMANDS } from './sessionCommands'
+export { ANALYST_COMMANDS } from './analyst'
 export { blockedBy, blockedSentence } from './refusal'
 export { undoHandle, type UndoOptions } from './undo'
 export { COMMANDS_EN } from './copy'

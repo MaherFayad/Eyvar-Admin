@@ -1,9 +1,8 @@
 /**
  * The sub-tab's views (§3.8 rule 3), `reports · pages · alerts · analyst` in
  * `routeTable.ts`'s own order (D46). `normaliseReportsView` still accepts the
- * pre-rename `dashboards` id (AC-1210). `analyst`'s tab is reachable so this
- * list agrees with the route table; its screen is WP-7.4's and renders
- * disabled-in-place until then.
+ * pre-rename `dashboards` id (AC-1210). `analyst` renders the real
+ * `AnalystView` (WP-7.4) — it was disabled-in-place until this landed.
  */
 
 /** A view id. Not a route: `?view=` is a control, not a level (§3.8 rule 3). */

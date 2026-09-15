@@ -1,7 +1,7 @@
 /**
- * Arabic for `src/screens/analyst/copy.ts`, D38. Same keys, same order.
- * "Runner" (the daemon, §3.1) is `المنفّذ`, not `المشغّل` — `reports.ts`
- * already uses that word for the human operator
+ * Arabic for `src/screens/analyst/copy.ts`, D38, WP-7.4. Same keys, same
+ * order. "Runner" (the daemon, §3.1) is `المنفّذ`, not `المشغّل` —
+ * `reports.ts` already uses that word for the human operator
  * (`rb.alert.form.recipients.blocked`), and the two must stay apart.
  */
 
@@ -12,8 +12,49 @@ export const ANALYST_AR: Dictionary = {
   'an.index.empty': 'لم يُطرح أي سؤال بعد.',
   'an.index.loading': 'جارٍ تحميل مهام المحلل',
   'an.index.error': 'لم تُحمَّل المهام.',
+  'an.index.error.retry': 'إعادة المحاولة',
+  'an.index.firstRun.heading': 'اطرح أول سؤال',
+  'an.index.firstRun.body': 'يجيب المحلل عن أسئلة تخص العمل، مستخدمًا نفس التقارير ونفس الأرقام التي كنت ستشغّلها بنفسك.',
+  'an.index.noMatch': 'لا توجد مهام تطابق هذه المرشحات.',
+  'an.index.noMatch.action': 'مسح المرشحات',
+  'an.index.search': 'ابحث في الأسئلة',
+  'an.index.open': 'فتح',
+  'an.index.col.question': 'السؤال',
+  'an.index.col.kind': 'النوع',
+  'an.index.col.state': 'الحالة',
+  'an.index.col.requestedBy': 'طلبها',
+  'an.index.col.started': 'بدأت',
+  'an.index.col.duration': 'المدة',
+  'an.index.col.result': 'النتيجة',
+  'an.index.owner.you': 'أنت',
+  'an.view.mine': 'مهامي',
+  'an.view.team': 'الفريق',
+
+  'an.kind.ask': 'إجابة',
+  'an.kind.caseStudy': 'دراسة حالة',
+  'an.kind.buildPage': 'صياغة صفحة',
+  'an.kind.triageAlert': 'فرز تنبيه',
+  'an.kind.weeklyReview': 'مراجعة أسبوعية',
+
+  'an.compose.heading': 'اسأل المحلل',
+  'an.compose.question.label': 'السؤال',
+  'an.compose.question.placeholder': 'اطرح سؤالًا عن العمل',
+  'an.compose.kind': 'النوع',
+  'an.compose.attach': 'إرفاق…',
+  'an.compose.attach.report': 'تقرير محفوظ',
+  'an.compose.attach.page': 'صفحة',
+  'an.compose.attach.firing': 'تنبيه أُطلق',
+  'an.compose.attach.window': 'مدى زمني',
+  'an.compose.attach.search.placeholder': 'ابحث…',
+  'an.compose.attach.empty': 'لا يوجد شيء لإرفاقه بعد.',
+  'an.compose.attach.remove': 'إزالة {name}',
+  'an.compose.action.ask': 'اسأل',
+  'an.compose.disabled.offline': 'المنفّذ غير متصل. سينتظر سؤالك حتى يعاود الاتصال.',
+  'an.compose.disabled.limited': 'بلغ الحد الأقصى للاستخدام حتى {time}. اسأل مرة أخرى بعد ذلك.',
+  'an.compose.error': 'لم يُرسَل السؤال.',
 
   'an.compose.ask': 'اسأل المحلل',
+  'an.compose.ask.unwired': 'تعذّر على مركز الأوامر فتح المحلل من هنا بعد.',
 
   'an.runner.online': 'المنفّذ متصل · آخر ظهور {time}',
   'an.runner.offline': 'المنفّذ غير متصل',
@@ -21,6 +62,8 @@ export const ANALYST_AR: Dictionary = {
 
   'an.job.loading': 'جارٍ تحميل المهمة',
   'an.job.error': 'لم تُحمَّل المهمة.',
+  'an.job.notFound': 'تعذّر العثور على هذه المهمة.',
+  'an.job.meta': 'طلبها {who} · {time}',
   'an.provenance': 'المصدر',
 
   'an.job.state.queued': 'قيد الانتظار',
@@ -28,4 +71,53 @@ export const ANALYST_AR: Dictionary = {
   'an.job.state.deferred': 'مؤجَّل',
   'an.job.state.done': 'مكتمل',
   'an.job.state.failed': 'فشل',
+
+  'an.timeline.queued': 'بانتظار أن يلتقطها المنفّذ.',
+  'an.timeline.showSteps': 'عرض الخطوات',
+  'an.timeline.deferred': 'مُتوقَّفة مؤقتًا. بلغ المنفّذ الحد الأقصى للاستخدام حتى {time}.',
+  'an.timeline.timedOut': 'استنفدت هذه المهمة الوقت المتاح لها. هذا ما وجدته قبل التوقف.',
+  'an.timeline.evidenceMismatch': 'تعذّر على المحلل إثبات أرقامه، فلم تكتمل هذه المهمة.',
+  'an.timeline.schemaFailed': 'لم تصل إجابة هذه المهمة بالشكل المتوقع.',
+  'an.timeline.rerun': 'إعادة التشغيل',
+
+  'an.tool.catalogue_measures': 'بحث عن المقاييس',
+  'an.tool.catalogue_dimensions': 'تحقّق من التقسيمات المتاحة',
+  'an.tool.glossary': 'تحقّق من تعريف',
+  'an.tool.plan_query': 'تحقّق من السؤال',
+  'an.tool.run_report': 'شغّل تقريرًا',
+  'an.tool.compare_windows': 'قارن بين فترتين',
+  'an.tool.describe_series': 'وصف الاتجاه',
+  'an.tool.correlate': 'تحقّق من ارتباط',
+  'an.tool.contribution': 'حدّد ما تغيّر',
+  'an.tool.sample_rows': 'أخذ عيّنة من السجلات',
+  'an.tool.saved_reports_search': 'بحث في التقارير المحفوظة',
+  'an.tool.get_saved_report': 'فتح تقريرًا محفوظًا',
+  'an.tool.save_report': 'حفظ تقرير',
+  'an.tool.pages_search': 'بحث في الصفحات',
+  'an.tool.get_page': 'فتح صفحة',
+  'an.tool.create_page_draft': 'صاغ مسودة صفحة',
+  'an.tool.alerts_list': 'تحقّق من قواعد التنبيه',
+  'an.tool.alert_history': 'تحقّق من سجل الإطلاقات',
+  'an.tool.alert_context': 'تحقّق من إطلاق تنبيه',
+  'an.tool.annotations_list': 'تحقّق من الحواشي',
+  'an.tool.prior_studies_search': 'بحث في الدراسات السابقة',
+  'an.tool.job_context': 'قرأ تفاصيل المهمة',
+
+  'an.job.action.saveAsPage': 'حفظ كصفحة',
+  'an.job.action.saveAsPage.toast': 'حُفظت كصفحة',
+  'an.job.action.saveAsPage.failed': 'لم يُحفظ ذلك.',
+  'an.job.action.pinToPage': 'تثبيت في صفحة…',
+  'an.job.action.pinToPage.unwired': 'تثبيت هذا في صفحة أخرى غير متاح بعد.',
+  'an.job.action.createAlert': 'إنشاء تنبيه',
+  'an.job.action.createAlert.unwired': 'إنشاء تنبيه من نتيجة غير متاح بعد.',
+  'an.job.action.copyLink': 'نسخ الرابط',
+  'an.job.action.copyLink.toast': 'نُسخ الرابط',
+  'an.job.action.copyLink.failed': 'لم يُنسخ الرابط.',
+  'an.job.action.rerun.toast': 'أُعيد السؤال',
+  'an.job.action.rerun.failed': 'لم يُرسَل ذلك.',
+
+  'an.provenance.openInBuilder': 'فتح في المُنشئ',
+  'an.provenance.none': 'لم تُشغِّل هذه المهمة تقريرًا.',
+  'an.provenance.reportGone': 'حُذف التقرير',
+  'an.provenance.asOf': 'حتى {time}',
 }

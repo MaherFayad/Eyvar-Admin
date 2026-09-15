@@ -240,6 +240,15 @@ const PageDetailScreen = lazy(() =>
   import('@/screens/pages').then((m) => ({ default: m.PageDetailScreen })),
 )
 
+/* WP-7.4 — its own chunk for the same reason `PageDetailScreen` split from
+   `@/screens/reports`: it renders the same block list, so a report-only
+   visit should not pay for it either. `AnalystView` (the index) is light
+   enough that `ReportsScreen.tsx` imports it directly, on `PagesView`'s
+   own precedent. */
+const AnalystJobScreen = lazy(() =>
+  import('@/screens/analyst').then((m) => ({ default: m.JobScreen })),
+)
+
 const EntityPageScreen = lazy(() =>
   import('@/screens/EntityPageScreen').then((m) => ({ default: m.EntityPageScreen })),
 )
@@ -569,6 +578,11 @@ function detailScreenFor(row: SubTabRoute, detail: DetailRoute) {
      kept only as the redirect target for a pre-migration link. */
   if (detail.kind === 'page') {
     return <PageDetailScreen />
+  }
+  /* WP-7.4 — `/management/reports/analyst/:jobId`, ordered after `report`
+     in `routeTable.ts` for the same `:reportId` swallow reason as `page`. */
+  if (detail.kind === 'analyst-job') {
+    return <AnalystJobScreen />
   }
   /**
    * **The conversation pane is a PAGE, and the first answer was a drawer for a

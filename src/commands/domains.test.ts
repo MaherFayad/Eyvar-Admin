@@ -74,6 +74,7 @@ import type {
 import { EN } from '@/i18n/dictionaries'
 import { COMMANDS_EN } from './copy'
 import { createTranslator } from '@/lib'
+import { ANALYST_COMMANDS } from './analyst'
 import { APPLICANT_COMMANDS } from './applicants'
 import { CAPTAIN_COMMANDS } from './captains'
 import { CASH_COMMANDS } from './cash'
@@ -190,6 +191,9 @@ const REGISTRIES = [
   { name: 'disputes', entityType: null, commands: DISPUTE_COMMANDS },
   { name: 'fairness', entityType: null, commands: FAIRNESS_COMMANDS },
   { name: 'session', entityType: null, commands: SESSION_COMMANDS },
+  /* WP-7.4 — acts on no record either; the id regex forbids a digit, so it
+     is `analyst`, not `analyst.v2` or similar. */
+  { name: 'analyst', entityType: null, commands: ANALYST_COMMANDS },
 ] as const
 
 /** The registries whose records the palette can find. */
@@ -618,6 +622,8 @@ describe('§11.2 — a refusal is a sentence, at render', () => {
     { name: 'case · all decided', registry: 'fairness', rows: () => [decidedCase, decidedCase] },
     /* A session command acts on nothing, and the empty set is the real one. */
     { name: 'session · none', registry: 'session', rows: () => [] },
+    /* Same shape as `session` — `analyst.ask` acts on no record either. */
+    { name: 'analyst · none', registry: 'analyst', rows: () => [] },
   ]
 
   /** Every command paired with every set of ITS OWN registry, both roles. */

@@ -76,6 +76,7 @@ import type { Command, CommandRegistry } from './registry'
 import { REQUEST_COMMANDS } from './requests'
 import { SAFETY_COMMANDS } from './safety'
 import { SESSION_COMMANDS } from './sessionCommands'
+import { ANALYST_COMMANDS } from './analyst'
 import { SUBSCRIPTION_COMMANDS } from './subscriptions'
 import { TEAM_COMMANDS } from './team'
 import { TICKET_COMMANDS } from './tickets'
@@ -667,4 +668,6 @@ export const COMMAND_GROUPS: readonly CommandGroup[] = [
   group('disputes', DISPUTE_COMMANDS as CommandRegistry<never>, null),
   group('fairness', FAIRNESS_COMMANDS as CommandRegistry<never>, null),
   group('session', SESSION_COMMANDS, null),
+  /* WP-7.4 — acts on no record, same shape as `session` above. */
+  group('analyst', ANALYST_COMMANDS, null),
 ]
