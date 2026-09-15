@@ -140,7 +140,9 @@ describe('AC-1204 — Report and Metric hand off to the report picker, and the p
     await user.keyboard('{Enter}')
 
     expect(search).not.toBeInTheDocument()
-    expect(await screen.findByRole('button', { name: 'Completed trips by pickup district' })).toBeInTheDocument()
+    /* Unlike `ReportBlockView`, `MetricBlockView`'s title is plain text, not
+       a link button — it opens nothing on its own (§3 renderer table). */
+    expect(await screen.findByText('Completed trips by pickup district')).toBeInTheDocument()
   })
 })
 

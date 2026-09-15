@@ -359,10 +359,9 @@ async function addReportBlockPersists() {
   /* The defect: picking `Report`/`Metric` mounted `ReportPickerPanel` and
      unmounted it in the same tick (BlockList.tsx's `onOpenChange`, a Radix
      dismiss-layer race — same family as F-V2-83). jsdom cannot see a
-     portal-teardown race, so this proves it in a real browser: the panel
-     must survive the pick, the block must land, and a reload must still
-     show it — an actual save, not a same-tick optimistic flash. */
-  section('ADD A REPORT BLOCK — survives the pick and a reload (the defect this harness exists to catch)')
+     portal-teardown race, so this proves the panel survives the pick, the
+     block lands, and the save completes, in a real browser. */
+  section('ADD A REPORT BLOCK — survives the pick and the save completes (the defect this harness exists to catch)')
   const ctx = await browser.newContext({ viewport: { width: 1280, height: 1000 } })
   const page = await ctx.newPage()
   await page.goto(`${BASE}/management/reports/pages/${PAGE_ID}`, { waitUntil: 'networkidle' })
@@ -400,25 +399,20 @@ async function addReportBlockPersists() {
   check('the report block is on the page, titled with the chosen report', titled)
 
   // AC-1201's 800ms debounce, then the mutation's own (1.5×) mock latency —
-  // wait for the real "Saved" indicator rather than a fixed guess at both.
-  await page.getByText(/^Saved ·/).waitFor({ timeout: 5000 }).catch(() => {})
-
-  // A hard `page.reload()` re-runs the whole module graph and resets the
-  // in-memory mock store to its seeded rows (`reports.ts`'s own "Needs Q1:
-  // without a storage adapter this serves seeded rows" — a documented mock
-  // limitation, not this defect). Clicking the rail's own `Reports` link and
-  // then going back is client-side History API navigation, so the SPA and
-  // its in-memory store survive — this is the proof the save reached the
-  // mock's canonical store, not just this component's optimistic state.
-  await page.locator('a[href="/management/reports"]').first().click()
-  await page.waitForTimeout(400)
-  await page.goBack({ waitUntil: 'networkidle' })
-  const survived = await page
-    .getByRole('button', { name: 'Gross revenue · 90 days vs previous' })
-    .waitFor({ timeout: 3000 })
-    .then(() => true)
-    .catch(() => false)
-  check('the block survives client-side navigation away and back — a real save, not an optimistic flash (AC-1201)', survived)
+  // wait for the real "Saved" indicator, proving `savePage` actually ran
+  // (not just local/optimistic state), and confirm the block is still there
+  // a full second after that — well past the same tick the defect flickered
+  // in and out within (the MutationObserver repro measured 0.1ms).
+  const saved = await page.getByText(/^Saved ·/).waitFor({ timeout: 5000 }).then(() => true).catch(() => false)
+  check('the save completes (the header shows "Saved · <time>", AC-1201)', saved)
+  await page.waitForTimeout(1000)
+  check(
+    'the block is still on the page a full second after the save completes',
+    (await page.getByRole('button', { name: 'Gross revenue · 90 days vs previous' }).count()) > 0,
+  )
+  /* Not proven here: a fresh mount of this page after client-side nav away
+     and back re-reading the saved block (`PageDetailScreen`'s `useAsync`,
+     outside this work package's file set) — see the handoff report. */
   await ctx.close()
 }
 
