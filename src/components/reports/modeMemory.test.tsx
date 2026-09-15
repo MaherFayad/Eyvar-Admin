@@ -74,6 +74,7 @@ beforeEach(() => {
 
 const copy = (key: string) => REPORTS_EN[key] as string
 const AS_OF = (copy('rb.canvas.asOf').split('{')[0] as string).trim()
+const STALE_PREFIX = (copy('rb.canvas.stale').split('{')[0] as string).trim()
 const settle = () => new Promise((resolve) => setTimeout(resolve, AUTO_RUN_DEBOUNCE_MS * 6))
 
 function Probe() {
@@ -300,8 +301,12 @@ describe('a redraw is not a re-ask — changing the chart type costs no request'
 
     /* `Showing the previous run` is a claim that the numbers no longer answer
        what is on screen. They do — only the shape they are drawn in moved — so
-       the live region must not appear at all. */
-    expect(screen.queryByRole('status')).toBeNull()
+       that sentence must not appear at all. A blanket `role="status"` query
+       would also catch §4.3's always-mounted active-bucket description on the
+       chart region (`SeriesChart.tsx`), which says nothing about freshness and
+       is legitimately present here; the staleness sentence is the claim under
+       test, so it is named directly. */
+    expect(screen.queryByText(STALE_PREFIX, { exact: false })).toBeNull()
   })
 
   it('still amends the address, because the chart type IS part of a saved report', async () => {

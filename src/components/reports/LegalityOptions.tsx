@@ -194,8 +194,13 @@ export function LegalityOptions<T extends string>({
    */
   const disabledReasonId = `${groupId}-off`
   const describedByFor = (option: OptionLegality<T>) => {
-    if (option.legal) return undefined
+    /* Group-off is checked first: every button in the row is inert for that
+       one reason once `disabled` is true, including an option that is
+       individually legal — `off` below does not distinguish them either, so a
+       legal-but-inert button pointing at nothing would be the same dangling
+       description AC-899 exists to forbid. */
     if (disabled) return disabledReason ? disabledReasonId : undefined
+    if (option.legal) return undefined
     return describedBy.get(option.value)
   }
 

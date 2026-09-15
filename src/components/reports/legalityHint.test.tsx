@@ -72,6 +72,16 @@ const COHORT: ReportQuery = {
 
 const GRAINS = planReportQuery(COHORT, { measures: [], dimensions: [] }, EYVAR_TODAY).cohortGrains
 
+/* WP-1.9 made all three cohort grains compute, so the real planner no longer
+   produces the duplicate this file protects against (regression guard below).
+   Kept by hand, shaped like the original report: two options illegal under
+   one interpolation-free reason, so they resolve to one identical sentence. */
+const DUPLICATE_GRAINS: OptionLegality<CohortGrain>[] = [
+  { value: 'day', legal: false, reasonKey: 'rb.cohort.grainUnavailable', reasonParams: { grain: 'day' } },
+  { value: 'week', legal: false, reasonKey: 'rb.cohort.grainUnavailable', reasonParams: { grain: 'week' } },
+  { value: 'month', legal: true, reasonKey: null, reasonParams: {} },
+]
+
 /**
  * **`ReportModePanel`'s own map, lifted so the expectations go through it too.**
  *
@@ -89,9 +99,11 @@ const resolveParams = (params: Record<string, string | number>) => ({
 const sentenceOf = (option: OptionLegality<CohortGrain>) =>
   t(option.reasonKey!, resolveParams(option.reasonParams))
 
-/** Exactly the props `ReportModePanel` gives it, so the test drives the real shape. */
+/** Exactly the props `ReportModePanel` gives it, so the test drives the real shape.
+    Defaults to the fixture, not the live planner: WP-1.9 emptied the real
+    illegal set, and a hint-mechanism test needs an illegal option to open. */
 function renderGrains(
-  options: ReadonlyArray<OptionLegality<CohortGrain>> = GRAINS,
+  options: ReadonlyArray<OptionLegality<CohortGrain>> = DUPLICATE_GRAINS,
   extra: { disabled?: boolean; disabledReason?: string } = {},
 ) {
   return render(
@@ -108,12 +120,22 @@ function renderGrains(
   )
 }
 
+describe('through the real planner today', () => {
+  /* WP-1.9's regression guard: the fixture below can only stand in for the
+     planner while the planner itself produces no illegal cohort grain. The
+     day this fails, `DUPLICATE_GRAINS` is no longer standing in for a real
+     shape and the fixture needs to change with it. */
+  it('no cohort grain is illegal, because WP-1.9 made all three compute', () => {
+    expect(GRAINS.every((option) => option.legal)).toBe(true)
+  })
+})
+
 describe('a reason two options share is one reason', () => {
-  /* The fixture the whole file rests on. If the planner ever stops giving day
-     and week the identical sentence, the duplicate this file was written for
-     cannot occur and the assertions below would pass vacuously. */
-  it('is the planner that hands two options the same words', () => {
-    const illegal = GRAINS.filter((option) => !option.legal)
+  /* The fixture the whole file rests on. If it ever stops giving day and week
+     the identical sentence, the duplicate this file was written for cannot
+     occur and the assertions below would pass vacuously. */
+  it('is a fixture that hands two options the same words', () => {
+    const illegal = DUPLICATE_GRAINS.filter((option) => !option.legal)
     expect(illegal.map((option) => option.value)).toEqual(['day', 'week'])
     expect(new Set(illegal.map((option) => t(option.reasonKey!, option.reasonParams))).size).toBe(1)
   })
