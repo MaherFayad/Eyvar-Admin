@@ -41,6 +41,38 @@ nothing else — the agent that had it was one of the five stopped. It is the la
 gap and it is held back only because it needs `src/data/clients/routes.ts` and `src/i18n/ar/`,
 which two running agents own.
 
+## Where this stands (2026-09-15, end of the resume)
+
+| Gate | Result |
+|---|---|
+| `npm test` (frontend) | **5,739 passing, 1 failing** — the failure is F-V2-83's flake, not analytics v2 |
+| `npm run test:api` | **207 passing, 0 failing** |
+| `npm --prefix agent test` | **137 passing, 3 skipped, 0 failing** |
+| `npm run typecheck` | clean |
+| `npm run typecheck:api` | clean — **a gate that did not exist this morning** (F-V2-88) |
+| `npm run api:check` | clean, 377 endpoints |
+| `npm run i18n:check` | clean, 7,491 keys, 0 `defaultValue` at ceiling 0 |
+| `node --test scripts/wp-gate.test.mjs` | 10 passing |
+
+Every one of the 26 failures the resume measured is closed. One analytics-v2 test remains
+pinned: AC-1212, on the `duplicatePage` template-title question (F-V2-85), which is the
+owner's to answer.
+
+**What the day actually taught, in one line each:**
+
+- Three separate defects shipped behind a green suite — the runner's MCP path, the `ask`
+  schema, and an entire project outside every typecheck gate. In all three the tests asserted
+  the *shape* of a thing rather than whether it worked.
+- The one guard built to catch drift caught drift, the same day, by name (AC-1276 on RPT-6).
+  It then turned out to cover everything except the path added last, which is now fixed too.
+- Two orchestrator briefs were stale and both agents verified instead of complying.
+
+**Still open, in the order the orchestrator would take them:** push aggregation into SQL
+(the 50,000-row cap); make provenance a recorded fact rather than a derived one (F-V2-90);
+a `manage_analytics` permission key, absent so anyone who can read analytics can write it;
+the `DataTable` dialog race (F-V2-83); AC-1260 and AC-1262's entry points; and `A / B` typed
+as a bare `ratio`, so revenue-per-trip loses its currency.
+
 ### Progress since the resume
 
 All 26 failures the resume measured are closed, and the packages opened alongside them landed:
