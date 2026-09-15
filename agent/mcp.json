@@ -2,7 +2,7 @@
   "mcpServers": {
     "eyvar": {
       "command": "node",
-      "args": ["agent/dist/mcp/server.js"]
+      "args": ["../dist/mcp/server.js"]
     }
   }
 }

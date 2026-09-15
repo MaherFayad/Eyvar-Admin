@@ -22,7 +22,7 @@ stored as a page of blocks, rendered by the same renderer as any other page.
 | Call the Claude API from a Vercel function | **Refused** | The owner requires the subscription, not an API key. Also puts a key on Vercel |
 | Claude Agent SDK on the subscription | **Refused** | The SDK requires API-key or cloud-provider auth; Anthropic's policy reserves claude.ai login for first-party products (`code.claude.com/docs/en/agent-sdk/overview`) |
 | Interactive Claude Code only (the owner types `/analyst`) | **Kept as the second entry point** (§9) | Useful, but an operator in the console cannot use it, and nothing is stored |
-| `claude -p` print mode with `--mcp-config`, driven by a runner | **Chosen** | Honours the subscription login (`code.claude.com/docs/en/headless`), accepts MCP tools, `--allowedTools`/`--disallowedTools`, `--json-schema`, `--max-turns`, hooks, `stream-json` output. Cannot spawn subagents or preload skills in print mode, which is acceptable: the reasoning lives in one system prompt and the tools |
+| `claude -p` print mode with `--mcp-config`, driven by a runner | **Chosen** | Honours the subscription login (`code.claude.com/docs/en/headless`), accepts MCP tools, `--allowedTools`/`--disallowedTools`, `--json-schema`, `--max-turns`, hooks, `stream-json` output. The runner forbids subagents and skills itself, via `--disallowedTools` (`spawn.ts:41`), because the reasoning is meant to live in one system prompt and the tools — see the WP-7.5 correction below; this is a choice, not a limit of print mode |
 | Claude Code cloud routines (`/schedule`) for scheduled reviews | **Option B, unverified** | Routines run on the subscription in a cloud session with the repo checked out. Whether a routine can reach a private MCP endpoint with a secret is unverified. The runner's own scheduler (§8) is the default; routines are revisited when verified |
 
 ## 3. Architecture
@@ -149,6 +149,28 @@ are minted locally, and the runner writes events to a local JSONL instead of the
 frontend `analyst` view reads the same JSONL through the mock client, so the whole feature is
 demonstrable with `DATA_SOURCE=mock`. This is the P7 development mode; the http mode is the same
 code with `source.ts` switched.
+
+### Corrected by WP-7.5 (2026-09-15), against three more real spawns
+
+Two claims recorded above were wrong, and both were wrong in the same direction — they
+described the runner's configuration as though it were a property of print mode:
+
+- **Print mode can spawn a subagent, and can fire a skill from a literal `/name` prompt.**
+  Verified with a cheap probe before the full run. What forbids it in the batch path is the
+  runner's own `DISALLOWED_TOOLS` list, which names `Task` and `Agent`. The interactive path
+  therefore needed no workaround.
+- **A bare relative path in an MCP config resolves against the `claude` process's cwd**, not
+  against the config file's directory. This is what made `agent/mcp.json` a live defect: the
+  runner spawns with `cwd: agent/sandbox`, so `agent/dist/mcp/server.js` resolved to
+  `agent/sandbox/agent/dist/mcp/server.js` and the tool server would have failed to start on
+  the runner's first real job. Fixed to `../dist/mcp/server.js`, guarded by
+  `agent/runner/mcpConfig.test.ts`, which resolves the shipped path from `sandboxDir` and
+  asserts the file exists.
+
+A third fact, for whoever edits these files next: **a new `.mcp.json`, `.claude/agents/**` or
+`.claude/skills/**` is not picked up by an already-running session.** A fresh `claude` process
+sees it immediately; the session that created it does not.
+
 
 ## 4. What the operator sees
 
