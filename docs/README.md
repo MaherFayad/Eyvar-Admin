@@ -21,6 +21,7 @@ every claim about behaviour: grep the page id, read the render function, cite th
 | Look up one module of the prototype | [01-modules/](01-modules/) |
 | Understand the data | [03-data/DATA-MODEL.md](03-data/DATA-MODEL.md) |
 | See the structural census | [00-index/GROUND-TRUTH-INVENTORY.md](00-index/GROUND-TRUTH-INVENTORY.md) |
+| Ask the analyst a question, from `/management/reports?view=analyst` or the `/analyst` terminal path | [09-analytics-v2/01-analyst-agent.md](09-analytics-v2/01-analyst-agent.md) §4 (what the operator sees), §9 (the terminal path) |
 | Build analytics v2: the analyst agent, report builder v2, pages, alerting, the backend | [09-analytics-v2/00-README.md](09-analytics-v2/00-README.md) |
 
 ## Folder structure

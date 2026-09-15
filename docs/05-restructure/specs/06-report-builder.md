@@ -20,6 +20,15 @@
 > `specs/05-metrics-content.md`. Everything this document needs from that catalogue is
 > listed in **§4.1** as a numbered finding. Where the catalogue does not yet exist, this
 > spec writes against the *shape* of one and says so.
+>
+> **The dashboard model this spec describes is superseded.** **D39: a dashboard is a page —
+> an ordered list of blocks, a saved-report tile one block kind among several.** Every mention
+> below of a dashboard as a fixed grid of report tiles, a `Dashboard`/`DashboardTile` record, or
+> pinning as a dashboard-only act (chiefly **§11 "Quick dashboards"** and **AC-865 … AC-873**)
+> describes the pre-D39 model and is history, not a target to build. The current model — pages,
+> blocks, migration from tiles — is `docs/09-analytics-v2/03-pages-and-dashboards.md`. This
+> section is not rewritten line by line here: the replacement is a full spec of its own, not an
+> edit to this one (F-V2 dashboards finding, disposed in WP-8.5).
 
 ---
 
@@ -123,6 +132,16 @@ no way to compose a question, no way to keep one, and no way to be told when an 
 
 ## 3. The query model
 
+> **This section describes the v1 query model, extended rather than replaced.** **D42: `ReportQuery`
+> gains `formula`, `transform`, `segments` and `comparisonDisplay`, all optional, behind a `v: 2`
+> URL key** — a v1 object stays a valid v2 object. §3.2's shape below is missing all four fields,
+> its `chartType` lists 4 of the now 9 (`src/data/types/report.ts:159-168`: line, area, bar,
+> stacked-bar, stacked-100, horizontal-bar, pie, kpi, table), its `ReportPreset` lists 9 of the
+> now 13 (`:82-101`: adds `this-quarter`, `last-quarter`, `this-year`, `year-to-date`), and its
+> `groupBy` is single-level where the query now takes up to two. The full v2 shape and the gap
+> list it closes are `docs/09-analytics-v2/02-report-builder-v2.md` §1–§2. Not rewritten here for
+> the same reason §11 is not: it is a second spec, not an edit to this one.
+
 ### 3.1 In one paragraph
 
 A report is a **`ReportQuery`**: one or two `measureKey`s drawn from the catalogue, an optional
@@ -198,9 +217,10 @@ one.
 
 - Buckets are **Riyadh-local** (`Asia/Riyadh`, UTC+03:00, no DST — the same fact
   `src/lib/columnFilter.ts` is built on). A bucket boundary is a local midnight, never a UTC one.
-- **The week starts on Sunday**, because the Saudi working week is Sunday–Thursday. This is a
-  position, not a derivation — see **Q-RB-3**, owner's call, because Sunday-start and
-  Monday-start produce different numbers for every weekly report ever exported.
+- **The week starts on Sunday**, because the Saudi working week is Sunday–Thursday. This was a
+  position, not a derivation, until **D45** ratified it: Sunday-start and Monday-start produce
+  different numbers for every weekly report ever exported, and the answer is now settled, not
+  owed. **Q-RB-3 is closed.**
 - The catalogue declares `minGrain` per measure (**F-4**). The grain control offers only grains
   at or coarser than the coarsest `minGrain` among the query's measures.
 - **`grain: 'none'`** collapses the window to one bucket. It is what a pie or a single-value
@@ -327,7 +347,7 @@ moving a tile between boards breaks saved reports. Escalate before the catalogue
 | `threshold` | `number` | operator | no |
 | `thresholdUnit` | `MetricUnit` | **derived** from the series' measure | yes — an operator never picks a unit; a threshold on a money measure is halalas on the wire and SAR in the field |
 | `evaluationGrain` | `'day' \| 'week' \| 'month'` | operator | no — which bucket's value is tested |
-| `cadence` | `'hourly' \| 'daily' \| null` | **server, once a scheduler exists** | no — how often the server looks. **`null` means *not specified, does not run*, and `null` is what every rule carries today.** ⛔ **Q-RB-7.** **Amended:** §4.2 made this a **required operator choice** between two values **this spec invented**, while §12.1 states plainly that nothing evaluates. A required field whose legal values were minted by the document that requires them, sitting in a fixture, is **AC-453's failure mode exactly** — a plausible number becomes a policy by being on screen. **A rule may not offer a cadence the scheduler does not implement, and a fixture may not seed one.** When Q-RB-7 lands, the scheduler's real cadences populate this field and the control appears with them |
+| `cadence` | `'hourly' \| 'daily' \| null` | **server** | no — how often the server looks. **`null` means *not specified, does not run*.** **Q-RB-7 is closed by D41**: the server evaluates on Vercel Cron at exactly two cadences, `hourly` and `daily`, so the two values this spec once minted unilaterally are now the scheduler's real cadences, not a guess. **Amended:** §4.2's required operator choice and §12.1's "nothing evaluates" no longer disagree — a rule may still not offer a cadence the scheduler does not implement, and none beyond these two exists. |
 | `minReArmMinutes` | `number \| null` | operator | no — the backstop re-arm in §12.4's state machine, for a value that oscillates across the line. `null` means hysteresis only, which is the default. **Added 2026-08-27: it was specified in §12.4's prose and absent from this table**, so the type the spec gives could not express the state machine the spec describes — the under-specified half of *writing a rule about code without reading the code* |
 | `state` | `'armed' \| 'firing' \| 'cooling' \| 'suspended' \| 'error'` | server | **yes** — §12.4 |
 | `enabled` | `boolean` | operator | no |
@@ -573,6 +593,12 @@ producing more than one series — is gated on this single decision.** AC-828 an
 
 ## 7. Chart types
 
+> **Covers 4 of the 9 chart types.** `area`, `stacked-bar`, `stacked-100`, `horizontal-bar` and
+> `kpi` (G8, `02-report-builder-v2.md` §3) have their own legality gates — a non-additive measure
+> cannot stack, `kpi` wants `grain: 'none'` — implemented in `src/data/reporting/plan.ts`'s
+> `chartLegality` (`:1012`), which is the ground truth for all nine. The matrix below is not
+> extended to match; it still holds for the four it names.
+
 ### 7.1 The legality matrix
 
 | Query shape | line | bar | pie | table |
@@ -750,6 +776,12 @@ link (§9.2).**
 ---
 
 ## 11. Quick dashboards
+
+> **Superseded by D39.** This section describes dashboards as a fixed grid of saved-report
+> tiles. The product now ships pages of blocks, and a saved-report tile is one block kind among
+> several — see `docs/09-analytics-v2/03-pages-and-dashboards.md`. Kept as the record of what
+> §11.3's data-model reasoning (a tile stores a reference, never a copy) was decided against,
+> because that reasoning still holds for a page's `report` block.
 
 ### 11.1 The position
 
@@ -1321,7 +1353,15 @@ in the UI renders through `formatMoney`. The two agree to the halala.
 
 **AC-864** — Every export writes one audit entry naming the actor, the report and the window.
 
-### Dashboards (AC-865 … AC-873)
+### Dashboards (AC-865 … AC-873) — superseded by D39
+
+> These nine criteria were written for the fixed dashboard-of-tiles model §11 describes. D39
+> replaced it with pages of blocks before any of them shipped, so none was ever satisfied or
+> failed against a dashboard screen. The behaviour they were protecting — a block keeps its
+> frame when its report is deleted, editing a report updates every page that shows it, a
+> permission-blocked block renders the blocked panel — is carried forward by the page and block
+> acceptance criteria in `docs/09-analytics-v2/07-acceptance-criteria.md`, not by renumbering
+> these.
 
 **AC-865** — *(needs Q1)* A dashboard is created with a name and zero tiles, and renders the
 first-run empty state with an action that adds a report.
@@ -1463,12 +1503,14 @@ timestamps is a fail**, and it is the dangerous kind: the chart is smooth, plaus
 a direction nobody can see. *(This is **R5-15**'s `sourceResource` rule extended along the time
 axis: a tile asks whether a store exists, a series asks whether it remembers.)*
 
-**AC-901** — **No alert rule stores, displays or offers an evaluation cadence that no scheduler
-implements.** Every seeded rule carries `cadence: null`, the rule builder renders no cadence
-control, and a rule with `cadence: null` states *not specified* rather than implying a schedule.
-**A fixture, response or control supplying `'hourly'` or `'daily'` is a fail — including a
-plausible one** (**Q-RB-7**, and the same discipline as **AC-453**). When a scheduler exists this
-criterion is **replaced** by one naming its real cadences, not satisfied by one.
+**AC-901** — **Superseded.** It read: no alert rule stores, displays or offers an evaluation
+cadence that no scheduler implements — every seeded rule carries `cadence: null`, the rule
+builder renders no cadence control, and a fixture, response or control supplying `'hourly'` or
+`'daily'` is a fail, plausible or not (**Q-RB-7**, and the same discipline as **AC-453**). D41
+built the scheduler this criterion was written to wait for, and it named its own successor:
+"replaced by one naming its real cadences, not satisfied by one." That successor is
+**AC-1227** (`09-analytics-v2/07-acceptance-criteria.md`): the cadence control offers `Hourly`,
+`Daily`, `Not scheduled`, and saving `Not scheduled` stores `null`.
 
 **AC-902** — `minReArmMinutes` is present on every alert rule as `number | null`, `null` means
 hysteresis-only, and §12.4's two re-arm paths are both reachable: a rule re-arms when the condition
@@ -1528,11 +1570,11 @@ until something evaluates them while nobody is watching.
 |---|---|---|---|
 | **Q-RB-1** ⛔ | The Report Builder is a 35th sub-tab, and **D1** says 34. Amend D1, or does it live somewhere else? **Answer it in the same sitting as D15**, which proposes collapsing Management from five sub-tabs to three — otherwise the count moves twice, in opposite directions, on two signatures that never saw each other. | **Business owner** | **AC-800, AC-806**, and the `'report'` / `'dashboard'` detail kinds. The route table cannot be edited without this; the screens build **unrouted behind one mount point** until it lands. |
 | **Q-RB-2** (F-P1) | The builder — a persistent query panel beside a live result canvas — maps to **no `DESIGN.md` §6.4 pattern row**. Confirm §3.7's customise mode covers it, or mint a row. | **product-designer** | AC-801. `patterns.md`: *"A page with no row here may not be designed until it gets one."* |
-| **Q-RB-3** | Does the week start Sunday or Monday? Every weekly number in every exported report depends on it. | **Business owner** | AC-819, and the correctness of every weekly report retroactively. |
+| ~~**Q-RB-3**~~ | Does the week start Sunday or Monday? Every weekly number in every exported report depends on it. | **Business owner** | **Closed by D45: Sunday**, confirming `WEEK_START_DOW = 0` at `src/data/reporting/buckets.ts:50`. No retroactive correction is owed — AC-819 and every weekly number to date were already computed on the Sunday position. |
 | **Q-RB-4** (F-P2) | Two measures on one axis need a **second series hue**, and §3.7 forbids one while `globals.css` deletes the ramp. Mint a categorical palette through §6.2, or ship multi-series as small multiples? | **product-designer**, then business owner for the §6.2 entry | AC-828, AC-835, and the shape of the owner's own headline example. |
 | **Q-RB-5** | **Q1 (persistence).** No storage adapter exists. Reports, dashboards **and** alert rules all need one. | **Engineering lead** | AC-856…AC-860, all of AC-865…AC-873, and all of §12. §9.1 states exactly what each degrades to. |
 | **Q-RB-6** | **D4 (role model).** Per-measure permission (**F-8**) has no vocabulary to express itself in. | **Business owner** | AC-888…AC-893, §13 entire. |
-| **Q-RB-7** | Is there a backend commitment for a scheduler? If not, is the client half of alerts still worth building? | **Business owner + engineering lead** | Layer 4 entire. |
+| ~~**Q-RB-7**~~ | Is there a backend commitment for a scheduler? If not, is the client half of alerts still worth building? | **Business owner + engineering lead** | **Closed by D41: yes** — Vercel Cron, at exactly two cadences, `hourly` and `daily`. Layer 4 is built; AC-1227 replaces AC-901. |
 | **Q-RB-8** | **F-9** — will the measure catalogue carry a measure identity independent of which board displays it? If keys stay board-namespaced, every saved report and alert rule holds a foreign key into a display decision. | **product-owner of `05-metrics-content.md`** | Everything. Escalate before the catalogue freezes. |
 | **Q-RB-9** ⛔ | May an operator mark an alert `critical` (which pages the whole team), and if so which permission gates it? **`notificationPriority: 'critical'` is unreachable today** — the permission that would gate it does not exist, so the state is specified, buildable and enterable by nobody. | **Business owner**, after D4 | §13.2's last row, AC-882's priority. **Recorded as unreachable rather than left to be "fixed" by removing the gate** — an ungated `critical` pages the whole team on one operator's threshold. |
 | **Q-RB-11** | **Does `drivers` gain a status history?** Without one, no *active*-status measure is computable as a **series** — only as a tile — because the predicate is present-tense and the buckets are past (**AC-827**, **AC-900**). The layer ships `captains.registered` instead, which is honest and is not the same question. | **product-owner of `05-metrics-content.md`**, then business owner if a real store is needed | Any active-status trend, permanently. Nothing else — the builder ships without it and states what it cannot answer. |

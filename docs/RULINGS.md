@@ -24,7 +24,8 @@ The same digits mean different things with different prefixes. Write the exact f
 | Form | Means | Text lives in |
 |---|---|---|
 | `R1`…`R19`, `R5a` | `DESIGN.md` ruling | `_partials/00-header.md`, "Rulings on contested points" |
-| `D1`…`D46`, `D1a`, `D7a`, `D35a`, `D35b` | Project decision | `05-restructure/DECISIONS.md` |
+| `D1`…`D32`, `D38`…`D46`, `D1a`, `D7a` | Project decision | `05-restructure/DECISIONS.md` |
+| `D33`…`D37`, `D33a`, `D33b`, `D33c`, `D35a`, `D35b` | Project decision | **this file**, "Standing owner overrides" above — never headed entries in `DECISIONS.md` (F-V2-1) |
 | `D-1`…`D-13` (hyphen) | `DESIGN.md` §6.2 sanctioned deviation | `_partials/06-eyvar-mapping.md`; D-11a, D-12, D-13 in DECISIONS.md |
 | `D3`, `D11` written next to "§6.3" | Legacy defect number | `_partials/06-eyvar-mapping.md` §6.3 |
 | `R-1`…`R-4` | Round 3 ruling | `05-restructure/design/00-decisions-r3.md` |
@@ -43,6 +44,13 @@ The owner ruled that the report builder and the metric boards follow their own s
 letter — [`05-restructure/specs/06-report-builder.md`](05-restructure/specs/06-report-builder.md)
 and [`05-restructure/specs/05-metrics-content.md`](05-restructure/specs/05-metrics-content.md) —
 and that spec fidelity outranks `DESIGN.md` there where the two conflict.
+**D38…D46 amend `06-report-builder.md` on the same screens** — the query model (D42), the page
+model that replaces its dashboards (D39), alerting (D41, D43), the analyst view (D46) — and
+their text lives in [`09-analytics-v2/`](09-analytics-v2/) (`00-README.md`,
+`02-report-builder-v2.md`, `03-pages-and-dashboards.md`, `04-alerting-v2.md`,
+`01-analyst-agent.md`). The override follows the amendment: those documents carry the same
+spec-fidelity precedence over `DESIGN.md` that `06-report-builder.md` does, on the screens they
+describe.
 Where a `DESIGN.md` rule is overridden this way, record the override in a comment at the
 rule's own site and add it to the list below. Overridden so far:
 

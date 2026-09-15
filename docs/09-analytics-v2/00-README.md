@@ -1,6 +1,8 @@
 # Analytics v2 — the plan
 
-> **Status:** plan, not yet decided. Written 2026-09-11 against commit `71ddfac`.
+> **Status:** built. D38 … D46 are signed and live in `docs/05-restructure/DECISIONS.md`;
+> the work packages are recorded in `BUILD-LOG.md`, which is the honest account of what
+> shipped, what was deliberately left, and what still needs an owner decision.
 > **Scope:** four asks from the owner, in one plan because they share one query model:
 >
 > 1. An **analyst agent** inside the product, with tools for reporting, charts, pages and
@@ -69,8 +71,9 @@ implementing agent needs. Each phase's gate checks them.
    screen; no red badge; every string is a key with an Arabic entry.** The edit gate reports
    these. A phase does not close with an open edit-gate finding.
 7. **Money is integer halalas on the wire and decimal SAR in the CSV, nowhere else.**
-8. **Riyadh time, Sunday week start.** Q-RB-3 is still the owner's to answer; until then the
-   position in `src/data/reporting/buckets.ts:50` stands and the backend implements the same.
+8. **Riyadh time, Sunday week start.** D45 answered Q-RB-3: the position in
+   `src/data/reporting/buckets.ts:50` stands, ratified rather than provisional, and the backend
+   implements the same.
 9. **Permission is resolved per viewer, per measure, server-side.** A blocked series renders
    as blocked; nothing is redacted silently (spec 06 §13.1). The agent inherits the requesting
    operator's permission and nothing more.
@@ -82,10 +85,12 @@ implementing agent needs. Each phase's gate checks them.
 12. **One writer per tree.** Parallel phases run in worktrees; the merge order is fixed in
     [06-execution-plan.md](06-execution-plan.md) §2.
 
-## Decisions the owner must sign before the phase that needs them
+## The decisions analytics v2 rests on
 
-Proposed text, in the form `DECISIONS.md` takes. Numbers continue from D37. Nothing below is
-in force until it is appended there and a row is added to `docs/RULINGS.md`.
+**These are in force.** All nine were appended to `docs/05-restructure/DECISIONS.md` as headed
+entries with rows in `docs/RULINGS.md`; that is their canonical text and it wins over any
+paraphrase. The table below is kept as the summary of what analytics v2 decided and why,
+not as a proposal awaiting signature.
 
 | ID | Proposed decision | Needed by |
 |---|---|---|
