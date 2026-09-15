@@ -2453,6 +2453,12 @@
      §12.1. It has no fill token by design. */
   --tone-success: var(--ev-green-lt);
   --tone-success-foreground: var(--ev-green);
+  /* Non-text carrier for success (a11y.md, 3:1 floor for a graphic that is
+     the sole signal of meaning) — same value as the label, which already
+     clears AA text on every ground, so it clears the lower graphic floor
+     by a wide margin. WP-8.1a — a callout tone's border was the tint fill,
+     ~1.1:1, not this. */
+  --tone-success-graphic: var(--ev-green);
   --tone-warning: var(--ev-amber-lt); /* ONE warning tone — R17 */
   --tone-warning-foreground: var(--ev-amber-dk);
   /* The warning tone's MEANINGFUL GRAPHIC, as distinct from its label.
@@ -2490,6 +2496,10 @@
   --tone-warning-graphic: var(--ev-amber);
   --tone-info: var(--ev-blue-lt);
   --tone-info-foreground: var(--ev-blue-dk);
+  /* Same reasoning as --tone-success-graphic: --ev-blue clears 3:1 on every
+     card/page/bg2 ground in both themes (4.33-6.88:1), unlike --tone-info
+     itself, which is a 10%-on-white tint never meant to be a boundary. */
+  --tone-info-graphic: var(--ev-blue);
   --tone-neutral: var(--ev-neutral-lt);
   --tone-neutral-foreground: var(--ev-text-2);
   --tone-critical: var(--ev-red-lt); /* banners only (R5a use #2) */
@@ -2856,11 +2866,13 @@
 
   --color-success: var(--tone-success);
   --color-success-foreground: var(--tone-success-foreground);
+  --color-success-graphic: var(--tone-success-graphic);
   --color-warning: var(--tone-warning);
   --color-warning-foreground: var(--tone-warning-foreground);
   --color-warning-graphic: var(--tone-warning-graphic);
   --color-info: var(--tone-info);
   --color-info-foreground: var(--tone-info-foreground);
+  --color-info-graphic: var(--tone-info-graphic);
   --color-neutral: var(--tone-neutral);
   --color-neutral-foreground: var(--tone-neutral-foreground);
   --color-critical: var(--tone-critical);
@@ -3899,16 +3911,17 @@
     .recharts-sector {
       outline: none;
     }
-    /* **`.recharts-surface` is NOT in the list above, and must not go back.**
-       Recharts gives the surface `tabIndex=0` and `role="application"` under
-       `accessibilityLayer` (`container/RootSurface.js`), which every chart in
-       this product sets — so the one focusable element of every plot was a real
-       tab stop carrying `outline: none` and no replacement, four lines below
-       the comment at `:3072` saying components never opt out. Measured
-       2026-09-04: 38 Tabs into `/management/reports/RPT-1` lands on the plot
-       and nothing was drawn. The ring is the product default, restored at this
-       specificity so the block above cannot silently outrank it again. */
+    /* `accessibilityLayer` (Recharts) makes the surface AND some nested
+       layers focusable (a brush traveller, a pie sector) — every one of
+       them needs the ring restored at this specificity, or a bare
+       `outline: none` above wins with nothing drawn (rule 5). B1 found the
+       nested layers were missed; both selectors below must stay. */
     .recharts-surface:focus-visible {
+      outline: 2px solid var(--ring);
+      outline-offset: 2px;
+    }
+    .recharts-layer:focus-visible,
+    .recharts-sector:focus-visible {
       outline: 2px solid var(--ring);
       outline-offset: 2px;
     }

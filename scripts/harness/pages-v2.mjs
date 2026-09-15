@@ -165,6 +165,30 @@ async function focusRingInsideChart() {
       )
     }
   }
+  // B1, deterministic form: whichever nested layer accessibilityLayer makes
+  // focusable (brush traveller on a >=30-bucket series, a pie sector, …)
+  // depends on which chart Tab lands on first, so also focus every such
+  // layer directly rather than trusting one Tab sequence to find one.
+  const nestedLayers = await page.evaluate(() => {
+    const els = [...document.querySelectorAll('.recharts-layer[tabindex="0"], .recharts-sector[tabindex="0"]')]
+    return els.map((el, i) => {
+      el.setAttribute('data-b1-probe', String(i))
+      return { cls: el.getAttribute('class') }
+    })
+  })
+  check('found at least one nested recharts layer/sector made focusable by accessibilityLayer to probe', nestedLayers.length > 0, `${nestedLayers.length} found: ${JSON.stringify(nestedLayers.map((l) => l.cls))}`)
+  for (let i = 0; i < nestedLayers.length; i++) {
+    const info = await page.evaluate((idx) => {
+      const el = document.querySelector(`[data-b1-probe="${idx}"]`)
+      el?.focus()
+      const cs = el ? getComputedStyle(el) : null
+      return el ? { cls: el.getAttribute('class'), outline: cs.outline, boxShadow: cs.boxShadow } : null
+    }, i)
+    if (info) {
+      const ringless = info.outline.includes('none') && info.boxShadow === 'none'
+      check(`nested layer "${info.cls}" gets a visible ring on focus (globals.css ~3899/3923)`, !ringless, JSON.stringify(info))
+    }
+  }
   await ctx.close()
 }
 

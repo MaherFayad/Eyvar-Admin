@@ -47,7 +47,15 @@ export function ReportPickerPanel({ kind, onPick, onCancel }: ReportPickerPanelP
   }
 
   return (
-    <Card>
+    <Card
+      onKeyDown={(event) => {
+        // S1 — a plain Card, not a Radix popover, so Escape is not wired by default (a11y.md).
+        if (event.key === 'Escape') {
+          event.preventDefault()
+          onCancel()
+        }
+      }}
+    >
       <CardContent className="flex max-h-80 flex-col gap-2 overflow-y-auto">
         <Input
           autoFocus

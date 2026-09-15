@@ -171,10 +171,11 @@ async function checkEntryPoints() {
       const composerOpenAfterSave = await page2.getByRole('heading', { name: /Would this have fired|New alert|Edit alert/i }).count()
       console.log('CHECK 2b — composer opened automatically after save (heading found):', composerOpenAfterSave > 0)
       // Give the series list (its own `runReport` round trip) time to resolve
-      // past the skeleton before judging what "prefilled" produced.
+      // past the skeleton before judging what "prefilled" produced. `Series`
+      // is a `Select` combobox (`#rb-alert-series`), not toggle buttons.
       await page2.waitForTimeout(2500)
-      const seriesPressed = await page2.locator('[aria-pressed="true"]').allTextContents()
-      console.log('CHECK 2b — series selection after the round trip settles (aria-pressed=true chips):', JSON.stringify(seriesPressed))
+      const seriesFieldText = await page2.locator('#rb-alert-series').textContent().catch(() => null)
+      console.log('CHECK 2b — Series field text after the round trip settles (should name a series, not the placeholder):', seriesFieldText)
       await page2.screenshot({ path: `${OUT}/proof-entry-unsaved-after-save.png`, fullPage: true })
       // A reload/back must not reopen the composer a second time (the
       // one-shot `openAlert` param strip).
@@ -218,7 +219,7 @@ async function checkEntryPoints() {
       // Give the same round trip the builder-bell path needed (~2.5s there)
       // before judging whether the series preselected.
       await page3.waitForTimeout(3000)
-      const seriesFieldText = await page3.locator('#rb-alert-series, [id*="series" i]').first().textContent().catch(() => null)
+      const seriesFieldText = await page3.locator('#rb-alert-series').textContent().catch(() => null)
       console.log('CHECK 2c — Series field text after settling (3s):', seriesFieldText)
       await page3.screenshot({ path: `${OUT}/proof-entry-page-block-menu.png`, fullPage: true })
       break

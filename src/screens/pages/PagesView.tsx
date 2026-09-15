@@ -4,7 +4,7 @@
  * alias for `?view=pages` (`views.ts`).
  */
 
-import { useState } from 'react'
+import { useEffect, useRef, useState, type RefObject } from 'react'
 import { toast } from 'sonner'
 import { Link, useNavigate } from 'react-router-dom'
 import { DataTable, type RowAction } from '@/components/DataTable'
@@ -51,6 +51,14 @@ export function PagesView({ title, activeView = 'pages', onSelectView, currentUs
   const [indexView, setIndexView] = useState<PagesIndexView>('mine')
   const [creating, setCreating] = useState(false)
   const [pending, setPending] = useState<{ page: Page; failed: boolean } | null>(null)
+  /* B2 — whichever control opened the dialog, captured at click/Enter time so
+     `onCloseAutoFocus` can return focus to it explicitly rather than trust
+     Radix's own previously-focused tracking, which this dialog lost. */
+  const newPageTriggerRef = useRef<HTMLElement | null>(null)
+  const openNewPage = () => {
+    newPageTriggerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    setCreating(true)
+  }
 
   const pages = useAsync((signal) => listPages({ ...table.params, view: indexView }, signal), {
     deps: [JSON.stringify(table.params), indexView],
@@ -174,7 +182,7 @@ export function PagesView({ title, activeView = 'pages', onSelectView, currentUs
   return (
     <SingleColumnPage
       header={
-        <PageHeader title={title} meta={null} primaryAction={{ label: t('pg.index.new'), onClick: () => setCreating(true) }} t={t} dir={dir} />
+        <PageHeader title={title} meta={null} primaryAction={{ label: t('pg.index.new'), onClick: openNewPage }} t={t} dir={dir} />
       }
     >
       <div className="flex flex-col gap-3">
@@ -208,7 +216,7 @@ export function PagesView({ title, activeView = 'pages', onSelectView, currentUs
           firstRun={{
             heading: t('pg.index.firstRun.heading'),
             body: t('pg.index.firstRun.body'),
-            actions: [{ label: t('pg.index.firstRun.action'), onClick: () => setCreating(true), primary: true }],
+            actions: [{ label: t('pg.index.firstRun.action'), onClick: openNewPage, primary: true }],
           }}
           noMatch={{ message: t('pg.index.noMatch'), action: { label: t('pg.index.noMatch.action'), onClick: table.clearAll } }}
           error={{ message: t('pg.index.error'), onRetry: pages.refetch }}
@@ -222,6 +230,7 @@ export function PagesView({ title, activeView = 'pages', onSelectView, currentUs
           setCreating(false)
           openPageForEdit(page)
         }}
+        triggerRef={newPageTriggerRef}
         t={t}
       />
 
@@ -253,16 +262,31 @@ function NewPageCard({
   open,
   onOpenChange,
   onCreated,
+  triggerRef,
   t,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   onCreated: (page: Page) => void
+  /** B2 — the control that opened the dialog, so focus can return to it explicitly on close. */
+  triggerRef: RefObject<HTMLElement | null>
   t: Translator
 }) {
   const [step, setStep] = useState<'choose' | 'templates'>('choose')
   const [name, setName] = useState('')
   const [failed, setFailed] = useState(false)
+
+  /* B2 — conditionally unmounting `AlertDialog` itself (rather than just
+     toggling `open`) tore down Radix's own close-transition bookkeeping in
+     the same commit, which is why focus fell to `<body>` instead of back to
+     `New page`. Reset the form on each open instead of remounting. */
+  useEffect(() => {
+    if (open) {
+      setStep('choose')
+      setName('')
+      setFailed(false)
+    }
+  }, [open])
 
   const templates = useAsync((signal) => listPages({ view: 'templates', pageSize: 50 }, signal), {
     deps: [open],
@@ -306,11 +330,14 @@ function NewPageCard({
     }
   }
 
-  if (!open) return null
-
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent>
+      <AlertDialogContent
+        onCloseAutoFocus={(event) => {
+          event.preventDefault()
+          triggerRef.current?.focus()
+        }}
+      >
         <AlertDialogHeader>
           <AlertDialogTitle>{t('pg.index.new')}</AlertDialogTitle>
           <AlertDialogDescription>{t('pg.index.new.body')}</AlertDialogDescription>

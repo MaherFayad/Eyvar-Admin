@@ -37,6 +37,11 @@ await page.getByRole('table').waitFor({ timeout: 30_000 })
 await page.getByRole('textbox', { name: 'Search captains' }).fill(CAPTAIN_NAME)
 const row = page.locator('tbody tr', { hasText: CAPTAIN_NAME }).first()
 await row.waitFor()
+/* Lets the filtered table's own re-render settle before round 1 — otherwise a
+   still-in-flight row re-render can replace the kebab node out from under a
+   focus capture taken a moment earlier, which is a harness timing issue and
+   not the race this file exists to catch. */
+await page.waitForTimeout(500)
 const kebab = row.getByRole('button', { name: KEBAB_LABEL })
 
 const isScrollLocked = () => page.evaluate(() => document.body.hasAttribute('data-scroll-locked'))
@@ -134,7 +139,13 @@ async function round(i, { openAndSelect }) {
     return
   }
 
-  if (!(await focusIsOnKebab(KEBAB_LABEL))) fail(`round ${i}: focus did not return to the kebab`)
+  if (!(await focusIsOnKebab(KEBAB_LABEL))) {
+    const landed = await page.evaluate(() => {
+      const el = document.activeElement
+      return el ? `${el.tagName}[aria-label=${el.getAttribute('aria-label')}]` : null
+    })
+    fail(`round ${i}: focus did not return to the kebab (landed on ${landed})`)
+  }
   if (await isScrollLocked()) fail(`round ${i}: scroll lock still held after dismiss`)
 }
 

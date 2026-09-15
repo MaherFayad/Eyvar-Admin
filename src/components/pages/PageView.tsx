@@ -138,6 +138,14 @@ export function PageView({
         if ((event.target as HTMLElement).tagName === 'INPUT' || (event.target as HTMLElement).tagName === 'TEXTAREA') return
         event.preventDefault()
         editor.actions.onDelete(id)
+      } else if (event.shiftKey && event.key === 'F10') {
+        // S4 — the documented shortcut had no case here at all (a11y.md). The
+        // trigger opens on Enter/Space (Radix `DropdownMenuTrigger`), not a
+        // bare click, so dispatch the key it already listens for.
+        event.preventDefault()
+        const menuButton = frame.querySelector<HTMLButtonElement>('button[aria-label^="More actions for"]')
+        menuButton?.focus()
+        menuButton?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }))
       }
     },
     [editor],

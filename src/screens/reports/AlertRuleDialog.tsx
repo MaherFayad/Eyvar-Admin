@@ -184,6 +184,18 @@ export function AlertRuleDialog({
   )
   const series = seriesOptions.find((s) => s.id === seriesId) ?? null
 
+  /* §4 — both entry points open with "report and the first current series
+     prefilled". The builder passes the series it had in view; a page block
+     knows only its report, so the first legal series is chosen here once the
+     report resolves. Scoped to an entry point that named a report: editing a
+     rule, or opening the composer cold, still starts on the placeholder. */
+  const firstSeriesId = seriesOptions[0]?.id ?? ''
+  useEffect(() => {
+    if (!open || rule !== null || presetReportId === undefined) return
+    if (seriesId !== '' || firstSeriesId === '') return
+    setSeriesId(firstSeriesId)
+  }, [open, rule, presetReportId, seriesId, firstSeriesId])
+
   /* The measure catalogue, once — the email/recipient pickers filter against
      `measure.permission` (D43), and a measure is recoverable only from here. */
   const measures = useAsync((signal) => listMeasures({ pageSize: 200 }, signal), {
@@ -448,7 +460,18 @@ export function AlertRuleDialog({
   const headingId = 'rb-alert-panel-heading'
 
   return (
-    <Card className="border-border">
+    <Card
+      className="border-border"
+      /* An inline panel, not a Radix primitive, so `Escape` is wired here.
+         `Cancel` is 16 tabs from the name field; a keyboard operator needs the
+         same one-key exit a dialog would have given them. A key pressed inside
+         a Select or a popover is left alone — that layer closes itself first. */
+      onKeyDown={(event) => {
+        if (event.key !== 'Escape' || event.defaultPrevented) return
+        event.stopPropagation()
+        onOpenChange(false)
+      }}
+    >
       <CardHeader>
         {/* `CardTitle` renders a plain `div` (`card.tsx`, shared, not this
            role's file) — `role="heading"` is added here rather than there, so
@@ -672,7 +695,7 @@ export function AlertRuleDialog({
                 <Input
                   id="rb-alert-lookback"
                   inputMode="numeric"
-                  className="w-24 tabular-nums"
+                  className="w-56 tabular-nums"
                   placeholder={t('rb.alert.anomaly.lookback.placeholder', {
                     count: grain === 'day' ? 28 : grain === 'week' ? 12 : 6,
                   })}
