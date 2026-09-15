@@ -457,6 +457,13 @@ export const REPORTS_AR: Dictionary = {
   'rb.table.columns.rowTime': 'التاريخ',
   'rb.table.columns.rowLabel': 'المجموعة',
   'rb.table.columns.totals': 'الإجمالي',
+
+  'rb.control.table.columns': 'الأعمدة',
+  'rb.control.table.columns.hint': 'كل عمود هو أحد المقاييس أو الصيغة المطلوبة أعلاه بالفعل.',
+  'rb.control.table.rows': 'الصفوف',
+  'rb.control.table.rows.none': 'صف واحد',
+  'rb.control.table.rows.time': 'التاريخ',
+  'rb.control.table.totals': 'صف الإجمالي',
   'rb.legend.range': '{from} – {to}',
   'rb.legend.noCompare': 'لا فترة للمقارنة',
   'rb.catalogue.loading': 'جارٍ تحميل المقاييس',

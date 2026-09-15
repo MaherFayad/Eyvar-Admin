@@ -79,6 +79,7 @@ import type {
   ReportResult,
   ReportSeries,
 } from '@/data/types'
+import { reportMode } from '@/data/types'
 import type { Annotation, AnnotationKind } from '@/data/types/annotation'
 import { serialiseReportQuery } from '@/data/clients'
 import { formatDate, type Language, type Translator } from '@/lib'
@@ -102,7 +103,7 @@ import {
   seriesDash,
 } from './SeriesChart'
 import { SeriesHeadlines } from './SeriesHeadlines'
-import { ResultTable } from './ResultTable'
+import { ResultTable, ResultTableColumns, deriveColumnResults } from './ResultTable'
 
 export type CanvasStatus = 'unstarted' | 'loading' | 'error' | 'invalid' | 'content'
 
@@ -521,6 +522,25 @@ function Body({
         </CardContent>
       </PanelFrame>
     )
+  }
+
+  /* F-V2-47's connection — §7's columns table, drawn from legs this SAME run
+     already resolved (`deriveColumnResults`, never a second query). A hand
+     edited `table` spec naming a column outside this run's series falls
+     through to the ordinary rendering below rather than drawing a guess. */
+  if (reportMode(result.query) === 'table' && result.query.table && result.query.table.columns.length > 0) {
+    const columnResults = deriveColumnResults(result, result.query.table.columns)
+    if (columnResults) {
+      return (
+        <ResultTableColumns
+          spec={result.query.table}
+          columnResults={columnResults}
+          measuresByKey={measuresByKey}
+          t={t}
+          language={language}
+        />
+      )
+    }
   }
 
   /* §4.1 — `kpi` is not Recharts and is never a small multiple: legality

@@ -798,6 +798,14 @@ export const REPORTS_EN: Dictionary = {
   'rb.table.columns.rowLabel': 'Group',
   'rb.table.columns.totals': 'Total',
 
+  /* WP-3.5, F-V2-47 — the rail's columns editor, `mode: "table"` only. */
+  'rb.control.table.columns': 'Columns',
+  'rb.control.table.columns.hint': 'Each column is one of the measures or the formula already asked for above.',
+  'rb.control.table.rows': 'Rows',
+  'rb.control.table.rows.none': 'One row',
+  'rb.control.table.rows.time': 'Date',
+  'rb.control.table.totals': 'Totals row',
+
   'rb.legend.range': '{from} – {to}',
   'rb.legend.noCompare': 'No comparison period',
 

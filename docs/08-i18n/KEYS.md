@@ -9,9 +9,9 @@ this file is stale or when the `defaultValue` ratchet slips.
 
 | | |
 |---|---:|
-| **Translatable keys, all dictionaries** | **7395** |
-| Reachable from `EN` (what the shell renders) | 7029 |
-| Keys in `AR` | 7395 |
+| **Translatable keys, all dictionaries** | **7487** |
+| Reachable from `EN` (what the shell renders) | 7121 |
+| Keys in `AR` | 7487 |
 | **Keys Arabic is missing** | **0** |
 | Keys in `AR` and not in `EN` (plural forms, unregistered screens) | 366 |
 | Plural forms (`key#category`) inside `EN` | 73 |
@@ -425,7 +425,7 @@ Measured on English only, and a placeholder counts as one word.
 | File | Exports | Keys |
 |---|---|---:|
 | `src/screens/financials/copy.ts` | `FINANCIALS_EN` | 960 |
-| `src/screens/reports/copy.ts` | `REPORTS_EN` | 908 |
+| `src/screens/reports/copy.ts` | `REPORTS_EN` | 914 |
 | `src/commands/copy.ts` | `COMMANDS_EN` | 390 |
 | `src/screens/operations/people/copy.ts` | `PEOPLE_EN` | 338 |
 | `src/components/profile/copy.ts` | `PROFILE_EN` | 275 |
@@ -446,6 +446,7 @@ Measured on English only, and a placeholder counts as one word.
 | `src/components/profile/driver/copy.ts` | `DRIVER_PROFILE_EN` | 108 |
 | `src/screens/onboarding/copy.ts` | `ONBOARDING_EN` | 104 |
 | `src/screens/operations/trips/copy.ts` | `TRIPS_EN` | 104 |
+| `src/screens/analyst/copy.ts` | `ANALYST_EN` | 102 |
 | `src/components/profile/trip/copy.ts` | `TRIP_PROFILE_EN` | 89 |
 | `src/i18n/vocabulary/copy.ts` | `DRIVER_VOCABULARY_EN`, `RIDER_VOCABULARY_EN`, `VOCABULARY_EN` | 88 |
 | `src/screens/operations/requests/copy.ts` | `REQUESTS_EN` | 80 |
@@ -459,7 +460,6 @@ Measured on English only, and a placeholder counts as one word.
 | `src/components/profile/rider/copy.ts` | `RIDER_PROFILE_EN` | 30 |
 | `src/components/profile/subscription/copy.ts` | `SUBSCRIPTION_PROFILE_EN` | 27 |
 | `src/screens/admin/activity/copy.ts` | `ADMIN_ACTIVITY_EN` | 25 |
-| `src/screens/analyst/copy.ts` | `ANALYST_EN` | 16 |
 | `src/pwa/copy.ts` | `PWA_EN` | 4 |
 
 ### Not registered in `src/i18n/dictionaries.ts`

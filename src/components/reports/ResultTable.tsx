@@ -707,6 +707,26 @@ function columnLabel(column: TableColumn, measuresByKey: Readonly<Record<string,
   return measure ? t(measure.labelKey) : column.ref.key
 }
 
+/**
+ * F-V2-47's connection: one `ReportResult` slice per column, from the SAME
+ * run `result` already carries — never a second query (the orchestrator's
+ * ruling for §7, applied here too). A column naming a measure or formula
+ * outside `result.series` has no leg to slice, and this returns `null` so the
+ * caller falls back rather than drawing a guessed column.
+ */
+export function deriveColumnResults(result: ReportResult, columns: readonly TableColumn[]): ReportResult[] | null {
+  const out: ReportResult[] = []
+  for (const column of columns) {
+    const measureKey = column.kind === 'formula' ? '__formula__' : column.ref.key
+    const series = result.series.filter((s) => s.measureKey === measureKey)
+    if (series.length === 0) return null
+    const seriesIds = new Set(series.map((s) => s.id))
+    const panels = result.panels.filter((p) => p.seriesIds.some((id) => seriesIds.has(id)))
+    out.push({ ...result, series, panels })
+  }
+  return out
+}
+
 export interface ResultTableColumnsProps {
   spec: TableSpec
   /**

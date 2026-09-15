@@ -115,10 +115,12 @@ import { LoadingSkeleton } from '@/components/LoadingSkeleton'
 import { InfoHint, hintLines } from '@/components/InfoHint'
 import { FormulaField } from './FormulaField'
 import { SegmentPicker } from './SegmentPicker'
+import { TableColumnsControl } from './TableColumnsControl'
 import { TransformControls } from './TransformControls'
 import { pairableWith } from '@/data/clients'
 import { REPORT_GROUP_BY_MAX } from '@/data/types/report'
 import type { BucketAggregate, Dimension, Measure, MeasureRef, QueryPlan, ReportQuery } from '@/data/types'
+import { reportMode } from '@/data/types'
 import type { Translator } from '@/lib'
 
 /** The sentinel a `Select` uses for "none". Radix forbids an empty-string item value. */
@@ -417,6 +419,19 @@ export function QueryPanel({
           </p>
         </div>
       </div>
+
+      {/* ── 6b · §7's columns (F-V2-47), `mode: 'table'` only ──────────────── */}
+      {reportMode(query) === 'table' && (
+        <TableColumnsControl
+          query={query}
+          onChange={onChange}
+          firstMeasure={first}
+          secondMeasure={second}
+          dimensions={dimensions}
+          unstarted={unstarted}
+          t={t}
+        />
+      )}
 
       {/* ── 7 · segments (§1.2) ──────────────────────────────────────────── */}
       <SegmentPicker

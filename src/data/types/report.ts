@@ -665,6 +665,29 @@ export interface ReportResult {
    * can disagree with the matrix above it.
    */
   cohortSizes?: number[]
+  /**
+   * §5 (F-V2-49, F-V2-57), `mode: 'funnel'` only, one entry per rung in step
+   * order, aligned to the funnel's own current-role series by `seriesId` —
+   * never a second query for it (the orchestrator's WP-3.5 ruling: extend
+   * this result, do not re-ask). `undefined` in every other mode and in any
+   * `resolveReport` not yet taught to fill it.
+   */
+  funnelStepDetail?: FunnelStepDetail[]
+}
+
+/** One rung's detail beyond conversion and drop-off — see `ReportResult.funnelStepDetail`. */
+export interface FunnelStepDetail {
+  seriesId: string
+  /** Median days from this rung to the next; `null` for the last rung or with nobody to measure. */
+  medianDaysToNext: number | null
+  /** `null` when the funnel has no `groupBy` — never an empty array standing in for "not asked". */
+  dropoffGroups: FunnelDropoffGroup[] | null
+}
+
+/** §7.4's fold rule, applied to a funnel rung's drop-off (`funnelSteps.ts`'s `DROPOFF_OTHER`). */
+export interface FunnelDropoffGroup {
+  groupValue: string
+  count: number
 }
 
 /* ──────────────────── query legality, as data ──────────────────────────── */

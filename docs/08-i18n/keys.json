@@ -1,8 +1,8 @@
 {
   "totals": {
-    "keys": 7395,
-    "en": 7029,
-    "ar": 7395,
+    "keys": 7487,
+    "en": 7121,
+    "ar": 7487,
     "arMissing": 0,
     "arExtra": 366,
     "copyFiles": 39,
@@ -28,7 +28,7 @@
       "exports": [
         "REPORTS_EN"
       ],
-      "keys": 908,
+      "keys": 914,
       "notInEN": 0
     },
     {
@@ -193,6 +193,14 @@
       "notInEN": 0
     },
     {
+      "file": "src/screens/analyst/copy.ts",
+      "exports": [
+        "ANALYST_EN"
+      ],
+      "keys": 102,
+      "notInEN": 0
+    },
+    {
       "file": "src/components/profile/trip/copy.ts",
       "exports": [
         "TRIP_PROFILE_EN"
@@ -296,14 +304,6 @@
         "ADMIN_ACTIVITY_EN"
       ],
       "keys": 25,
-      "notInEN": 0
-    },
-    {
-      "file": "src/screens/analyst/copy.ts",
-      "exports": [
-        "ANALYST_EN"
-      ],
-      "keys": 16,
       "notInEN": 0
     },
     {
