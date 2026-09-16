@@ -113,7 +113,7 @@ export const ANALYST_AR: Dictionary = {
   'an.job.action.pinToPage': 'تثبيت في صفحة…',
   'an.job.action.pinToPage.noResult': 'لا نتيجة لهذه المهمة لتثبيتها بعد.',
   'an.job.action.createAlert': 'إنشاء تنبيه',
-  'an.job.action.createAlert.unwired': 'إنشاء تنبيه من نتيجة غير متاح بعد.',
+  'an.job.action.createAlert.noProposal': 'لم تقترح هذه الدراسة تنبيهًا لإنشائه.',
   'an.job.action.copyLink': 'نسخ الرابط',
   'an.job.action.copyLink.toast': 'نُسخ الرابط',
   'an.job.action.copyLink.failed': 'لم يُنسخ الرابط.',

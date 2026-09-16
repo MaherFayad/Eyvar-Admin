@@ -144,9 +144,9 @@ export const ANALYST_EN: Dictionary = {
      own `Pin to a page…` uses. Legal only once the job has a result. */
   'an.job.action.pinToPage.noResult': 'This job has no result to pin yet.',
   'an.job.action.createAlert': 'Create alert',
-  /* Deferred — the composer that would take a prefilled condition is
-     `AlertRuleDialog.tsx`, owned outside this work package. */
-  'an.job.action.createAlert.unwired': 'Creating an alert from a finding isn’t wired yet.',
+  /* AC-1260 — the reason shown when THIS study proposed no `alertCondition`
+     for any finding; the composer itself is always reachable once wired. */
+  'an.job.action.createAlert.noProposal': 'This study didn’t propose an alert to create.',
   'an.job.action.copyLink': 'Copy link',
   'an.job.action.copyLink.toast': 'Link copied',
   'an.job.action.copyLink.failed': 'The link didn’t copy.',

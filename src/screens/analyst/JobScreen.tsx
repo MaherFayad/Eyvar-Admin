@@ -35,12 +35,14 @@ import {
 } from '@/data/clients'
 import { isApiError } from '@/data/types/common'
 import type { AgentEvent, AgentJob, AgentJobState } from '@/data/types/agent'
+import type { AlertRule } from '@/data/types'
 import type { SavedReport } from '@/data/types'
-import { pageTemplate, type Block, type Page } from '@/data/types/page'
+import { pageTemplate, type AgentAlertProposal, type Block, type Page } from '@/data/types/page'
 import { formatDate } from '@/lib'
 import { useNowIso } from '@/screens/queues'
 import { useShell } from '@/shell/ShellContext'
 import { withFallback } from '@/screens/operations/localCopy'
+import { AlertRuleDialog } from '@/screens/reports/AlertRuleDialog'
 import { REPORTS_EN } from '@/screens/reports/copy'
 import { withIsolatedParam } from './bidiSentence'
 import { ANALYST_EN } from './copy'
@@ -64,6 +66,27 @@ function collectAgentInsightRunIds(blocks: readonly Block[]): string[] {
     if (block.type === 'columns') for (const column of block.columns) ids.push(...collectAgentInsightRunIds(column.blocks))
   }
   return ids
+}
+
+/** AC-1260 — the first finding that got one (`caseStudyToBlocks.ts`'s
+ * `alertProposalFor`), same depth-first order as `collectAgentInsightRunIds`.
+ * `null` when the study proposed no alert, which disables the action with a
+ * reason rather than hiding it. */
+function firstAlertProposal(blocks: readonly Block[]): AgentAlertProposal | null {
+  for (const block of blocks) {
+    if (block.type === 'agent-insight' && block.alertProposal) return block.alertProposal
+    if (block.type === 'toggle') {
+      const nested = firstAlertProposal(block.blocks)
+      if (nested) return nested
+    }
+    if (block.type === 'columns') {
+      for (const column of block.columns) {
+        const nested = firstAlertProposal(column.blocks)
+        if (nested) return nested
+      }
+    }
+  }
+  return null
 }
 
 const ANALYST_INDEX_ROUTE = '/management/reports?view=analyst'
@@ -164,6 +187,14 @@ export function JobScreen() {
     () => (pageQuery.data ? Array.from(new Set(collectAgentInsightRunIds(pageQuery.data.blocks))) : []),
     [pageQuery.data],
   )
+
+  /* AC-1260 — the proposal the overflow action prefills the composer with,
+     or `null` to disable it in place with a reason (never hidden, R rule
+     "illegal is disabled in place"). */
+  const alertProposal = useMemo(
+    () => (pageQuery.data ? firstAlertProposal(pageQuery.data.blocks) : null),
+    [pageQuery.data],
+  )
   const runsAsync = useAsync<readonly ProvenanceRun[]>(
     async (signal) =>
       Promise.all(
@@ -221,6 +252,18 @@ export function JobScreen() {
       toast.error(t('an.job.action.copyLink.failed'))
     }
   }, [t])
+
+  /* AC-1260 — inline, same no-dialog panel `AlertRuleDialog` already is
+     everywhere else it opens (`BlockMenu.tsx`). The operator reviews and
+     saves it themselves; nothing here calls `saveAlertRule` directly. */
+  const [alertOpen, setAlertOpen] = useState(false)
+  const onAlertSaved = useCallback(
+    (rule: AlertRule) => {
+      setAlertOpen(false)
+      toast.success(t('rb.alert.toast.saved', { name: rule.name }))
+    },
+    [t],
+  )
 
   /* AC-1260 — a bookmark block, `BookmarkBlockView`'s `{kind:'page'}`, is the
      same "pin this result onto a dashboard" shape `ReportBuilder`'s own
@@ -315,14 +358,12 @@ export function JobScreen() {
           reason: job.state !== 'done' || job.resultPageId === null ? t('an.job.action.pinToPage.noResult') : null,
         },
         {
-          /* AC-1260 — still blocked: `AlertRuleDialog.tsx` (owned outside this
-             work package) takes no prop for a prefilled `AlertCondition`, and
-             `Block` (`src/data/types/page.ts`, also outside it) has no
-             `alert-proposal` variant carrying one from a finding. */
+          /* AC-1260 — disabled in place, never hidden, when this study
+             proposed no alert (`alertProposal`, `caseStudyToBlocks.ts`). */
           label: t('an.job.action.createAlert'),
-          onClick: () => undefined,
-          disabled: true,
-          reason: t('an.job.action.createAlert.unwired'),
+          onClick: () => setAlertOpen(true),
+          disabled: alertProposal === null,
+          reason: alertProposal === null ? t('an.job.action.createAlert.noProposal') : null,
         },
       ]}
       t={t}
@@ -362,6 +403,23 @@ export function JobScreen() {
             </Button>
           </div>
         </div>
+      )}
+      {/* AC-1260 — the operator's own review and save; nothing here arms a
+          rule on the agent's say-so (§5, "an agent proposes, it never
+          arms"). */}
+      {alertOpen && alertProposal && (
+        <AlertRuleDialog
+          open
+          onOpenChange={(next) => !next && setAlertOpen(false)}
+          rule={null}
+          presetReportId={alertProposal.reportId}
+          presetSeriesId={alertProposal.seriesId}
+          presetCondition={alertProposal.condition}
+          onSaved={onAlertSaved}
+          today={today}
+          t={t}
+          language={language}
+        />
       )}
       <JobTimeline job={job} events={events} runner={runnerStatus.data} onRerun={() => void rerun()} t={t} language={language} />
       {job.state === 'done' && pageQuery.data && catalogue.data && (

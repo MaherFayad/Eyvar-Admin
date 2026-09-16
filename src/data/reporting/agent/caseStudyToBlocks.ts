@@ -7,6 +7,7 @@
 
 import { PAGE_HEADING_MAX, PAGE_TEXT_MD_MAX } from '../../types/page'
 import type {
+  AgentAlertProposal,
   AgentInsightBlock,
   Block,
   CalloutBlock,
@@ -54,7 +55,11 @@ function findingTextBlock(finding: CaseStudyFinding, jobId: string): TextBlock {
  * and `runIds` is exactly the union of `finding.evidence` and each value's
  * own `runId` — never a number added without the run that produced it.
  */
-function findingEvidenceBlock(finding: CaseStudyFinding, jobId: string): AgentInsightBlock {
+function findingEvidenceBlock(
+  finding: CaseStudyFinding,
+  jobId: string,
+  alertProposal: AgentAlertProposal | null,
+): AgentInsightBlock {
   const md = finding.values.map(formatValueLine).join('\n')
   const runIds = Array.from(new Set([...finding.evidence, ...finding.values.map((v) => v.runId)]))
   return {
@@ -64,7 +69,28 @@ function findingEvidenceBlock(finding: CaseStudyFinding, jobId: string): AgentIn
     findingId: finding.id,
     md: truncate(md, PAGE_TEXT_MD_MAX),
     runIds,
+    alertProposal,
   }
+}
+
+/**
+ * AC-1260 — the smaller of two designs (a new `Block` variant needs its own
+ * validation, migration and view; this is one optional field on the block a
+ * finding already gets). Protocol step 8 pairs one recommendation per
+ * finding by position, so `recommendations[i]` is read for `findings[i]`;
+ * a proposal needs its own saved chart (`chartReportIds`, T13) and a series
+ * to preset, or there is nothing to prefill and none is offered.
+ */
+function alertProposalFor(
+  finding: CaseStudyFinding,
+  recommendation: CaseStudyRecommendation | undefined,
+  chartReportIds?: Readonly<Record<string, string>>,
+): AgentAlertProposal | null {
+  const condition = recommendation?.verifyWith.alertCondition ?? null
+  const reportId = chartReportIds?.[finding.id]
+  const seriesId = finding.values[0]?.seriesId
+  if (condition === null || !reportId || reportId.trim().length === 0 || !seriesId) return null
+  return { reportId, seriesId, condition }
 }
 
 /** The finding's chart, once T13 has saved it — never minted here, only relayed (input, not a lookup). */
@@ -124,12 +150,12 @@ export function caseStudyToBlocks(
 ): Block[] {
   const blocks: Block[] = [questionHeading(study, jobId)]
 
-  for (const finding of study.findings) {
+  study.findings.forEach((finding, i) => {
     blocks.push(findingTextBlock(finding, jobId))
     const reportId = chartReportIds?.[finding.id]
     if (reportId && reportId.trim().length > 0) blocks.push(findingChartBlock(finding, jobId, reportId))
-    blocks.push(findingEvidenceBlock(finding, jobId))
-  }
+    blocks.push(findingEvidenceBlock(finding, jobId, alertProposalFor(finding, study.recommendations[i], chartReportIds)))
+  })
 
   study.alternatives.forEach((alternative, i) => blocks.push(alternativeToggle(alternative, jobId, i)))
   study.recommendations.forEach((recommendation, i) => blocks.push(recommendationTextBlock(recommendation, jobId, i)))

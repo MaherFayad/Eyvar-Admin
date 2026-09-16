@@ -4,6 +4,7 @@
  * a later phase) converts a v1 `Dashboard`; this file is the target shape only.
  */
 
+import type { AlertCondition } from './alert'
 import type { FilterSpec, IsoDateTime } from './common'
 import type { ReportWindow } from './report'
 
@@ -104,6 +105,15 @@ export interface AlertStatusBlock extends BlockBase {
   ruleIds: string[]
 }
 
+/** AC-1260 — the report, series and condition a finding's own recommendation
+ * proposed; prefills the alert composer. Never created without the
+ * operator's own save (§5 — an agent proposes, it never arms). */
+export interface AgentAlertProposal {
+  reportId: string
+  seriesId: string
+  condition: AlertCondition
+}
+
 /** Read-only; provenance link back to the job and the runs it cites. */
 export interface AgentInsightBlock extends BlockBase {
   type: 'agent-insight'
@@ -111,6 +121,8 @@ export interface AgentInsightBlock extends BlockBase {
   findingId: string
   md: string
   runIds: string[]
+  /** `undefined`/`null` when the study proposed no alert for this finding. */
+  alertProposal?: AgentAlertProposal | null
 }
 
 export interface BookmarkBlock extends BlockBase {

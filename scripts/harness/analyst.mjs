@@ -109,7 +109,10 @@ async function shootDone(name, { arabic = false } = {}) {
 
   await page.goto(`${BASE}/management/reports/analyst/AGT-1`, { waitUntil: 'networkidle' })
   if (arabic) await toArabic(page)
-  await page.waitForTimeout(800)
+  /* RUN-1/2/3 seed lazily on this page's own first `getRun` (`clients/runs.ts`),
+     three real `runReport` calls plus mock latency — longer than the 800ms
+     every other row's screenshot needs. */
+  await page.waitForTimeout(2500)
   await page.screenshot({ path: `${OUT}/${name}-done.png`, fullPage: true })
 
   const openInBuilder = page.getByRole('link', { name: arabic ? 'فتح في المُنشئ' : 'Open in builder' })
@@ -143,27 +146,50 @@ async function shootState(jobId, label, { dark = false } = {}) {
 }
 
 /** F-V2-90 — does Provenance list *every* run the study's own evidence cites,
-    or only the runs that happen to back a rendered chart? Reads the
-    finding-evidence prose (which names every `runId` in text, per
-    `caseStudyToBlocks`'s `formatValueLine`) and the Provenance rail
-    independently, then diffs them. */
+    and does each one **resolve** rather than render missing (AC-1258)? The
+    old check read `<main>`'s `textContent`, which misses RUN-3: an
+    alternative's evidence block never prints "(run RUN-3)" the way a
+    finding's does (`caseStudyToBlocks.ts`'s `formatValueLine` is a finding-
+    only helper), so no toggle state would ever have surfaced it as text.
+    Fetches `agent.ts`'s own source instead — the citations as written, not
+    as one block view happens to render them — and diffs against what each
+    Provenance row actually says: `resolved` (an `Open in builder` link) or
+    `missing` (`an.provenance.missing`'s own sentence). */
 async function checkProvenanceCompleteness() {
   const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } })
   const page = await ctx.newPage()
   await page.goto(`${BASE}/management/reports/analyst/AGT-1`, { waitUntil: 'networkidle' })
-  await page.waitForTimeout(600)
+  /* Longer than the other checks: RUN-1/2/3 seed lazily on this page's own
+     first `getRun` (`clients/runs.ts`'s `ensureAgentSeedRuns`), each a real
+     `runReport` call plus the mock's own artificial latency, three of them. */
+  await page.waitForTimeout(2500)
 
-  const facts = await page.evaluate(() => {
-    const bodyText = document.querySelector('main')?.textContent ?? ''
-    const citedRunIds = Array.from(new Set(Array.from(bodyText.matchAll(/\bRUN-\d+\b/g)).map((m) => m[0])))
-    const provenanceHeading = Array.from(document.querySelectorAll('h2')).find((h) => h.textContent === 'Provenance')
-    const rail = provenanceHeading?.closest('div')
-    const provenanceEntries = rail ? rail.querySelectorAll('a').length : 0
-    const provenanceText = rail?.textContent ?? ''
-    const runIdsShownInProvenance = citedRunIds.filter((id) => provenanceText.includes(id))
-    return { citedRunIds, provenanceEntries, runIdsShownInProvenance }
+  /* Vite serves the dev-transformed module (types stripped, quotes
+     normalised), never the `.ts` text on disk verbatim — the markers below
+     match what actually arrives, not the source file's own formatting. */
+  const source = await page.evaluate(() => fetch('/src/data/fixtures/agent.ts').then((r) => r.text()))
+  /* Scoped to `DONE_JOB_CASE_STUDY` alone — the file also seeds `AGT-4`'s
+     deliberately-unresolvable `RUN-99` (a different AC's fixture), which a
+     whole-file scan would wrongly count as one of `AGT-1`'s own citations. */
+  const studySource = source.slice(
+    source.indexOf('DONE_JOB_CASE_STUDY = {'),
+    source.indexOf('};\nexport const DONE_JOB_ID'),
+  )
+  const citedRunIds = Array.from(new Set(Array.from(studySource.matchAll(/\bRUN-\d+\b/g)).map((m) => m[0]))).sort()
+
+  const rows = await page.evaluate(() => {
+    const heading = Array.from(document.querySelectorAll('h2')).find((h) => h.textContent === 'Provenance')
+    const rail = heading?.closest('div')
+    if (!rail) return []
+    return Array.from(rail.querySelectorAll('li')).map((li) => ({
+      runId: li.querySelector('p.font-mono')?.textContent?.trim() ?? null,
+      resolved: li.querySelector('a') !== null,
+    }))
   })
-  console.log('provenance-completeness', JSON.stringify(facts))
+
+  const resolved = citedRunIds.filter((id) => rows.some((r) => r.runId === id && r.resolved))
+  const missing = citedRunIds.filter((id) => !resolved.includes(id))
+  console.log('provenance-completeness', JSON.stringify({ citedRunIds, rows, resolved, missing }))
   await ctx.close()
 }
 

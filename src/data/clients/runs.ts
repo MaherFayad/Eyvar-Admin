@@ -8,6 +8,7 @@
 import { DATA_SOURCE, registerOperations } from '../config'
 import { EYVAR_NOW, EYVAR_TODAY } from '../mock/clock'
 import { mock, mockMutation, notFound } from '../mock/delay'
+import { loadFixtures, onFixturesLoaded, type Fixtures } from '../mock/fixtures'
 import { summariseRunSeries } from '../types/report'
 import type { IsoDateTime } from '../types/common'
 import type { ReportQuery, ReportResult, ReportWindow, RecordRunOutcome, RunSeriesSummary } from '../types/report'
@@ -41,6 +42,50 @@ export interface ReportRun {
 /** Not persistence — session-scoped, the same as every mutable client store. */
 let runs: ReportRun[] = []
 let nextRunSeq = 1
+
+/* Late-bound: `agent.ts`'s case study names ids no session has necessarily
+   run (`mock/fixtures.ts` says why this is not a static import). */
+let agentSeedRunQueries!: Fixtures['AGENT_SEEDED_RUN_QUERIES']
+onFixturesLoaded((f) => {
+  agentSeedRunQueries = f.AGENT_SEEDED_RUN_QUERIES
+})
+
+let seedingInFlight: Promise<void> | null = null
+
+/**
+ * AC-1258 — `recordRun`'s only caller is T5, so an untouched session starts
+ * with an empty store and `AGT-1`'s real citations resolve as "missing".
+ * Runs each seed query for real, once, lazily on the first `getRun`; never a
+ * total typed in by hand. `resetRuns()` clears `seedingInFlight` to reseed.
+ */
+async function ensureAgentSeedRuns(): Promise<void> {
+  await loadFixtures()
+  if (!seedingInFlight) {
+    /* No caller's `signal` is threaded through: this primes a shared store
+       for every concurrent `getRun`, so one caller navigating away must not
+       abort the seed for the rest. */
+    seedingInFlight = (async () => {
+      for (const seed of agentSeedRunQueries) {
+        if (runs.some((r) => r.id === seed.id)) continue
+        const outcome = await runReport(seed.query, { today: EYVAR_TODAY })
+        if (outcome.status !== 'ok') continue
+        runs = [
+          ...runs,
+          {
+            id: seed.id,
+            userId: currentMockUserId(),
+            query: seed.query,
+            result: outcome.result,
+            asOf: outcome.result.asOf,
+            createdAt: EYVAR_NOW,
+            jobId: seed.jobId,
+          },
+        ]
+      }
+    })()
+  }
+  await seedingInFlight
+}
 
 /**
  * POST /api/v1/reports/run, header `X-Eyvar-Record-Run: 1`
@@ -90,6 +135,7 @@ export async function recordRun(
  */
 export async function getRun(runId: string, signal?: AbortSignal): Promise<Single<ReportRun>> {
   if (DATA_SOURCE === 'http') return http.get<Single<ReportRun>>(`/reports/runs/${runId}`, undefined, { signal })
+  await ensureAgentSeedRuns()
   return mock(RUN_OPERATIONS.get, signal, () => {
     const row = runs.find((r) => r.id === runId)
     if (!row) throw notFound('run', runId)
@@ -153,4 +199,5 @@ export async function compareWindows(
 export function resetRuns(): void {
   runs = []
   nextRunSeq = 1
+  seedingInFlight = null
 }

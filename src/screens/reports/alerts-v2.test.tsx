@@ -77,6 +77,19 @@ async function openRule(user: ReturnType<typeof userEvent.setup>, name: string):
   return heading.closest('[data-slot="card"]') as HTMLElement
 }
 
+/**
+ * `AlertRuleDialog.tsx`'s own `composerPending`: the panel names its report
+ * and reads that report's series in two sequential fetches. Waits for
+ * neither of the two loading sentences the card's own description carries —
+ * the composer's real content, not a synchronous read racing either fetch.
+ */
+async function waitForComposerLoaded(panel: HTMLElement): Promise<void> {
+  await waitFor(() => {
+    expect(within(panel).queryByText(EN('rb.alert.form.report.loading'))).toBeNull()
+    expect(within(panel).queryByText(EN('rb.alert.form.series.loading'))).toBeNull()
+  })
+}
+
 /* ────────────────────── AC-1225 — the inline panel ───────────────────── */
 
 describe('AC-1225 — the composer is an inline panel with the four condition kinds', () => {
@@ -139,6 +152,7 @@ describe('AC-1231 — a money threshold is entered in SAR and stored in halalas'
     const user = userEvent.setup()
     renderAt('/management/reports?view=alerts')
     const panel = await openRule(user, 'Gross revenue below SAR 400 a day')
+    await waitForComposerLoaded(panel)
 
     const amount = within(panel).getByLabelText(EN('rb.alert.form.threshold')) as HTMLInputElement
     expect(amount.value).toBe('400')
@@ -276,8 +290,13 @@ describe('AC-1234 — `Mute for…` offers the five durations, then the row show
     }
     await user.click(screen.getByRole('menuitem', { name: EN('rb.alert.mute.1h') }))
 
-    await waitFor(() => {
-      expect(within(row).getByText(/Muted until/)).toBeInTheDocument()
+    /* `MuteMenu` writes the mute, then the table's own `rules.refetch()`
+       lands — which can replace this row's DOM node rather than patch it.
+       Re-queries the row itself inside the wait, so a re-rendered table
+       is found rather than a detached one that will never change. */
+    await waitFor(async () => {
+      const freshRow = await rowNamed('Cancellation rate over 6%')
+      expect(within(freshRow).getByText(/Muted until/)).toBeInTheDocument()
     })
     await waitFor(async () => {
       const saved = (await alertRules()).find((r) => r.id === 'ALR-1')

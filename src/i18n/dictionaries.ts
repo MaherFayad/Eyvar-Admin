@@ -817,6 +817,10 @@ const shell: Dictionary = {
      rest goes, so the distinguishing half moves to the end and both halves
      keep their job. Same rule, same shape, in Arabic. */
   'shell.notifications.markReadA11y': 'Mark as read: {title}',
+  /* AC-1262 — the one action a notification may carry, beside `Mark as
+     read`; same visible-label-first shape, for the same reason. */
+  'shell.notifications.explain': 'Explain',
+  'shell.notifications.explainA11y': 'Explain: {title}',
   /* The bulk action names the count, and renders DISABLED at zero rather than
      hidden (§11.2). */
   'shell.notifications.markAllReadCount': 'Mark all {count} as read',

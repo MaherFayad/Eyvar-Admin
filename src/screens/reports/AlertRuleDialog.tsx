@@ -99,6 +99,11 @@ export interface AlertRuleDialogProps {
    * "create an alert from this chart" preselects it rather than leaving the
    * series picker empty. Read only when `rule` is `null`, same as above. */
   presetSeriesId?: string
+  /** AC-1260 — a finding's own `verifyWith.alertCondition`, carried on its
+   * `agent-insight` block (`caseStudyToBlocks.ts`). Fills the condition kind
+   * and its fields; the operator still reviews and saves it (§5 — an agent
+   * proposes, it never arms). Read only when `rule` is `null`. */
+  presetCondition?: AlertCondition
   onSaved: (rule: AlertRule) => void
   today: string
   t: Translator
@@ -111,6 +116,7 @@ export function AlertRuleDialog({
   rule,
   presetReportId,
   presetSeriesId,
+  presetCondition,
   onSaved,
   today,
   t,
@@ -234,12 +240,15 @@ export function AlertRuleDialog({
     setReportId(rule?.reportId ?? presetReportId ?? null)
     setSeriesId(rule?.seriesId ?? presetSeriesId ?? '')
 
-    const c: AlertCondition = rule ? alertCondition(rule) : { kind: 'static', comparator: 'gt', threshold: NaN }
+    const c: AlertCondition = rule ? alertCondition(rule) : (presetCondition ?? { kind: 'static', comparator: 'gt', threshold: NaN })
     setKind(c.kind)
     if (c.kind === 'static') {
       setComparator(c.comparator)
+      /* A preset's `threshold` is not yet money-converted (its measure's unit
+         resolves later, off `series`, per AC-1260) — displayed as written,
+         same as every other field a proposal only prefills for review. */
       setThresholdText(
-        rule && rule.thresholdUnit === 'money' ? String(c.threshold / 100) : rule ? String(c.threshold) : '',
+        rule ? (rule.thresholdUnit === 'money' ? String(c.threshold / 100) : String(c.threshold)) : presetCondition ? String(c.threshold) : '',
       )
     } else {
       setComparator('gt')
@@ -288,7 +297,7 @@ export function AlertRuleDialog({
     setReasons([])
     setFailed(false)
     setTestResult(null)
-  }, [open, rule, presetReportId, presetSeriesId])
+  }, [open, rule, presetReportId, presetSeriesId, presetCondition])
 
   const threshold =
     series?.unit === 'money' ? parseMoneyInput(thresholdText) : parseNumericInput(thresholdText)
@@ -450,6 +459,15 @@ export function AlertRuleDialog({
   const noSavedReports = reports.status === 'content' && reportItems.length === 0
   const chosenReport = reportItems.find((report) => report.id === reportId) ?? null
 
+  /* A real loading state, not an instruction that happens to be false while
+     it loads. Editing a rule (or opening with `presetReportId`) already
+     names a report; while `reports` hasn't resolved it yet, or it has and
+     `resolved` is still reading that report's series, the operator has not
+     failed to choose anything — the data just has not arrived. */
+  const composerPending =
+    (rule !== null || presetReportId !== undefined) &&
+    (chosenReport === null ? reports.status === 'loading' : resolved.status === 'loading')
+
   const conditionInvalid =
     condition === null ||
     (kind === 'relative' && relativeAgainstInvalid) ||
@@ -482,7 +500,9 @@ export function AlertRuleDialog({
           {rule ? t('rb.alert.panel.heading.edit') : t('rb.alert.panel.heading.new')}
         </CardTitle>
         <CardDescription>
-          {chosenReport ? (
+          {composerPending ? (
+            t(chosenReport === null ? 'rb.alert.form.report.loading' : 'rb.alert.form.series.loading')
+          ) : chosenReport ? (
             <bdi>{t('rb.alert.form.preset', { name: chosenReport.name })}</bdi>
           ) : noSavedReports ? (
             t('rb.alert.form.report.unsaved')

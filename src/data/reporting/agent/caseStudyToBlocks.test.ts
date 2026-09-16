@@ -245,6 +245,52 @@ describe('caseStudyToBlocks', () => {
     })
   })
 
+  describe('AC-1260 — alertProposal on the finding’s own evidence block', () => {
+    const condition = { kind: 'static', comparator: 'gt', threshold: 6 } as const
+    const recommendationFor = (verifyWith: CaseStudy['recommendations'][number]['verifyWith']) => ({
+      text: 'Hold steady.',
+      ownerRole: 'Ops lead',
+      expectedEffect: { measureKey: 'trips.cancelled', direction: 'down' as const, magnitude: null },
+      verifyWith,
+      reviewBy: '2026-06-29',
+    })
+    const proposalStudy: CaseStudy = {
+      ...study,
+      recommendations: [
+        recommendationFor({ reportQuery: null, alertCondition: condition }),
+        recommendationFor({ reportQuery: null, alertCondition: { kind: 'missing', bucketsMissing: 3 } }),
+      ],
+    }
+    const f1Of = (blocks: ReturnType<typeof caseStudyToBlocks>) =>
+      blocks.find((b): b is AgentInsightBlock => b.type === 'agent-insight' && b.findingId === 'F-1')!
+    const f2Of = (blocks: ReturnType<typeof caseStudyToBlocks>) =>
+      blocks.find((b): b is AgentInsightBlock => b.type === 'agent-insight' && b.findingId === 'F-2')!
+
+    it('carries the position-paired recommendation’s condition once a chart is saved and the finding has a value', () => {
+      const blocks = caseStudyToBlocks(proposalStudy, JOB_ID, { 'F-1': 'RPT-101' })
+      expect(f1Of(blocks).alertProposal).toEqual({
+        reportId: 'RPT-101',
+        seriesId: proposalStudy.findings[0]!.values[0]!.seriesId,
+        condition,
+      })
+    })
+
+    it('is null without a saved chart for the finding, even with a proposed condition', () => {
+      const blocks = caseStudyToBlocks(proposalStudy, JOB_ID)
+      expect(f1Of(blocks).alertProposal).toBeNull()
+    })
+
+    it('is null when the position-paired recommendation proposes no condition', () => {
+      const blocks = caseStudyToBlocks(study, JOB_ID, { 'F-1': 'RPT-101' })
+      expect(f1Of(blocks).alertProposal).toBeNull()
+    })
+
+    it('is null for a finding with no values to preset a series from, even with a chart and a condition', () => {
+      const blocks = caseStudyToBlocks(proposalStudy, JOB_ID, { 'F-1': 'RPT-101', 'F-2': 'RPT-102' })
+      expect(f2Of(blocks).alertProposal).toBeNull()
+    })
+  })
+
   it('is pure: calling it twice with the same study produces deep-equal output', () => {
     expect(caseStudyToBlocks(study, JOB_ID)).toEqual(caseStudyToBlocks(study, JOB_ID))
   })

@@ -29,12 +29,14 @@ import {
   disableMockLatency,
   getNotificationSummary,
   getRouteTable,
+  listFirings,
   listNotifications,
   mockFailures,
   resetDataLayer,
 } from '@/data/clients'
 import { formatCount, resetDefaultUiStores } from '@/lib'
 import { EN } from '@/i18n/dictionaries'
+import { analystAskUrl } from '@/screens/analyst/entryContext'
 import { AppLayout } from './AppLayout'
 import { ShellProvider } from './ShellContext'
 import { NotFoundScreen } from '@/screens/RouteStates'
@@ -321,5 +323,40 @@ describe('the unread marker is not colour and shape alone', () => {
     for (const word of shown) {
       expect(word.closest(UNREAD_GROUND), 'every worded row is a tinted row').not.toBeNull()
     }
+  })
+})
+
+/* ═══════════ 6 · AC-1262 — a firing's own notification offers Explain ══ */
+
+describe('a notification that reports an alert firing offers Explain', () => {
+  it('is a real link carrying that firing to the analyst, reachable by keyboard', async () => {
+    const alert = await notification('N11')
+    const firing = (await listFirings({ pageSize: 100 })).items.find((f) => f.notificationId === alert.id)
+    expect(firing, 'AFR-1 names N11 (alerts.ts)').toBeDefined()
+
+    renderShell(LAYER_PATH)
+    const layer = await screen.findByRole('dialog')
+    const explain = within(layer).getByRole('link', {
+      name: en('shell.notifications.explainA11y').replace('{title}', alert.title),
+    })
+    expect(explain).toHaveAttribute(
+      'href',
+      analystAskUrl({ kind: 'firing', id: firing!.id, label: alert.title }),
+    )
+    expect(explain.tagName).toBe('A')
+    explain.focus()
+    expect(explain).toHaveFocus()
+  })
+
+  it('renders no Explain link on a notification no firing names', async () => {
+    const ticket = await notification('N2')
+
+    renderShell(LAYER_PATH)
+    const layer = await screen.findByRole('dialog')
+    expect(
+      within(layer).queryByRole('link', {
+        name: en('shell.notifications.explainA11y').replace('{title}', ticket.title),
+      }),
+    ).toBeNull()
   })
 })

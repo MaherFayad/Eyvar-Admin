@@ -49,13 +49,14 @@
  *               why the tint is `bg-info/50` and not `bg-info`.
  */
 
-import { useCallback, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
 import { useAsync } from '@/hooks'
 import { formatCount, formatDate, formatLocalisedText } from '@/lib'
-import { listNotifications, markAllNotificationsRead } from '@/data/clients'
+import { listFirings, listNotifications, markAllNotificationsRead } from '@/data/clients'
 import {
   NOTIFICATION_PRIORITY_RANK,
   type Notification,
@@ -67,6 +68,7 @@ import type { Language, Translate } from '@/lib'
 import { EmptyState } from '@/components/EmptyState'
 import { ErrorState } from '@/components/ErrorState'
 import { LoadingSkeleton } from '@/components/LoadingSkeleton'
+import { analystAskUrl } from '@/screens/analyst/entryContext'
 import { ShellLayer } from '../ShellLayer'
 
 /**
@@ -124,6 +126,25 @@ export function NotificationsLayer({
        which bypasses the cache and rewrites the entry. */
     { deps: [filter], cacheKey: 'notifications.list', enabled: open },
   )
+
+  /* AC-1262 — `AlertFiring.notificationId` is the existing reconciliation key
+     (`AppLayout.tsx`'s own comment names it) between a firing and the row it
+     produced; resolved here rather than stored a second time on the
+     notification. Only the one row a firing names gets `Explain` — every
+     other notification renders exactly as it does today. */
+  const firings = useAsync((signal) => listFirings({ pageSize: 100 }, signal), {
+    cacheKey: 'alerts.firings.list',
+    deps: [open],
+    enabled: open,
+    isEmpty: (page) => page.items.length === 0,
+  })
+  const explainFiringIdByNotification = useMemo(() => {
+    const map = new Map<string, string>()
+    for (const firing of firings.data?.items ?? []) {
+      if (firing.notificationId) map.set(firing.notificationId, firing.id)
+    }
+    return map
+  }, [firings.data])
 
   const markAll = useCallback(async () => {
     await markAllNotificationsRead()
@@ -226,6 +247,7 @@ export function NotificationsLayer({
                         t={t}
                         onOpen={() => onOpenNotification(notification)}
                         onMarkRead={() => void markOne(notification)}
+                        explainFiringId={explainFiringIdByNotification.get(notification.id) ?? null}
                       />
                     </li>
                   ))}
@@ -286,15 +308,21 @@ function Row({
   t,
   onOpen,
   onMarkRead,
+  explainFiringId,
 }: {
   notification: Notification
   language: Language
   t: Translate
   onOpen: () => void
   onMarkRead: () => void
+  /** AC-1262 — the firing this row reports, when `AlertFiring.notificationId`
+   * names it; `null` renders the row exactly as it did before this action
+   * existed. */
+  explainFiringId: string | null
 }) {
   const navigable = notification.route !== null || notification.entityId !== null
   const bodyClassName = 'flex min-w-0 flex-1 flex-col gap-0.5 text-start'
+  const title = notification.titleText ? formatLocalisedText(notification.titleText, t) : notification.title
   const body = (
     <>
       <div className="flex items-center gap-1.5">
@@ -319,7 +347,7 @@ function Row({
         dir="auto"
         className={cn('text-sm', notification.read ? 'font-normal' : 'font-semibold')}
       >
-        {notification.titleText ? formatLocalisedText(notification.titleText, t) : notification.title}
+        {title}
       </span>
       {/* §7.5 — G5's weight-only marker. Font weight is not a carrier a screen
           reader has, and neither is a tint or a dot, so the word stays and the
@@ -352,6 +380,22 @@ function Row({
       ) : (
         <div className={bodyClassName}>{body}</div>
       )}
+      {/* AC-1262 — a real `<a>`, not a second `onOpen`: it carries the firing
+         to the analyst rather than opening this row's own destination.
+         Marking read piggybacks on the same navigation, same as the body. */}
+      {explainFiringId && (
+        <Link
+          to={analystAskUrl({ kind: 'firing', id: explainFiringId, label: title })}
+          onClick={onMarkRead}
+          className={cn(
+            'shrink-0 self-center rounded-md px-1.5 py-1 text-xs text-info-foreground underline underline-offset-2 outline-none',
+            'focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+          )}
+          aria-label={t('shell.notifications.explainA11y', { title })}
+        >
+          {t('shell.notifications.explain')}
+        </Link>
+      )}
       {!notification.read && (
         <Button
           variant="ghost"
@@ -360,9 +404,7 @@ function Row({
           onClick={onMarkRead}
           /* The visible label is the same six characters on every row, so the
              accessible name names the row it acts on (§7.2). */
-          aria-label={t('shell.notifications.markReadA11y', {
-            title: notification.titleText ? formatLocalisedText(notification.titleText, t) : notification.title,
-          })}
+          aria-label={t('shell.notifications.markReadA11y', { title })}
         >
           {t('shell.notifications.markRead')}
         </Button>
