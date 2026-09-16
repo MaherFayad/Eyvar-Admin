@@ -464,6 +464,8 @@ export const REPORTS_AR: Dictionary = {
   'rb.table.columns.rowTime': 'التاريخ',
   'rb.table.columns.rowLabel': 'المجموعة',
   'rb.table.columns.totals': 'الإجمالي',
+  'rb.table.columns.search': 'ابحث في الصفوف',
+  'rb.table.columns.search.empty': 'لا توجد صفوف مطابقة لهذا البحث.',
 
   'rb.control.table.columns': 'الأعمدة',
   'rb.control.table.columns.hint': 'كل عمود هو أحد المقاييس أو الصيغة المطلوبة أعلاه بالفعل.',

@@ -591,6 +591,8 @@ export function ResultTable({
               />
               <Input
                 type="search"
+                /* AC-898 — typed text is user content; it follows its own script. */
+                dir="auto"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 aria-label={t('rb.table.search')}
@@ -891,21 +893,43 @@ export interface ResultTableColumnsProps {
  */
 export function ResultTableColumns({ spec, columnResults, measuresByKey, t, language }: ResultTableColumnsProps) {
   const [sort, setSort] = useState<{ column: number; descending: boolean } | null>(null)
+  const [query, setQuery] = useState('')
 
-  const rows = useMemo(() => {
-    /* The union across every column's own rows, first-seen order — columns
-       may carry different filters and so different group values present. */
+  /** The union across every column's own rows, first-seen order, UNFILTERED
+   * by the search below — columns may carry different filters and so
+   * different group values present. This is the list the search narrows,
+   * never replaces, so the threshold and the "no data" vs "no match" empty
+   * states both read from here rather than from whatever the search left. */
+  const allRows = useMemo(() => {
     const seen = new Map<string, ColumnsRow>()
     for (const result of columnResults) {
       for (const row of columnsRowsOf(result, spec.rows)) {
         if (!seen.has(row.key)) seen.set(row.key, row)
       }
     }
-    const unsorted = [...seen.values()]
-    if (sort === null) return unsorted
+    return [...seen.values()]
+  }, [columnResults, spec.rows])
+
+  /** The row's own visible text — what the search matches and what the
+   * `<td>` renders, so a match is never a fact the cell disagrees with. */
+  const rowLabelOf = (row: ColumnsRow): string =>
+    spec.rows[0] === 'time'
+      ? formatDate(row.key, { style: 'day-month-year', language })
+      : row.label || t('rb.table.columns.rowLabel')
+
+  const rows = useMemo(() => {
+    /* Filters the FULL union above, not a window of it — above
+       `VIRTUALISE_ABOVE` only a slice of `allRows` ever mounts, and a
+       filter over the mounted slice would repeat the gap this closes: a row
+       Ctrl+F (and this search) must be able to find even though it never
+       rendered. */
+    const needle = query.trim().toLocaleLowerCase()
+    const matching =
+      needle === '' ? allRows : allRows.filter((row) => rowLabelOf(row).toLocaleLowerCase().includes(needle))
+    if (sort === null) return matching
 
     const result = columnResults[sort.column]
-    if (!result) return unsorted
+    if (!result) return matching
     const valueOf = (row: ColumnsRow): number | null => {
       const cell = columnsCellOf(result, row, spec.rows)
       return cell ? (cell.series.points[cell.index] ?? null) : null
@@ -913,7 +937,7 @@ export function ResultTableColumns({ spec, columnResults, measuresByKey, t, lang
     const direction = sort.descending ? -1 : 1
     /* AC-1178 — a gap sinks to the bottom whichever way the column is sorted,
        the same rule `ResultTable`'s own sort applies above. */
-    return [...unsorted].sort((a, b) => {
+    return [...matching].sort((a, b) => {
       const left = valueOf(a)
       const right = valueOf(b)
       if (left === null && right === null) return 0
@@ -921,7 +945,7 @@ export function ResultTableColumns({ spec, columnResults, measuresByKey, t, lang
       if (right === null) return -1
       return direction * (left - right)
     })
-  }, [columnResults, spec.rows, sort])
+  }, [allRows, query, sort, columnResults, spec.rows, t, language])
 
   const toggle = (column: number) =>
     setSort((current) =>
@@ -954,11 +978,7 @@ export function ResultTableColumns({ spec, columnResults, measuresByKey, t, lang
     if (!virtual) return []
     const rowLabelColumn = [
       spec.rows[0] === 'time' ? t('rb.table.columns.rowTime') : t('rb.table.columns.rowLabel'),
-      ...rows.map((row) =>
-        spec.rows[0] === 'time'
-          ? formatDate(row.key, { style: 'day-month-year', language })
-          : row.label || t('rb.table.columns.rowLabel'),
-      ),
+      ...rows.map((row) => rowLabelOf(row)),
     ]
     const dataColumns = spec.columns.map((column, index) => {
       const header = columnLabel(column, measuresByKey, t)
@@ -980,11 +1000,7 @@ export function ResultTableColumns({ spec, columnResults, measuresByKey, t, lang
   const renderColumnsRow = (row: ColumnsRow, rowIndex: number, windowed: boolean) => (
     <TableRow key={row.key} data-index={windowed ? rowIndex : undefined} aria-rowindex={windowed ? rowIndex + 2 : undefined}>
       <TableCell className="text-start whitespace-nowrap">
-        {spec.rows[0] === 'time' ? (
-          <bdi>{formatDate(row.key, { style: 'day-month-year', language })}</bdi>
-        ) : (
-          <bdi>{row.label || t('rb.table.columns.rowLabel')}</bdi>
-        )}
+        <bdi>{rowLabelOf(row)}</bdi>
       </TableCell>
       {spec.columns.map((_column, index) => {
         const result = columnResults[index]
@@ -1019,102 +1035,147 @@ export function ResultTableColumns({ spec, columnResults, measuresByKey, t, lang
     </TableRow>
   )
 
-  if (spec.columns.length === 0 || rows.length === 0) {
+  if (spec.columns.length === 0 || allRows.length === 0) {
     /* R8's second kind of empty: a table asked for and drawn with nothing to
        show — never the first-run illustration, which would claim no data
-       exists anywhere. */
+       exists anywhere. Reads `allRows`, not the searched `rows`: a search
+       that matches nothing is a DIFFERENT empty, drawn inside the table
+       shell below rather than replacing it. */
     return <p className="py-10 text-center text-sm text-muted-foreground">{t('rb.table.columns.empty')}</p>
   }
 
   return (
-    <div className="rounded-xl border border-card-border bg-card">
-      <Table
-        containerRef={containerRef}
-        containerClassName="rounded-xl"
-        className={virtual && columnWidths ? 'w-full table-fixed' : 'w-auto min-w-full table-auto'}
-        aria-rowcount={virtual ? rows.length + 1 : undefined}
-      >
-        {virtual && columnWidths && (
-          <colgroup>
-            {columnWidths.map((width, index) => (
-              <col key={index} style={{ width }} />
-            ))}
-          </colgroup>
-        )}
-        <TableHeader>
-          <TableRow aria-rowindex={virtual ? 1 : undefined}>
-            <TableHead className="text-start whitespace-nowrap">
-              {spec.rows[0] === 'time' ? t('rb.table.columns.rowTime') : t('rb.table.columns.rowLabel')}
-            </TableHead>
-            {spec.columns.map((column, index) => {
-              const label = columnLabel(column, measuresByKey, t)
-              return (
-                <TableHead key={index} className="text-end whitespace-nowrap" aria-sort={sortState(index)}>
-                  <SortableHeader active state={sortState(index)} label={label} onToggle={() => toggle(index)} end t={t}>
-                    {label}
-                  </SortableHeader>
-                </TableHead>
-              )
-            })}
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {virtual ? (
-            <>
-              <VirtualPadRow height={virtualItems[0]?.start ?? 0} columnCount={columnCount} />
-              {virtualItems.map((item) => {
-                const row = rows[item.index]
-                return row ? renderColumnsRow(row, item.index, true) : null
-              })}
-              <VirtualPadRow
-                height={rowVirtualizer.getTotalSize() - (virtualItems.at(-1)?.end ?? 0)}
-                columnCount={columnCount}
-              />
-            </>
-          ) : (
-            rows.map((row, index) => renderColumnsRow(row, index, false))
+    <div className="flex min-w-0 flex-col gap-2">
+      {allRows.length >= SEARCH_THRESHOLD && (
+        /* Same search `rb.table.search` gives the classic table (§A11),
+           over the row dimension: above `VIRTUALISE_ABOVE` only a window of
+           rows mounts, so Ctrl+F cannot see the rest — this filters
+           `allRows`, the full list, before either the sort or the
+           virtualiser ever see it. */
+        <div className="flex items-center gap-2">
+          <div className="relative flex min-w-0 items-center">
+            {/* A magnifying glass is an object, not a direction: it does not
+                mirror (§9.5). It sits at the field's inline START in both
+                languages, which `start-2.5` is exactly. */}
+            <SearchIcon
+              aria-hidden="true"
+              className="pointer-events-none absolute start-2.5 size-4 text-muted-foreground"
+            />
+            <Input
+              type="search"
+              dir="auto"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              aria-label={t('rb.table.columns.search')}
+              placeholder={t('rb.table.columns.search')}
+              className="h-8 w-56 ps-8"
+            />
+          </div>
+        </div>
+      )}
+
+      <div className="rounded-xl border border-card-border bg-card">
+        <Table
+          containerRef={containerRef}
+          containerClassName="rounded-xl"
+          className={virtual && columnWidths ? 'w-full table-fixed' : 'w-auto min-w-full table-auto'}
+          aria-rowcount={virtual ? rows.length + 1 : undefined}
+        >
+          {virtual && columnWidths && (
+            <colgroup>
+              {columnWidths.map((width, index) => (
+                <col key={index} style={{ width }} />
+              ))}
+            </colgroup>
           )}
-        </TableBody>
-        {spec.totals && (
-          <tfoot>
-            <TableRow>
-              <TableCell className="text-start font-medium text-foreground">{t('rb.table.columns.totals')}</TableCell>
+          <TableHeader>
+            <TableRow aria-rowindex={virtual ? 1 : undefined}>
+              <TableHead className="text-start whitespace-nowrap">
+                {spec.rows[0] === 'time' ? t('rb.table.columns.rowTime') : t('rb.table.columns.rowLabel')}
+              </TableHead>
               {spec.columns.map((column, index) => {
-                const result = columnResults[index]
-                const measure = column.kind === 'measure' ? measuresByKey?.[column.ref.key] : undefined
-                const series = result?.series.find((s) => s.role === 'current' && s.blocked === null && s.failed === null)
-                if (!result || !series) {
-                  return <TableCell key={index} className="text-end text-muted-foreground">{ABSENT}</TableCell>
-                }
-                /* AC-1175: additive → a real sum (or the catalogue's own
-                   declared combination); anything else names its aggregate
-                   word instead of guessing one — same rule, same helper,
-                   `ResultTable`'s single summary column already applies. */
-                const aggregate = declaredAggregate(series, measure)
-                if (aggregate === null) {
-                  return (
-                    <TableCell key={index} className="text-end">
-                      <span className="flex flex-col items-end">
-                        <span aria-hidden="true">{ABSENT}</span>
-                        <span className="text-xs font-normal text-muted-foreground">{t('rb.table.window.undeclared')}</span>
-                      </span>
-                    </TableCell>
-                  )
-                }
-                const value = rollUpSeries(series, aggregate, result.buckets.length).value
+                const label = columnLabel(column, measuresByKey, t)
                 return (
-                  <TableCell key={index} className="text-end">
-                    <span className="flex flex-col items-end">
-                      <span className="tabular-nums">{formatMetricValue(value, series.unit, language)}</span>
-                      <span className="text-xs font-normal text-muted-foreground">{t(AGGREGATE_WORD[aggregate])}</span>
-                    </span>
-                  </TableCell>
+                  <TableHead key={index} className="text-end whitespace-nowrap" aria-sort={sortState(index)}>
+                    <SortableHeader active state={sortState(index)} label={label} onToggle={() => toggle(index)} end t={t}>
+                      {label}
+                    </SortableHeader>
+                  </TableHead>
                 )
               })}
             </TableRow>
-          </tfoot>
-        )}
-      </Table>
+          </TableHeader>
+          <TableBody>
+            {rows.length === 0 ? (
+              /* The SECOND kind of empty (`states.md`): the rows exist, this
+                 search matched none of them. Never the first-run
+                 illustration, which would claim there is no data. */
+              <TableRow>
+                <TableCell colSpan={columnCount} className="text-center text-muted-foreground">
+                  {t('rb.table.columns.search.empty')}
+                </TableCell>
+              </TableRow>
+            ) : virtual ? (
+              <>
+                <VirtualPadRow height={virtualItems[0]?.start ?? 0} columnCount={columnCount} />
+                {virtualItems.map((item) => {
+                  const row = rows[item.index]
+                  return row ? renderColumnsRow(row, item.index, true) : null
+                })}
+                <VirtualPadRow
+                  height={rowVirtualizer.getTotalSize() - (virtualItems.at(-1)?.end ?? 0)}
+                  columnCount={columnCount}
+                />
+              </>
+            ) : (
+              rows.map((row, index) => renderColumnsRow(row, index, false))
+            )}
+          </TableBody>
+          {spec.totals && (
+            /* AC-1175/AC-1298 — read off `columnResults` and `spec.columns`
+               directly, never `rows`: the totals are over the whole report,
+               so the operator's search text narrows what is LISTED above
+               and never what is SUMMED here. */
+            <tfoot>
+              <TableRow>
+                <TableCell className="text-start font-medium text-foreground">{t('rb.table.columns.totals')}</TableCell>
+                {spec.columns.map((column, index) => {
+                  const result = columnResults[index]
+                  const measure = column.kind === 'measure' ? measuresByKey?.[column.ref.key] : undefined
+                  const series = result?.series.find((s) => s.role === 'current' && s.blocked === null && s.failed === null)
+                  if (!result || !series) {
+                    return <TableCell key={index} className="text-end text-muted-foreground">{ABSENT}</TableCell>
+                  }
+                  /* AC-1175: additive → a real sum (or the catalogue's own
+                     declared combination); anything else names its aggregate
+                     word instead of guessing one — same rule, same helper,
+                     `ResultTable`'s single summary column already applies. */
+                  const aggregate = declaredAggregate(series, measure)
+                  if (aggregate === null) {
+                    return (
+                      <TableCell key={index} className="text-end">
+                        <span className="flex flex-col items-end">
+                          <span aria-hidden="true">{ABSENT}</span>
+                          <span className="text-xs font-normal text-muted-foreground">{t('rb.table.window.undeclared')}</span>
+                        </span>
+                      </TableCell>
+                    )
+                  }
+                  const value = rollUpSeries(series, aggregate, result.buckets.length).value
+                  return (
+                    <TableCell key={index} className="text-end">
+                      <span className="flex flex-col items-end">
+                        <span className="tabular-nums">{formatMetricValue(value, series.unit, language)}</span>
+                        <span className="text-xs font-normal text-muted-foreground">{t(AGGREGATE_WORD[aggregate])}</span>
+                      </span>
+                    </TableCell>
+                  )
+                })}
+              </TableRow>
+            </tfoot>
+          )}
+        </Table>
+      </div>
     </div>
   )
 }

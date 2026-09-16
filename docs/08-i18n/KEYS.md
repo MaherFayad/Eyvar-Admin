@@ -9,9 +9,9 @@ this file is stale or when the `defaultValue` ratchet slips.
 
 | | |
 |---|---:|
-| **Translatable keys, all dictionaries** | **7543** |
-| Reachable from `EN` (what the shell renders) | 7173 |
-| Keys in `AR` | 7543 |
+| **Translatable keys, all dictionaries** | **7547** |
+| Reachable from `EN` (what the shell renders) | 7177 |
+| Keys in `AR` | 7547 |
 | **Keys Arabic is missing** | **0** |
 | Keys in `AR` and not in `EN` (plural forms, unregistered screens) | 370 |
 | Plural forms (`key#category`) inside `EN` | 75 |
@@ -425,7 +425,7 @@ Measured on English only, and a placeholder counts as one word.
 | File | Exports | Keys |
 |---|---|---:|
 | `src/screens/financials/copy.ts` | `FINANCIALS_EN` | 960 |
-| `src/screens/reports/copy.ts` | `REPORTS_EN` | 924 |
+| `src/screens/reports/copy.ts` | `REPORTS_EN` | 926 |
 | `src/commands/copy.ts` | `COMMANDS_EN` | 390 |
 | `src/screens/operations/people/copy.ts` | `PEOPLE_EN` | 338 |
 | `src/components/profile/copy.ts` | `PROFILE_EN` | 280 |

@@ -10,9 +10,10 @@
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeAll, describe, expect, it } from 'vitest'
-import { createTranslator } from '@/lib'
+import { createTranslator, formatDate } from '@/lib'
 import { EN } from '@/i18n/dictionaries'
 import { listMeasures } from '@/data/clients'
+import { formatMetricValue } from '@/components/metrics'
 import type { Measure, ReportPanel, ReportResult, ReportSeries } from '@/data/types'
 import type { TableColumn, TableSpec } from '@/data/types/report'
 import { ResultTableColumns } from './ResultTable'
@@ -207,3 +208,70 @@ describe('AC-1178 — sorting by any column orders rows with null last', () => {
 
 /** `rb.table.window.mean` — the aggregate word a `mean` measure's total cell names. */
 const AGGREGATE_WORD_MEAN = 'rb.table.window.mean'
+
+describe("the columns table's own search — closing the gap virtualisation opened", () => {
+  /* 250 daily buckets: above `VIRTUALISE_ABOVE` (200), the same shape that
+     makes the classic table's `ResultTable` window its rows. Before this
+     change `ResultTableColumns` had no search at all, so a row past the
+     mounted window was invisible to both Ctrl+F and the operator. */
+  const WIDE_BUCKETS = Array.from({ length: 250 }, (_, i) => {
+    const day = new Date(Date.UTC(2026, 0, 1))
+    day.setUTCDate(day.getUTCDate() + i)
+    return day.toISOString().slice(0, 10)
+  })
+  const TARGET_INDEX = 220
+  const targetLabel = formatDate(WIDE_BUCKETS[TARGET_INDEX] as string, { style: 'day-month-year', language: 'en' })
+  const points = WIDE_BUCKETS.map((_, i) => i + 1)
+  const total = formatMetricValue(
+    points.reduce((sum, value) => sum + value, 0),
+    'count',
+    'en',
+  )
+  /* `COMPLETED` is not resolved until `beforeAll` above runs, so — unlike
+     the constants above — these must stay functions and be called from
+     inside each `it`, never evaluated while the suite is still collecting. */
+  const specOf = (): TableSpec => ({ columns: [measureColumn(COMPLETED)], rows: ['time'], totals: true, format: [] })
+  const resultsOf = () => [resultOf([seriesOf(COMPLETED, points)], WIDE_BUCKETS)]
+
+  it('the row count reflects the full 250-row list, not a mounted window', () => {
+    render(<ResultTableColumns spec={specOf()} columnResults={resultsOf()} measuresByKey={measuresByKey} t={t} language="en" />)
+    /* `aria-rowcount` is only set once windowed (`rows.length + 1`) — 251
+       here proves the union read all 250 buckets, not a slice of them. */
+    expect(screen.getByRole('table')).toHaveAttribute('aria-rowcount', '251')
+  })
+
+  it('finds a row beyond whatever the virtualiser mounted, and leaves the totals unchanged', async () => {
+    const user = userEvent.setup()
+    render(<ResultTableColumns spec={specOf()} columnResults={resultsOf()} measuresByKey={measuresByKey} t={t} language="en" />)
+
+    /* jsdom does no layout, so the virtualiser here may mount every row or
+       none — this assertion does not depend on which. What it establishes
+       is only that the target row is not on screen yet. */
+    expect(screen.queryByText(targetLabel)).not.toBeInTheDocument()
+    expect(screen.getByText(total)).toBeInTheDocument()
+
+    const search = screen.getByRole('searchbox', { name: EN['rb.table.columns.search'] as string })
+    await user.type(search, targetLabel)
+
+    /* The match narrows the row list below `VIRTUALISE_ABOVE`, so it mounts
+       for real: proof the filter ran over the FULL 250-row union, not over
+       whichever rows happened to be mounted before the search ran. */
+    expect(screen.getByText(targetLabel)).toBeInTheDocument()
+    /* The totals row reads `columnResults`/`spec.columns` directly, never
+       the searched `rows` — a report total, not a total of what is listed. */
+    expect(screen.getByText(total)).toBeInTheDocument()
+  })
+
+  it('a search matching nothing shows the stated empty state, never a blank table', async () => {
+    const user = userEvent.setup()
+    render(<ResultTableColumns spec={specOf()} columnResults={resultsOf()} measuresByKey={measuresByKey} t={t} language="en" />)
+
+    const search = screen.getByRole('searchbox', { name: EN['rb.table.columns.search'] as string })
+    await user.type(search, 'zzzz-no-such-bucket')
+
+    expect(screen.getByText(EN['rb.table.columns.search.empty'] as string)).toBeInTheDocument()
+    /* A search with no matches is not a report with no data — the totals
+       row still stands. */
+    expect(screen.getByText(total)).toBeInTheDocument()
+  })
+})

@@ -808,6 +808,11 @@ export const REPORTS_EN: Dictionary = {
   'rb.table.columns.rowTime': 'Date',
   'rb.table.columns.rowLabel': 'Group',
   'rb.table.columns.totals': 'Total',
+  /* Above `VIRTUALISE_ABOVE` only a window of rows mounts, so Ctrl+F cannot
+     see the rest — the same search `rb.table.search` gives the classic
+     table, over the row dimension instead of the series list. */
+  'rb.table.columns.search': 'Search rows',
+  'rb.table.columns.search.empty': 'No rows match that search.',
 
   /* WP-3.5, F-V2-47 — the rail's columns editor, `mode: "table"` only. */
   'rb.control.table.columns': 'Columns',
