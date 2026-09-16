@@ -11,7 +11,11 @@ import { MetricDelta } from '@/components/metrics/MetricTile'
 import { comparisonWindow } from '@/data/clients'
 import type { CurrencyCode, Measure, MetricUnit, ReportPanel, ReportResult } from '@/data/types'
 import { formatDate, type Language, type Translator } from '@/lib'
-import { PanelNumeral } from './PanelCard'
+/* WP-8.4 §5 boundary exception (outside this role's file set, disclosed in
+   the handoff): `./PanelCard` statically imports `PanelChart.tsx`, a
+   `recharts` importer, so a number-only prop from it still pulled the whole
+   chart chunk in ahead of the sparkline this file already defers. */
+import { PanelNumeral } from './panelPrimitives'
 import { declaredAggregate, periodDelta, rollUpSeries } from './rollup'
 
 /* WP-8.4 finding 1 — the number, the delta and the title need no recharts;

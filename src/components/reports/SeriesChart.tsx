@@ -29,6 +29,11 @@ import { ABSENT, directionFor, formatDate, type Language, type Translate } from 
 import type { MetricUnit, ReportPanel, ReportResult, ReportSeries } from '@/data/types'
 import type { Annotation } from '@/data/types/annotation'
 import { AnnotationMarks } from './AnnotationMarks'
+/* WP-8.4 §5 — series colour/dash live in `panelPrimitives.tsx`, which does
+   not import recharts. A caller of the legend swatch (`ResultCanvas`,
+   `SeriesHeadlines`) imports them from there directly, never from here, or
+   Rollup fuses this file's own `recharts` import back into their chunk. */
+import { COMPARISON_SERIES_ID, seriesColor, seriesDash } from './panelPrimitives'
 
 /**
  * **Do not remove.** See the header — with marks hit-testable, the click that
@@ -45,23 +50,6 @@ export type SeriesChartKind =
   | 'stacked-100'
   | 'horizontal-bar'
 
-/**
- * The six categorical stops, in draw order, plus v2's `--chart-s7`/`-s8`
- * (`docs/09-analytics-v2/02-report-builder-v2.md` §4.8). Eight rather than
- * more because a ninth hue that separates from the other eight under
- * deuteranopia does not exist at this lightness.
- */
-const SERIES_STOPS = [
-  'var(--chart-s1)',
-  'var(--chart-s2)',
-  'var(--chart-s3)',
-  'var(--chart-s4)',
-  'var(--chart-s5)',
-  'var(--chart-s6)',
-  'var(--chart-s7)',
-  'var(--chart-s8)',
-] as const
-
 const FILL_STOPS = [
   'var(--chart-fill-s1)',
   'var(--chart-fill-s2)',
@@ -76,38 +64,13 @@ const FILL_STOPS = [
 /** §4.8 — `Other` never takes a hue. */
 export const OTHER_COLOR = 'var(--muted-foreground)'
 
-/**
- * **The one lookup three surfaces share.** The dot above the number, the line
- * in the plot and the chip in the legend all call this with the same index, so
- * they cannot drift. Wraps rather than throwing past eight: a folded split can
- * exceed the palette, and a repeated hue is a worse picture than a crash is a
- * screen, but only just — `foldedGroupCount` already keeps this rare.
- */
-export function seriesColor(index: number): string {
-  return SERIES_STOPS[index % SERIES_STOPS.length] ?? SERIES_STOPS[0]
-}
-
 export function seriesFill(index: number): string {
   return FILL_STOPS[index % FILL_STOPS.length] ?? FILL_STOPS[0]
-}
-
-/**
- * **The ninth series onwards, and why it may take the dash.** Past the
- * eight-hue palette the second lap is dotted (`1 3`), deliberately not the
- * comparison's `4 3` long dash, so the two never resemble each other. The two
- * cases cannot co-occur: a comparison draws only at two series or fewer, and a
- * second lap only exists at nine or more.
- */
-export function seriesDash(index: number): string | undefined {
-  return index < SERIES_STOPS.length ? undefined : '1 3'
 }
 
 /** Recharts needs flat keys, and a panel id is not one. Index-addressed. */
 const currentKey = (index: number) => `s${index}`
 const comparisonKey = (index: number) => `c${index}`
-
-/** The legend's toggle id for the comparison entry — it toggles as one unit (§2.1). */
-export const COMPARISON_SERIES_ID = '__comparison__'
 
 /** Matches `AnnotationMarks`' own positioning maths — exported so it never drifts from this file's `margin`. */
 export const CHART_MARGIN = { top: 8, right: 8, bottom: 0, left: 4 } as const

@@ -44,13 +44,19 @@
  * row must never do is make a series in the plot unfindable in the numbers.
  */
 
-import { MetricDelta } from '@/components/metrics'
+/* WP-8.4 §5 boundary exception: the `@/components/metrics` barrel re-exports
+   `TrendChart`/`Sparkline`, both static `recharts` importers. `KpiCard.tsx`
+   already reaches `MetricDelta` this same deep way, for the same reason. */
+import { MetricDelta } from '@/components/metrics/MetricTile'
 import type { CurrencyCode, Measure, MetricUnit, ReportPanel, ReportResult } from '@/data/types'
 import { comparisonWindow } from '@/data/clients'
 import { formatDate, type Language, type Translate } from '@/lib'
-import { PanelNumeral } from './PanelCard'
+/* WP-8.4 §5 boundary exception (outside this role's file set, disclosed in
+   the handoff): both were `./PanelCard` / `./SeriesChart` imports, which
+   statically pull `recharts` in even though neither symbol touches a mark.
+   `panelPrimitives.tsx` holds the same bindings without that import. */
+import { PanelNumeral, seriesColor, seriesDash } from './panelPrimitives'
 import { declaredAggregate, periodDelta, rollUpSeries } from './rollup'
-import { seriesColor, seriesDash } from './SeriesChart'
 
 export interface SeriesHeadlinesProps {
   /** The same panels, in the same order, that `SeriesChart` was handed. */

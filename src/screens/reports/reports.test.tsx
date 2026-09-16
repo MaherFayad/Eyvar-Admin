@@ -540,8 +540,13 @@ describe('AC-851 — a failed leg fails alone', () => {
        This criterion is about the CARD, so the assertion is that at least one
        statement of it lives outside the table — a count would break the next
        time a rendering states it honestly somewhere else. */
-    const failures = await screen.findAllByText(REPORTS_EN['rb.panel.failed'] as string)
-    expect(failures.some((node) => node.closest('table') === null)).toBe(true)
+    /* Two instances race in: the table's cell renders synchronously, the
+       card's is WP-8.4 §5's `LazyPanelCard` and resolves after its own
+       `Suspense` — `findAllByText`'s first match can be the table alone. */
+    await waitFor(() => {
+      const failures = screen.getAllByText(REPORTS_EN['rb.panel.failed'] as string)
+      expect(failures.some((node) => node.closest('table') === null)).toBe(true)
+    })
     expect(
       screen.getByRole('button', { name: REPORTS_EN['rb.panel.failed.retry'] as string }),
     ).toBeInTheDocument()

@@ -39,7 +39,7 @@
  * what is never folded into one. Nothing about the QUERY changed.
  */
 
-import { render, screen, within } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
@@ -212,11 +212,17 @@ function failedResult(): ReportResult {
  * buckets), so this filters out the chart controls row's own `group`.
  */
 const CONTROLS_ROW_LABEL = copy('rb.chart.controlsRow')
+/* WP-8.4 §5 — `SeriesChart` (this `role="group"` plot's own element) is now
+   `lazy()`-loaded from `ResultCanvas`, so it is not in the DOM on the first
+   synchronous render; `waitFor` lets its `Suspense` boundary resolve first. */
 const plots = () =>
-  screen
-    .queryAllByRole('group')
-    .filter((el) => el.getAttribute('aria-label') !== CONTROLS_ROW_LABEL)
-    .map((p) => p.getAttribute('aria-label'))
+  waitFor(() => {
+    const found = screen
+      .queryAllByRole('group')
+      .filter((el) => el.getAttribute('aria-label') !== CONTROLS_ROW_LABEL)
+    if (found.length === 0) throw new Error('the plot has not resolved yet')
+    return found.map((p) => p.getAttribute('aria-label'))
+  })
 
 function renderCanvas(props: Partial<React.ComponentProps<typeof ResultCanvas>> = {}) {
   return render(
@@ -358,14 +364,14 @@ describe('framed — the caller that already drew a frame says so', () => {
     expect(container.querySelectorAll('[data-slot="panel-frame"]')).toHaveLength(0)
   })
 
-  it('draws no card at all when the caller has one, and still draws the plot', () => {
+  it('draws no card at all when the caller has one, and still draws the plot', async () => {
     const { container } = asTile()
     expect(container.querySelectorAll('[data-slot="card"]')).toHaveLength(0)
     /* **The half that stops this being vacuous.** Zero cards is trivially true
        of a canvas that rendered nothing; the plot has to still be there, and it
        has to still say both series are in it. */
     expect(container.querySelectorAll('[data-slot="panel-frame"]')).toHaveLength(1)
-    expect(plots()).toEqual([`${titleOf('p1')}, ${titleOf('p2')}`])
+    expect(await plots()).toEqual([`${titleOf('p1')}, ${titleOf('p2')}`])
   })
 
   it('carries the frame decision into the empty result too', () => {
@@ -417,46 +423,48 @@ describe('framed — the caller that already drew a frame says so', () => {
  * cannot be drawn left out of the compound plot rather than flattened into it.
  */
 describe('the compound plot groups by what may honestly share one axis', () => {
-  it('draws one plot for series of one unit, naming every series in it', () => {
+  it('draws one plot for series of one unit, naming every series in it', async () => {
     renderCanvas()
-    expect(plots()).toEqual([`${titleOf('p1')}, ${titleOf('p2')}`])
+    expect(await plots()).toEqual([`${titleOf('p1')}, ${titleOf('p2')}`])
   })
 
-  it('draws one plot however many groups a split produces', () => {
+  it('draws one plot however many groups a split produces', async () => {
     /* Eight panels, one unit — a split by district, which is the case the
        compound chart was built for. Still one axis, still one plot. */
     renderCanvas({ result: wideResult() })
-    expect(plots()).toHaveLength(1)
-    expect(plots()[0]).toContain(titleOf('p8'))
+    const found = await plots()
+    expect(found).toHaveLength(1)
+    expect(found[0]).toContain(titleOf('p8'))
   })
 
-  it('refuses to put a count and a money figure on one axis, and draws two', () => {
+  it('refuses to put a count and a money figure on one axis, and draws two', async () => {
     const { container } = renderCanvas({ result: twoUnitResult() })
     /* Two plots, and two cards — a second unit is a second reading, not a
        second line. Halalas over a count on one axis is the fabrication
        `pairRefusal` exists to refuse; drawing it prettily does not make it
        true. */
-    expect(plots()).toEqual([titleOf('p1'), titleOf('p2')])
+    expect(await plots()).toEqual([titleOf('p1'), titleOf('p2')])
     expect(container.querySelectorAll('[data-slot="card"]')).toHaveLength(2)
   })
 
-  it('keeps a blocked series out of the compound plot, with its own card', () => {
+  it('keeps a blocked series out of the compound plot, with its own card', async () => {
     renderCanvas({ result: blockedResult() })
     /* Not folded in: a redacted series has no points, and drawing it as a flat
        line at zero is §13.1's silent redaction wearing a nicer picture. */
-    expect(plots()).toEqual([titleOf('p1')])
+    expect(await plots()).toEqual([titleOf('p1')])
+    /* `LazyPanelCard`'s own `Suspense`, separate from the plot's above. */
     expect(
-      screen.getByText(copy('rb.panel.blocked').replace('{permission}', 'view_finance')),
+      await screen.findByText(copy('rb.panel.blocked').replace('{permission}', 'view_finance')),
       'the viewer is told the series exists and which permission would show it',
     ).toBeInTheDocument()
   })
 
-  it('keeps a failed series out of the compound plot, with its own retry', () => {
+  it('keeps a failed series out of the compound plot, with its own retry', async () => {
     renderCanvas({ result: failedResult() })
-    expect(plots()).toEqual([titleOf('p1')])
+    expect(await plots()).toEqual([titleOf('p1')])
     /* §8.3 state 10 — the leg that failed carries the way to try it again, and
-       the leg that worked is still drawn. */
-    expect(screen.getByText(copy('rb.panel.failed'))).toBeInTheDocument()
+       the leg that worked is still drawn. `LazyPanelCard`'s own `Suspense`. */
+    expect(await screen.findByText(copy('rb.panel.failed'))).toBeInTheDocument()
     expect(
       screen.getByRole('button', { name: copy('rb.panel.failed.retry') }),
     ).toBeInTheDocument()

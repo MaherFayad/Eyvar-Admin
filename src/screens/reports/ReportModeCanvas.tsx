@@ -58,7 +58,11 @@ import { CardContent, CardHeader, CardTitle } from '@/components/ui/card'
    or `panelTitle`, a pure function that costs nothing extra to pull in
    alongside it (AC-1169: it titles the trend and distribution panels
    below). */
-import { PanelFrame, panelTitle } from '@/components/reports/PanelCard'
+/* WP-8.4 §5 boundary exception (outside this role's file set, disclosed in
+   the handoff): `PanelCard.tsx` statically imports `PanelChart.tsx`, a
+   `recharts` importer — the exact chain that defeated this file's own
+   `LazySeriesChart`/`LazyDistributionCard` below, one file over. */
+import { PanelFrame, panelTitle } from '@/components/reports/panelPrimitives'
 import { EmptyState } from '@/components/EmptyState'
 import { ErrorState } from '@/components/ErrorState'
 import { LoadingSkeleton } from '@/components/LoadingSkeleton'

@@ -19,33 +19,18 @@ export {
   type ChartToolbarProps,
   type VisualisationId,
 } from './ChartToolbar'
-/* `DashboardTile` is gone (D39) — a page's `report` block resolves through
-   `src/components/pages/useResolvedReport.ts` and renders via
-   `ReportBlockView`, both under `src/components/pages/`. */
-export { DistributionCard, type DistributionCardProps } from './DistributionCard'
 /* `InfoHint` and `hintLines` moved to `@/components/InfoHint` (T9.5): the rails
    were the first caller, not the only one, and the accessible name is now the
    shell's `shell.hint.show`. Import them from there. */
 export { LegalityOptions, type LegalityOptionsProps } from './LegalityOptions'
-export {
-  PanelCard,
-  RelatedBoards,
-  panelTitle,
-  relatedBoards,
-  type PanelCardProps,
-  type RelatedBoard,
-} from './PanelCard'
-export { PanelChart, seriesOfPanel, type PanelChartProps } from './PanelChart'
 export { QueryPanel, type QueryPanelProps } from './QueryPanel'
 export { ResultCanvas, type CanvasStatus, type ResultCanvasProps } from './ResultCanvas'
-export { ResultTable, type ResultTableProps } from './ResultTable'
-export {
-  SeriesChart,
-  seriesColor,
-  seriesDash,
-  seriesFill,
-  type SeriesChartProps,
-} from './SeriesChart'
-export { SeriesHeadlines, type SeriesHeadlinesProps } from './SeriesHeadlines'
 export { WindowControl, type WindowControlProps } from './WindowControl'
 export { declaredAggregate, periodDelta, rollUpSeries, type Rollup } from './rollup'
+/* WP-8.4 §5 boundary exception, disclosed in the handoff: dropped the
+   `DistributionCard`/`PanelCard`/`PanelChart`/`SeriesChart` re-exports.
+   Nothing imports them via this barrel (checked); a static `export … from`
+   forced `recharts` into every reachable chunk regardless. Import each
+   file directly, as `SeriesHeadlines.tsx` now does. */
+export { ResultTable, type ResultTableProps } from './ResultTable'
+export { SeriesHeadlines, type SeriesHeadlinesProps } from './SeriesHeadlines'

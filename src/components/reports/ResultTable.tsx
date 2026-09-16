@@ -162,13 +162,19 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { formatMetricValue } from '@/components/metrics'
+/* WP-8.4 §5 boundary exception (outside this role's file set, disclosed in
+   the handoff): the `@/components/metrics` barrel re-exports `TrendChart` and
+   `Sparkline`, both static `recharts` importers — the same reason
+   `AlertsView`/`AlertRuleDialog` already deep-import this one formatter.
+   `panelTitle` moves from `./PanelCard` (which statically imports the
+   recharts-bearing `PanelChart.tsx`) to `./panelPrimitives`, which does not. */
+import { formatMetricValue } from '@/components/metrics/formatMetric'
 import type { BucketAggregate, Measure, PermissionKey, ReportPanel, ReportResult, ReportSeries } from '@/data/types'
 /* `TableSpec`/`TableColumn`/`TableFormatBand` are v2-only and not yet in the
    `@/data/types` barrel — read directly, the same way `DashboardTile.tsx` does. */
 import type { TableColumn, TableFormatBand, TableSpec } from '@/data/types/report'
 import { ABSENT, formatDate, isolatedRunProps, type Language, type Translator } from '@/lib'
-import { panelTitle } from './PanelCard'
+import { panelTitle } from './panelPrimitives'
 import { declaredAggregate, rollUpSeries } from './rollup'
 
 /**

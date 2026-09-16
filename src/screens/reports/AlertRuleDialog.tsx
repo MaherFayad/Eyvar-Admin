@@ -6,7 +6,7 @@
  * disabled (Q-RB-9); D43's recipient filter now runs on `effectivePermissions`.
  */
 
-import { useEffect, useMemo, useState } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { AlertRuleIcon, CheckIcon, CloseIcon, MutedIcon } from '@/components/icons'
 import { Button } from '@/components/ui/button'
@@ -42,7 +42,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ErrorState } from '@/components/ErrorState'
 import { InfoHint, hintLines } from '@/components/InfoHint'
 import { LoadingSkeleton } from '@/components/LoadingSkeleton'
-import { AlertPreviewChart, type AlertPreviewReference } from '@/components/reports/AlertPreviewChart'
+import type { AlertPreviewReference } from '@/components/reports/AlertPreviewChart'
 import { useAsync } from '@/hooks'
 import {
   listMeasures,
@@ -82,6 +82,14 @@ import type { WebhookEndpoint } from '@/data/types/integrations'
    states never draw a chart. */
 import { formatMetricValue } from '@/components/metrics/formatMetric'
 import { formatDate, parseMoneyInput, parseNumericInput, type Translator } from '@/lib'
+
+/* WP-8.4 §5 — the preview draws only once a condition is composed, so none
+   of this file's three static importers (`ReportBuilder`, `ReportLibrary`,
+   `BlockMenu`) needs recharts merely because the composer can open. Fallback
+   is sized to the chart's own footprint (`AlertPreviewChart`'s `h-32`). */
+const LazyAlertPreviewChart = lazy(() =>
+  import('@/components/reports/AlertPreviewChart').then((m) => ({ default: m.AlertPreviewChart })),
+)
 
 const GRAINS: MeasureGrain[] = ['day', 'week', 'month']
 const CONDITION_KINDS: AlertCondition['kind'][] = ['static', 'relative', 'anomaly', 'missing']
@@ -756,18 +764,20 @@ export function AlertRuleDialog({
               {t('rb.alert.anomaly.noBaseline', { count: preview?.usableCount ?? 0 })}
             </p>
           ) : preview ? (
-            <AlertPreviewChart
-              buckets={preview.buckets}
-              points={preview.points}
-              fired={preview.fired}
-              reference={previewReference}
-              unit={series.unit}
-              language={language}
-              description={t('rb.alert.preview.summary', {
-                count: preview.fired.filter(Boolean).length,
-                window: preview.fired.length,
-              })}
-            />
+            <Suspense fallback={<div className="h-32 w-full" aria-hidden="true" />}>
+              <LazyAlertPreviewChart
+                buckets={preview.buckets}
+                points={preview.points}
+                fired={preview.fired}
+                reference={previewReference}
+                unit={series.unit}
+                language={language}
+                description={t('rb.alert.preview.summary', {
+                  count: preview.fired.filter(Boolean).length,
+                  window: preview.fired.length,
+                })}
+              />
+            </Suspense>
           ) : (
             <p className="text-xs text-muted-foreground">{t('rb.alert.preview.incomplete')}</p>
           )}

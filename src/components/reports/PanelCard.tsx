@@ -224,7 +224,7 @@
  *   §9.2        the card mirrors; the plot does not (`PanelChart`).
  */
 
-import { useRef, type ReactNode, type Ref } from 'react'
+import { useRef, type Ref } from 'react'
 import { Link } from 'react-router-dom'
 import {
   BarChartIcon,
@@ -236,7 +236,6 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
-  Card,
   CardAction,
   CardContent,
   CardFooter,
@@ -250,19 +249,27 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { MetricDelta, trendRead } from '@/components/metrics'
-/* **A deep import, on the path four files in `screens/reports` already take**
-   (`AlertsView`, `AlertRuleDialog`, `AlertHistoryDialog`, `ReportModeCanvas`
-   all reach `formatMetric` directly). `splitMetricValue` is not on the metrics
-   barrel and that file has another owner; nothing here edits it. The split is
-   what lets a money value set its digits at the numeral's size and its
-   currency word at the caption's — which is the register the boards use, and
-   the reason `8,075.70 SAR` does not push its own delta onto a second line. */
-import { splitMetricValue } from '@/components/metrics/formatMetric'
-import { comparisonWindow, findSubTabById, OTHER_GROUP } from '@/data/clients'
-import type { CurrencyCode, Measure, MetricUnit, ReportPanel, ReportResult, ReportSeries } from '@/data/types'
+import { comparisonWindow, OTHER_GROUP } from '@/data/clients'
+import type { Measure, ReportPanel, ReportResult, ReportSeries } from '@/data/types'
 import { formatDate, isolatedRunProps, type Language, type Translator } from '@/lib'
 import { cn } from '@/lib/utils'
 import { PanelChart, seriesOfPanel } from './PanelChart'
+/* WP-8.4 §5 — `PanelFrame` / `panelTitle` / `RelatedBoard(s)` / `PanelNumeral`
+   / `PanelProse` moved to `panelPrimitives.tsx`, which does not import
+   `recharts`. Re-exported below so `DistributionCard.tsx` and this file's own
+   tests keep their existing import path; `ResultCanvas` and `KpiCard` import
+   the primitives module directly instead, which is the actual fix (see that
+   file's header). */
+import {
+  PanelFrame,
+  PanelNumeral,
+  PanelProse,
+  RelatedBoards,
+  panelTitle,
+  relatedBoards,
+  type RelatedBoard,
+} from './panelPrimitives'
+export { PanelFrame, PanelNumeral, PanelProse, RelatedBoards, panelTitle, relatedBoards, type RelatedBoard }
 /* **The aggregate predicate, from the file that already owns it.**
 
    `ResultTable` wrote `declaredAggregate` when its summary column shipped
@@ -272,12 +279,8 @@ import { PanelChart, seriesOfPanel } from './PanelChart'
    lift needs an edit to `ResultTable` as well and that file has another owner,
    so it is named in the handoff instead of taken here.
 
-   The import is a CYCLE — `ResultTable` already imports `panelTitle` from this
-   file. It is safe as written and not as a general licence: both symbols are
-   hoisted `function` declarations and neither module calls the other at
-   evaluation time, so whichever is entered first completes. `ResultCanvas`
-   already imports both statically, so nothing new lands in a chunk. The lift
-   to `rollup.ts` removes it. */
+   `panelTitle` moved to `panelPrimitives.tsx` (WP-8.4 §5), so the cycle this
+   note used to describe is gone; `declaredAggregate` stays a plain import. */
 import { declaredAggregate } from './rollup'
 import { periodDelta, rollUpSeries } from './rollup'
 
@@ -561,146 +564,9 @@ export function PanelCard({
   )
 }
 
-/**
- * **The panel's outer surface — a `Card`, or the same box without one.**
- *
- * The unframed branch is deliberately *not* a `Card` with its frame utilities
- * overridden: it carries no `data-slot="card"`, so a caller that has already
- * drawn a frame can count the frames inside itself and get one.
- *
- * What it keeps is everything that is layout rather than decoration — the flex
- * column, the inter-block gap, the card's text size and colour, and
- * `--card-spacing` at the value `Card` sets for its default size. Every
- * `CardHeader`, `CardContent` and `CardFooter` beneath reads its inset from
- * that variable, so the internals are identical either way and only the
- * hairline, the radius, the elevation and the block padding are absent.
- *
- * Exported because `DistributionCard` is the same panel drawn a different way
- * and owes the same tile the same single frame.
- */
-export function PanelFrame({
-  framed,
-  className,
-  children,
-}: {
-  framed: boolean
-  className?: string
-  children: ReactNode
-}) {
-  if (framed) return <Card className={className}>{children}</Card>
-  return (
-    <div
-      data-slot="panel-frame"
-      className={cn(
-        'flex flex-col gap-(--card-spacing) text-sm text-card-foreground',
-        '[--card-spacing:--spacing(3)]',
-        className,
-      )}
-    >
-      {children}
-    </div>
-  )
-}
-
-/**
- * §7.4's fold, named rather than string-matched. `Other` is always last and
- * **renders even at zero**, so it is visible that something was folded; the
- * canvas states how many.
- */
-export function panelTitle(panel: ReportPanel, t: Translator): { text: string; groupValue: string | null } {
-  const measureLabel = t(String(panel.titleParams['measure'] ?? ''))
-  const group = panel.titleParams['group']
-  if (group === undefined) return { text: t(panel.titleKey, { measure: measureLabel }), groupValue: null }
-  const groupValue = String(group)
-  const groupLabel = groupValue === OTHER_GROUP ? t('rb.panel.other') : groupValue
-  return {
-    text: t(panel.titleKey, { measure: measureLabel, group: groupLabel }),
-    groupValue: groupLabel,
-  }
-}
-
-/* ─────────────────────── §A12 — the real back-reference ──────────────────── */
-
-/** One board this measure is already displayed on. Resolved, never guessed. */
-export interface RelatedBoard {
-  subTabId: string
-  path: string
-  titleKey: string
-}
-
-/**
- * **`displayedAsMetricKeys` → the boards that show this measure.**
- *
- * Amplitude closes a chart with a `Related Charts` strip driven by a similarity
- * model. This product has no such model and **inventing one is the failure this
- * whole module is written against** — a strip of "related" charts nobody
- * computed is a recommendation with no basis, presented with the confidence of
- * one that has.
- *
- * What it has instead is better, and it is F-9's back-reference:
- * `Measure.displayedAsMetricKeys` names the board tiles that display *this same
- * measure over this same population*, pointing tile → measure so *"a tile move
- * is a rename here, not a broken saved report"*. Its own doc is explicit that
- * **an empty array is a claim** — it says no tile shows this measure — and that
- * a same-named figure over a *different* population is deliberately absent,
- * because listing it *"would make R5-14's cross-check runnable and false"*
- * (`measure.ts:281–291`). So an empty array renders **nothing**, never a
- * placeholder and never a fallback strip of whatever else is nearby.
- *
- * A metric key is `{workspace}.{board}.{metric}`, and the board it belongs to
- * is the sub-tab of the same name. The candidate is **looked up in the route
- * table** rather than trusted: a key that names no route resolves to `null` and
- * is dropped, so this can never render a link to a destination that does not
- * exist. `panel.chrome.test.tsx` runs the whole catalogue through it.
- *
- * Deduplicated by sub-tab: two tiles for one measure on one board is one board.
- */
-export function relatedBoards(measure: Measure | null): RelatedBoard[] {
-  if (measure === null) return []
-  const seen = new Set<string>()
-  const out: RelatedBoard[] = []
-  for (const metricKey of measure.displayedAsMetricKeys) {
-    const segments = metricKey.split('.')
-    if (segments.length < 2) continue
-    const subTabId = `${segments[0]}-${segments[1]}`
-    if (seen.has(subTabId)) continue
-    const route = findSubTabById(subTabId)
-    if (route === null) continue
-    seen.add(subTabId)
-    out.push({ subTabId, path: route.path, titleKey: route.titleKey })
-  }
-  return out
-}
-
-/**
- * The strip itself — small cards, one per board, each a real anchor.
- *
- * A card rather than a bare link because §A12's shape is a card strip, and an
- * anchor rather than a `div` with an `onClick` because it is navigation and
- * navigation is what an anchor is for: it lands in the tab order with the
- * primitive's own ring, it opens in a new tab on the modifier every operator
- * already knows, and its destination is in the status bar before the click.
- */
-export function RelatedBoards({ boards, t }: { boards: readonly RelatedBoard[]; t: Translator }) {
-  return (
-    <div className="flex min-w-0 flex-col gap-1.5">
-      <p className="text-xs text-muted-foreground">{t('rb.related.heading')}</p>
-      <ul role="list" className="flex list-none flex-wrap gap-2">
-        {boards.map((board) => (
-          <li key={board.subTabId}>
-            <Link
-              to={board.path}
-              className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-            >
-              <DashboardIcon aria-hidden="true" className="size-4 shrink-0" />
-              <span className="truncate">{t(board.titleKey)}</span>
-            </Link>
-          </li>
-        ))}
-      </ul>
-    </div>
-  )
-}
+/* WP-8.4 §5 — `PanelFrame`, `panelTitle`, `RelatedBoard(s)` and
+   `relatedBoards` moved to `panelPrimitives.tsx` (imported and re-exported
+   above); see that file for their unchanged bodies and derivations. */
 
 /* ────────────────────────── §1.5 — the card's chrome ─────────────────────── */
 
@@ -913,100 +779,10 @@ function readingBase(
   return { readings, eligible }
 }
 
-/**
- * **The three catalogue sentences, as one grey footnote — drawn once for both
- * panel shapes.**
- *
- * `PanelCard` states buckets (`rb.panel.readings`) and `DistributionCard`
- * states groups (`rb.panel.parts`), so the BASE differs and the markup must
- * not: a line tile and a pie tile sit side by side on DSH-1, and two footnotes
- * at two steps in one row is what made that board read as two products. The
- * caller resolves its own strings; this owns the slot, the step and the
- * isolation.
- *
- * Each sentence keeps its own `<bdi>`: they are separate translated strings
- * carrying separate numeral and proper-noun runs, and concatenating them into
- * one would need a fourth key.
- */
-export function PanelProse({
-  predicate,
-  caption,
-  base,
-}: {
-  predicate: string
-  /** `null` where the measure declares none — never an empty string. */
-  caption: string | null
-  /** `null` where there is no response to count readings in. */
-  base: string | null
-}) {
-  return (
-    <p data-slot="panel-population" className="text-xs text-muted-foreground">
-      <bdi>{predicate}</bdi>
-      {caption !== null && <> <bdi>{caption}</bdi></>}
-      {base !== null && <> <bdi>{base}</bdi></>}
-    </p>
-  )
-}
-
-/**
- * **The panel's headline quantity — one component, both panel shapes.**
- *
- * §A8's numeral row: the figure, its unit word where the figure has one, and
- * whatever the caller puts on the same baseline after them. `PanelCard` puts a
- * period delta there; `DistributionCard` puts nothing, because a part-of-whole
- * has no time axis to have moved along (see its header).
- *
- * **Two rungs, off `framed`.** `--text-kpi` (28) is the PAGE's numeral and the
- * builder panel is the page's answer; a dashboard tile is a reading inside a
- * frame that already carries a 16px heading, so it takes the step below,
- * `--text-lg` (20). In Latin both have a 32px line box, so the switch changes
- * the weight of the voice and not the height of the card. The file header
- * carries the argument and the measurements.
- *
- * **The size is the class; the tabular figures are not.** `font-variant-numeric`
- * is pinned in `@layer base` on `[data-slot="metric-value"]` — `MetricTile` and
- * `ChartCard` both state why a hand-written `tabular-nums` beside the size
- * restates a guarantee at a call site free to omit it. The `<bdi>` is wrapped
- * rather than styled: a stretched `<bdi>` derives its own direction from its
- * content and flushes the digits to its own start, which is the defect
- * `MetricTile` records.
- *
- * `items-baseline` so a 13px delta sits on the numeral's baseline rather than
- * at its optical centre; wrapping is allowed so a six-figure money value and a
- * delta degrade to a stack rather than overflowing a 268px panel.
- */
-export function PanelNumeral({
-  value,
-  unit,
-  currency,
-  framed,
-  language,
-  children,
-}: {
-  /** Already rolled up by the caller, under a rule the caller can defend. `null` is an em dash. */
-  value: number | null
-  unit: MetricUnit
-  currency: CurrencyCode | null
-  /** The builder-versus-tile signal — it picks the rung. */
-  framed: boolean
-  language: Language
-  /** On the numeral's baseline, after the unit. A delta, or nothing. */
-  children?: ReactNode
-}) {
-  const shown = splitMetricValue(value, unit, currency, language)
-  return (
-    <span className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
-      <span
-        data-slot="metric-value"
-        className={cn('font-semibold text-foreground', framed ? 'text-kpi' : 'text-lg')}
-      >
-        <bdi>{shown.value}</bdi>
-      </span>
-      {shown.unit && <span className="text-2xs text-muted-foreground">{shown.unit}</span>}
-      {children}
-    </span>
-  )
-}
+/* WP-8.4 §5 — `PanelProse` and `PanelNumeral` moved to `panelPrimitives.tsx`
+   (imported and re-exported above), so `KpiCard`'s number does not need this
+   file's own `PanelChart` import to get one. See that file for their
+   unchanged bodies; the two-rung derivation stays in this file's header. */
 
 /**
  * **The panel's one number, its period delta, and the sentence they make.**

@@ -90,30 +90,28 @@ import { AnnotationForm } from './AnnotationForm'
    itself stays a static import: an operator's headline figure renders
    immediately rather than waiting on a chart chunk (coordinator ruling). */
 import { KpiCard } from './KpiCard'
-/**
- * WP-8.4 finding 1, named not fixed: `PanelCard`/`SeriesChart` stay a static
- * import — this file needs their sibling exports synchronously, and Rollup
- * fuses a module back into the sync chunk once ONE file both statically and
- * dynamically imports it. A real split needs those helpers moved out of
- * `PanelCard.tsx`/`SeriesChart.tsx`, outside this file's ownership.
- */
+/* WP-8.4 §5 — the fix: every SYNCHRONOUS need (the legend swatches, the
+   no-panels/`kpi` frame, the related-boards strip) reads from
+   `panelPrimitives.tsx`, which does not import `recharts`. `PanelCard` and
+   `SeriesChart` themselves — the mark-drawing components — are `lazy()`
+   below, for real this time: nothing in this file's own static graph reaches
+   either module any more, so Rollup can finally move them. */
 import {
-  PanelCard,
+  COMPARISON_SERIES_ID,
   PanelFrame,
   RelatedBoards,
   panelTitle,
   relatedBoards,
-  type RelatedBoard,
-} from './PanelCard'
-import {
-  COMPARISON_SERIES_ID,
-  SeriesChart,
-  type SeriesChartKind,
   seriesColor,
   seriesDash,
-} from './SeriesChart'
+  type RelatedBoard,
+} from './panelPrimitives'
+import type { SeriesChartKind } from './SeriesChart'
 import { SeriesHeadlines } from './SeriesHeadlines'
 import { ResultTable, ResultTableColumns, deriveColumnResults } from './ResultTable'
+
+const LazyPanelCard = lazy(() => import('./PanelCard').then((m) => ({ default: m.PanelCard })))
+const LazySeriesChart = lazy(() => import('./SeriesChart').then((m) => ({ default: m.SeriesChart })))
 
 /**
  * `DistributionCard` has no sibling export another part of this file needs
@@ -630,19 +628,20 @@ function Body({
     return (
       <div className="flex flex-col gap-4">
         {blockedOrFailed.map((panel) => (
-          <PanelCard
-            key={panel.panelId}
-            panel={panel}
-            result={result}
-            measure={measureOf(panel.panelId)}
-            kind="bar"
-            coercedFrom={null}
-            onRetrySeries={onRetrySeries}
-            framed={framed}
-            noDataSentence={noDataSentence}
-            t={t}
-            language={language}
-          />
+          <Suspense key={panel.panelId} fallback={<div className="h-48 w-full" aria-hidden="true" />}>
+            <LazyPanelCard
+              panel={panel}
+              result={result}
+              measure={measureOf(panel.panelId)}
+              kind="bar"
+              coercedFrom={null}
+              onRetrySeries={onRetrySeries}
+              framed={framed}
+              noDataSentence={noDataSentence}
+              t={t}
+              language={language}
+            />
+          </Suspense>
         ))}
         {drawable.length > 0 && (
           <Suspense fallback={<div className="h-52 w-full" aria-hidden="true" />}>
@@ -778,19 +777,20 @@ function Body({
   return (
     <div className="flex flex-col gap-3">
       {undrawable.map((panel) => (
-        <PanelCard
-          key={panel.panelId}
-          panel={panel}
-          result={result}
-          measure={measureOf(panel.panelId)}
-          kind={effectiveChartType === 'bar' ? 'bar' : 'line'}
-          coercedFrom={null}
-          onRetrySeries={onRetrySeries}
-          framed={framed}
-          noDataSentence={noDataSentence}
-          t={t}
-          language={language}
-        />
+        <Suspense key={panel.panelId} fallback={<div className="h-48 w-full" aria-hidden="true" />}>
+          <LazyPanelCard
+            panel={panel}
+            result={result}
+            measure={measureOf(panel.panelId)}
+            kind={effectiveChartType === 'bar' ? 'bar' : 'line'}
+            coercedFrom={null}
+            onRetrySeries={onRetrySeries}
+            framed={framed}
+            noDataSentence={noDataSentence}
+            t={t}
+            language={language}
+          />
+        </Suspense>
       ))}
 
       {[...axisGroups.entries()].map(([key, group]) => {
@@ -1075,25 +1075,29 @@ function TrendPlotGroup({
         t={t}
         language={language}
       />
-      <SeriesChart
-        panels={group.panels}
-        result={result}
-        kind={drawKind}
-        unit={group.unit}
-        description={titles.join(', ')}
-        titles={titles}
-        colorIndexes={group.colorIndexes}
-        hidden={view.hidden}
-        yScale={logDisabled ? 'linear' : view.yScale}
-        yStartAtZero={view.yStartAtZero}
-        dataLabels={!dataLabelsDisabled && view.dataLabels}
-        annotations={annotations}
-        brushRange={brushRange}
-        onBrushChange={setBrushRange}
-        heightClass={heightClass}
-        t={t}
-        language={language}
-      />
+      {/* Fallback is `heightClass` — the same variable the real plot below
+          takes — so the chunk arriving does not move the legend under it. */}
+      <Suspense fallback={<div className={`${heightClass} w-full`} aria-hidden="true" />}>
+        <LazySeriesChart
+          panels={group.panels}
+          result={result}
+          kind={drawKind}
+          unit={group.unit}
+          description={titles.join(', ')}
+          titles={titles}
+          colorIndexes={group.colorIndexes}
+          hidden={view.hidden}
+          yScale={logDisabled ? 'linear' : view.yScale}
+          yStartAtZero={view.yStartAtZero}
+          dataLabels={!dataLabelsDisabled && view.dataLabels}
+          annotations={annotations}
+          brushRange={brushRange}
+          onBrushChange={setBrushRange}
+          heightClass={heightClass}
+          t={t}
+          language={language}
+        />
+      </Suspense>
       <SeriesLegend
         panels={group.panels}
         titles={titles}
