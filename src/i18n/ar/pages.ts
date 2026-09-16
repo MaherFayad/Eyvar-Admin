@@ -149,6 +149,7 @@ export const PAGES_AR: Dictionary = {
   'pg.edit.delete': 'حذف',
   'pg.edit.deleted.toast': 'أُزيلت الكتلة',
   'pg.edit.deleted.undo': 'تراجع',
+  'pg.edit.deleted.toast.hint': 'اضغط Ctrl+Z للتراجع',
   'pg.edit.blockLimit': 'بلغت هذه الصفحة 200 كتلة. أزل واحدة لإضافة أخرى.',
 
   /* ── columns ──────────────────────────────────────────────────────────── */

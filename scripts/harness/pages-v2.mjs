@@ -5,8 +5,9 @@
  * chart, distinct accessible names for two untitled blocks of one type
  * (F-V2-87), whether a disabled block-menu item's reason is reachable
  * (F-V2-73), computed contrast for the callout tones, RTL mirroring of the
- * block handle/menu, and focus return after closing the New-page dialog.
- * jsdom does none of this: no real Tab order, no SVG, no computed style.
+ * block handle/menu, focus return after closing the New-page dialog, and
+ * where focus lands (and whether Undo is reachable) after a keyboard Delete
+ * (S3). jsdom does none of this: no real Tab order, no SVG, no computed style.
  * Findings are written to `docs/02-verification/analytics-v2-pages-a11y.md`
  * by hand from a run of this script; this file only proves them.
  */
@@ -126,6 +127,58 @@ async function keyboardWalk() {
   await page.waitForTimeout(250)
   check('Shift+F10 opens the block menu on a focused frame (documented in PageView.tsx:119, BlockMenu.tsx:2)', (await page.locator('[role="menu"]').count()) > 0, 'the kebab button itself is still reachable by one extra Tab, so this does not block the task — see should-fix')
   await page.keyboard.press('Escape')
+
+  await ctx.close()
+}
+
+async function deleteFocusManagement() {
+  section('DELETE — focus management and Undo reachability (S3)')
+  const ctx = await browser.newContext({ viewport: { width: 1280, height: 1000 } })
+  const page = await ctx.newPage()
+  await page.goto(`${BASE}/management/reports/pages/${PAGE_ID}`, { waitUntil: 'networkidle' })
+  await page.waitForTimeout(500)
+  await page.getByRole('button', { name: 'Edit' }).click()
+  await page.waitForTimeout(400)
+
+  // Two fresh Heading blocks at the very end (same technique as
+  // `distinctNames()`), so this proves S3 without emptying DSH-1's own
+  // pinned blocks on a dev server other harness runs share. The page-empty
+  // case (S3's third clause) is proven instead by a jsdom unit test
+  // (`blockFrame.keyboard.test.tsx`), which has no shared-state risk.
+  for (let i = 0; i < 2; i++) {
+    await page.getByRole('button', { name: 'Add block' }).last().click()
+    await page.waitForTimeout(250)
+    await page.keyboard.type('Heading')
+    await page.waitForTimeout(150)
+    await page.keyboard.press('Enter')
+    await page.waitForTimeout(250)
+  }
+
+  const ids = await page.evaluate(() => [...document.querySelectorAll('[data-block-id]')].map((el) => el.getAttribute('data-block-id')))
+  const [firstId, secondId] = ids.slice(-2)
+  await page.evaluate((bid) => document.querySelector(`[data-block-id="${bid}"]`)?.focus(), firstId)
+  await page.keyboard.press('Delete')
+  await page.waitForTimeout(300)
+
+  const activeIsBody = await page.evaluate(() => document.activeElement === document.body)
+  const activeId = await page.evaluate(() => document.activeElement?.getAttribute('data-block-id'))
+  check('focus does not fall to <body> after Delete', !activeIsBody, activeIsBody ? 'focus fell to <body> — the operator loses their place' : undefined)
+  check("focus lands on the block that took the deleted one's place", activeId === secondId, `expected ${secondId}, got ${activeId}`)
+
+  const hint = await page.evaluate(() => document.querySelector('[data-sonner-toast] [data-description]')?.textContent)
+  check(
+    "the toast announces Ctrl+Z as the undo path (the toast's own Undo button is far down the tab order)",
+    hint === 'Press Ctrl+Z to undo',
+    hint,
+  )
+
+  // The reachable alternative to tabbing to the toast's own `Undo` button —
+  // confirmed from wherever focus actually landed, not from the toast.
+  const countBefore = await page.evaluate(() => document.querySelectorAll('[data-block-id]').length)
+  await page.keyboard.press('Control+z')
+  await page.waitForTimeout(250)
+  const countAfter = await page.evaluate(() => document.querySelectorAll('[data-block-id]').length)
+  check('Ctrl+Z restores the deleted block from the new focus position', countAfter === countBefore + 1)
 
   await ctx.close()
 }
@@ -483,6 +536,7 @@ async function reducedMotion() {
 }
 
 await keyboardWalk()
+await deleteFocusManagement()
 await focusRingInsideChart()
 await distinctNames()
 await disabledReasonReachable()

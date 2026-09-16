@@ -27,6 +27,15 @@ import type { Translator } from '@/lib'
 
 export type SaveStatus = 'idle' | 'saving' | 'saved' | 'conflict' | 'invalid'
 
+/**
+ * S3 (`analytics-v2-pages-a11y.md`) — where focus goes after a delete: the
+ * block that took the deleted one's place, the block's own container if that
+ * container is now empty, or the page's own "Add block" control if the whole
+ * page is now empty. `PageView` owns the DOM query; this hook only names the
+ * target.
+ */
+export type PendingFocus = { kind: 'block'; id: string } | { kind: 'addBlock' }
+
 /** The subset of `Page` an edit can change. `id`, `kind`, owner-ish fields and `version` live outside it (see below). */
 export type PageContent = Pick<Page, 'title' | 'icon' | 'description' | 'visibility' | 'tags' | 'scope' | 'blocks'>
 
@@ -58,6 +67,7 @@ export function usePageEditor({ page, t, initialEditing = false }: UsePageEditor
   const [savedAt, setSavedAt] = useState<string | null>(page.publishedAt ? page.updatedAt : null)
   const [conflict, setConflict] = useState<Page | null>(null)
   const [violations, setViolations] = useState<readonly { message: string }[]>([])
+  const [pendingFocus, setPendingFocus] = useState<PendingFocus | null>(null)
   const undoStack = useRef(new PageEditorUndoStack<Block[]>())
   /* The version the next save writes against — never part of React state, so
      stamping it after a save does not itself trigger another autosave cycle. */
@@ -183,20 +193,31 @@ export function usePageEditor({ page, t, initialEditing = false }: UsePageEditor
 
   const deleteBlockWithUndo = useCallback(
     (id: string) => {
-      let deleted = false
-      setContent((current) => {
-        const next = removeBlock(current.blocks, id)
-        if (!next) return current
-        deleted = true
-        undoStack.current.push({ undo: () => current.blocks })
-        return { ...current, blocks: next }
+      /* `content` (not the updater's own `current`) decides whether this
+         delete happened and where focus goes next — a boolean set INSIDE
+         `setContent`'s updater and read right after it is not reliable:
+         React does not always run that updater synchronously, so a second
+         delete fired in the same tick as the first (S3's own repro) read a
+         stale `false`. The actual removal still goes through `applyBlocks`,
+         which is safe against a stale `id` lookup the normal way every other
+         action here already is. */
+      if (!findBlockFor(content.blocks, id)) return
+      const focusTarget = focusAfterDelete(content.blocks, id)
+      applyBlocks((blocks) => removeBlock(blocks, id) ?? blocks)
+      setPendingFocus(focusTarget)
+      /* S3 — the toast's own `Undo` button sits far down the tab order
+         (Sonner mounts the toaster at the shell root), so a keyboard
+         operator is told the faster path instead: `Ctrl+Z`, read aloud by
+         the toast's own live region (sonner.tsx, AC-29). */
+      toast(t('pg.edit.deleted.toast'), {
+        description: t('pg.edit.deleted.toast.hint'),
+        action: { label: t('pg.edit.deleted.undo'), onClick: () => undo() },
       })
-      if (deleted) {
-        toast(t('pg.edit.deleted.toast'), { action: { label: t('pg.edit.deleted.undo'), onClick: () => undo() } })
-      }
     },
-    [t, undo],
+    [content, applyBlocks, t, undo],
   )
+
+  const clearPendingFocus = useCallback(() => setPendingFocus(null), [])
 
   const actions = {
     onInsert: (containerId: string | null, columnIndex: number | null, index: number, block: Block) =>
@@ -243,7 +264,53 @@ export function usePageEditor({ page, t, initialEditing = false }: UsePageEditor
     actions,
     undo,
     undoAvailable: undoStack.current.size > 0,
+    pendingFocus,
+    clearPendingFocus,
   }
+}
+
+/**
+ * S3 — computed against the tree as it stood BEFORE the removal, since that
+ * is the only place `id`'s siblings and parent are still visible. Mirrors
+ * `findBlockFor`'s own toggle/columns traversal rather than importing
+ * `blockOps.ts`'s private `locate`, which does not expose the parent id this
+ * needs.
+ */
+function focusAfterDelete(blocks: readonly Block[], id: string): PendingFocus {
+  const located = locateSiblings(blocks, id, null)
+  if (!located) return { kind: 'addBlock' }
+  const { siblingIds, parentBlockId } = located
+  const ownIndex = siblingIds.indexOf(id)
+  const remaining = siblingIds.filter((siblingId) => siblingId !== id)
+  if (remaining.length > 0) {
+    const next = remaining[ownIndex] ?? remaining[ownIndex - 1]
+    if (next) return { kind: 'block', id: next }
+  }
+  /* The container `id` sat in is now empty. A nested container (a toggle's
+     body, a column) still has its own frame to land on; only an empty page
+     root falls through to the page's "Add block" control. */
+  return parentBlockId ? { kind: 'block', id: parentBlockId } : { kind: 'addBlock' }
+}
+
+function locateSiblings(
+  blocks: readonly Block[],
+  id: string,
+  parentBlockId: string | null,
+): { siblingIds: string[]; parentBlockId: string | null } | null {
+  for (const block of blocks) {
+    if (block.id === id) return { siblingIds: blocks.map((b) => b.id), parentBlockId }
+    if (block.type === 'toggle') {
+      const found = locateSiblings(block.blocks, id, block.id)
+      if (found) return found
+    }
+    if (block.type === 'columns') {
+      for (const column of block.columns) {
+        const found = locateSiblings(column.blocks, id, block.id)
+        if (found) return found
+      }
+    }
+  }
+  return null
 }
 
 function findBlockFor(blocks: readonly Block[], id: string): Block | null {

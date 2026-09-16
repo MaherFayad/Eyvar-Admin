@@ -153,6 +153,10 @@ export const PAGES_EN: Dictionary = {
   'pg.edit.delete': 'Delete',
   'pg.edit.deleted.toast': 'Block removed',
   'pg.edit.deleted.undo': 'Undo',
+  /* S3 (a11y.md) — the toast's own `Undo` button sits far down the tab
+     order, so the faster keyboard path is named in the same breath, read by
+     the toast's own live region. */
+  'pg.edit.deleted.toast.hint': 'Press Ctrl+Z to undo',
   'pg.edit.blockLimit': 'This page has reached 200 blocks. Remove one to add another.',
 
   /* ── columns (§3.4) ───────────────────────────────────────────────────── */

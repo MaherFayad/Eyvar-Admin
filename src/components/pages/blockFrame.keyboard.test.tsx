@@ -109,10 +109,37 @@ describe('Delete removes the focused block and offers Undo — AC-1199, AC-1200'
 
     expect(frameOrder()).toEqual(['Second'])
     expect(await screen.findByText(copy('pg.edit.deleted.toast'))).toBeInTheDocument()
+    // S3 — the block that took the deleted one's place gets focus, not <body>.
+    expect(document.activeElement).toBe(blockFrames()[0])
 
     const undoButton = screen.getByRole('button', { name: copy('pg.edit.deleted.undo') })
     await userEvent.click(undoButton)
 
     expect(frameOrder()).toEqual(['First', 'Second'])
+  })
+
+  it('announces Ctrl+Z as the faster undo path (S3 — the toast action sits far down the tab order)', async () => {
+    const pageId = await twoHeadingPage()
+    await mountEditing(pageId)
+
+    blockFrames()[0]!.focus()
+    await userEvent.keyboard('{Delete}')
+
+    expect(await screen.findByText(copy('pg.edit.deleted.toast.hint'))).toBeInTheDocument()
+  })
+
+  it('focuses the page’s "Add block" control once the last block is removed', async () => {
+    const pageId = await twoHeadingPage()
+    await mountEditing(pageId)
+
+    blockFrames()[0]!.focus()
+    await userEvent.keyboard('{Delete}')
+    expect(frameOrder()).toEqual(['Second'])
+
+    blockFrames()[0]!.focus()
+    await userEvent.keyboard('{Delete}')
+
+    expect(screen.queryAllByRole('group').filter((frame) => frame.hasAttribute('data-block-id'))).toHaveLength(0)
+    expect(document.activeElement?.getAttribute('data-page-add-block')).toBe('')
   })
 })

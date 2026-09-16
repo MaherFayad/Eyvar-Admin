@@ -90,6 +90,10 @@ export function BlockList({ blocks, containerId, columnIndex }: BlockListProps) 
             aria-label={t('pg.edit.addBlock')}
             onClick={() => openPicker(index)}
             className={cn('relative z-10 opacity-0 focus-visible:opacity-100', 'group-hover/gap:opacity-100')}
+            /* S3 — the page-root's own first insertion point, so a delete
+               that empties the whole page has a named landing spot for
+               `usePageEditor`'s `focusAfterDelete` to query. */
+            data-page-add-block={containerId === null && index === 0 ? '' : undefined}
           >
             <PlusIcon aria-hidden="true" className="size-3.5" />
           </Button>

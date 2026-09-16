@@ -11,6 +11,13 @@ const OUT = './scripts/harness/shots'
 mkdirSync(OUT, { recursive: true })
 const browser = await chromium.launch()
 
+let failed = false
+function check(name, condition, detail) {
+  const mark = condition ? 'OK' : 'FAIL'
+  console.log(`  [${mark}] ${name}${detail !== undefined ? ' — ' + detail : ''}`)
+  if (!condition) failed = true
+}
+
 /* `DSH-1` is the fixture `dashboardToPage` keeps its id for — the same one
    `amp-dash.mjs` shoots at `/dashboards/DSH-1`, now migrated to a page. */
 async function findAPageId() {
@@ -115,8 +122,19 @@ async function shootColumnsAtWidths() {
   await ctx.close()
 }
 
+/**
+ * O1 rules `wide:` inclusive from 1280px, so 1280 is the two-up (side by
+ * side) case and 1279 is the real stack. The old `columns-1280-stacked.png`
+ * named the wrong one — the file below shows what it actually captures, and
+ * `columns-1279-stacked` is the first committed proof of the real stack,
+ * backed by a geometry check rather than a screenshot alone.
+ */
 async function shootStacking() {
-  for (const [name, width] of [['columns-1344-wide', 1344], ['columns-1280-stacked', 1280]]) {
+  for (const [name, width] of [
+    ['columns-1344-wide', 1344],
+    ['columns-1280-two-up', 1280],
+    ['columns-1279-stacked', 1279],
+  ]) {
     const ctx = await browser.newContext({ viewport: { width, height: 1100 } })
     const page = await ctx.newPage()
     const pageId = await findAPageId(page)
@@ -124,6 +142,26 @@ async function shootStacking() {
       await page.goto(`${BASE}/management/reports/pages/${pageId}`, { waitUntil: 'networkidle' })
       await page.waitForTimeout(800)
       await page.screenshot({ path: `${OUT}/${name}.png`, fullPage: true })
+
+      if (width === 1280 || width === 1279) {
+        const rects = await page.evaluate(() => {
+          const group = document.querySelector('[role="group"].grid-cols-12')
+          if (!group || group.children.length < 2) return null
+          return [...group.children].map((c) => {
+            const r = c.getBoundingClientRect()
+            return { top: Math.round(r.top), left: Math.round(r.left) }
+          })
+        })
+        const stacked = rects !== null && rects[1].top > rects[0].top
+        const expectStacked = width === 1279
+        check(
+          `${name} — DSH-1's columns block ${expectStacked ? 'stacks' : 'sits side by side'} at ${width}px`,
+          rects !== null && stacked === expectStacked,
+          JSON.stringify(rects),
+        )
+      }
+    } else {
+      check(`${name} — DSH-1 found`, false)
     }
     await ctx.close()
   }
@@ -136,3 +174,8 @@ await shootColumnsAtWidths()
 await shootStacking()
 
 await browser.close()
+if (failed) {
+  console.log('\nFAILED — see [FAIL] lines above')
+  process.exit(1)
+}
+console.log('\nOK')

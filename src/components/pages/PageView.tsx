@@ -4,7 +4,7 @@
  * edit mode, `Done` leaves it and flushes any pending save.
  */
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { PageHeader } from '@/components/PageHeader'
@@ -80,6 +80,22 @@ export function PageView({
   const editor = usePageEditor({ page, t, initialEditing: initialEditing && canEdit })
   const [deleting, setDeleting] = useState<{ failed: boolean } | null>(null)
   const [publishing, setPublishing] = useState(false)
+  const blockTreeRef = useRef<HTMLDivElement>(null)
+
+  /* S3 — after a delete, `usePageEditor` names where focus should land
+     (the block that took the deleted one's place, its now-empty container,
+     or the page's own "Add block" control); this is the one place that
+     actually holds the DOM to send it there, once the removal has painted. */
+  useEffect(() => {
+    if (!editor.pendingFocus) return
+    const root = blockTreeRef.current
+    const target =
+      editor.pendingFocus.kind === 'block'
+        ? root?.querySelector<HTMLElement>(`[data-block-id="${editor.pendingFocus.id}"]`)
+        : root?.querySelector<HTMLElement>('[data-page-add-block]')
+    target?.focus()
+    editor.clearPendingFocus()
+  }, [editor])
 
   const setTitle = (title: string) => editor.setContent((c) => ({ ...c, title }))
   const setDescription = (description: string) => editor.setContent((c) => ({ ...c, description: description === '' ? null : description }))
@@ -275,7 +291,7 @@ export function PageView({
       </div>
 
       {/* `data-pages-block-tree` — the print layer's scope hook (globals.css), so the one-column override touches only a page's own blocks. */}
-      <div data-pages-block-tree onKeyDown={onKeyDown}>
+      <div data-pages-block-tree ref={blockTreeRef} onKeyDown={onKeyDown}>
         <PageBlocksProvider
           value={{
             pageId: page.id,
