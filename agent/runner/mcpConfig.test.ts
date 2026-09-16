@@ -36,7 +36,9 @@ describe('the runner’s MCP config', () => {
   it('does not resolve against the repo root, which is not where the runner runs', () => {
     /* The regression itself: the old value existed from the repo root and only
        from there, which is exactly why argv-shape tests passed over it. */
-    const script = config.mcpServers.eyvar.args.at(-1)!
+    const eyvar = config.mcpServers.eyvar
+    expect(eyvar, 'the runner config names the eyvar server').toBeDefined()
+    const script = eyvar!.args.at(-1)!
     expect(resolve(env.sandboxDir, script)).toBe(resolve(env.agentDir, 'dist', 'mcp', 'server.js'))
   })
 })

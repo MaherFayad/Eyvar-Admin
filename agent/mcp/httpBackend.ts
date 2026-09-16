@@ -4,7 +4,7 @@
  * live backend, so treat a mismatch as this file's bug, not the endpoint's.
  */
 
-import { httpGet, httpPost, EyvarHttpError } from './client.js'
+import { httpGet, httpGetText, httpPost, EyvarHttpError } from './client.js'
 import type { AlertContextResult, Backend, SavePageOutcomeLike, SaveReportOutcomeLike } from './backendTypes.js'
 import type { Paginated, Single } from '../../src/data/types/common'
 import type { Dimension, Measure } from '../../src/data/types/measure'
@@ -68,6 +68,7 @@ export const httpBackend: Backend = {
 
   listMeasures: (params) => httpGet<Paginated<Measure>>('/catalogue/measures', params as Record<string, string | number | boolean | undefined>),
   listDimensions: (params) => httpGet<Paginated<Dimension>>('/catalogue/dimensions', params as Record<string, string | number | boolean | undefined>),
+  glossary: async (term) => ({ markdown: await httpGetText('/catalogue/glossary', term ? { term } : undefined) }),
 
   recordRun: (query, jobId) =>
     httpPost<RecordRunOutcome>('/reports/run', query, {

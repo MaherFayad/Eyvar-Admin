@@ -13,6 +13,7 @@
     "api:contract": "python scripts/extract-api-contract.py",
     "api:check": "python scripts/extract-api-contract.py --check",
     "typecheck:api": "tsc -p api/tsconfig.json --noEmit",
+    "typecheck:agent": "npm --prefix agent run typecheck",
     "i18n:keys": "python scripts/i18n-inventory.py",
     "i18n:check": "python scripts/i18n-inventory.py --check",
     "dev:pseudo": "vite --mode pseudo",

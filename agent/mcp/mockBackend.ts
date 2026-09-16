@@ -31,6 +31,7 @@ import {
   saveReport,
   compareWindows,
 } from '../../src/data/clients/index'
+import { buildGlossaryMarkdown } from '../../api/_lib/glossary'
 import type { AlertContextResult, Backend } from './backendTypes.js'
 
 /** T16's `alert_context` reaches ±14 buckets either side of the firing (§5). */
@@ -62,6 +63,13 @@ export const mockBackend: Backend = {
 
   listMeasures: (params) => listMeasures({ pageSize: 500, ...params }),
   listDimensions: (params) => listDimensions({ pageSize: 500, ...params }),
+  glossary: async (term) => {
+    /* The same generator `GET /catalogue/glossary` runs, fed the fixture
+       catalogue instead of a database row set — one implementation, two
+       measure sources (F-V2-54). */
+    const page = await listMeasures({ pageSize: 500 })
+    return { markdown: buildGlossaryMarkdown(page.items, term ?? null) }
+  },
 
   recordRun: (query, jobId) => recordRun(query, { jobId }),
   getRun: (runId) => getRun(runId),

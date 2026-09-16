@@ -1,44 +1,19 @@
 /**
- * T3 `glossary`'s starter content — a hand-written stand-in, not generated,
- * though `api/_lib/glossary.ts` now has a real generator it should read
- * instead (F-V2-54); a measure's own caption is folded in when `term` matches.
+ * T3's two fixed rules with no catalogue counterpart. Everything else this
+ * file used to hand-write (the Riyadh/Sunday week, the money rule, gap-vs-
+ * zero, partial buckets) duplicated `BUSINESS_RULES` in `api/_lib/glossary.ts`
+ * and is deleted: that generator is now T3's one source (F-V2-54). A blocked
+ * series and a run's provenance are facts about the agent's own tool
+ * contract, not about any measure, so the catalogue generator cannot produce
+ * them and a short hand-written entry is the honest fix, not a defect.
  */
 
-export interface GlossaryEntry {
+export interface ToolGlossaryEntry {
   term: string
   definition: string
 }
 
-export const CORE_GLOSSARY: readonly GlossaryEntry[] = [
-  {
-    term: 'riyadh-day',
-    definition:
-      'Every bucket boundary is Asia/Riyadh local time, not UTC and not the reader\'s machine. A "day" runs ' +
-      'midnight to midnight Riyadh time.',
-  },
-  {
-    term: 'sunday-week',
-    definition: 'A week bucket starts Sunday, not Monday — the Saudi calendar week, not ISO 8601.',
-  },
-  {
-    term: 'money',
-    definition:
-      'Every money value this server returns is an integer count of halalas (1 SAR = 100 halalas), never a ' +
-      'decimal. State findings in SAR by dividing by 100 in prose, but never assume a tool already did that.',
-  },
-  {
-    term: 'gap-vs-zero',
-    definition:
-      'A `null` point is a gap — no data, often outside a measure\'s coverage window. A `0` point is a measured ' +
-      'zero. Never read a gap as a zero; never state a trend across a gap without saying so.',
-  },
-  {
-    term: 'partial-bucket',
-    definition:
-      'The most recent bucket is often incomplete (the day/week/month is still running). It is drawn and marked, ' +
-      'never silently dropped, but `run_report`\'s summary and `describe_series` both exclude it from totals, ' +
-      'means and trends — a partial bucket compared to a complete one is not a real change.',
-  },
+export const TOOL_GLOSSARY_ENTRIES: readonly ToolGlossaryEntry[] = [
   {
     term: 'blocked-series',
     definition:
@@ -54,9 +29,16 @@ export const CORE_GLOSSARY: readonly GlossaryEntry[] = [
   },
 ]
 
-export function findGlossaryEntries(term: string | undefined): readonly GlossaryEntry[] {
-  if (term === undefined) return CORE_GLOSSARY
-  const needle = term.trim().toLowerCase()
-  if (needle.length === 0) return CORE_GLOSSARY
-  return CORE_GLOSSARY.filter((e) => e.term.toLowerCase().includes(needle) || e.definition.toLowerCase().includes(needle))
+/** `undefined` returns both; otherwise only entries whose term or text matches, and `''` when neither does. */
+export function toolGlossaryMarkdown(term: string | undefined): string {
+  const matches =
+    term === undefined
+      ? TOOL_GLOSSARY_ENTRIES
+      : TOOL_GLOSSARY_ENTRIES.filter((e) => {
+          const needle = term.trim().toLowerCase()
+          return needle.length === 0 || e.term.toLowerCase().includes(needle) || e.definition.toLowerCase().includes(needle)
+        })
+  if (matches.length === 0) return ''
+  const lines = matches.map((e) => `- **${e.term}.** ${e.definition}`)
+  return `## Tool rules\n\n${lines.join('\n')}\n`
 }

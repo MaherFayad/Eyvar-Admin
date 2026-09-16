@@ -72,3 +72,16 @@ export async function httpPost<T>(path: string, body: unknown, extraHeaders?: Re
   })
   return handle<T>(res)
 }
+
+/** Like `httpGet`, for the one endpoint that answers `text/markdown`, not JSON — T3's glossary. */
+export async function httpGetText(path: string, params?: Record<string, string | number | boolean | undefined>): Promise<string> {
+  const config = readConfig()
+  const url = new URL(config.baseUrl + path)
+  for (const [key, value] of Object.entries(params ?? {})) {
+    if (value !== undefined) url.searchParams.set(key, String(value))
+  }
+  const res = await fetch(url, { headers: headersFor(config) })
+  const body = await res.text()
+  if (!res.ok) throw new EyvarHttpError(res.status, body)
+  return body
+}

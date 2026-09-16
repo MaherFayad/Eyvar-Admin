@@ -52,6 +52,8 @@ export interface Backend {
 
   listMeasures(params: QueryParams & { category?: string }): Promise<Paginated<Measure>>
   listDimensions(params: QueryParams): Promise<Paginated<Dimension>>
+  /** T3 — the same generator the server's `GET /catalogue/glossary` runs (F-V2-54). */
+  glossary(term?: string): Promise<{ markdown: string }>
 
   recordRun(query: ReportQuery, jobId: string | null): Promise<RecordRunOutcome>
   getRun(runId: string): Promise<Single<ReportRun>>
