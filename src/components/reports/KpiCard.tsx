@@ -4,13 +4,22 @@
  * `grain !== 'none'`. Legality (`plan.ts`) guarantees one panel here.
  */
 
+import { lazy, Suspense } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
-import { MetricDelta, Sparkline } from '@/components/metrics'
+import { Skeleton } from '@/components/ui/skeleton'
+import { MetricDelta } from '@/components/metrics/MetricTile'
 import { comparisonWindow } from '@/data/clients'
 import type { CurrencyCode, Measure, MetricUnit, ReportPanel, ReportResult } from '@/data/types'
 import { formatDate, type Language, type Translator } from '@/lib'
 import { PanelNumeral } from './PanelCard'
 import { declaredAggregate, periodDelta, rollUpSeries } from './rollup'
+
+/* WP-8.4 finding 1 — the number, the delta and the title need no recharts;
+   only the shape below does, so this card statically imports the rest and
+   waits on nothing but the sparkline itself. */
+const LazySparkline = lazy(() =>
+  import('@/components/metrics/Sparkline').then((m) => ({ default: m.Sparkline })),
+)
 
 export interface KpiCardProps {
   panel: ReportPanel
@@ -112,11 +121,15 @@ export function KpiCard({
           </p>
         )}
         {grain !== 'none' && current && (
-          <Sparkline
-            values={current.points}
-            description={t('rb.chart.kpi.sparkline', { title })}
-            className="mt-1"
-          />
+          /* `h-7` — `Sparkline`'s own fixed height (`Sparkline.tsx`), so the
+             chunk arriving does not move the delta chip above it. */
+          <Suspense fallback={<Skeleton className="mt-1 h-7 w-full" />}>
+            <LazySparkline
+              values={current.points}
+              description={t('rb.chart.kpi.sparkline', { title })}
+              className="mt-1"
+            />
+          </Suspense>
         )}
       </CardContent>
     </Frame>

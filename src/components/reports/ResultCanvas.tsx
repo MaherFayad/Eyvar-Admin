@@ -54,7 +54,7 @@
  *               its own `asOf`. Never blanked, never silently stale.
  */
 
-import { useId, useState } from 'react'
+import { lazy, Suspense, useId, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -85,8 +85,18 @@ import { serialiseReportQuery } from '@/data/clients'
 import { formatDate, type Language, type Translator } from '@/lib'
 import { useChartView } from '@/hooks/useChartView'
 import { AnnotationForm } from './AnnotationForm'
-import { DistributionCard } from './DistributionCard'
+/* The KPI tile's own number never touches recharts — only its optional
+   sparkline does, and `KpiCard.tsx` defers that internally now, so the card
+   itself stays a static import: an operator's headline figure renders
+   immediately rather than waiting on a chart chunk (coordinator ruling). */
 import { KpiCard } from './KpiCard'
+/**
+ * WP-8.4 finding 1, named not fixed: `PanelCard`/`SeriesChart` stay a static
+ * import — this file needs their sibling exports synchronously, and Rollup
+ * fuses a module back into the sync chunk once ONE file both statically and
+ * dynamically imports it. A real split needs those helpers moved out of
+ * `PanelCard.tsx`/`SeriesChart.tsx`, outside this file's ownership.
+ */
 import {
   PanelCard,
   PanelFrame,
@@ -104,6 +114,17 @@ import {
 } from './SeriesChart'
 import { SeriesHeadlines } from './SeriesHeadlines'
 import { ResultTable, ResultTableColumns, deriveColumnResults } from './ResultTable'
+
+/**
+ * `DistributionCard` has no sibling export another part of this file needs
+ * synchronously, so — unlike `PanelCard`/`SeriesChart` above — this split is
+ * real: `ReportsScreen.tsx` reaches this file regardless of view, so a static
+ * import here shipped recharts on every plain visit. Same `lazy()`/`Suspense`
+ * pattern as `ReportModeCanvas.tsx`'s own `LazyDistributionCard`.
+ */
+const LazyDistributionCard = lazy(() =>
+  import('./DistributionCard').then((m) => ({ default: m.DistributionCard })),
+)
 
 export type CanvasStatus = 'unstarted' | 'loading' | 'error' | 'invalid' | 'content'
 
@@ -624,19 +645,21 @@ function Body({
           />
         ))}
         {drawable.length > 0 && (
-          <DistributionCard
-            panels={drawable}
-            result={result}
-            measure={measure}
-            kind={effectiveChartType === 'pie' ? 'pie' : 'bar'}
-            /* The MEASURE, not the first group. A part-of-whole is one
-               measure split into parts, and titling it with whichever group
-               happened to rank first reads as a chart of that group. */
-            title={measure ? t(measure.labelKey) : t('rb.canvas.heading')}
-            framed={framed}
-            t={t}
-            language={language}
-          />
+          <Suspense fallback={<div className="h-52 w-full" aria-hidden="true" />}>
+            <LazyDistributionCard
+              panels={drawable}
+              result={result}
+              measure={measure}
+              kind={effectiveChartType === 'pie' ? 'pie' : 'bar'}
+              /* The MEASURE, not the first group. A part-of-whole is one
+                 measure split into parts, and titling it with whichever group
+                 happened to rank first reads as a chart of that group. */
+              title={measure ? t(measure.labelKey) : t('rb.canvas.heading')}
+              framed={framed}
+              t={t}
+              language={language}
+            />
+          </Suspense>
         )}
       </div>
     )
@@ -957,6 +980,7 @@ function TrendPlotGroup({
   const dataLabelsDisabled = result.buckets.length * visibleSeriesCount > 60
 
   const zoomed = brushRange !== null
+  const heightClass = combinedTable ? 'h-80' : 'h-56'
 
   return (
     <div className="flex flex-col gap-3">
@@ -1066,7 +1090,7 @@ function TrendPlotGroup({
         annotations={annotations}
         brushRange={brushRange}
         onBrushChange={setBrushRange}
-        heightClass={combinedTable ? 'h-80' : 'h-56'}
+        heightClass={heightClass}
         t={t}
         language={language}
       />
