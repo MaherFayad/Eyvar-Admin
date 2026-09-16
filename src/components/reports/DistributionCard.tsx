@@ -171,7 +171,7 @@ import { formatMetricValue, formatSeriesValue } from '@/components/metrics'
 import type { Measure, MetricUnit, ReportPanel, ReportResult } from '@/data/types'
 import { ABSENT, directionFor, isolatedRunProps, type Language, type Translator } from '@/lib'
 import { cn } from '@/lib/utils'
-import { PanelFrame, PanelNumeral, PanelProse, panelTitle } from './PanelCard'
+import { PanelFrame, PanelNumeral, PanelProse, panelTitle } from './panelPrimitives'
 import { seriesOfPanel } from './PanelChart'
 import { declaredAggregate } from './rollup'
 
