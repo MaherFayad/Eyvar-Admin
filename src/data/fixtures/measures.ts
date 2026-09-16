@@ -120,6 +120,8 @@ const COVERAGE = {
   subscriptions: { from: '2026-06-01', to: '2026-06-25' },
   /** `fillerTrips` reaches 45 days back from the fixed clock. */
   trips: { from: '2026-05-11', to: '2026-06-25' },
+  /** Earliest `requestedAt` across `allRequestFixtures` — the dispatch queue is a five-day archive, not a 45-day ledger. */
+  requests: { from: '2026-06-20', to: '2026-06-25' },
 } as const
 
 /* ──────────────────────────── the catalogue ────────────────────────────── */
@@ -517,12 +519,16 @@ export const measureFixtures: Measure[] = [
     labelKey: 'rb.measure.requests.timeToAssign',
     category: 'service',
     population: {
-      resource: 'trips',
-      predicate: [],
-      predicateKey: 'rb.pop.trips.completed',
-      timeField: 'endedAt',
-      valueField: null,
-      coverage: COVERAGE.trips,
+      /* Was `trips`/`valueField: null` — every row contributed exactly `1`,
+         so `mean` was a constant. The real duration lives on `requests`
+         (`requestedAt` → `assignedAt`), the same rows `clients/metrics.ts`'s
+         `operations.overview.medianTimeToAssign` already reads honestly. */
+      resource: 'requests',
+      predicate: [{ field: 'request.assignedAt', op: 'isNotNull', value: null }],
+      predicateKey: 'rb.pop.requests.assigned',
+      timeField: 'requestedAt',
+      valueField: 'timeToAssignMinutes',
+      coverage: COVERAGE.requests,
     },
     temporality: 'flow',
     bucketAggregate: 'mean',
@@ -571,7 +577,13 @@ export const measureFixtures: Measure[] = [
       predicate: [],
       predicateKey: 'rb.pop.snapshot.daily',
       timeField: 'date',
-      valueField: 'subRevenueHalalas',
+      /* Was `subRevenueHalalas` — identical to `revenue.subscription`, never
+         divided by anything. `arpaHalalas` reads `subRevenueHalalas ÷
+         activeSubs` off the **same snapshot row**, never the row-level
+         `subscriptions.active` stock: the file header's own rule is that the
+         two subscription counts are an order of magnitude apart and "no
+         measure … is sourced from both". */
+      valueField: 'arpaHalalas',
       coverage: COVERAGE.snapshots,
     },
     temporality: 'flow',

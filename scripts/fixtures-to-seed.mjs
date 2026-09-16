@@ -213,6 +213,29 @@ function dailySnapshotsSeed(snapshots) {
 }
 
 /**
+ * `RideRequest` → `fixture_requests` (`0013_wrong_number_fixes.sql`).
+ * `timeToAssignMinutes` is computed here, in JS, with the exact arithmetic
+ * `resolveReport.ts`'s `requestSource.valueOf` runs — `compile.ts` can only
+ * read a plain column, never derive one, so the two sides share the formula
+ * by sharing this one JS expression rather than by sharing SQL. `null` for
+ * a request never assigned; the population predicate excludes it either way.
+ */
+function requestsSeed(requests) {
+  const columns = ['id', 'riderId', 'requestedAt', 'request.assignedAt', 'timeToAssignMinutes']
+  return tableSeed('fixture_requests', columns, requests, (row, c) => {
+    if (c === 'riderId') return sqlString(row.riderId)
+    if (c === 'requestedAt') return sqlString(row.requestedAt)
+    if (c === 'request.assignedAt') return sqlNullable(row.assignedAt)
+    if (c === 'timeToAssignMinutes') {
+      return row.assignedAt === null
+        ? 'null'
+        : String((Date.parse(row.assignedAt) - Date.parse(row.requestedAt)) / 60_000)
+    }
+    return sqlString(row.id)
+  })
+}
+
+/**
  * `Segment` → `segments` (`0006_pages.sql`, WP-6.4b Gap 2) — so a saved
  * report naming `{ kind: 'saved' }` resolves against real rows the same way
  * the mock's `resolveSegment` does. `owner_id` is a real `FOREIGN KEY` to
@@ -280,6 +303,10 @@ const SEEDERS = {
   dailySnapshots: {
     fixture: 'src/data/fixtures/dailySnapshots.ts',
     build: (mod) => dailySnapshotsSeed(mod.dailySnapshotFixtures),
+  },
+  requests: {
+    fixture: 'src/data/fixtures/requests.ts',
+    build: (mod) => requestsSeed(mod.allRequestFixtures),
   },
   segments: {
     fixture: 'src/data/fixtures/segments.ts',

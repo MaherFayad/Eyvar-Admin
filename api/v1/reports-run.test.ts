@@ -74,6 +74,7 @@ async function seedAll(): Promise<void> {
     'subscriptions.seed.sql',
     'trips.seed.sql',
     'dailySnapshots.seed.sql',
+    'requests.seed.sql',
     'segments.seed.sql',
   ]
   for (const file of files) {
@@ -140,6 +141,56 @@ describe('reports.run (AC-1276): server equals the mock, bucket for bucket', () 
       expect(actual).toEqual(expected)
     })
   }
+})
+
+/**
+ * Neither `financials.arpa` nor `requests.timeToAssign` is named by a seeded
+ * saved report, so the loop above never ran them through the equality check —
+ * the 2026-09-16 wrong-number fixes (`measures.ts`, `0013_wrong_number_fixes.sql`)
+ * would have shipped with zero AC-1276 coverage. Ad-hoc queries, same pattern.
+ */
+describe('reports.run (AC-1276): the two 2026-09-16 wrong-number fixes, ad hoc', () => {
+  it('financials.arpa — same-row ratio, mock and server agree bucket for bucket', async () => {
+    const query: ReportQuery = {
+      measures: [{ key: 'financials.arpa' }],
+      groupBy: [],
+      filters: [],
+      window: { kind: 'absolute', from: '2026-05-27', to: '2026-06-24' },
+      grain: 'day',
+      periodComparison: 'none',
+      chartType: 'line',
+    }
+    const mockCtx: ResolveContext = { permissions: OPS_MANAGER_PERMISSIONS, today: EYVAR_TODAY }
+    const expected = resolveReport(query, CATALOGUE, mockCtx)
+    const response = await handler(run(query, analystCookie))
+    expect(response.status).toBe(200)
+    const actual = (await response.json()) as ReportResult
+    expect(actual).toEqual(expected)
+    // Not the constant `revenue.subscription` series any more (F5).
+    const points = actual.series.find((s) => s.role === 'current')!.points
+    expect(new Set(points)).not.toEqual(new Set([10917, 10788, 11410]))
+  })
+
+  it('requests.timeToAssign — real requestedAt/assignedAt minutes, mock and server agree bucket for bucket', async () => {
+    const query: ReportQuery = {
+      measures: [{ key: 'requests.timeToAssign' }],
+      groupBy: [],
+      filters: [],
+      window: { kind: 'absolute', from: '2026-06-20', to: '2026-06-24' },
+      grain: 'day',
+      periodComparison: 'none',
+      chartType: 'line',
+    }
+    const mockCtx: ResolveContext = { permissions: OPS_MANAGER_PERMISSIONS, today: EYVAR_TODAY }
+    const expected = resolveReport(query, CATALOGUE, mockCtx)
+    const response = await handler(run(query, analystCookie))
+    expect(response.status).toBe(200)
+    const actual = (await response.json()) as ReportResult
+    expect(actual).toEqual(expected)
+    // Not the constant placeholder `1` on every bucket any more (H4).
+    const points = actual.series.find((s) => s.role === 'current')!.points
+    expect(points.some((p) => p !== null && p !== 1)).toBe(true)
+  })
 })
 
 describe('reports.run: the non-negotiables', () => {

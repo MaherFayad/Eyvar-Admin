@@ -49,6 +49,7 @@ export const REPORTS_AR: Dictionary = {
   'rb.pop.subscriptions.liveAtInstant': 'يحصي الاشتراكات التي كانت قد بدأت ولم تُلغَ ولم تنتهِ، في نهاية كل فترة.',
   'rb.pop.trips.completed': 'يحصي الرحلات التي انتهت داخل الفترة، بحسب وقت انتهائها.',
   'rb.pop.snapshot.daily': 'يقرأ صف لقطة يومية واحدة ملتقطة يدويًا لكل يوم.',
+  'rb.pop.requests.assigned': 'يحصي طلبات الركوب التي وصلت إلى إسناد كابتن، محسوبةً من وقت الطلب.',
   'rb.caption.captains.registered': 'التسجيل فقط. الكابتن الذي أُوقف أمس لا يزال محتسَبًا في كل يوم سابق.',
   'rb.caption.subscriptions.active': 'يُعاد بناؤه من تواريخ البدء والإلغاء والانتهاء لكل صف. ولا يوجد سجل حالات خلفه.',
   'rb.caption.trips.completed': 'يُصنَّف بحسب وقت انتهاء الرحلة، لا بحسب وقت بدئها.',

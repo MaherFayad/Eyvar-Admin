@@ -128,6 +128,7 @@ export const REPORTS_EN: Dictionary = {
     'Counts subscriptions that had started, and had neither been cancelled nor ended, at the end of each bucket.',
   'rb.pop.trips.completed': 'Counts trips that finished inside the bucket, by their end time.',
   'rb.pop.snapshot.daily': 'Reads one hand-captured daily snapshot row per day.',
+  'rb.pop.requests.assigned': 'Counts ride requests that reached a captain assignment, timed from the request.',
 
   /* ─────────────────────────── captions (F-6) ───────────────────────────── */
 

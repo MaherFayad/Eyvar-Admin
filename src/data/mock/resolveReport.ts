@@ -32,6 +32,7 @@ import { allDriverFixtures } from '../fixtures/drivers'
 import { riderFixtures } from '../fixtures/riders'
 import { allSubscriptionFixtures } from '../fixtures/subscriptions'
 import { allTripFixtures } from '../fixtures/trips'
+import { allRequestFixtures } from '../fixtures/requests'
 import { measuresByKey } from '../fixtures/measures'
 import { segmentFixtures } from '../fixtures/segments'
 import {
@@ -211,6 +212,12 @@ const snapshotSource: RowSource<(typeof dailySnapshotFixtures)[number]> = {
         return s.quickRideRevenueHalalas
       case 'subRevenueHalalas':
         return s.subRevenueHalalas
+      /* ARPA — same-row revenue ÷ same-row active count, never the
+         row-level `subscriptions.active` stock (file header). `activeSubs`
+         is never 0 across the 30 seeded rows; the guard is defensive, not
+         exercised — a genuine zero belongs in `dailySnapshots.ts`, not here. */
+      case 'arpaHalalas':
+        return s.activeSubs > 0 ? Math.round(s.subRevenueHalalas / s.activeSubs) : 0
       default:
         return 0
     }
@@ -226,6 +233,22 @@ const snapshotSource: RowSource<(typeof dailySnapshotFixtures)[number]> = {
   fields: {},
 }
 
+const requestSource: RowSource<(typeof allRequestFixtures)[number]> = {
+  rows: allRequestFixtures,
+  /* Bucketed by when the request came in, the SLA clock's own start. */
+  dateOf: (r) => localDayOf(r.requestedAt),
+  /* Minutes from request to captain assignment. The population predicate
+     (`request.assignedAt` isNotNull) already keeps an unassigned row out of
+     `rows`, so the `null` branch here is the belt to that brace, never load-
+     bearing on its own — see `matchesAll`'s comment on the same pattern. */
+  valueOf: (r) => (r.assignedAt === null ? 0 : (Date.parse(r.assignedAt) - Date.parse(r.requestedAt)) / 60_000),
+  liveAt: null,
+  subject: { kind: 'rider', idOf: (r) => r.riderId },
+  fields: {
+    'request.assignedAt': (r) => r.assignedAt,
+  },
+}
+
 /** `population.resource` → how to read it. The only mapping of its kind. */
 const SOURCES: Record<string, RowSource<AnyRow>> = {
   drivers: driverSource as unknown as RowSource<AnyRow>,
@@ -233,6 +256,7 @@ const SOURCES: Record<string, RowSource<AnyRow>> = {
   subscriptions: subscriptionSource as unknown as RowSource<AnyRow>,
   trips: tripSource as unknown as RowSource<AnyRow>,
   'daily-snapshots': snapshotSource as unknown as RowSource<AnyRow>,
+  requests: requestSource as unknown as RowSource<AnyRow>,
 }
 
 /** Which stores this mock can read. A measure naming anything else is a catalogue defect. */
