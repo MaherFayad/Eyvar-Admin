@@ -23,7 +23,7 @@
 
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, useLocation } from 'react-router-dom'
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest'
@@ -36,6 +36,7 @@ import {
   resetDataLayer,
 } from '@/data/clients'
 import type { Driver } from '@/data/types'
+import { DEFAULT_DEBOUNCE_MS } from '@/hooks'
 import { EN } from '@/i18n/dictionaries'
 import { createTranslator } from '@/lib'
 import { CaptainsView } from '@/screens/operations/people/CaptainsView'
@@ -486,10 +487,26 @@ describe('CM-3 in CaptainsView', () => {
    * one — so the row is reached the way an operator would reach it, through the
    * search field. That also keeps the assertion about one row rather than about
    * whichever rows the fixture happens to put first.
+   *
+   * **F-V2-83** — `findByText` can resolve from page one before the search
+   * debounce fires. Returning there leaves the debounced re-query in flight,
+   * and its skeleton swap unmounts the kebab the next step opens — the race
+   * `row-action-dialog.mjs` waits out before round 1. The wait is inside
+   * `act`, or the timer's state change commits on the next `act` instead.
    */
   async function rowFor(user: ReturnType<typeof userEvent.setup>, name: string) {
     await screen.findByRole('table')
     await user.type(screen.getByLabelText('Search captains'), name)
+    await screen.findByText(name)
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, DEFAULT_DEBOUNCE_MS + 150))
+    })
+    await waitFor(() =>
+      expect(document.querySelectorAll('[data-slot="skeleton"]')).toHaveLength(0),
+    )
+    /* Re-queried, not the pre-wait reference: the skeleton swap just settled
+       above can have replaced this row's DOM node, and a stale `<tr>` still
+       "finds" the kebab without ever reaching it — see the note above. */
     const cell = await screen.findByText(name)
     const tr = cell.closest('tr')
     if (!tr) throw new Error(`No row for ${name}`)
