@@ -208,6 +208,21 @@ describe('caseStudyToBlocks', () => {
     expect(validatePage(pageFor(blocks))).toEqual([])
   })
 
+  it("F-V2-98 — writes the contributors table headings in the study's own language", () => {
+    const headingsOf = (language: CaseStudy['language']) => {
+      const table = caseStudyToBlocks({ ...study, language }, JOB_ID).find((b) => b.type === 'table')
+      if (table?.type !== 'table') throw new Error('expected a table block')
+      return table.columns.map((column) => column.label)
+    }
+    const en = headingsOf('en')
+    const ar = headingsOf('ar')
+    expect(en).toContain('Change')
+    expect(ar).not.toContain('Change')
+    /* Every Arabic heading is written in Arabic script, none left in English. */
+    for (const label of ar) expect(label).toMatch(/[؀-ۿ]/)
+    expect(ar).toHaveLength(en.length)
+  })
+
   it('renders one data-quality callout naming the coverage note, gaps and blocked series', () => {
     const blocks = caseStudyToBlocks(study, JOB_ID)
     const callout = blocks.find((b) => b.type === 'callout')

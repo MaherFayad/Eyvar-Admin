@@ -100,13 +100,23 @@ function findingChartBlock(finding: CaseStudyFinding, jobId: string, reportId: s
   return { id: `${jobId}-finding-${finding.id}-chart`, type: 'report', reportId, view: 'chart', height: 'M', title: null }
 }
 
-const CONTRIBUTOR_COLUMNS: PageTableColumn[] = [
-  { key: 'dimension', label: 'Dimension', align: 'start' },
-  { key: 'group', label: 'Group', align: 'start' },
-  { key: 'deltaAbs', label: 'Change', align: 'end' },
-  { key: 'shareOfChangePct', label: 'Share of change %', align: 'end' },
-  { key: 'runId', label: 'Run', align: 'start' },
-]
+/* The headings are stored in the page with the study, so they are written in
+   the study's own language rather than looked up at render time (§4). */
+const CONTRIBUTOR_HEADINGS: Record<CaseStudy['language'], Record<string, string>> = {
+  en: { dimension: 'Dimension', group: 'Group', deltaAbs: 'Change', shareOfChangePct: 'Share of change %', runId: 'Run' },
+  ar: { dimension: 'البُعد', group: 'المجموعة', deltaAbs: 'التغيّر', shareOfChangePct: 'الحصة من التغيّر %', runId: 'التشغيل' },
+}
+
+function contributorColumns(language: CaseStudy['language']): PageTableColumn[] {
+  const heading = CONTRIBUTOR_HEADINGS[language]
+  return [
+    { key: 'dimension', label: heading.dimension!, align: 'start' },
+    { key: 'group', label: heading.group!, align: 'start' },
+    { key: 'deltaAbs', label: heading.deltaAbs!, align: 'end' },
+    { key: 'shareOfChangePct', label: heading.shareOfChangePct!, align: 'end' },
+    { key: 'runId', label: heading.runId!, align: 'start' },
+  ]
+}
 
 /**
  * §7's rendering rule ("a `table` block for contributors",
@@ -119,7 +129,7 @@ function contributorsTableBlock(study: CaseStudy, jobId: string): TableBlock {
   return {
     id: `${jobId}-contributors`,
     type: 'table',
-    columns: CONTRIBUTOR_COLUMNS,
+    columns: contributorColumns(study.language),
     rows: study.contributors.map((c) => [c.dimension, c.group, String(c.deltaAbs), String(c.shareOfChangePct), c.runId]),
   }
 }
