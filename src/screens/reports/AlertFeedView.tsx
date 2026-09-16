@@ -20,6 +20,7 @@ import type { AlertFiring } from '@/data/types'
 import { alertDeliveries, alertSeverity } from '@/data/types/alert'
 import { formatMetricValue } from '@/components/metrics/formatMetric'
 import { formatDate, isolatedRunProps, type Language, type Translator } from '@/lib'
+import { analystAskUrl } from '@/screens/analyst/entryContext'
 import { NoFiringsIllustration } from './AlertHistoryDialog'
 
 export interface AlertFeedViewProps {
@@ -238,10 +239,14 @@ export function AlertFeedView({ t, language }: AlertFeedViewProps) {
             {t('rb.alert.feed.acknowledge')}
           </Button>
           {/* A real `<a>` — it navigates the analyst composer, it does not
-             mutate (rule 6). The analyst's own `Attach` mechanism (§5.1, a
-             separate work package) is what consumes `?firingId=` once built. */}
+             mutate (rule 6). AC-1262/F-V2-90: the shared one-shot contract
+             (`entryContext.ts`), not a bare `?firingId=` nothing reads. */}
           <Link
-            to={`/management/reports?view=analyst&firingId=${firing.id}`}
+            to={analystAskUrl({
+              kind: 'firing',
+              id: firing.id,
+              label: formatDate(firing.firedAt, { style: 'day-month-time', language }),
+            })}
             className="text-xs text-info-foreground underline outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             {t('rb.alert.feed.explain')}

@@ -111,7 +111,7 @@ export const ANALYST_AR: Dictionary = {
   'an.job.action.saveAsPage.toast': 'حُفظت كصفحة',
   'an.job.action.saveAsPage.failed': 'لم يُحفظ ذلك.',
   'an.job.action.pinToPage': 'تثبيت في صفحة…',
-  'an.job.action.pinToPage.unwired': 'تثبيت هذا في صفحة أخرى غير متاح بعد.',
+  'an.job.action.pinToPage.noResult': 'لا نتيجة لهذه المهمة لتثبيتها بعد.',
   'an.job.action.createAlert': 'إنشاء تنبيه',
   'an.job.action.createAlert.unwired': 'إنشاء تنبيه من نتيجة غير متاح بعد.',
   'an.job.action.copyLink': 'نسخ الرابط',
@@ -122,7 +122,9 @@ export const ANALYST_AR: Dictionary = {
 
   'an.provenance.openInBuilder': 'فتح في المُنشئ',
   'an.provenance.none': 'لم تُشغِّل هذه المهمة تقريرًا.',
-  'an.provenance.reportGone': 'حُذف التقرير',
+  'an.provenance.missing': 'تعذّر العثور على هذا التشغيل. لا يمكن التحقق من رقمه مجددًا.',
+  'an.provenance.loading': 'جارٍ تحميل عمليات التشغيل التي تستشهد بها هذه الدراسة',
+  'an.provenance.error': 'لم تُحمَّل عمليات التشغيل خلف هذه الدراسة.',
   'an.provenance.asOf': 'حتى {time}',
 
   'an.schedules.loading': 'جارٍ تحميل الجداول',

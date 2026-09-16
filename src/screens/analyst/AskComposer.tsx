@@ -20,11 +20,18 @@ import type { AgentJobContext, AgentJobKind, AgentRunner } from '@/data/types/ag
 import type { ReportPreset } from '@/data/types/report'
 import { formatDate, type Language, type Translator } from '@/lib'
 
+export interface AskComposerAttachment {
+  context: AgentJobContext
+  label: string
+}
+
 export interface AskComposerProps {
   /** `null` while `agent.status` has not answered yet — the composer stays enabled until it is told otherwise (§5.4's own "a missing fact is honest"). */
   runner: AgentRunner | null
   submitting: boolean
   onAsk: (input: { kind: AgentJobKind; question: string; contextObjects: AgentJobContext[] }) => void
+  /** AC-1262 — seeded once from an entry point (builder overflow, page header, alert row); still removable, like any other chip. */
+  initialAttachment?: AskComposerAttachment | null
   t: Translator
   language: Language
 }
@@ -47,20 +54,26 @@ const KIND_KEY: Record<AgentJobKind, string> = {
    asks for one. */
 const WINDOW_PRESETS: readonly ReportPreset[] = ['last-7d', 'last-30d', 'this-quarter']
 
-interface Attached {
-  context: AgentJobContext
-  label: string
-}
+type Attached = AskComposerAttachment
 
 /** One line per attachable kind, read only from what the operator already picked. */
 function chipLabel(attached: Attached): string {
   return attached.label
 }
 
-export function AskComposer({ runner, submitting, onAsk, t, language }: AskComposerProps) {
+export function AskComposer({
+  runner,
+  submitting,
+  onAsk,
+  initialAttachment = null,
+  t,
+  language,
+}: AskComposerProps) {
   const [question, setQuestion] = useState('')
   const [kind, setKind] = useState<AgentJobKind>('ask')
-  const [attached, setAttached] = useState<Attached[]>([])
+  /* Lazy initial state — read once, on this mount, the same "one-shot" rule
+     `readAnalystEntryContext` documents; a later prop change does not re-seed. */
+  const [attached, setAttached] = useState<Attached[]>(() => (initialAttachment ? [initialAttachment] : []))
   const [attachOpen, setAttachOpen] = useState(false)
 
   const offline = runner !== null && !runner.online

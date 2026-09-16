@@ -5,6 +5,7 @@
  */
 
 import { useCallback, useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { PageHeader } from '@/components/PageHeader'
 import { SingleColumnPage } from '@/components/PageShell'
@@ -25,6 +26,7 @@ import { deletePage, duplicatePage, publishPage } from '@/data/clients/pages'
 import type { Dimension, Measure, SavedReport } from '@/data/types'
 import type { Page } from '@/data/types/page'
 import { formatDate, type Direction, type Language, type Translator } from '@/lib'
+import { analystAskUrl } from '@/screens/analyst/entryContext'
 import { BlockList } from './BlockList'
 import { PageBlocksProvider, type PageEditorActions } from './PageBlocksContext'
 import { PageScopeBar } from './PageScopeBar'
@@ -69,6 +71,7 @@ export function PageView({
   language,
   dir,
 }: PageViewProps) {
+  const navigate = useNavigate()
   const isOwner = page.ownerId === currentUserId
   const canEdit = canWrite && (isOwner || page.visibility === 'team')
   const isDraft = page.publishedAt === null
@@ -190,6 +193,18 @@ export function PageView({
             : { label: t('pg.edit.enter'), onClick: () => editor.setEditing(true) }
           : undefined
       }
+      /* AC-1262 — a `secondaryActions` entry, not `overflowActions`: it is
+         read-only, so any operator viewing the page gets it, not only
+         `canEdit`, and it stays within `PageHeader`'s two-item inline cap
+         (D8-b) so it cannot push `Duplicate`/`Delete` into the disclosure
+         menu they render outside of today. Reuses `rb.overflow.ask`'s
+         wording (`REPORTS_EN`, already merged into this screen's `t`). */
+      secondaryActions={[
+        {
+          label: t('rb.overflow.ask'),
+          onClick: () => navigate(analystAskUrl({ kind: 'page', id: page.id, label: editor.content.title || t('pg.page.untitled') })),
+        },
+      ]}
       overflowActions={
         canEdit
           ? [

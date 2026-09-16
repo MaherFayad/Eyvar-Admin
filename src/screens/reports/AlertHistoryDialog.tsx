@@ -20,6 +20,12 @@
  * Order is the client's — newest first (`alerts.ts`) — and it is posting order,
  * not a sort the operator chose.
  *
+ * ## AC-1262 amends §8.3's "no act to perform on a past crossing"
+ *
+ * `Explain this firing` opens the analyst rather than editing the row. It is
+ * a plain column, not `rowActions` — `mode: 'ledger'` refuses that prop at
+ * compile time — so it is a button in its own cell, always visible.
+ *
  * ## `notificationId === null` is a state, not a failure
  *
  * It means the notification this firing produced has since been cleared from
@@ -49,6 +55,7 @@
  */
 
 import { useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { HistoryIcon } from '@/components/icons'
 import { DataTable } from '@/components/DataTable'
 import { EmptyState } from '@/components/EmptyState'
@@ -75,6 +82,7 @@ import type { AlertFiring, AlertRule } from '@/data/types'
    identical note. */
 import { alertDeliveries } from '@/data/types/alert'
 import { formatDate, isolatedRunProps, type Language, type Translator } from '@/lib'
+import { analystAskUrl } from '@/screens/analyst/entryContext'
 
 export interface AlertHistoryDialogProps {
   open: boolean
@@ -98,6 +106,7 @@ export function AlertHistoryDialog({
   t,
   language,
 }: AlertHistoryDialogProps) {
+  const navigate = useNavigate()
   const table = useIndexTable({ mode: 'ledger' })
 
   const history = useAsync<readonly AlertFiring[]>(
@@ -244,6 +253,34 @@ export function AlertHistoryDialog({
             </span>
           ))}
         </span>
+      ),
+    },
+    {
+      /* AC-1262 — a plain column, not `rowActions`: `mode: 'ledger'` refuses
+         `rowActions` at compile time (`DataTable.tsx`'s own `!isLedger &&`
+         gate), so the one act this row gets is a button in its own cell,
+         always visible rather than hover-revealed (R7.3). */
+      id: 'explain',
+      header: t('rb.alert.history.explain'),
+      width: 140,
+      dataType: 'text',
+      cell: (firing) => (
+        <Button
+          type="button"
+          variant="secondary"
+          size="xs"
+          onClick={() =>
+            navigate(
+              analystAskUrl({
+                kind: 'firing',
+                id: firing.id,
+                label: formatDate(firing.firedAt, { style: 'day-month-time', language }),
+              }),
+            )
+          }
+        >
+          {t('rb.alert.history.explain')}
+        </Button>
       ),
     },
   ]

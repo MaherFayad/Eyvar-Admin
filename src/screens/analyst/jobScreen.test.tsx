@@ -11,8 +11,23 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ShellProvider } from '@/shell/ShellContext'
 import { Toaster } from '@/components/ui/sonner'
-import { disableMockLatency, resetDataLayer, useOfflineRunner } from '@/data/clients'
+import { disableMockLatency, recordRun, resetDataLayer, useOfflineRunner } from '@/data/clients'
+import type { ReportQuery } from '@/data/types'
 import { JobScreen } from './JobScreen'
+
+/* F-V2-90 — `recordRun` mints ids sequentially from a session-scoped store
+   `resetDataLayer` empties every test; calling it here first is what makes
+   `RUN-1` (AGT-1's own citation, `fixtures/agent.ts`) a real, resolvable run
+   rather than a 404 `getRun` has never heard of. */
+const SEED_QUERY: ReportQuery = {
+  measures: [{ key: 'trips.completed' }],
+  groupBy: [],
+  filters: [],
+  window: { kind: 'preset', preset: 'last-30d' },
+  grain: 'day',
+  periodComparison: 'none',
+  chartType: 'line',
+}
 
 /* AC-1256's own words: "asserted with the seam instrument, not a spy" — the
    real client, counted at the module boundary, on `board.screen.test.tsx`'s
@@ -95,6 +110,7 @@ describe('AC-1256 — the job page polls events every 2 s while running and stop
 
 describe('AC-1258 — a done job renders its result with the block renderer and a Provenance panel', () => {
   it('renders the case study’s own blocks and lists the run it cited', async () => {
+    await recordRun(SEED_QUERY) // mints RUN-1, AGT-1's own first citation
     mountJob('AGT-1')
     await screen.findByText('Why did the cancellation rate cross 6% on 24 June?')
 
@@ -109,28 +125,68 @@ describe('AC-1258 — a done job renders its result with the block renderer and 
 
   it('AC-1259 — Open in builder opens the builder on that run’s query', async () => {
     const user = userEvent.setup()
+    await recordRun(SEED_QUERY) // mints RUN-1
     mountJob('AGT-1')
     await user.click(await screen.findByRole('link', { name: 'Open in builder' }))
     expect(await screen.findByText('the report builder')).toBeInTheDocument()
   })
 })
 
-describe('AC-1260 — Save as page, Copy link, Re-run and the deferred actions are buttons with accessible names', () => {
-  it('names every action, and states the reason for the two not yet wired', async () => {
+describe('F-V2-90 — Provenance lists every run the study cites, by runId, never a silent drop', () => {
+  it('shows all three cited runs; the two seeded ones link to the builder, the unseeded one is marked missing', async () => {
+    /* AGT-1's case study cites RUN-1, RUN-2 and RUN-3 (`fixtures/agent.ts`).
+       Seeding two of the three — and leaving the third unrecorded — proves
+       both branches at once: a resolved citation and one `getRun` 404s on,
+       reproducing the defect the audit found and its fix in one test. */
+    await recordRun(SEED_QUERY) // RUN-1
+    await recordRun(SEED_QUERY) // RUN-2
+    mountJob('AGT-1')
+    await screen.findByText('Why did the cancellation rate cross 6% on 24 June?')
+
+    for (const runId of ['RUN-1', 'RUN-2', 'RUN-3']) {
+      expect(await screen.findByText(runId)).toBeInTheDocument()
+    }
+    expect(screen.getAllByRole('link', { name: 'Open in builder' })).toHaveLength(2)
+    expect(
+      screen.getByText('This run could not be found. Its number can’t be re-checked.'),
+    ).toBeInTheDocument()
+  })
+})
+
+describe('AC-1260 — Save as page, Pin to page, Copy link, Re-run and Create alert are buttons with accessible names', () => {
+  it('names every action, pin is enabled for a done job with a result, and create alert still states why it is not', async () => {
     mountJob('AGT-1')
     await screen.findByText('Why did the cancellation rate cross 6% on 24 June?')
 
     expect(screen.getByRole('button', { name: 'Save as page' })).toBeEnabled()
     expect(screen.getByRole('button', { name: 'Copy link' })).toBeEnabled()
     expect(screen.getByRole('button', { name: 'Re-run' })).toBeEnabled()
-
-    const pin = screen.getByRole('button', { name: 'Pin to page…' })
-    expect(pin).toBeDisabled()
-    expect(screen.getByText('Pinning this to another page isn’t wired yet.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Pin to page…' })).toBeEnabled()
 
     const createAlert = screen.getByRole('button', { name: 'Create alert' })
     expect(createAlert).toBeDisabled()
     expect(screen.getByText('Creating an alert from a finding isn’t wired yet.')).toBeInTheDocument()
+  })
+
+  it('Pin to page opens an inline picker, never a dialog, and pins a bookmark onto the chosen page', async () => {
+    const user = userEvent.setup()
+    mountJob('AGT-1')
+    await screen.findByText('Why did the cancellation rate cross 6% on 24 June?')
+
+    await user.click(screen.getByRole('button', { name: 'Pin to page…' }))
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+
+    await user.click(await screen.findByText('Monday morning'))
+    expect(await screen.findByText('Pinned to “Monday morning”.')).toBeInTheDocument()
+  })
+
+  it('Pin to page is disabled with a reason while the job has no result yet', async () => {
+    mountJob('AGT-7')
+    await screen.findByText('Queued')
+
+    const pin = screen.getByRole('button', { name: 'Pin to page…' })
+    expect(pin).toBeDisabled()
+    expect(screen.getByText('This job has no result to pin yet.')).toBeInTheDocument()
   })
 
   it('Copy link toasts on success', async () => {
@@ -138,6 +194,15 @@ describe('AC-1260 — Save as page, Copy link, Re-run and the deferred actions a
     mountJob('AGT-1')
     await user.click(await screen.findByRole('button', { name: 'Copy link' }))
     expect(await screen.findByText('Link copied')).toBeInTheDocument()
+  })
+})
+
+describe('AR2 — the meta line bidi-isolates the requesting operator’s raw id', () => {
+  it('wraps USR-7 in a <bdi> inside the "Asked by … ·" sentence', async () => {
+    mountJob('AGT-1')
+    const idNode = await screen.findByText('USR-7')
+    expect(idNode.tagName).toBe('BDI')
+    expect(idNode.closest('p')?.textContent).toMatch(/^Asked by USR-7 ·/)
   })
 })
 

@@ -112,6 +112,18 @@ describe('AC-1255 — the composer is inline with kind, question, context chips 
   })
 })
 
+describe('AR2 — a raw operator id is bidi-isolated', () => {
+  it('wraps the requestedBy id in a <bdi>, the same way PagesView isolates an owner id', async () => {
+    mountIndex()
+    /* Several seeded jobs are `USR-7`'s; `USR-1` is the signed-in operator
+       this view mounts as, so every one renders the raw id rather than
+       "You" — each isolated the same way. */
+    const cells = await screen.findAllByText('USR-7')
+    expect(cells.length).toBeGreaterThan(0)
+    for (const cell of cells) expect(cell.tagName).toBe('BDI')
+  })
+})
+
 describe('AC-1264 — the runner status line reads from agent.status', () => {
   /* `role="status"` also names `DataTable`'s own filter announcer, so the
      line is found by its text and then checked for the role, rather than

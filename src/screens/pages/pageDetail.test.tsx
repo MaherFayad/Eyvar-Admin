@@ -8,7 +8,7 @@
 
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter, Route, Routes } from 'react-router-dom'
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { ShellProvider } from '@/shell/ShellContext'
 import { disableMockLatency, resetDataLayer } from '@/data/clients'
@@ -17,8 +17,10 @@ import type { Page } from '@/data/types/page'
 import { PageDetailScreen } from './PageDetailScreen'
 import { DashboardDetailScreen } from '@/screens/reports/DashboardDetailScreen'
 import { PAGES_EN } from './copy'
+import { REPORTS_EN } from '@/screens/reports/copy'
 
 const copy = (key: string) => PAGES_EN[key] as string
+const reportsCopy = (key: string) => REPORTS_EN[key] as string
 
 beforeEach(() => {
   disableMockLatency()
@@ -39,6 +41,25 @@ function mount(pageId: string) {
           <Route path="/management/reports/pages/:pageId" element={<PageDetailScreen />} />
           <Route path="/management/reports" element={<p>the pages list</p>} />
         </Routes>
+      </ShellProvider>
+    </MemoryRouter>,
+  )
+}
+
+function LocationProbe() {
+  const location = useLocation()
+  return <span data-testid="location">{`${location.pathname}${location.search}`}</span>
+}
+
+function mountWithLocationProbe(pageId: string) {
+  return render(
+    <MemoryRouter initialEntries={[`/management/reports/pages/${pageId}`]}>
+      <ShellProvider>
+        <Routes>
+          <Route path="/management/reports/pages/:pageId" element={<PageDetailScreen />} />
+          <Route path="/management/reports" element={<p>the pages list</p>} />
+        </Routes>
+        <LocationProbe />
       </ShellProvider>
     </MemoryRouter>,
   )
@@ -98,5 +119,26 @@ describe('D46 — the dashboard route redirects to the page route (AC-1210)', ()
     )
 
     expect(await screen.findByRole('button', { name: copy('pg.edit.enter') })).toBeInTheDocument()
+  })
+})
+
+describe('AC-1262 — Ask the analyst about this page, prefilled', () => {
+  it('hands this page over as context', async () => {
+    const user = userEvent.setup()
+    const all = await pages()
+    const page = all[0]!
+    mountWithLocationProbe(page.id)
+
+    await screen.findByRole('button', { name: copy('pg.edit.enter') })
+    /* A `secondaryActions` entry, inline — never pushes `Duplicate`/`Delete`
+       into the disclosure menu (D8-b, `PageHeader.tsx`). */
+    await user.click(screen.getByRole('button', { name: reportsCopy('rb.overflow.ask') }))
+
+    const location = await screen.findByTestId('location')
+    const search = new URLSearchParams(location.textContent!.split('?')[1])
+    expect(search.get('view')).toBe('analyst')
+    expect(search.get('askKind')).toBe('page')
+    expect(search.get('askId')).toBe(page.id)
+    expect(search.get('askLabel')).toBe(page.title)
   })
 })

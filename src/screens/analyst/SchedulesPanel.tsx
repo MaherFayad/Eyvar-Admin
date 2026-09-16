@@ -23,6 +23,7 @@ import { useAsync } from '@/hooks'
 import { createAgentSchedule, listAgentSchedules, listReports, updateAgentSchedule } from '@/data/clients'
 import type { AgentSchedule } from '@/data/types/agent'
 import type { Language, Translator } from '@/lib'
+import { withIsolatedParam } from './bidiSentence'
 
 export interface SchedulesPanelProps {
   currentUserId: string
@@ -214,14 +215,19 @@ function ScheduleRow({
     }
   }
 
-  const owner = schedule.ownerId === currentUserId ? t('an.index.owner.you') : schedule.ownerId
+  /* AR2 — a translated "you" is a word, not content, and needs no isolation;
+     the raw owner id does, so only that branch goes through `withIsolatedParam`. */
+  const isYou = schedule.ownerId === currentUserId
+  const ownerLine = isYou
+    ? t('an.schedules.owner', { who: t('an.index.owner.you') })
+    : withIsolatedParam(t, 'an.schedules.owner', { who: schedule.ownerId }, 'who')
 
   return (
     <li className="flex items-center justify-between gap-3 border-b border-border px-3 py-2.5 last:border-b-0">
       <div className="flex min-w-0 flex-col gap-0.5">
         <span className="text-sm text-foreground">{describeCron(schedule.cron, t)}</span>
         <span className="text-xs text-muted-foreground">
-          {t.plural('an.schedules.col.reports', { count: schedule.reportIds.length })} · {t('an.schedules.owner', { who: owner })}
+          {t.plural('an.schedules.col.reports', { count: schedule.reportIds.length })} · {ownerLine}
         </span>
       </div>
       <div className="flex shrink-0 items-center gap-2">

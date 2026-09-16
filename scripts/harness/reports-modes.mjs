@@ -133,6 +133,38 @@ async function toArabic(page) {
   // reading, is the real per-point mark, not `.recharts-line-curve`.
   const marks = await page.locator('[data-slot="chart"] .recharts-area-dot').count()
   check('AC-1169 — the trend draws more than a single point', marks > 1, `marks=${marks}`)
+
+  /* The grain control itself — `ChartToolbar`'s shared `Grain` select, now
+     visible for a funnel measured `conversion-over-time` even though the
+     rail stayed the funnel rail. A silently-ignored pick would leave the
+     mark count unchanged; a real one changes it at every step. */
+  await page.getByRole('combobox', { name: 'Grain' }).click()
+  await page.waitForTimeout(300)
+  await page.getByRole('option', { name: 'Week' }).click()
+  await page.waitForTimeout(300)
+  await page.getByRole('button', { name: 'Refresh' }).click()
+  await page.waitForTimeout(1500)
+  await page.screenshot({ path: `${OUT}/wp34-AC1169-conversion-over-time-week.png` })
+  const weekMarks = await page.locator('[data-slot="chart"] .recharts-area-dot').count()
+  check(
+    'AC-1169 — picking Week changes the drawn marks from Day, not a control silently ignored',
+    weekMarks > 0 && weekMarks !== marks,
+    `day marks=${marks} week marks=${weekMarks}`,
+  )
+
+  await page.getByRole('combobox', { name: 'Grain' }).click()
+  await page.waitForTimeout(300)
+  await page.getByRole('option', { name: 'Month' }).click()
+  await page.waitForTimeout(300)
+  await page.getByRole('button', { name: 'Refresh' }).click()
+  await page.waitForTimeout(1500)
+  await page.screenshot({ path: `${OUT}/wp34-AC1169-conversion-over-time-month.png` })
+  const monthMarks = await page.locator('[data-slot="chart"] .recharts-area-dot').count()
+  check(
+    'AC-1169 — picking Month changes the drawn marks again, from Week',
+    monthMarks > 0 && monthMarks !== weekMarks,
+    `week marks=${weekMarks} month marks=${monthMarks}`,
+  )
   check('no console/page errors', errors.length === 0, errors.join(' | '))
 }
 

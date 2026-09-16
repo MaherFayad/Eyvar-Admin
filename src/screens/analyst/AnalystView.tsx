@@ -6,8 +6,8 @@
  * warning — no red (R7). Restyled on arrival: `DataTable`, `Badge`, `Tabs`.
  */
 
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useEffect, useRef, useState } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { DataTable, type RowAction } from '@/components/DataTable'
 import { PageHeader } from '@/components/PageHeader'
@@ -21,6 +21,7 @@ import type { AgentJob, AgentJobKind, AgentJobState, AgentRunner } from '@/data/
 import { formatDate, isolatedRunProps, type Language, type Translator } from '@/lib'
 import { reportsViewTabs, type ReportsView } from '@/screens/reports/views'
 import { AskComposer } from './AskComposer'
+import { readAnalystEntryContext, toAgentJobContext, withoutAnalystEntryContext } from './entryContext'
 import { SchedulesPanel } from './SchedulesPanel'
 
 export interface AnalystViewProps {
@@ -86,10 +87,27 @@ function RunnerStatusLine({ runner, language, t }: { runner: AgentRunner; langua
 
 export function AnalystView({ title, activeView = 'analyst', onSelectView, currentUserId, t, language, dir }: AnalystViewProps) {
   const navigate = useNavigate()
+  const location = useLocation()
   const table = useIndexTable<AgentJob>({ mode: 'index', getRowId: (row) => row.id })
   const [indexView, setIndexView] = useState<AnalystIndexView>('team')
   const [contentTab, setContentTab] = useState<AnalystContentTab>('jobs')
   const [submitting, setSubmitting] = useState(false)
+
+  /* AC-1262 — read once, on this mount, the context an entry point handed
+     over; `undefined` means "not yet read" so a later render (after the
+     strip below fires) does not overwrite it with `null`. */
+  const entryContextRef = useRef<ReturnType<typeof readAnalystEntryContext> | undefined>(undefined)
+  if (entryContextRef.current === undefined) {
+    entryContextRef.current = readAnalystEntryContext(location.search)
+  }
+  useEffect(() => {
+    if (!entryContextRef.current) return
+    navigate(
+      { pathname: location.pathname, search: withoutAnalystEntryContext(location.search) },
+      { replace: true },
+    )
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const status = useAsync((signal) => getAgentStatus(signal), { cacheKey: 'agent.status' })
   const jobs = useAsync((signal) => listAgentJobs({ ...table.params, view: indexView }, signal), {
@@ -160,7 +178,16 @@ export function AnalystView({ title, activeView = 'analyst', onSelectView, curre
       header: t('an.index.col.requestedBy'),
       width: 130,
       dataType: 'text',
-      cell: (row) => (row.requestedBy === currentUserId ? t('an.index.owner.you') : row.requestedBy),
+      /* AR2 — a raw operator id is content, not a translated word, and needs
+         the same bidi isolation `PagesView.tsx`'s owner column already uses. */
+      cell: (row) =>
+        row.requestedBy === currentUserId ? (
+          t('an.index.owner.you')
+        ) : (
+          <span {...isolatedRunProps({ className: 'min-w-0 truncate' }).box}>
+            <bdi {...isolatedRunProps().run}>{row.requestedBy}</bdi>
+          </span>
+        ),
     },
     {
       id: 'started',
@@ -207,7 +234,18 @@ export function AnalystView({ title, activeView = 'analyst', onSelectView, curre
           <SchedulesPanel currentUserId={currentUserId} t={t} language={language} />
         ) : (
           <>
-            <AskComposer runner={status.data ?? null} submitting={submitting} onAsk={ask} t={t} language={language} />
+            <AskComposer
+              runner={status.data ?? null}
+              submitting={submitting}
+              onAsk={ask}
+              initialAttachment={
+                entryContextRef.current
+                  ? { context: toAgentJobContext(entryContextRef.current), label: entryContextRef.current.label }
+                  : null
+              }
+              t={t}
+              language={language}
+            />
 
             <Tabs value={indexView} onValueChange={(value) => setIndexView(value as AnalystIndexView)}>
               <TabsList variant="segmented">

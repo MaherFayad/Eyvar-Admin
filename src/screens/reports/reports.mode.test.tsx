@@ -305,6 +305,50 @@ describe('P7-T3 — each mode renders its own answer, not a trend', () => {
   })
 })
 
+/**
+ * AC-1169 — the grain control follows the date axis, not which rail is on
+ * screen. A funnel measured `conversion-over-time` draws a trend and needs
+ * day/week/month; a plain funnel has no calendar axis and gets neither
+ * control nor a silently-ignored one.
+ */
+describe('AC-1169 — the grain control follows the date axis, not the rail', () => {
+  it('offers a real grain for a funnel measured conversion-over-time, on the funnel rail', async () => {
+    const user = userEvent.setup()
+    const overTime: ReportQuery = {
+      ...QUERIES.funnel,
+      grain: 'day',
+      funnel: { ...QUERIES.funnel.funnel!, measuredAs: 'conversion-over-time' },
+    }
+    renderAt(reportQueryPath(overTime), <ReportsScreen />)
+
+    /* Still the funnel rail — never `QueryPanel`'s measure picker. */
+    expect(await screen.findByText(copy('rb.funnel.measuredAs'))).toBeInTheDocument()
+    expect(screen.queryByLabelText(copy('rb.control.measure'))).not.toBeInTheDocument()
+
+    const grain = await screen.findByRole('combobox', { name: copy('rb.control.grain') })
+    expect(grain).toHaveTextContent(copy('rb.grain.day'))
+
+    await user.click(grain)
+    await user.click(await screen.findByRole('option', { name: copy('rb.grain.week') }))
+
+    /* A real change, not a control the planner silently ignores: it reaches
+       the address the same way any other grain pick does (AC-855). */
+    await waitFor(() => {
+      const encoded = new URLSearchParams(screen.getByTestId('search').textContent ?? '').get(
+        REPORT_QUERY_PARAM,
+      )
+      expect(encoded).not.toBeNull()
+      expect(deserialiseReportQuery(encoded ?? '')?.grain).toBe('week')
+    })
+  })
+
+  it('renders no grain control for a funnel with no date axis', async () => {
+    renderAt(reportQueryPath(QUERIES.funnel), <ReportsScreen />)
+    await screen.findByText(copy('rb.funnel.heading'))
+    expect(screen.queryByRole('combobox', { name: copy('rb.control.grain') })).not.toBeInTheDocument()
+  })
+})
+
 /* ───────────── switching mode composes a legal question, in place ──────── */
 
 describe('P7-T3 — the mode switcher does not compose an illegal query', () => {

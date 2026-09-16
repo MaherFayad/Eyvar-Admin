@@ -187,10 +187,10 @@ export interface ChartToolbarProps {
    */
   onCreateAlert: () => void
   /**
-   * `trend` and `table` — the two modes whose answer is a series the operator
-   * chooses a grain for. A funnel, a retention matrix and a journey tree each
-   * have their grain decided by the mode, so those three get the range and the
-   * shape menu and nothing else.
+   * `trend` and `table` only — gates the comparison control. Distinct from
+   * `hasDateAxis` (AC-1169) below: a `conversion-over-time` funnel has a date
+   * axis and a grain but still configures through the funnel rail and offers
+   * no comparison, so it leaves this `false`.
    */
   seriesMode: boolean
   /**
@@ -230,6 +230,13 @@ export function ChartToolbar({
   const comparing = query.periodComparison !== 'none'
   const windowReasons = plan.violations.filter((v) => v.field === 'window')
   const mode = reportMode(query)
+  /* AC-1169 — a funnel measured `conversion-over-time` draws a trend and gets
+     the grain control, even though it stays on the funnel rail (`seriesMode`
+     above is `false` for it). `plan.grains` already carries real day/week/
+     month legality for this case (`modeFixesGrainToNone`); this only decides
+     whether the control renders. */
+  const hasDateAxis =
+    seriesMode || (mode === 'funnel' && query.funnel?.measuredAs === 'conversion-over-time')
   const current = visualisationOf(query)
   const vizLabelId = useId()
   const grainLabelId = useId()
@@ -396,8 +403,8 @@ export function ChartToolbar({
           </SelectContent>
         </Select>
 
-        {/* ── the grain ─────────────────────────────────────────────────── */}
-        {seriesMode && (
+        {/* ── the grain — AC-1169: date axis, not rail choice ──────────── */}
+        {hasDateAxis && (
           <>
             <Label id={grainLabelId} className="sr-only">
               {t('rb.control.grain')}
@@ -425,12 +432,18 @@ export function ChartToolbar({
                 ))}
               </SelectContent>
             </Select>
+          </>
+        )}
 
-            {/* ── the comparison — §1.4, §1.5 ──────────────────────────────
-                `ComparisonControl` and `ComparisonDisplayToggle` are
-                `WindowControl.tsx`'s (WP-2.6): the fifth `Fixed range…` row,
-                its own popover, `previous-quarter`, and the `Show as` toggle.
-                This file keeps only the trailing clear (§A7), unchanged. */}
+        {/* ── the comparison — §1.4, §1.5 ────────────────────────────────
+            `ComparisonControl` and `ComparisonDisplayToggle` are
+            `WindowControl.tsx`'s (WP-2.6): the fifth `Fixed range…` row, its
+            own popover, `previous-quarter`, and the `Show as` toggle. This
+            file keeps only the trailing clear (§A7), unchanged. Gated on
+            `seriesMode`, not `hasDateAxis` — a funnel trend has no previous
+            period to compare to. */}
+        {seriesMode && (
+          <>
             <ComparisonControl
               query={query}
               onChange={onChange}

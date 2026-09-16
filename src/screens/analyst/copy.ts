@@ -139,9 +139,10 @@ export const ANALYST_EN: Dictionary = {
   'an.job.action.saveAsPage.toast': 'Saved as a page',
   'an.job.action.saveAsPage.failed': 'That didn’t save.',
   'an.job.action.pinToPage': 'Pin to page…',
-  /* Deferred — no picker exists yet to choose the target page; disabled in
-     place with this reason rather than hidden (AGENT-BRIEF traps table). */
-  'an.job.action.pinToPage.unwired': 'Pinning this to another page isn’t wired yet.',
+  /* AC-1260 — a bookmark block onto a dashboard page (`BookmarkBlockView.tsx`
+     already renders `{kind:'page'}`), the same picker shape ReportBuilder's
+     own `Pin to a page…` uses. Legal only once the job has a result. */
+  'an.job.action.pinToPage.noResult': 'This job has no result to pin yet.',
   'an.job.action.createAlert': 'Create alert',
   /* Deferred — the composer that would take a prefilled condition is
      `AlertRuleDialog.tsx`, owned outside this work package. */
@@ -155,7 +156,11 @@ export const ANALYST_EN: Dictionary = {
   /* ── the provenance panel (§5.3, AC-1258/AC-1259) ───────────────────── */
   'an.provenance.openInBuilder': 'Open in builder',
   'an.provenance.none': 'This job didn’t run a report.',
-  'an.provenance.reportGone': 'Report deleted',
+  /* F-V2-90 — a cited runId `getRun` could not resolve; the case an operator
+     most needs to see, so it renders rather than drops. */
+  'an.provenance.missing': 'This run could not be found. Its number can’t be re-checked.',
+  'an.provenance.loading': 'Loading the runs this study cites',
+  'an.provenance.error': 'The runs behind this study didn’t load.',
   'an.provenance.asOf': 'as of {time}',
 
   /* ── the Schedules tab (§8, AC-1266/AC-1267) ─────────────────────────── */

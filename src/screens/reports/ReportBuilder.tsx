@@ -197,6 +197,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { ChartToolbar, QueryPanel, ResultCanvas, type CanvasStatus } from '@/components/reports'
 import { useAsync, useDebouncedValue } from '@/hooks'
+import { analystAskUrl } from '@/screens/analyst/entryContext'
 import { useNowIso } from '@/screens/queues'
 import { useShell } from '@/shell/ShellContext'
 import type { Annotation, AnnotationKind } from '@/data/types/annotation'
@@ -1314,12 +1315,23 @@ export function ReportBuilder({
                 {report === null ? t('rb.overflow.saveToAlert') : t('rb.overflow.createAlert')}
               </DropdownMenuItem>
 
+              {/* AC-1262 — hands the analyst the report it was asked about,
+                  the same one-shot URL contract the page header and the
+                  alert history row use (`entryContext.ts`). A draft has no
+                  report yet for the analyst to point at, same as its four
+                  neighbours above. */}
               <DropdownMenuItem
-                onSelect={() => navigate('/management/reports?view=analyst')}
+                onSelect={() =>
+                  report && navigate(analystAskUrl({ kind: 'report', id: report.id, label: report.name }))
+                }
+                disabled={report === null}
               >
                 <ChatIcon aria-hidden="true" className="size-4" />
                 {t('rb.overflow.ask')}
               </DropdownMenuItem>
+              {report === null && (
+                <p className="px-1.5 py-1 text-xs text-muted-foreground">{t('rb.overflow.ask.needsSaved')}</p>
+              )}
 
               <DropdownMenuItem onSelect={() => setVersionsOpen(true)} disabled={report === null}>
                 <HistoryIcon aria-hidden="true" className="size-4" />

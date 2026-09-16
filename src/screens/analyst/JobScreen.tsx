@@ -9,12 +9,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Command, CommandEmpty, CommandGroup, CommandItem, CommandList } from '@/components/ui/command'
 import { DetailPage } from '@/components/PageShell'
 import { ErrorState } from '@/components/ErrorState'
 import { LoadingSkeleton } from '@/components/LoadingSkeleton'
 import { PageHeader } from '@/components/PageHeader'
 import { BlockList } from '@/components/pages/BlockList'
-import { collectReportIds } from '@/components/pages/blockOps'
 import { PageBlocksProvider } from '@/components/pages/PageBlocksContext'
 import { useAsync } from '@/hooks'
 import {
@@ -23,21 +24,25 @@ import {
   getAgentJob,
   getAgentStatus,
   getPage,
-  getReport,
+  getRun,
   listAgentJobEvents,
   listDimensions,
   listMeasures,
+  listPages,
   localDayOf,
   publishPage,
+  savePage,
 } from '@/data/clients'
 import { isApiError } from '@/data/types/common'
 import type { AgentEvent, AgentJob, AgentJobState } from '@/data/types/agent'
 import type { SavedReport } from '@/data/types'
+import { pageTemplate, type Block, type Page } from '@/data/types/page'
 import { formatDate } from '@/lib'
 import { useNowIso } from '@/screens/queues'
 import { useShell } from '@/shell/ShellContext'
 import { withFallback } from '@/screens/operations/localCopy'
 import { REPORTS_EN } from '@/screens/reports/copy'
+import { withIsolatedParam } from './bidiSentence'
 import { ANALYST_EN } from './copy'
 import { JobTimeline } from './JobTimeline'
 import { ProvenancePanel, type ProvenanceRun } from './ProvenancePanel'
@@ -48,6 +53,17 @@ const STATE_TONE: Record<AgentJobState, 'neutral' | 'info' | 'warning' | 'succes
   deferred: 'warning',
   done: 'success',
   failed: 'warning',
+}
+
+/** Every `runId` an `agent-insight` block carries, depth-first through `toggle`/`columns` (`caseStudyToBlocks`'s own nesting, F-V2-90). */
+function collectAgentInsightRunIds(blocks: readonly Block[]): string[] {
+  const ids: string[] = []
+  for (const block of blocks) {
+    if (block.type === 'agent-insight') ids.push(...block.runIds)
+    if (block.type === 'toggle') ids.push(...collectAgentInsightRunIds(block.blocks))
+    if (block.type === 'columns') for (const column of block.columns) ids.push(...collectAgentInsightRunIds(column.blocks))
+  }
+  return ids
 }
 
 const ANALYST_INDEX_ROUTE = '/management/reports?view=analyst'
@@ -139,35 +155,37 @@ export function JobScreen() {
     { deps: [], cacheKey: 'catalogue.measures', enabled: resultPageId !== null },
   )
 
-  /* AC-1258/AC-1259 — every `report` block on the result page names a
-     `reportId` T13 saved; that saved report's own `query` and `lastRunAt`
-     ARE the run's query, window and `asOf` (§5.3). No separate "run" record
-     reaches the frontend today; flagged in the handoff. */
-  const [runs, setRuns] = useState<readonly ProvenanceRun[]>([])
-  useEffect(() => {
-    let cancelled = false
-    async function load() {
-      if (!pageQuery.data) {
-        if (!cancelled) setRuns([])
-        return
-      }
-      const ids = Array.from(new Set(collectReportIds(pageQuery.data.blocks)))
-      const next: ProvenanceRun[] = []
-      for (const id of ids) {
-        try {
-          const { data: report } = await getReport(id)
-          next.push({ reportId: id, deleted: false, name: report.name, query: report.query, asOf: report.lastRunAt })
-        } catch {
-          next.push({ reportId: id, deleted: true })
-        }
-      }
-      if (!cancelled) setRuns(next)
-    }
-    void load()
-    return () => {
-      cancelled = true
-    }
-  }, [pageQuery.data])
+  /* F-V2-90 — every `runId` the study actually CITED, read from the page's
+     own `agent-insight` blocks (`caseStudyToBlocks`'s `runIds`), not the
+     `report` blocks a chart happens to have. A `report` block names a saved
+     report and may cite none, few, or the wrong runs of what a finding's
+     number was actually evidenced by. */
+  const runIdsCited = useMemo(
+    () => (pageQuery.data ? Array.from(new Set(collectAgentInsightRunIds(pageQuery.data.blocks))) : []),
+    [pageQuery.data],
+  )
+  const runsAsync = useAsync<readonly ProvenanceRun[]>(
+    async (signal) =>
+      Promise.all(
+        runIdsCited.map(async (runId): Promise<ProvenanceRun> => {
+          try {
+            const { data: run } = await getRun(runId, signal)
+            return { runId, status: 'ok', query: run.query, asOf: run.asOf }
+          } catch (error) {
+            /* A citation that no longer resolves is the case an operator
+               most needs to see, never a silent drop — anything else (a
+               network fault) is a real panel error, not a missing run. */
+            if (isApiError(error) && error.kind === 'not-found') return { runId, status: 'missing' }
+            throw error
+          }
+        }),
+      ),
+    {
+      deps: [runIdsCited.join(',')],
+      enabled: pageQuery.data !== null && pageQuery.data !== undefined,
+      isEmpty: (rows) => rows.length === 0,
+    },
+  )
 
   const rerun = useCallback(async () => {
     if (job === null) return
@@ -204,6 +222,51 @@ export function JobScreen() {
     }
   }, [t])
 
+  /* AC-1260 — a bookmark block, `BookmarkBlockView`'s `{kind:'page'}`, is the
+     same "pin this result onto a dashboard" shape `ReportBuilder`'s own
+     `Pin to a page…` uses, restyled from that picker rather than a second one.
+     Fetched only once the inline picker opens. */
+  const [pinOpen, setPinOpen] = useState(false)
+  const pinPages = useAsync(
+    async (signal) => {
+      const result = await listPages(
+        { pageSize: 100, filters: [{ field: 'kind', op: 'eq', value: 'dashboard' }] },
+        signal,
+      )
+      const items = result.items.filter((page) => !pageTemplate(page))
+      return { ...result, items, total: items.length }
+    },
+    { deps: [pinOpen], enabled: pinOpen, cacheKey: 'pages.list.dashboard', isEmpty: (res) => res.items.length === 0 },
+  )
+  const pinToPage = useCallback(
+    async (page: Page) => {
+      if (!job || job.resultPageId === null) return
+      try {
+        const outcome = await savePage({
+          id: page.id,
+          kind: page.kind,
+          title: page.title,
+          icon: page.icon,
+          description: page.description,
+          visibility: page.visibility,
+          tags: page.tags,
+          scope: page.scope,
+          blocks: [
+            ...page.blocks,
+            { id: `AIB-${page.id}-${job.id}`, type: 'bookmark', target: { kind: 'page', id: job.resultPageId } },
+          ],
+          version: page.version,
+        })
+        if (outcome.status !== 'saved') throw new Error('pin failed')
+        setPinOpen(false)
+        toast.success(t('rb.overflow.pin.toast', { page: page.title }))
+      } catch {
+        toast.error(t('rb.overflow.pin.failed'))
+      }
+    },
+    [job, t],
+  )
+
   if (initial.status === 'loading') {
     return (
       <DetailPage
@@ -228,10 +291,12 @@ export function JobScreen() {
   const header = (
     <PageHeader
       title={job.question}
-      meta={t('an.job.meta', {
-        who: job.requestedBy,
-        time: formatDate(job.createdAt, { style: 'day-month-time', language }),
-      })}
+      meta={withIsolatedParam(
+        t,
+        'an.job.meta',
+        { who: job.requestedBy, time: formatDate(job.createdAt, { style: 'day-month-time', language }) },
+        'who',
+      )}
       badges={<Badge tone={STATE_TONE[job.state]}>{t(`an.job.state.${job.state}`)}</Badge>}
       primaryAction={
         job.state === 'done' && job.resultPageId !== null
@@ -245,11 +310,15 @@ export function JobScreen() {
       overflowActions={[
         {
           label: t('an.job.action.pinToPage'),
-          onClick: () => undefined,
-          disabled: true,
-          reason: t('an.job.action.pinToPage.unwired'),
+          onClick: () => setPinOpen(true),
+          disabled: job.state !== 'done' || job.resultPageId === null,
+          reason: job.state !== 'done' || job.resultPageId === null ? t('an.job.action.pinToPage.noResult') : null,
         },
         {
+          /* AC-1260 — still blocked: `AlertRuleDialog.tsx` (owned outside this
+             work package) takes no prop for a prefilled `AlertCondition`, and
+             `Block` (`src/data/types/page.ts`, also outside it) has no
+             `alert-proposal` variant carrying one from a finding. */
           label: t('an.job.action.createAlert'),
           onClick: () => undefined,
           disabled: true,
@@ -263,6 +332,37 @@ export function JobScreen() {
 
   const main = (
     <>
+      {/* AC-1260 — inline, never a dialog (the surface's own no-dialog
+          ruling, `AskComposer.tsx`'s header comment). Closes itself once a
+          page is picked; `Cancel` reuses the builder's own copy key. */}
+      {pinOpen && (
+        <div className="mb-3 flex flex-col gap-2 rounded-xl border border-border bg-card p-3">
+          <h2 className="text-sm font-medium text-foreground">{t('an.job.action.pinToPage')}</h2>
+          <Command>
+            <CommandList>
+              <CommandEmpty>
+                {pinPages.status === 'loading'
+                  ? t('rb.overflow.pin.loading')
+                  : pinPages.status === 'error'
+                    ? t('rb.overflow.pin.error')
+                    : t('rb.overflow.pin.empty')}
+              </CommandEmpty>
+              <CommandGroup>
+                {(pinPages.data?.items ?? []).map((page) => (
+                  <CommandItem key={page.id} value={page.title} onSelect={() => void pinToPage(page)}>
+                    <bdi>{page.title}</bdi>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            </CommandList>
+          </Command>
+          <div className="flex justify-end">
+            <Button type="button" variant="secondary" size="xs" onClick={() => setPinOpen(false)}>
+              {t('rb.save.cancel')}
+            </Button>
+          </div>
+        </div>
+      )}
       <JobTimeline job={job} events={events} runner={runnerStatus.data} onRerun={() => void rerun()} t={t} language={language} />
       {job.state === 'done' && pageQuery.data && catalogue.data && (
         <PageBlocksProvider
@@ -292,7 +392,20 @@ export function JobScreen() {
     <DetailPage
       header={header}
       main={main}
-      rail={job.state === 'done' ? [<ProvenancePanel key="provenance" runs={runs} t={t} language={language} />] : []}
+      rail={
+        job.state === 'done'
+          ? [
+              <ProvenancePanel
+                key="provenance"
+                status={runsAsync.status}
+                runs={runsAsync.data ?? []}
+                onRetry={runsAsync.refetch}
+                t={t}
+                language={language}
+              />,
+            ]
+          : []
+      }
     />
   )
 }

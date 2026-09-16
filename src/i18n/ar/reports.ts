@@ -541,6 +541,7 @@ export const REPORTS_AR: Dictionary = {
   'rb.overflow.createAlert': 'إنشاء تنبيه…',
   'rb.overflow.saveToAlert': 'الحفظ لإنشاء تنبيه…',
   'rb.overflow.ask': 'اسأل المحلل',
+  'rb.overflow.ask.needsSaved': 'احفظ التقرير أولاً.',
   'rb.overflow.versions': 'سجل الإصدارات',
   'rb.overflow.versions.heading': 'سجل الإصدارات',
   'rb.overflow.versions.close': 'إغلاق',
@@ -783,6 +784,7 @@ export const REPORTS_AR: Dictionary = {
   'rb.alert.history.title': 'إطلاقات «{name}»',
   'rb.alert.history.description':
     'كل مرة تجاوزت فيها هذه القاعدة عتبتها، من الأحدث إلى الأقدم. ولا يمكن تعديل شيء هنا ولا إعادة إرساله.',
+  'rb.alert.history.explain': 'اشرح هذا الإطلاق',
   'rb.alert.history.col.firedAt': 'وقت الإطلاق',
   'rb.alert.history.col.bucket': 'قراءة الفترة',
   'rb.alert.history.col.value': 'القيمة',

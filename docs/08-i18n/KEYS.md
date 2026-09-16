@@ -9,9 +9,9 @@ this file is stale or when the `defaultValue` ratchet slips.
 
 | | |
 |---|---:|
-| **Translatable keys, all dictionaries** | **7538** |
-| Reachable from `EN` (what the shell renders) | 7168 |
-| Keys in `AR` | 7538 |
+| **Translatable keys, all dictionaries** | **7542** |
+| Reachable from `EN` (what the shell renders) | 7172 |
+| Keys in `AR` | 7542 |
 | **Keys Arabic is missing** | **0** |
 | Keys in `AR` and not in `EN` (plural forms, unregistered screens) | 370 |
 | Plural forms (`key#category`) inside `EN` | 75 |
@@ -425,7 +425,7 @@ Measured on English only, and a placeholder counts as one word.
 | File | Exports | Keys |
 |---|---|---:|
 | `src/screens/financials/copy.ts` | `FINANCIALS_EN` | 960 |
-| `src/screens/reports/copy.ts` | `REPORTS_EN` | 921 |
+| `src/screens/reports/copy.ts` | `REPORTS_EN` | 923 |
 | `src/commands/copy.ts` | `COMMANDS_EN` | 390 |
 | `src/screens/operations/people/copy.ts` | `PEOPLE_EN` | 338 |
 | `src/components/profile/copy.ts` | `PROFILE_EN` | 280 |
@@ -441,7 +441,7 @@ Measured on English only, and a placeholder counts as one word.
 | `src/screens/support/disputes/copy.ts` | `DISPUTES_EN` | 168 |
 | `src/screens/pages/copy.ts` | `PAGES_EN` | 151 |
 | `src/screens/operations/subscriptions/copy.ts` | `SUBSCRIPTIONS_EN` | 138 |
-| `src/screens/analyst/copy.ts` | `ANALYST_EN` | 135 |
+| `src/screens/analyst/copy.ts` | `ANALYST_EN` | 137 |
 | `src/screens/metrics/growth/copy.ts` | `GROWTH_EN` | 123 |
 | `src/screens/operations/assurance/copy.ts` | `ASSURANCE_EN` | 115 |
 | `src/components/profile/driver/copy.ts` | `DRIVER_PROFILE_EN` | 108 |

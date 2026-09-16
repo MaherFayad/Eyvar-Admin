@@ -924,6 +924,9 @@ export const REPORTS_EN: Dictionary = {
   'rb.overflow.createAlert': 'Create alert…',
   'rb.overflow.saveToAlert': 'Save to alert…',
   'rb.overflow.ask': 'Ask the analyst',
+  /* AC-1262 — a draft has no report yet for the analyst to point at, same
+     reason `Duplicate`/`Pin`/`Create alert`/`Version history` disable above. */
+  'rb.overflow.ask.needsSaved': 'Save the report first.',
   'rb.overflow.versions': 'Version history',
   'rb.overflow.versions.heading': 'Version history',
   'rb.overflow.versions.close': 'Close',
@@ -1364,6 +1367,10 @@ export const REPORTS_EN: Dictionary = {
   'rb.alert.history.title': 'Firings of “{name}”',
   'rb.alert.history.description':
     'Every time this rule crossed its threshold, newest first. Nothing here can be edited or re-sent.',
+  /* AC-1262 — the row action `01-analyst-agent.md` §4 names "Explain this
+     firing"; the one act a ledger row does still get (§8.3's own comment
+     above, amended). */
+  'rb.alert.history.explain': 'Explain this firing',
   'rb.alert.history.col.firedAt': 'Fired',
   'rb.alert.history.col.bucket': 'Reading for',
   'rb.alert.history.col.value': 'Value',
