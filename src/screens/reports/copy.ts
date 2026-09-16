@@ -1533,12 +1533,10 @@ export const REPORTS_EN: Dictionary = {
   'rb.alert.mute.failed': 'The rule wasn’t muted. Nothing was changed.',
   'rb.alert.mute.action': 'Mute {name} for…',
 
-  /* §4.6 — the lag state, row-level and list-level. */
+  /* §4.6 — the lag state, row-level. D41 built the scheduler, so the
+     no-cadence banner `04-alerting-v2.md:123` promised to retire is gone. */
   'rb.alert.state.lag': 'Last evaluated {duration} ago · expected {cadence}',
   'rb.alert.state.notScheduled': 'Not scheduled',
-  'rb.alert.banner.noCadence.title': 'A rule without a cadence never runs.',
-  'rb.alert.banner.noCadence.body': 'Set a cadence so it can evaluate and fire.',
-  'rb.alert.banner.noCadence.action': 'Set cadence',
 
   /* The condition summary column (AC-1232) — one short sentence per kind, built
      from words rather than the raw `>`/`↓` shorthand the doc's example uses,

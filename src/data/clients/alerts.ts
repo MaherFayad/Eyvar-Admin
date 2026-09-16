@@ -15,15 +15,12 @@
  * `firing` with `N11` beside it precisely so the delivered state is testable
  * before any scheduler exists (§4.4 item 4).
  *
- * ## Every cadence is unset, and that is a modelling decision
+ * ## Cadence is real now, and `null` still means "not scheduled"
  *
- * No seeded rule declares a `cadence` or a `minReArmMinutes`. The business has
- * specified neither, and **AC-453** is this project's standing rule for the
- * case: *an invented window is indistinguishable from a measured one once it is
- * in a fixture*. The fields exist so the answer is a data change; they are
- * `null` so nobody mistakes a placeholder for a decision. A rule with
- * `cadence: null` does not evaluate — the same shape R5-15 gives a measure with
- * no population.
+ * D41 built the scheduler (`api/cron/alerts-hourly.ts`, `alerts-daily.ts`);
+ * AC-1227 lets a rule declare `hourly`, `daily`, or `null`. A few seeded rules
+ * now carry a real cadence to prove the lag warning and the on-time state;
+ * most still carry `null`, a deliberate "not scheduled," not a placeholder.
  *
  * ## An alert over an undeclared population would be meaningless
  *

@@ -10,9 +10,9 @@
  *   explicitly — so the day someone decides five glyphs are self-evident and
  *   drops the badge, this fails rather than the colour-blind operator finding
  *   out;
- * - the *"nothing is checking these rules"* banner still renders while any rule
- *   carries `cadence: null` — it is a recorded decision (AC-453), not chrome,
- *   and a visual pass is exactly the sort of change that quietly removes it;
+ * - the *"nothing is checking these rules"* banner stays gone (D41/AC-1227):
+ *   the scheduler exists now, so a visual pass reintroducing it would be
+ *   restating a claim the product no longer makes;
  * - the library's type glyph is asserted **against the saved `chartType`**, not
  *   merely present, because a glyph that is always the line chart is decoration
  *   pretending to be information;
@@ -246,24 +246,9 @@ describe('every alert state carries a glyph beside its word', () => {
 /* ──────────── the recorded decision the visual pass may not lose ─────────── */
 
 describe('“a rule without a cadence never runs” survives the chrome (§4.6)', () => {
-  it('still renders while every rule in view carries a null cadence', async () => {
-    const rules = await alertRules()
-    expect(rules.every((rule) => rule.cadence === null)).toBe(true)
-
-    renderAt('/management/reports?view=alerts')
-
-    /* R10 — a standing condition is a banner, and this one is the honest
-       surface for `cadence: null`. It is asserted with its body, because a
-       title alone would pass against a banner reduced to a heading. */
-    const banner = await screen.findByText(EN('rb.alert.banner.noCadence.title'))
-    expect(screen.getByText(EN('rb.alert.banner.noCadence.body'))).toBeInTheDocument()
-
-    /* And still ABOVE the table, which is the placement the correction needs to
-       outrank a badge on every row. */
-    const table = await screen.findByRole('table')
-    expect(banner.compareDocumentPosition(table) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-  })
-
+  /* The no-cadence banner test itself lives once, in
+     `alerts.corrections.test.tsx` ("D41 — the no-cadence banner is gone, even
+     when every visible rule is unscheduled"), not duplicated per file. */
   it('AC-1235 — names each rule’s own cadence word on its row, never blank', async () => {
     const rules = await alertRules()
     const unset = rules.find((rule) => rule.cadence === null)
@@ -278,26 +263,8 @@ describe('“a rule without a cadence never runs” survives the chrome (§4.6)'
 
     const row = await rowNamed(unset!.name)
     /* v2 — the cadence cell always states the fact in words (`Not scheduled`),
-       never blank: the banner's claim is about the VIEW, a row's own cadence
-       is still a fact worth stating even where the banner also says so. */
+       never blank: it is a per-row fact, independent of any list-level banner. */
     expect(within(row).getAllByRole('cell')[index]!.textContent).toBe(EN('rb.alert.cadence.none'))
-  })
-
-  it('§4.6 — the banner’s `Set cadence` opens the composer in place of the table', async () => {
-    const user = userEvent.setup()
-    renderAt('/management/reports?view=alerts')
-    await screen.findByRole('table')
-
-    await user.click(
-      await screen.findByRole('button', { name: EN('rb.alert.banner.noCadence.action') }),
-    )
-
-    /* The composer is an INLINE PANEL (AC-1225), not a dialog — it replaces
-       the table rather than layering over it. */
-    expect(
-      await screen.findByRole('heading', { name: EN('rb.alert.panel.heading.edit') }),
-    ).toBeInTheDocument()
-    expect(screen.queryByRole('table')).toBeNull()
   })
 })
 

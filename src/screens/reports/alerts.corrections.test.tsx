@@ -105,21 +105,24 @@ async function chooseRowAction(
 /* ───────────── the correction outranks the badge, not the reverse ───────── */
 
 describe('a rule without a cadence never runs, said where it is read (§4.6)', () => {
-  it('states it in one banner ABOVE the table', async () => {
-    renderAt('/management/reports?view=alerts')
+  /* D41/AC-1227 — the scheduler exists, so `04-alerting-v2.md:123`'s "removed
+     once D41 lands" no-cadence banner must not come back, even in the one
+     condition (every VISIBLE rule unscheduled) that used to show it. Filtering
+     to `state=firing` reaches exactly `ALR-1`/`ALR-10`, both still `cadence:
+     null` — a real, seeded case, not a hand-built one. */
+  it('D41 — the no-cadence banner is gone, even when every visible rule is unscheduled', async () => {
+    const rules = await alertRules()
+    const firingRules = rules.filter((rule) => rule.state === 'firing')
+    expect(firingRules.length).toBeGreaterThan(0)
+    expect(firingRules.every((rule) => rule.cadence === null)).toBe(true)
 
-    const banner = await screen.findByText(EN('rb.alert.banner.noCadence.title'))
-    const table = await screen.findByRole('table')
+    renderAt('/management/reports?view=alerts&alerts.filter=state:eq:firing')
+    await waitFor(async () =>
+      expect((await screen.findAllByRole('row')).length).toBe(firingRules.length + 1),
+    )
 
-    /* **Placement is the whole finding.** `Node.DOCUMENT_POSITION_FOLLOWING`
-       is the assertion that the banner comes first, above every row's own
-       badge (R10). */
-    expect(
-      banner.compareDocumentPosition(table) & Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy()
-
-    const region = banner.closest('[data-slot="alert"]') ?? banner.parentElement
-    expect(region?.textContent).toContain(EN('rb.alert.banner.noCadence.body'))
+    expect(document.querySelector('[data-slot="alert"]')).toBeNull()
+    expect(screen.queryByRole('status')).toBeNull()
   })
 
   it('says nothing about the schedule on the state badge, because the banner says it (R10)', async () => {
@@ -159,12 +162,14 @@ describe('a rule without a cadence never runs, said where it is read (§4.6)', (
 
   it('AC-1235 — a cadence-less rule reads "Not scheduled" in Last checked, never blank', async () => {
     /* §4.6: `cadence === null` is honest absence, not a lag state — no
-       warning icon, and it supersedes `Never checked` for every seeded rule
-       (all `cadence: null` today). A cadence-with-no-reading-yet fixture
-       would still reach `Never checked`; that fixture is mock-data-engineer's
-       to add. */
+       warning icon, and it supersedes `Never checked`. D41/AC-901
+       (superseded) means the seed is no longer all-`null`; this scopes to
+       the rules that still are, `ALR-2`/`ALR-4`/`ALR-8` now carrying a real
+       cadence (AC-1227). */
     const rules = await alertRules()
-    expect(rules.every((rule) => rule.cadence === null)).toBe(true)
+    const unscheduled = rules.filter((rule) => rule.cadence === null)
+    expect(unscheduled.length).toBeGreaterThan(0)
+    expect(rules.some((rule) => rule.cadence !== null)).toBe(true)
 
     renderAt('/management/reports?view=alerts')
     const table = await screen.findByRole('table')
@@ -172,10 +177,12 @@ describe('a rule without a cadence never runs, said where it is read (§4.6)', (
     const index = headers.findIndex((h) => h.textContent?.includes(EN('rb.alerts.col.lastEvaluated')))
     expect(index).toBeGreaterThan(-1)
 
-    for (const rule of rules) {
+    for (const rule of unscheduled) {
       const row = await rowNamed(rule.name)
       expect(within(row).getAllByRole('cell')[index]!.textContent).toBe(EN('rb.alert.state.notScheduled'))
     }
+    /* None of the seeded scheduled rules (`ALR-2`, `ALR-4`, `ALR-8`) has a
+       null `lastEvaluatedAt`, so `Never checked` still names no row today. */
     expect(screen.queryByText(EN('rb.alert.lastEvaluated.never'))).toBeNull()
   })
 })

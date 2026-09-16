@@ -28,6 +28,62 @@ function stubPointerCaptureInit(page) {
   })
 }
 
+/* Check 4's red detector, installed once per context. `--ev-amber`
+   (`rgb(180,83,9)`, hue ~26°) has the same dominant-red channel as
+   `--ev-red` (`rgb(180,35,24)`, hue ~4°), so a channel-dominance test flags
+   both. Hue tells them apart: true red sits within 15° of 0°/360°, amber
+   does not, at either theme's actual token values. */
+function installRedHueDetector(page) {
+  return page.addInitScript(() => {
+    function parseRgb(str) {
+      const m = str.match(/rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/)
+      return m ? [Number(m[1]), Number(m[2]), Number(m[3])] : null
+    }
+    function hueOf([r, g, b]) {
+      const rn = r / 255, gn = g / 255, bn = b / 255
+      const max = Math.max(rn, gn, bn), min = Math.min(rn, gn, bn)
+      const delta = max - min
+      if (delta < 0.08) return null // near-grey: no hue to classify
+      let h
+      if (max === rn) h = ((gn - bn) / delta) % 6
+      else if (max === gn) h = (bn - rn) / delta + 2
+      else h = (rn - gn) / delta + 4
+      h *= 60
+      return h < 0 ? h + 360 : h
+    }
+    window.__eyvarIsRedRgb = (str) => {
+      const rgb = parseRgb(str)
+      if (!rgb) return false
+      const h = hueOf(rgb)
+      return h !== null && (h <= 15 || h >= 345)
+    }
+  })
+}
+
+/* The positive control: read the DESTRUCTIVE token's own computed colour
+   (never a literal), so the detector is proven against the real red rather
+   than a hand-picked one. */
+async function checkRedHueControl(page) {
+  return page.evaluate(() => {
+    function computedOf(cssVar) {
+      const probe = document.createElement('div')
+      probe.style.color = `var(${cssVar})`
+      document.body.appendChild(probe)
+      const rgb = getComputedStyle(probe).color
+      probe.remove()
+      return rgb
+    }
+    const destructiveRgb = computedOf('--destructive')
+    const amberRgb = computedOf('--tone-warning-graphic')
+    return {
+      destructiveRgb,
+      destructiveIsRed: window.__eyvarIsRedRgb(destructiveRgb),
+      amberRgb,
+      amberIsRed: window.__eyvarIsRedRgb(amberRgb),
+    }
+  })
+}
+
 /* ── Check 1 — AC-1226 ground truth: read RPT-3's own data table (a
    different render path than the alert evaluator) for the last 60 COMPLETE
    `revenue.total#_#current` buckets, and independently count how many are
@@ -266,22 +322,13 @@ async function checkNoBaselineRefusal() {
    caught, not just a class-name grep. ─────────────────────────────────── */
 async function scanForRed(page) {
   return page.evaluate(() => {
-    function parseRgb(str) {
-      const m = str.match(/rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/)
-      if (!m) return null
-      return [Number(m[1]), Number(m[2]), Number(m[3])]
-    }
     const offenders = []
     document.querySelectorAll('*').forEach((el) => {
       const style = getComputedStyle(el)
       for (const prop of ['color', 'backgroundColor', 'borderColor', 'fill', 'stroke']) {
         const raw = style[prop]
         if (!raw) continue
-        const rgb = parseRgb(raw)
-        if (!rgb) continue
-        const [r, g, b] = rgb
-        // A strong, saturated red: red channel clearly dominant and high.
-        if (r > 150 && r - g > 60 && r - b > 60) {
+        if (window.__eyvarIsRedRgb(raw)) {
           offenders.push({ tag: el.tagName, prop, raw, text: (el.textContent || '').slice(0, 40) })
         }
       }
@@ -293,25 +340,35 @@ async function scanForRed(page) {
 async function checkNoRedBadge() {
   const ctx = await browser.newContext({ viewport: { width: 1280, height: 1000 } })
   await stubPointerCaptureInit(ctx)
+  await installRedHueDetector(ctx)
   const page = await ctx.newPage()
   const errors = []
   page.on('pageerror', (e) => errors.push(String(e).slice(0, 300)))
   await page.goto(BASE + '/management/reports?view=alerts', { waitUntil: 'networkidle' })
   await page.waitForSelector('table')
   await page.waitForTimeout(1500)
+
+  const control = await checkRedHueControl(page)
+  const controlOk = control.destructiveIsRed === true && control.amberIsRed === false
+  console.log('CHECK 4 — positive control: --destructive =', control.destructiveRgb, '(isRed=' + control.destructiveIsRed + ')  --tone-warning-graphic =', control.amberRgb, '(isRed=' + control.amberIsRed + ')')
+  console.log(controlOk ? 'CHECK 4 — CONTROL PASS: detector flags red and clears amber' : 'CHECK 4 — CONTROL FAIL (BLOCKING): detector cannot tell red from amber')
+
   const rulesTabRed = await scanForRed(page)
-  console.log('CHECK 4 — saturated-red computed colour on the Rules tab (incl. seeded `firing` row ALR-1):', JSON.stringify(rulesTabRed))
+  console.log('CHECK 4 — red-hue computed colour on the Rules tab (incl. seeded `firing` row ALR-1):', JSON.stringify(rulesTabRed))
   await page.screenshot({ path: `${OUT}/proof-rules-tab.png`, fullPage: true })
 
   await page.getByRole('tab', { name: 'Firings' }).click().catch(() => {})
   await page.waitForTimeout(1000)
   const firingsTabRed = await scanForRed(page)
-  console.log('CHECK 4 — saturated-red computed colour on the Firings tab:', JSON.stringify(firingsTabRed))
+  console.log('CHECK 4 — red-hue computed colour on the Firings tab:', JSON.stringify(firingsTabRed))
   await page.screenshot({ path: `${OUT}/proof-firings-tab.png`, fullPage: true })
+
+  const pass = controlOk && rulesTabRed.length === 0 && firingsTabRed.length === 0
+  console.log(pass ? 'CHECK 4 — PASS: no red anywhere, and the control proves the detector is not blind' : 'CHECK 4 — FAIL (BLOCKING if real)')
 
   if (errors.length) console.log('CHECK 4 — console/page errors:', errors)
   await ctx.close()
-  return { rulesTabRed, firingsTabRed, errors }
+  return { control, controlOk, rulesTabRed, firingsTabRed, pass, errors }
 }
 
 /* ── Check 5 — keyboard: Escape closes the composer and returns focus to the

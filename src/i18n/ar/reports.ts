@@ -916,9 +916,6 @@ export const REPORTS_AR: Dictionary = {
 
   'rb.alert.state.lag': 'آخر فحص منذ {duration} · المتوقع {cadence}',
   'rb.alert.state.notScheduled': 'غير مجدولة',
-  'rb.alert.banner.noCadence.title': 'القاعدة بلا دورية لا تعمل أبدًا.',
-  'rb.alert.banner.noCadence.body': 'حدِّد دورية حتى تستطيع التقييم والإطلاق.',
-  'rb.alert.banner.noCadence.action': 'تحديد الدورية',
 
   'rb.alert.sentence.static': '{comparator} {threshold}',
   'rb.alert.sentence.relative': '{direction} بمقدار {amount} مقابل {against}',

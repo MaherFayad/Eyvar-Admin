@@ -585,26 +585,28 @@ describe('AC-846, AC-847 — an error keeps the question', () => {
 /* ────────────────────────── the alert list (§12) ───────────────────────── */
 
 describe('§12 — the client half of alerts, and the two fields nobody has decided', () => {
-  it('renders the cadence as unset, because every seeded rule leaves it unset', async () => {
-    /* The fixture claim and the rendering are asserted together. If a rule ever
-       gains a cadence, the first assertion fails and whoever added it has to
-       decide what the column should say — rather than the UI quietly inventing
-       one. */
+  it('AC-901 (superseded by D41/AC-1227) — the cadence column states each rule’s own real value', async () => {
+    /* The tripwire this test used to be — "every rule leaves cadence unset" —
+       was AC-901's own claim, and AC-901 is superseded: D41 built the
+       scheduler, and the seed now names real cadences on `ALR-2`/`ALR-4`/
+       `ALR-8` (`rb.05-restructure/specs/06-report-builder.md:1506`). What
+       stays true, and is asserted here, is that the still-unscheduled rows
+       keep reading `Not scheduled`, never blank, never invented. */
     const rules = await alertRules()
     expect(rules.length).toBeGreaterThan(0)
-    expect(rules.every((rule) => rule.cadence === null)).toBe(true)
+    expect(rules.some((rule) => rule.cadence !== null)).toBe(true)
+    expect(rules.some((rule) => rule.cadence === null)).toBe(true)
     expect(rules.every((rule) => rule.minReArmMinutes === null)).toBe(true)
 
     renderAt('/management/reports?view=alerts', <ReportsScreen />)
-    /* v2 (`22-analytics-v2.md` §4.6) restates R10's banner with its own copy
-       and states the fact plainly on every row instead of leaving it blank. */
-    expect(
-      await screen.findByText(REPORTS_EN['rb.alert.banner.noCadence.body'] as string),
-    ).toBeInTheDocument()
     expect(
       (await screen.findAllByText(REPORTS_EN['rb.alert.cadence.none'] as string)).length,
     ).toBeGreaterThan(0)
   })
+
+  /* D41/AC-1227 — the scheduler is real, so the banner `04-alerting-v2.md:123`
+     promised to retire on D41 landing must not reappear here either. The
+     single test for that claim lives in `alerts.corrections.test.tsx`. */
 
   it('AC-885 — a firing rule uses the word and a warning tone, and no red anywhere', async () => {
     renderAt('/management/reports?view=alerts', <ReportsScreen />)

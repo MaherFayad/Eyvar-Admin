@@ -2,12 +2,12 @@
  * The alert rules list and the firings feed (`?view=alerts`). A `ViewTabs`
  * strip (not a route) switches **Rules** and **Firings**; the composer opens
  * in place of the list, never as a dialog. One badge per row; a breach is
- * never red (R5a). One standing-condition banner (R10).
+ * never red (R5a). D41 built the scheduler, so the no-cadence banner
+ * `04-alerting-v2.md:123` retires on landing is gone (§4.6).
  */
 
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { Banner } from '@/components/Banner'
 import { ConfirmDialog, type ConfirmRequest } from '@/components/ConfirmDialog'
 import { DataTable, type RowAction } from '@/components/DataTable'
 import { InfoHint, hintLines } from '@/components/InfoHint'
@@ -47,6 +47,10 @@ import {
   listAlertRules,
   runReport,
 } from '@/data/clients'
+/* The product's one clock seam (AGENT-BRIEF "one clock"): frozen at `EYVAR_NOW`
+   in mock mode, live otherwise. `ReportBuilder.tsx`/`JobScreen.tsx` call it the
+   same way — never a module-scope `Date.now()`. */
+import { useNowIso } from '@/screens/queues'
 import type { AlertEvaluation, AlertRule } from '@/data/types'
 import { alertCondition, type AlertCondition } from '@/data/types/alert'
 import { formatDate, formatDuration, isolatedRunProps, type Language, type Translator } from '@/lib'
@@ -108,6 +112,7 @@ export function AlertsView({
   const [alertsTab, setAlertsTab] = useState<'rules' | 'firings'>('rules')
   const [editing, setEditing] = useState<AlertRule | null>(null)
   const [formOpen, setFormOpen] = useState(false)
+  const now = useNowIso()
   const table = useIndexTable<AlertRule>({
     mode: 'index',
     getRowId: (row) => row.id,
@@ -119,11 +124,6 @@ export function AlertsView({
 
   const rows = rules.data?.items ?? []
   const rulesById = new Map(rows.map((rule) => [rule.id, rule]))
-
-  /* §4.6 list-level banner: every rule IN VIEW has no cadence, so nothing on
-     this page ever runs. The claim is about the view, not about any one row —
-     one rule with a cadence retires the banner even if others are unset. */
-  const bannerShown = rows.length > 0 && rows.every((rule) => rule.cadence === null)
 
   const [tested, setTested] = useState<Record<string, AlertEvaluation | 'failed'>>({})
   const runTest = async (rule: AlertRule) => {
@@ -344,7 +344,7 @@ export function AlertsView({
         if (row.lastEvaluatedAt === null) {
           return <span className="text-muted-foreground">{t('rb.alert.lastEvaluated.never')}</span>
         }
-        const lagMs = Date.now() - Date.parse(row.lastEvaluatedAt)
+        const lagMs = Date.parse(now) - Date.parse(row.lastEvaluatedAt)
         const breached = lagMs > 2 * cadenceHours(row.cadence) * 3_600_000
         const sentence = t('rb.alert.state.lag', {
           duration: formatDuration(lagMs),
@@ -490,28 +490,6 @@ export function AlertsView({
           <AlertFeedView today={today} t={t} language={language} dir={dir} />
         ) : (
           <>
-            {bannerShown && (
-              <Banner
-                role="status"
-                banner={{
-                  id: 'management-reports-alerts-no-cadence',
-                  tone: 'warning',
-                  title: t('rb.alert.banner.noCadence.title'),
-                  actions: [
-                    {
-                      label: t('rb.alert.banner.noCadence.action'),
-                      onClick: () => {
-                        setEditing(rows[0] ?? null)
-                        setFormOpen(true)
-                      },
-                    },
-                  ],
-                }}
-              >
-                {t('rb.alert.banner.noCadence.body')}
-              </Banner>
-            )}
-
             {Object.entries(tested).length > 0 && (
               <ul role="status" className="flex list-none flex-col gap-1">
                 {Object.entries(tested).map(([ruleId, evaluation]) => (

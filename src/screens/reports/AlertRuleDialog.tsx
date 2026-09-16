@@ -8,6 +8,7 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { AlertRuleIcon, CheckIcon, CloseIcon, MutedIcon } from '@/components/icons'
+import { useNowIso } from '@/screens/queues'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import {
@@ -336,6 +337,8 @@ export function AlertRuleDialog({
 
   /* ── preview (§4.3) — `evaluate()`, the same function the server runs, over
      a sliding window so the preview can never disagree with what fires. ──── */
+  /* The product clock, never the wall clock: fixtures are timed against it. */
+  const now = useNowIso()
   const preview = useMemo(() => {
     if (!series || !resolved.data || condition === null || relativeAgainstInvalid) return null
     const buckets = resolved.data.buckets
@@ -371,7 +374,6 @@ export function AlertRuleDialog({
       createdAt: today,
       updatedAt: today,
     }
-    const now = new Date().toISOString()
     const start = Math.max(0, buckets.length - PREVIEW_WINDOW)
     const fired: boolean[] = []
     let lastBand: { low: number; high: number } | null = null
@@ -409,7 +411,7 @@ export function AlertRuleDialog({
       lastBand,
       usableCount,
     }
-  }, [series, resolved.data, condition, grain, reportId, relativeAgainstInvalid, today])
+  }, [series, resolved.data, condition, grain, reportId, relativeAgainstInvalid, today, now])
 
   const previewReference: AlertPreviewReference | null =
     condition?.kind === 'static' && threshold !== null

@@ -1,7 +1,9 @@
 /**
  * Alert rules and firing history, split from `reports.ts` (D42), extended
  * for v2. `ALR-1`…`ALR-5` keep their v1 ids, depended on by `notifications.ts`'s
- * `N11` and `AlertHistoryDialog.tsx`. `AFR-4`/`ALR-9` seed states 24/23 (F-V2-25); every cadence is `null` (D41).
+ * `N11` and `AlertHistoryDialog.tsx`. `AFR-4`/`ALR-9` seed states 24/23 (F-V2-25).
+ * D41: `ALR-2` daily, `ALR-8` hourly (both within cadence), `ALR-4` hourly and
+ * lagging (state 28); every other rule stays `cadence: null` ("not scheduled").
  */
 
 import { offsetFromNow } from '../mock/clock'
@@ -56,7 +58,10 @@ export const alertRuleFixtures: AlertRule[] = [
     thresholdUnit: 'money',
     thresholdCurrency: 'SAR',
     evaluationGrain: 'day',
-    cadence: null,
+    /* D41 — daily cadence; `lastEvaluatedAt` six hours ago is well inside the
+       48 h lag window, so this row proves the on-time state (state 28's
+       opposite), not the warning. */
+    cadence: 'daily',
     minReArmMinutes: null,
     consecutiveFailuresBeforeError: 5,
     state: 'armed',
@@ -116,7 +121,11 @@ export const alertRuleFixtures: AlertRule[] = [
     thresholdUnit: 'count',
     thresholdCurrency: null,
     evaluationGrain: 'day',
-    cadence: null,
+    /* D41, AC-1235 — hourly, and nine hours stale: `lastEvaluatedAt` below
+       stays unchanged from the pre-D41 seed, so an already-broken rule is
+       also the one that proves the lag warning (state 28), on real seed
+       data rather than a hand-built test object. */
+    cadence: 'hourly',
     minReArmMinutes: null,
     consecutiveFailuresBeforeError: 5,
     /* Five consecutive failures. Notified **once**, to the owner only — *"an
@@ -237,7 +246,10 @@ export const alertRuleFixtures: AlertRule[] = [
     thresholdCurrency: null,
     condition: { kind: 'missing', bucketsMissing: 2 },
     evaluationGrain: 'day',
-    cadence: null,
+    /* D41 — hourly, and evaluated 40 minutes ago: well inside the 2 h lag
+       window, the second on-time cadence example alongside `ALR-2`'s daily
+       one (AC-1235's "not breached" case is a seeded row too). */
+    cadence: 'hourly',
     minReArmMinutes: null,
     consecutiveFailuresBeforeError: 5,
     state: 'armed',
@@ -247,12 +259,12 @@ export const alertRuleFixtures: AlertRule[] = [
     ownerId: 'USR-1',
     notificationPriority: 'high',
     severity: 'high',
-    lastEvaluatedAt: offsetFromNow({ hours: -3 }),
+    lastEvaluatedAt: offsetFromNow({ minutes: -40 }),
     lastFiredAt: null,
     lastValue: 2,
     stateReasonKey: null,
     createdAt: offsetFromNow({ days: -5 }),
-    updatedAt: offsetFromNow({ hours: -3 }),
+    updatedAt: offsetFromNow({ minutes: -40 }),
   },
   {
     /* §7 state 23 candidate: `RPT-13`'s window is seven daily buckets, short
