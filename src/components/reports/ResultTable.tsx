@@ -147,7 +147,8 @@
  *              state is announced rather than only drawn.
  */
 
-import { useId, useMemo, useState, type ReactNode } from 'react'
+import { useId, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useVirtualizer } from '@tanstack/react-virtual'
 import { SortAscIcon, SortDescIcon, SortNoneIcon, ExportIcon, SearchIcon } from '@/components/icons'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -179,6 +180,86 @@ import { declaredAggregate, rollUpSeries } from './rollup'
  * actually produces a list.
  */
 const SEARCH_THRESHOLD = 8
+
+/**
+ * WP-8.4 — below this many rows the plain table, every row mounted and
+ * `table-auto` sizing each column from real content, is cheaper than the
+ * virtualiser and keeps Ctrl+F able to find every row. The number is the
+ * execution plan's own line for this work package, and the convention
+ * `ConversationList.tsx` (Q-CC5) already uses for the inbox.
+ */
+const VIRTUALISE_ABOVE = 200
+
+/** `estimateSize`'s starting guess for a windowed row, in px — every row in
+ * both tables below renders a fixed, content-independent number of lines
+ * (see each component's row JSX), so unlike `ConversationList` no per-row
+ * `measureElement` correction is needed once this constant is right. */
+const ROW_HEIGHT_ESTIMATE = 52
+const ROW_HEIGHT_ESTIMATE_SINGLE_LINE = 40
+
+/** Matches `--font-sans` (`globals.css`): one stack serves both languages,
+ * since Inter has no Arabic glyph and falls through to Naskh per character. */
+const TABLE_FONT_FAMILY =
+  '"Inter Variable", "Noto Naskh Arabic Variable", "Noto Naskh Arabic", "Noto Sans Arabic", ui-sans-serif, "Segoe UI", system-ui, sans-serif'
+
+/**
+ * WP-8.4 — column pixel widths measured off-DOM, so `table-fixed` holds every
+ * column steady while only a window of rows is mounted; `table-auto` sizes
+ * from whatever is rendered (this file's own §9.1 note), which is what would
+ * jitter as the window scrolls. `null` with no canvas 2D context (jsdom).
+ */
+function useMeasuredColumnWidths(active: boolean, columns: readonly (readonly string[])[]): number[] | null {
+  return useMemo(() => {
+    if (!active) return null
+    const ctx = document.createElement('canvas').getContext('2d')
+    if (!ctx) return null
+    ctx.font = `14px ${TABLE_FONT_FAMILY}`
+    return columns.map((texts) => {
+      let max = 0
+      for (const text of texts) max = Math.max(max, ctx.measureText(text).width)
+      return Math.ceil(max) + 32 /* the cell's px-3 padding plus a band `Badge`'s own chrome */
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active, columns])
+}
+
+/**
+ * The two spacer rows a windowed `<tbody>` needs so the scrollbar reports the
+ * table's real height without every row being mounted. A padding row, not
+ * `position: absolute` on the `<tr>`s themselves — an absolutely positioned
+ * table row is blockified (CSS Display 3 §2.3.1) and stops taking part in
+ * table layout, which is the one thing this table cannot give up (§9.1).
+ */
+function VirtualPadRow({ height, columnCount }: { height: number; columnCount: number }) {
+  if (height <= 0) return null
+  return (
+    <TableRow aria-hidden="true">
+      <TableCell colSpan={columnCount} style={{ height }} />
+    </TableRow>
+  )
+}
+
+/**
+ * WP-8.4 — `Table`'s own container is `overflow-x-auto` only, never `-y`
+ * (the primitive's own design), so the scroller a row virtualiser needs is
+ * further up: `AppLayout`'s shell region. Found at runtime rather than
+ * assumed, so this virtualises correctly in the builder, a dashboard tile,
+ * or wherever else this component is ever mounted.
+ */
+function useNearestScrollParent(ref: React.RefObject<HTMLElement | null>, active: boolean): HTMLElement | null {
+  const [parent, setParent] = useState<HTMLElement | null>(null)
+  useLayoutEffect(() => {
+    if (!active) return
+    /* Starts one level ABOVE `ref` on purpose: `ref` is `Table`'s own
+       `overflow-x-auto` container, and CSS Overflow §3 computes its unset
+       Y axis to `auto` too, which would read as a (false) vertical
+       scrollport if this walk started there. */
+    let node = ref.current?.parentElement ?? null
+    while (node && !/(auto|scroll)/.test(getComputedStyle(node).overflowY)) node = node.parentElement
+    setParent(node)
+  }, [active, ref])
+  return parent
+}
 
 /** `null` is the unsorted order — the order the planner returned, which is meaningful. */
 type SortColumn = 'series' | 'summary' | number
@@ -370,6 +451,120 @@ export function ResultTable({
   const columnCount = 1 + bucketSpan
   const anyPartial = result.buckets.some((_, index) => isPartial(result, index))
 
+  /* WP-8.4 — a breakdown or a folded group can put hundreds of series on one
+     table (`:962` finding 2); above `VIRTUALISE_ABOVE` only a window mounts. */
+  const containerRef = useRef<HTMLDivElement>(null)
+  const virtual = rows.length > VIRTUALISE_ABOVE
+  const scrollParent = useNearestScrollParent(containerRef, virtual)
+  const rowVirtualizer = useVirtualizer({
+    count: virtual ? rows.length : 0,
+    getScrollElement: () => scrollParent,
+    estimateSize: () => ROW_HEIGHT_ESTIMATE,
+    overscan: 12,
+  })
+  const virtualItems = virtual ? rowVirtualizer.getVirtualItems() : []
+
+  const columnWidthInputs = useMemo(() => {
+    if (!virtual) return []
+    const seriesColumn = [t('rb.table.series'), ...rows.map((series) => labels.get(series.id) ?? series.measureKey)]
+    const bucketColumns = result.buckets.map((bucket, index) => [
+      formatDate(bucket, { style: 'day-month', language }),
+      ...rows.map((series) =>
+        series.blocked || series.failed ? '' : formatMetricValue(series.points[index] ?? null, series.unit, language),
+      ),
+    ])
+    const out = [seriesColumn, ...bucketColumns]
+    if (withSummary) {
+      out.push([
+        t('rb.table.window'),
+        ...rows.map((series) => formatMetricValue(summaries.get(series.id)?.value ?? null, series.unit, language)),
+      ])
+    }
+    return out
+  }, [virtual, t, rows, labels, result.buckets, withSummary, summaries, language])
+  const columnWidths = useMeasuredColumnWidths(virtual, columnWidthInputs)
+
+  const renderSeriesRow = (series: ReportSeries, rowIndex: number, windowed: boolean) => {
+    const label = labels.get(series.id) ?? series.measureKey
+    const summary = summaries.get(series.id)
+    return (
+      <TableRow
+        key={series.id}
+        data-index={windowed ? rowIndex : undefined}
+        aria-rowindex={windowed ? rowIndex + 2 : undefined}
+      >
+        <TableCell className="text-start whitespace-nowrap">
+          <span className="flex flex-col">
+            <span {...isolatedRunProps({ className: 'min-w-0' }).box}>
+              <bdi {...isolatedRunProps().run}>{label}</bdi>
+            </span>
+            <span className="text-xs text-muted-foreground">
+              {series.role === 'comparison'
+                ? t('rb.table.role.comparison')
+                : t('rb.table.role.current')}
+            </span>
+          </span>
+        </TableCell>
+
+        {series.blocked ? (
+          /* No points in the payload. The row says why rather than
+             rendering a run of dashes that reads as missing data.
+             `bucketSpan` covers the summary column too — a row that
+             states a permission must not leave a stray cell beside
+             the sentence. */
+          <TableCell colSpan={bucketSpan} className="text-start text-muted-foreground">
+            {t('rb.panel.blocked', { permission: series.blocked })}
+          </TableCell>
+        ) : series.failed ? (
+          <TableCell colSpan={bucketSpan} className="text-start text-muted-foreground">
+            {t('rb.panel.failed')}
+          </TableCell>
+        ) : (
+          <>
+            {result.buckets.map((bucket, index) => (
+              <TableCell key={bucket} className="text-end whitespace-nowrap tabular-nums">
+                {/* `null` is a gap and formats to the em dash; `0` is
+                    a real zero and formats to `0`. */}
+                {formatMetricValue(series.points[index] ?? null, series.unit, language)}
+              </TableCell>
+            ))}
+            {withSummary && (
+              /* The number, then what kind of number it is. The
+                  word is per-cell rather than in the header because
+                  one table can hold two measures with two declared
+                  aggregates, and a single header naming one of them
+                  would be wrong for the other half of the rows.
+
+                  **And where there is no declared aggregate, the
+                  cell says so in the same slot.** An em dash on its
+                  own reads as a gap in the data; this is not a gap,
+                  it is a refusal to combine numbers nobody said how
+                  to combine. The dash is `aria-hidden` and the
+                  sentence beneath it is what a screen reader gets —
+                  the same pairing `PanelCard` uses for an absent
+                  delta, so a missing figure is never merely drawn. */
+              <TableCell className="text-end">
+                <span className="flex flex-col items-end">
+                  <span
+                    className="tabular-nums"
+                    aria-hidden={summary === undefined ? 'true' : undefined}
+                  >
+                    {formatMetricValue(summary?.value ?? null, series.unit, language)}
+                  </span>
+                  <span className="text-xs font-normal text-muted-foreground">
+                    {summary
+                      ? t(AGGREGATE_WORD[summary.aggregate])
+                      : t('rb.table.window.undeclared')}
+                  </span>
+                </span>
+              </TableCell>
+            )}
+          </>
+        )}
+      </TableRow>
+    )
+  }
+
   return (
     <div className="flex min-w-0 flex-col gap-2">
       {chrome && (
@@ -421,12 +616,23 @@ export function ResultTable({
           the two top corners it scrolls under. */}
       <div className="rounded-xl border border-card-border bg-card">
         <Table
+          containerRef={containerRef}
           containerClassName="rounded-xl"
-          /* §9.1 — see the file header. Intrinsic width, floored at the card. */
-          className="w-auto min-w-full table-auto"
+          /* §9.1 — see the file header. Intrinsic width, floored at the card —
+             unless windowed, where `table-fixed` + the measured `<colgroup>`
+             below is what keeps columns from jittering as the window moves. */
+          className={virtual && columnWidths ? 'w-full table-fixed' : 'w-auto min-w-full table-auto'}
+          aria-rowcount={virtual ? rows.length + 1 : undefined}
         >
+          {virtual && columnWidths && (
+            <colgroup>
+              {columnWidths.map((width, index) => (
+                <col key={index} style={{ width }} />
+              ))}
+            </colgroup>
+          )}
           <TableHeader>
-            <TableRow>
+            <TableRow aria-rowindex={virtual ? 1 : undefined}>
               <TableHead
                 className="text-start whitespace-nowrap"
                 aria-sort={chrome ? sortState('series') : undefined}
@@ -546,83 +752,20 @@ export function ResultTable({
                   {t('rb.table.search.empty')}
                 </TableCell>
               </TableRow>
+            ) : virtual ? (
+              <>
+                <VirtualPadRow height={virtualItems[0]?.start ?? 0} columnCount={columnCount} />
+                {virtualItems.map((item) => {
+                  const series = rows[item.index]
+                  return series ? renderSeriesRow(series, item.index, true) : null
+                })}
+                <VirtualPadRow
+                  height={rowVirtualizer.getTotalSize() - (virtualItems.at(-1)?.end ?? 0)}
+                  columnCount={columnCount}
+                />
+              </>
             ) : (
-              rows.map((series) => {
-                const label = labels.get(series.id) ?? series.measureKey
-                const summary = summaries.get(series.id)
-                return (
-                  <TableRow key={series.id}>
-                    <TableCell className="text-start whitespace-nowrap">
-                      <span className="flex flex-col">
-                        <span {...isolatedRunProps({ className: 'min-w-0' }).box}>
-                          <bdi {...isolatedRunProps().run}>{label}</bdi>
-                        </span>
-                        <span className="text-xs text-muted-foreground">
-                          {series.role === 'comparison'
-                            ? t('rb.table.role.comparison')
-                            : t('rb.table.role.current')}
-                        </span>
-                      </span>
-                    </TableCell>
-
-                    {series.blocked ? (
-                      /* No points in the payload. The row says why rather than
-                         rendering a run of dashes that reads as missing data.
-                         `bucketSpan` covers the summary column too — a row that
-                         states a permission must not leave a stray cell beside
-                         the sentence. */
-                      <TableCell colSpan={bucketSpan} className="text-start text-muted-foreground">
-                        {t('rb.panel.blocked', { permission: series.blocked })}
-                      </TableCell>
-                    ) : series.failed ? (
-                      <TableCell colSpan={bucketSpan} className="text-start text-muted-foreground">
-                        {t('rb.panel.failed')}
-                      </TableCell>
-                    ) : (
-                      <>
-                        {result.buckets.map((bucket, index) => (
-                          <TableCell key={bucket} className="text-end whitespace-nowrap tabular-nums">
-                            {/* `null` is a gap and formats to the em dash; `0` is
-                                a real zero and formats to `0`. */}
-                            {formatMetricValue(series.points[index] ?? null, series.unit, language)}
-                          </TableCell>
-                        ))}
-                        {withSummary && (
-                          /* The number, then what kind of number it is. The
-                              word is per-cell rather than in the header because
-                              one table can hold two measures with two declared
-                              aggregates, and a single header naming one of them
-                              would be wrong for the other half of the rows.
-
-                              **And where there is no declared aggregate, the
-                              cell says so in the same slot.** An em dash on its
-                              own reads as a gap in the data; this is not a gap,
-                              it is a refusal to combine numbers nobody said how
-                              to combine. The dash is `aria-hidden` and the
-                              sentence beneath it is what a screen reader gets —
-                              the same pairing `PanelCard` uses for an absent
-                              delta, so a missing figure is never merely drawn. */
-                          <TableCell className="text-end">
-                            <span className="flex flex-col items-end">
-                              <span
-                                className="tabular-nums"
-                                aria-hidden={summary === undefined ? 'true' : undefined}
-                              >
-                                {formatMetricValue(summary?.value ?? null, series.unit, language)}
-                              </span>
-                              <span className="text-xs font-normal text-muted-foreground">
-                                {summary
-                                  ? t(AGGREGATE_WORD[summary.aggregate])
-                                  : t('rb.table.window.undeclared')}
-                              </span>
-                            </span>
-                          </TableCell>
-                        )}
-                      </>
-                    )}
-                  </TableRow>
-                )
-              })
+              rows.map((series, index) => renderSeriesRow(series, index, false))
             )}
           </TableBody>
         </Table>
@@ -791,6 +934,91 @@ export function ResultTableColumns({ spec, columnResults, measuresByKey, t, lang
   const sortState = (column: number): 'ascending' | 'descending' | 'none' =>
     sort === null || sort.column !== column ? 'none' : sort.descending ? 'descending' : 'ascending'
 
+  /* WP-8.4 — `rows: ['time']` over a wide window is the shape that actually
+     crosses 200 (`:822` finding 2); every hook below must run before the
+     early empty-return, so the windowing decision lives here regardless of
+     which branch the render below takes. */
+  const containerRef = useRef<HTMLDivElement>(null)
+  const virtual = rows.length > VIRTUALISE_ABOVE
+  const scrollParent = useNearestScrollParent(containerRef, virtual)
+  const rowVirtualizer = useVirtualizer({
+    count: virtual ? rows.length : 0,
+    getScrollElement: () => scrollParent,
+    estimateSize: () => ROW_HEIGHT_ESTIMATE_SINGLE_LINE,
+    overscan: 12,
+  })
+  const virtualItems = virtual ? rowVirtualizer.getVirtualItems() : []
+  const columnCount = 1 + spec.columns.length
+
+  const columnWidthInputs = useMemo(() => {
+    if (!virtual) return []
+    const rowLabelColumn = [
+      spec.rows[0] === 'time' ? t('rb.table.columns.rowTime') : t('rb.table.columns.rowLabel'),
+      ...rows.map((row) =>
+        spec.rows[0] === 'time'
+          ? formatDate(row.key, { style: 'day-month-year', language })
+          : row.label || t('rb.table.columns.rowLabel'),
+      ),
+    ]
+    const dataColumns = spec.columns.map((column, index) => {
+      const header = columnLabel(column, measuresByKey, t)
+      const result = columnResults[index]
+      if (!result || columnsBlockedOf(result)) return [header, ABSENT]
+      return [
+        header,
+        ...rows.map((row) => {
+          const cell = columnsCellOf(result, row, spec.rows)
+          const value = cell ? (cell.series.points[cell.index] ?? null) : null
+          return formatMetricValue(value, cell?.series.unit ?? 'count', language)
+        }),
+      ]
+    })
+    return [rowLabelColumn, ...dataColumns]
+  }, [virtual, spec.rows, spec.columns, rows, columnResults, measuresByKey, t, language])
+  const columnWidths = useMeasuredColumnWidths(virtual, columnWidthInputs)
+
+  const renderColumnsRow = (row: ColumnsRow, rowIndex: number, windowed: boolean) => (
+    <TableRow key={row.key} data-index={windowed ? rowIndex : undefined} aria-rowindex={windowed ? rowIndex + 2 : undefined}>
+      <TableCell className="text-start whitespace-nowrap">
+        {spec.rows[0] === 'time' ? (
+          <bdi>{formatDate(row.key, { style: 'day-month-year', language })}</bdi>
+        ) : (
+          <bdi>{row.label || t('rb.table.columns.rowLabel')}</bdi>
+        )}
+      </TableCell>
+      {spec.columns.map((_column, index) => {
+        const result = columnResults[index]
+        if (!result) return <TableCell key={index} className="text-end text-muted-foreground">{ABSENT}</TableCell>
+
+        const blocked = columnsBlockedOf(result)
+        if (blocked) {
+          return (
+            <TableCell key={index} className="text-end text-muted-foreground">
+              {ABSENT}
+              <span className="sr-only">{t('rb.panel.blocked', { permission: blocked })}</span>
+            </TableCell>
+          )
+        }
+
+        const cell = columnsCellOf(result, row, spec.rows)
+        const value = cell ? (cell.series.points[cell.index] ?? null) : null
+        const unit = cell?.series.unit ?? 'count'
+        const bands = spec.format.find((f) => f.column === index)?.bands ?? []
+        const band = bandFor(value, bands)
+        const formatted = formatMetricValue(value, unit, language)
+
+        return (
+          <TableCell key={index} className="text-end tabular-nums">
+            {/* R7 tones only — `bandToneOf` refuses a sixth. Colour is
+                never the sole carrier: the number itself is the badge's
+                content either way. */}
+            {band ? <Badge tone={bandToneOf(band.tone)}>{formatted}</Badge> : formatted}
+          </TableCell>
+        )
+      })}
+    </TableRow>
+  )
+
   if (spec.columns.length === 0 || rows.length === 0) {
     /* R8's second kind of empty: a table asked for and drawn with nothing to
        show — never the first-run illustration, which would claim no data
@@ -800,9 +1028,21 @@ export function ResultTableColumns({ spec, columnResults, measuresByKey, t, lang
 
   return (
     <div className="rounded-xl border border-card-border bg-card">
-      <Table containerClassName="rounded-xl" className="w-auto min-w-full table-auto">
+      <Table
+        containerRef={containerRef}
+        containerClassName="rounded-xl"
+        className={virtual && columnWidths ? 'w-full table-fixed' : 'w-auto min-w-full table-auto'}
+        aria-rowcount={virtual ? rows.length + 1 : undefined}
+      >
+        {virtual && columnWidths && (
+          <colgroup>
+            {columnWidths.map((width, index) => (
+              <col key={index} style={{ width }} />
+            ))}
+          </colgroup>
+        )}
         <TableHeader>
-          <TableRow>
+          <TableRow aria-rowindex={virtual ? 1 : undefined}>
             <TableHead className="text-start whitespace-nowrap">
               {spec.rows[0] === 'time' ? t('rb.table.columns.rowTime') : t('rb.table.columns.rowLabel')}
             </TableHead>
@@ -819,47 +1059,21 @@ export function ResultTableColumns({ spec, columnResults, measuresByKey, t, lang
           </TableRow>
         </TableHeader>
         <TableBody>
-          {rows.map((row) => (
-            <TableRow key={row.key}>
-              <TableCell className="text-start whitespace-nowrap">
-                {spec.rows[0] === 'time' ? (
-                  <bdi>{formatDate(row.key, { style: 'day-month-year', language })}</bdi>
-                ) : (
-                  <bdi>{row.label || t('rb.table.columns.rowLabel')}</bdi>
-                )}
-              </TableCell>
-              {spec.columns.map((_column, index) => {
-                const result = columnResults[index]
-                if (!result) return <TableCell key={index} className="text-end text-muted-foreground">{ABSENT}</TableCell>
-
-                const blocked = columnsBlockedOf(result)
-                if (blocked) {
-                  return (
-                    <TableCell key={index} className="text-end text-muted-foreground">
-                      {ABSENT}
-                      <span className="sr-only">{t('rb.panel.blocked', { permission: blocked })}</span>
-                    </TableCell>
-                  )
-                }
-
-                const cell = columnsCellOf(result, row, spec.rows)
-                const value = cell ? (cell.series.points[cell.index] ?? null) : null
-                const unit = cell?.series.unit ?? 'count'
-                const bands = spec.format.find((f) => f.column === index)?.bands ?? []
-                const band = bandFor(value, bands)
-                const formatted = formatMetricValue(value, unit, language)
-
-                return (
-                  <TableCell key={index} className="text-end tabular-nums">
-                    {/* R7 tones only — `bandToneOf` refuses a sixth. Colour is
-                        never the sole carrier: the number itself is the badge's
-                        content either way. */}
-                    {band ? <Badge tone={bandToneOf(band.tone)}>{formatted}</Badge> : formatted}
-                  </TableCell>
-                )
+          {virtual ? (
+            <>
+              <VirtualPadRow height={virtualItems[0]?.start ?? 0} columnCount={columnCount} />
+              {virtualItems.map((item) => {
+                const row = rows[item.index]
+                return row ? renderColumnsRow(row, item.index, true) : null
               })}
-            </TableRow>
-          ))}
+              <VirtualPadRow
+                height={rowVirtualizer.getTotalSize() - (virtualItems.at(-1)?.end ?? 0)}
+                columnCount={columnCount}
+              />
+            </>
+          ) : (
+            rows.map((row, index) => renderColumnsRow(row, index, false))
+          )}
         </TableBody>
         {spec.totals && (
           <tfoot>
