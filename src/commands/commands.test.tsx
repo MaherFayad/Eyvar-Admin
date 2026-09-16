@@ -605,9 +605,19 @@ describe('T6.2 — j / k / . / g, resolved through the registry', () => {
   }
 
   /** The path an operator takes to a row that is not on page one. */
+  /* Same settle as `rowFor`: the unfiltered roster can answer `findByText`
+     before the search debounce fires, and the re-query that follows replaces
+     the body (§11.2). Without the wait that swap lands inside the test. */
   async function rosterRow(user: ReturnType<typeof userEvent.setup>, name: string) {
     await screen.findByRole('table')
     await user.type(screen.getByLabelText('Search captains'), name)
+    await screen.findByText(name)
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, DEFAULT_DEBOUNCE_MS + 150))
+    })
+    await waitFor(() =>
+      expect(document.querySelectorAll('[data-slot="skeleton"]')).toHaveLength(0),
+    )
     const tr = (await screen.findByText(name)).closest('tr')
     if (!tr) throw new Error(`No row for ${name}`)
     return tr
