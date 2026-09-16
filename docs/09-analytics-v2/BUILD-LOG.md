@@ -41,6 +41,51 @@ nothing else — the agent that had it was one of the five stopped. It is the la
 gap and it is held back only because it needs `src/data/clients/routes.ts` and `src/i18n/ar/`,
 which two running agents own.
 
+## Finished (2026-09-17)
+
+**All 62 work packages are closed**, WP-4.6 (drag, optional) deliberately not built.
+
+Every gate, measured on a quiet machine after 26 orphaned dev servers and test
+runners left by agents were stopped:
+
+| Gate | Result |
+|---|---|
+| `npm test` (frontend) | **5,807 passing, 0 failing** — the first fully clean run of the build |
+| `npm run test:api` | **220 passing, 0 failing** |
+| `npm --prefix agent test` | **144 passing, 0 failing** |
+| `npm run typecheck` / `typecheck:api` / `typecheck:agent` | all exit 0 — the last two are gates this build had to add (F-V2-88, F-V2-99) |
+| `npm run api:check` | current, 380 endpoints, no problems |
+| `npm run i18n:check` | current, 7,545 keys, 0 `defaultValue` at ceiling 0 |
+| `node --test scripts/wp-gate.test.mjs` | 10 passing |
+
+Every blocking and should-fix finding in the seventeen verification documents is
+closed (`docs/02-verification/analytics-v2-open-findings.md`). The comment pass
+changed no code: 244 files parsed and printed without comments, 244 identical.
+
+**Earlier "N failing" figures were mostly load, not defects.** Agents left dev
+servers and vitest workers running; with them stopped, the suite that failed a
+different handful of tests on every run passed whole. The two real flakes under
+it — the dialog race's test (F-V2-83) and two debounce-waiting tests (F-V2-92) —
+were fixed at their causes.
+
+**Still for the owner, none of them engineering work:**
+
+- **SQL aggregation before production.** The compiler aggregates in Node behind a
+  50,000-row cap. The seed holds 137 trips, so the cap is unmeasured locally.
+- **ARPA's denominator** (F-V2-95): the snapshot's own active count, not the
+  `subscriptions.active` stock, which is about tenfold larger.
+- **A template page's title** (F-V2-85), which keeps AC-1212 pinned.
+- **`manage_analytics`**: anyone who can read analytics can write it.
+- **Session and device listing** need a data source no schema has.
+- **The funnel `sequential` / `holdConstant` definitions** (F-V2-63) want the
+  owner's reading, and D33–D37 want headed entries or not (F-V2-1).
+- **Loading only the active language's dictionary** would shrink the entry
+  chunk by about a tenth, and needs three shared files changed together.
+- **AC-1289** asks the smoke to call all 377 documented GETs; about 65 are
+  implemented. The proposed reading is "every registered route".
+- Provenance is now resolved from cited runs, but a run id is still not recorded
+  on `AgentToolCallEvent` itself (F-V2-90's wider half).
+
 ## Where this stands (2026-09-15, end of the resume)
 
 | Gate | Result |
