@@ -215,5 +215,162 @@ await timeToMeaningfulRender('/management/reports?view=alerts', 'table', 'render
   await page.close()
 }
 
+/* ── 5 · recharts is absent from a plain reports visit, present on Alerts ──
+   Performance audit finding 1: `AlertsView` statically imported recharts and
+   `ReportsScreen.tsx` statically imported `AlertsView`. Both `AlertsView`
+   itself (`lazy()` in `ReportsScreen.tsx`) and the barrel's own static
+   re-export (`screens/reports/index.ts`) had to move for the split to hold —
+   a `lazy()` alone does not split a module Rollup can also reach statically. */
+{
+  const chartRequests = (page) => {
+    const urls = []
+    page.on('request', (r) => {
+      if (/\/assets\/chart-[^/]*\.js$/.test(new URL(r.url()).pathname)) urls.push(r.url())
+    })
+    return urls
+  }
+
+  const { page: libraryPage } = await newPage()
+  const libraryChartRequests = chartRequests(libraryPage)
+  await libraryPage.goto(`${BASE}/management/reports`, { waitUntil: 'networkidle' })
+  await libraryPage.waitForTimeout(500)
+  results.rechartsOnPlainLibraryVisit = {
+    chartChunkRequests: libraryChartRequests.length,
+    verdict: libraryChartRequests.length === 0 ? 'PASS recharts not fetched' : 'FAIL recharts fetched on a plain visit',
+  }
+  await libraryPage.close()
+
+  const { page: alertsPage } = await newPage()
+  const alertsChartRequests = chartRequests(alertsPage)
+  await alertsPage.goto(`${BASE}/management/reports?view=alerts`, { waitUntil: 'networkidle' })
+  await alertsPage.waitForTimeout(500)
+  results.rechartsOnAlertsVisit = {
+    chartChunkRequests: alertsChartRequests.length,
+    verdict: alertsChartRequests.length > 0 ? 'PASS recharts fetched when Alerts opens' : 'FAIL recharts never fetched',
+  }
+  await alertsPage.close()
+}
+
+/* ── 6 · WP-8.4 finding 2 — ResultTableColumns virtualises above 200 rows ──
+   A 365-day window (`last-365d`, grain `day`) on `rows: ['time']` is the
+   shape that actually crosses the threshold in this fixture set; §5 of
+   `docs/02-verification/analytics-v2-performance.md` records that no seeded
+   report otherwise does. Built live through the builder UI (measure → window
+   preset → chart type → tick a column), never a synthetic prop, so this is
+   the same path an operator takes. */
+{
+  const { page } = await newPage()
+  await page.goto(`${BASE}/management/reports`, { waitUntil: 'load' })
+  await page.waitForTimeout(1200)
+  await page
+    .getByRole('link', { name: 'New report' })
+    .click()
+    .catch(() => page.getByRole('button', { name: 'New report' }).click())
+  await page.waitForTimeout(1200)
+  await page.getByLabel('Measure', { exact: true }).click()
+  await page.getByRole('option').first().click()
+  await page.waitForTimeout(700)
+  await page
+    .locator('button, [role="button"]')
+    .filter({ hasText: /Last 30 days|30 days/i })
+    .first()
+    .click()
+  await page.getByRole('dialog').waitFor({ state: 'visible', timeout: 10000 })
+  await page.getByRole('button', { name: 'Last 365 days' }).click({ timeout: 15000 })
+  await page.waitForTimeout(1000)
+  await page.getByLabel('Chart type', { exact: true }).click()
+  await page.waitForTimeout(400)
+  await page.getByRole('option', { name: 'Data table' }).click()
+  await page.waitForTimeout(1000)
+  await page.getByRole('group', { name: 'Columns' }).getByRole('checkbox').first().click()
+  await page.waitForTimeout(1500)
+
+  const tbl = page.locator('table[aria-rowcount]')
+  const ariaRowcount = await tbl.getAttribute('aria-rowcount')
+  const mountedBefore = await tbl.locator('tbody tr[data-index]').count()
+
+  const columnAlignment = async () =>
+    page.evaluate(() => {
+      const table = document.querySelector('table[aria-rowcount]')
+      const headCells = [...table.querySelectorAll('thead th')]
+      const bodyRow = table.querySelector('tbody tr[data-index]')
+      const bodyCells = bodyRow ? [...bodyRow.querySelectorAll('td')] : []
+      return headCells.map((h, i) => {
+        const b = bodyCells[i]
+        if (!b) return null
+        const hr = h.getBoundingClientRect()
+        const br = b.getBoundingClientRect()
+        return { leftDelta: Math.round(hr.left - br.left), rightDelta: Math.round(hr.right - br.right) }
+      })
+    })
+  const alignmentEn = await columnAlignment()
+
+  // Scroll the real vertical scrollport (an ancestor `<section>`, not the
+  // window — `AppLayout` is `h-screen overflow-hidden`) to the very bottom.
+  await page.evaluate(() => {
+    const table = document.querySelector('table[aria-rowcount]')
+    let node = table.parentElement.parentElement
+    while (node && !/(auto|scroll)/.test(getComputedStyle(node).overflowY)) node = node.parentElement
+    if (node) {
+      node.scrollTop = node.scrollHeight
+      node.dispatchEvent(new Event('scroll', { bubbles: true }))
+    }
+  })
+  await page.waitForTimeout(800)
+
+  const mountedAfterScroll = await tbl.locator('tbody tr[data-index]').count()
+  const indexesAfterScroll = await tbl
+    .locator('tbody tr[data-index]')
+    .evaluateAll((els) => els.map((e) => Number(e.getAttribute('data-index'))))
+  const lastIndex = Math.max(...indexesAfterScroll)
+  const lastRowText = await tbl.locator(`tbody tr[data-index="${lastIndex}"]`).textContent()
+  const bodyScrollWidth = await page.evaluate(() => document.body.scrollWidth)
+
+  results.resultTableColumns_virtualisation_en = {
+    windowPreset: 'last-365d',
+    ariaRowcount,
+    mountedRowsBeforeScroll: mountedBefore,
+    mountedRowsAfterScrollToBottom: mountedAfterScroll,
+    lastMountedRowIndex: lastIndex,
+    /* `ariaRowcount` is `rows.length + 1` (header); the last row's own index
+       must be `rows.length - 1`, i.e. `ariaRowcount - 2`. */
+    lastRowIsTheRealLastRow: ariaRowcount !== null ? lastIndex === Number(ariaRowcount) - 2 : false,
+    lastRowText,
+    headerBodyColumnEdgeDeltasPx: alignmentEn,
+    bodyScrollWidthAt1280: bodyScrollWidth,
+    verdict:
+      mountedBefore < 60 && mountedAfterScroll < 60 && bodyScrollWidth <= 1281
+        ? 'PASS windowed, reaches the true last row, page does not scroll horizontally'
+        : 'FAIL see fields above',
+  }
+
+  // Arabic: the report persists, only the language flips (matches
+  // `analytics-v2-rtl.mjs`'s own `toArabic` pattern).
+  await page.getByRole('button', { name: 'Account' }).click()
+  await page.waitForTimeout(150)
+  await page.getByRole('menuitemradio', { name: 'Arabic' }).click()
+  await page.waitForTimeout(900)
+
+  const dir = await page.evaluate(() => document.documentElement.dir)
+  const ariaRowcountAr = await tbl.getAttribute('aria-rowcount')
+  const mountedAr = await tbl.locator('tbody tr[data-index]').count()
+  const alignmentAr = await columnAlignment()
+  const bodyScrollWidthAr = await page.evaluate(() => document.body.scrollWidth)
+
+  results.resultTableColumns_virtualisation_ar = {
+    dir,
+    ariaRowcount: ariaRowcountAr,
+    mountedRows: mountedAr,
+    headerBodyColumnEdgeDeltasPx: alignmentAr,
+    bodyScrollWidthAt1280: bodyScrollWidthAr,
+    verdict:
+      dir === 'rtl' && mountedAr < 60 && bodyScrollWidthAr <= 1281
+        ? 'PASS still windowed and contained under dir=rtl'
+        : 'FAIL see fields above',
+  }
+
+  await page.close()
+}
+
 console.log(JSON.stringify(results, null, 2))
 await browser.close()

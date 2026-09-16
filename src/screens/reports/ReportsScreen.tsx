@@ -83,7 +83,7 @@
  * by two dictionaries agreeing today (AC-844).
  */
 
-import { useCallback, useMemo } from 'react'
+import { Suspense, lazy, useCallback, useMemo } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useAsync } from '@/hooks'
 import { useNowIso } from '@/screens/queues'
@@ -100,7 +100,7 @@ import {
   localDayOf,
 } from '@/data/clients'
 import type { SavedReport, SubTabRoute } from '@/data/types'
-import { AlertsView } from './AlertsView'
+import { LoadingSkeleton } from '@/components/LoadingSkeleton'
 import { AnalystView } from '@/screens/analyst/AnalystView'
 import { PagesView } from '@/screens/pages/PagesView'
 import { ReportBuilder } from './ReportBuilder'
@@ -110,6 +110,18 @@ import { withFallback } from '../operations/localCopy'
 import { REPORTS_EN } from './copy'
 import { PAGES_EN } from '@/screens/pages/copy'
 import { ANALYST_EN } from '@/screens/analyst/copy'
+
+/**
+ * `AlertsView` statically imports recharts for its per-rule sparkline, so a
+ * static import here would pull recharts into every `/management/reports`
+ * visit — the cost the file's own header warns against for `TrendChart`
+ * (performance audit finding 1). Deferred the same way `routes.tsx`'s `Chunk`
+ * defers a whole screen chunk: recharts loads only once an operator opens
+ * the Alerts view.
+ */
+const LazyAlertsView = lazy(() =>
+  import('./AlertsView').then((m) => ({ default: m.AlertsView })),
+)
 
 /**
  * The id the route table carries. **Moved to `./ids.ts`** when route-level code
@@ -280,15 +292,20 @@ export function ReportsScreen({ row }: ReportsScreenProps) {
 
   if (view === 'alerts') {
     return (
-      <AlertsView
-        title={title}
-        activeView={view}
-        onSelectView={selectView}
-        today={today}
-        t={t}
-        language={language}
-        dir={dir}
-      />
+      /* The same skeleton family a route-level chunk uses (`routes.tsx`'s
+         `Chunk`), so the recharts fetch reads as one continuous loading shape
+         rather than a blank pane — every screen needs a loading state (R3). */
+      <Suspense fallback={<LoadingSkeleton pattern="P1" />}>
+        <LazyAlertsView
+          title={title}
+          activeView={view}
+          onSelectView={selectView}
+          today={today}
+          t={t}
+          language={language}
+          dir={dir}
+        />
+      </Suspense>
     )
   }
 

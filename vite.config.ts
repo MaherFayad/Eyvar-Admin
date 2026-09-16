@@ -156,6 +156,34 @@ export default defineConfig({
   resolve: {
     alias: { '@': path.resolve(__dirname, './src') },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        /**
+         * **One deliberate carve-out, not a general chunking policy.**
+         *
+         * `formatMetric.ts` has no import of `recharts` at all, but Rollup's
+         * default splitting still fused its compiled output into the recharts
+         * chunk — most of its callers ARE chart-heavy, so Rollup grouped it
+         * there. The result: `AlertHistoryDialog.tsx` deep-imports
+         * `formatMetricValue` specifically to avoid pulling recharts (see the
+         * comment beside that import), and Rollup pulled it back in anyway,
+         * from the chunking layer rather than the import graph. Measured:
+         * `chart-*.js` (248 KB) loaded on a plain `/management/reports` visit
+         * even with `AlertsView` itself split out.
+         *
+         * Forcing this one module into its own chunk is the fix; nothing else
+         * here is touched, so every other chunk keeps Rollup's default,
+         * automatic splitting.
+         */
+        manualChunks(id) {
+          if (id.replace(/\\/g, '/').endsWith('/src/components/metrics/formatMetric.ts')) {
+            return 'metric-format'
+          }
+        },
+      },
+    },
+  },
   /**
    * Dev-only proxy to `vercel dev` — active only under `VITE_DATA_SOURCE=http`
    * (05-backend.md §1). Mock stays the default so harnesses keep working with
