@@ -5,7 +5,7 @@
  * (the action buttons), AC-1263 (chrome resolves through `an.*`).
  */
 
-import { act, render, screen } from '@testing-library/react'
+import { act, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -127,8 +127,12 @@ describe('F-V2-90 — Provenance lists every run the study cites, by runId, neve
     mountJob('AGT-1')
     await screen.findByText('Why did the cancellation rate cross 6% on 24 June?')
 
+    /* Scoped to the rail itself: RUN-2 also names its own cell in the
+       contributors table (`caseStudyToBlocks.ts`'s `table` block,
+       `01-analyst-agent.md:330`), so a page-wide query now matches twice. */
+    const rail = (await screen.findByText('Provenance')).closest('div')!
     for (const runId of ['RUN-1', 'RUN-2', 'RUN-3']) {
-      expect(await screen.findByText(runId)).toBeInTheDocument()
+      expect(await within(rail).findByText(runId)).toBeInTheDocument()
     }
     expect(await screen.findAllByRole('link', { name: 'Open in builder' })).toHaveLength(3)
     expect(

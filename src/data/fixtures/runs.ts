@@ -1,9 +1,9 @@
 /**
- * The three queries `AGT-1` cites (AC-1258). `clients/runs.ts` runs each for
- * real on read, never a typed-in total. `pickupDistrictSplit` is the query
- * F2 describes; its real result disagrees with F2's prose (the seeded
- * `trips` fixture cannot reach `Al Malaz: 9` at day grain, and `Al Olaya`
- * is not a seeded pickup) — reported to `agent.ts`'s owner, not patched here.
+ * The three queries `AGT-1` cites (AC-1258, "no number without a run"),
+ * run for real on read. `pickupDistrictSplit` is F2's decompose step, so it
+ * carries `periodComparison`: one run whose `current`/`comparison` series
+ * give `agent.ts` a real per-district `deltaAbs`. The comparison window
+ * reaches before the fixture's earliest row; `agent.ts`'s `dataQuality.gaps` names it.
  */
 
 import type { ReportQuery } from '../types/report'
@@ -16,7 +16,7 @@ const pickupDistrictSplit: ReportQuery = {
   filters: [],
   window: { kind: 'preset', preset: 'last-30d' },
   grain: 'day',
-  periodComparison: 'none',
+  periodComparison: 'previous-period',
   chartType: 'line',
 }
 

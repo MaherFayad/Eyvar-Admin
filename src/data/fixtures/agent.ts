@@ -63,17 +63,18 @@ export const DONE_JOB_CASE_STUDY: CaseStudy = {
     },
     {
       id: 'F2',
-      text: 'The increase concentrated in Al Malaz and Al Olaya pickups.',
+      text: 'Completed-trip demand over the last 30 days rose most in Al Malqa and KAFD pickups.',
       values: [
-        { runId: 'RUN-2', seriesId: 'trips.completed#Al Malaz#current', bucket: '2026-06-24', value: 9, unit: 'count', currency: null },
+        { runId: 'RUN-2', seriesId: 'trips.completed#Al Malqa#current', bucket: 'total', value: 7, unit: 'count', currency: null },
+        { runId: 'RUN-2', seriesId: 'trips.completed#KAFD#current', bucket: 'total', value: 7, unit: 'count', currency: null },
       ],
       evidence: ['RUN-2'],
       chart: null,
     },
   ],
   contributors: [
-    { dimension: 'trip.pickup', group: 'Al Malaz', deltaAbs: 4, shareOfChangePct: 42, runId: 'RUN-2' },
-    { dimension: 'trip.pickup', group: 'Al Olaya', deltaAbs: 3, shareOfChangePct: 31, runId: 'RUN-2' },
+    { dimension: 'trip.pickup', group: 'Al Malqa', deltaAbs: 6, shareOfChangePct: 14.3, runId: 'RUN-2' },
+    { dimension: 'trip.pickup', group: 'KAFD', deltaAbs: 5, shareOfChangePct: 11.9, runId: 'RUN-2' },
   ],
   alternatives: [
     {
@@ -92,13 +93,16 @@ export const DONE_JOB_CASE_STUDY: CaseStudy = {
     },
   ],
   dataQuality: {
-    gaps: [],
+    /* RUN-2's `periodComparison` window reaches before the `trips` fixture's
+       earliest row (11 May); those buckets resolve `null`, not 0, and are
+       excluded from every district's `deltaAbs`. */
+    gaps: ['No completed-trip data before 2026-05-11 (RUN-2 comparison window)'],
     partialBucketsExcluded: true,
     /* USR-7 holds `view_analytics`, not `view_finance` — a real block for the
        operator who asked, not an invented one (§13.1). */
     blockedSeries: ['revenue.total#_#current'],
     truncated: false,
-    coverageNote: 'Snapshots cover 27 May – 25 June; nothing outside that window was read.',
+    coverageNote: 'Snapshots cover 27 May – 25 June; RUN-2 also read the prior 30 days for comparison.',
   },
   recommendations: [
     {

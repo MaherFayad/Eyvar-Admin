@@ -180,6 +180,34 @@ describe('caseStudyToBlocks', () => {
     expect(block.md).toContain(String(rec.expectedEffect.magnitude))
   })
 
+  it('renders one table block for contributors, each row carrying its own run id (01-analyst-agent.md:330)', () => {
+    const blocks = caseStudyToBlocks(study, JOB_ID)
+    const table = blocks.find((b) => b.type === 'table')
+    expect(table).toBeDefined()
+    if (table?.type !== 'table') throw new Error('expected a table block')
+    expect(table.rows).toHaveLength(study.contributors.length)
+    study.contributors.forEach((contributor, i) => {
+      const row = table.rows[i]!
+      expect(row).toEqual([
+        contributor.dimension,
+        contributor.group,
+        String(contributor.deltaAbs),
+        String(contributor.shareOfChangePct),
+        contributor.runId,
+      ])
+    })
+  })
+
+  it('the contributors table is present even when the study names no contributor (empty, never omitted)', () => {
+    const noContributors: CaseStudy = { ...study, contributors: [] }
+    const blocks = caseStudyToBlocks(noContributors, JOB_ID)
+    const table = blocks.find((b) => b.type === 'table')
+    expect(table).toBeDefined()
+    if (table?.type !== 'table') throw new Error('expected a table block')
+    expect(table.rows).toEqual([])
+    expect(validatePage(pageFor(blocks))).toEqual([])
+  })
+
   it('renders one data-quality callout naming the coverage note, gaps and blocked series', () => {
     const blocks = caseStudyToBlocks(study, JOB_ID)
     const callout = blocks.find((b) => b.type === 'callout')

@@ -12,7 +12,9 @@ import type {
   Block,
   CalloutBlock,
   HeadingBlock,
+  PageTableColumn,
   ReportBlock,
+  TableBlock,
   TextBlock,
   ToggleBlock,
 } from '../../types/page'
@@ -98,6 +100,30 @@ function findingChartBlock(finding: CaseStudyFinding, jobId: string, reportId: s
   return { id: `${jobId}-finding-${finding.id}-chart`, type: 'report', reportId, view: 'chart', height: 'M', title: null }
 }
 
+const CONTRIBUTOR_COLUMNS: PageTableColumn[] = [
+  { key: 'dimension', label: 'Dimension', align: 'start' },
+  { key: 'group', label: 'Group', align: 'start' },
+  { key: 'deltaAbs', label: 'Change', align: 'end' },
+  { key: 'shareOfChangePct', label: 'Share of change %', align: 'end' },
+  { key: 'runId', label: 'Run', align: 'start' },
+]
+
+/**
+ * §7's rendering rule ("a `table` block for contributors",
+ * `01-analyst-agent.md:330`) — one row per contributor, its own `runId` in
+ * the row, the same citation discipline a finding's values get. Present
+ * even with zero contributors: an empty table is this block's empty state,
+ * never an omitted block.
+ */
+function contributorsTableBlock(study: CaseStudy, jobId: string): TableBlock {
+  return {
+    id: `${jobId}-contributors`,
+    type: 'table',
+    columns: CONTRIBUTOR_COLUMNS,
+    rows: study.contributors.map((c) => [c.dimension, c.group, String(c.deltaAbs), String(c.shareOfChangePct), c.runId]),
+  }
+}
+
 function alternativeToggle(alternative: CaseStudyAlternative, jobId: string, index: number): ToggleBlock {
   const id = `${jobId}-alt-${index}`
   const evidence: AgentInsightBlock = {
@@ -157,6 +183,7 @@ export function caseStudyToBlocks(
     blocks.push(findingEvidenceBlock(finding, jobId, alertProposalFor(finding, study.recommendations[i], chartReportIds)))
   })
 
+  blocks.push(contributorsTableBlock(study, jobId))
   study.alternatives.forEach((alternative, i) => blocks.push(alternativeToggle(alternative, jobId, i)))
   study.recommendations.forEach((recommendation, i) => blocks.push(recommendationTextBlock(recommendation, jobId, i)))
   blocks.push(dataQualityCallout(study.dataQuality, jobId))

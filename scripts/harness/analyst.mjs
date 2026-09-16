@@ -193,18 +193,31 @@ async function checkProvenanceCompleteness() {
   await ctx.close()
 }
 
-/** AC-1262 — the alert-history entry point (`AlertFeedView.tsx:244`) carries
-    `firingId` on the URL. Does the composer that lands actually attach it? */
+/** AC-1262/F-V2-90 — every real entry point (`AlertFeedView.tsx:244`, and
+    `ReportBuilder.tsx`, `AlertHistoryDialog.tsx`, `PageView.tsx`) writes the
+    URL `entryContext.ts`'s `analystAskUrl` builds: `askKind`/`askId`/
+    `askLabel`, never the legacy `?firingId=` `AskComposer` no longer reads.
+    Does the composer that lands attach the chip that contract promises? */
 async function checkEntryPointPrefill() {
   const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } })
   const page = await ctx.newPage()
-  await page.goto(`${BASE}/management/reports?view=analyst&firingId=AFR-1`, { waitUntil: 'networkidle' })
+  const label = 'AFR-1 entry-point check'
+  const url = new URL(`${BASE}/management/reports`)
+  url.searchParams.set('view', 'analyst')
+  url.searchParams.set('askKind', 'firing')
+  url.searchParams.set('askId', 'AFR-1')
+  url.searchParams.set('askLabel', label)
+  await page.goto(url.toString(), { waitUntil: 'networkidle' })
   await page.waitForTimeout(600)
-  const facts = await page.evaluate(() => ({
-    chips: document.querySelectorAll('.rounded-control').length,
-    questionValue: document.querySelector('textarea')?.value ?? null,
-  }))
-  console.log('entry-point-prefill firingId=AFR-1', JSON.stringify(facts))
+  const facts = await page.evaluate(() => {
+    const composer = document.querySelector('textarea')?.closest('[data-slot="card"]')
+    return {
+      chips: composer ? composer.querySelectorAll('.rounded-control').length : 0,
+      chipText: composer?.querySelector('.rounded-control bdi')?.textContent ?? null,
+      strippedFromUrl: !location.search.includes('askId'),
+    }
+  })
+  console.log('entry-point-prefill askKind=firing askId=AFR-1', JSON.stringify(facts))
   await ctx.close()
 }
 
