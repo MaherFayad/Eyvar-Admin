@@ -794,7 +794,9 @@ function recomputeValue(result: ReportResult, value: CaseStudyFindingValue): num
   const series = result.series.find((s) => s.id === value.seriesId)
   if (!series) return null
   if (value.bucket === 'total') {
-    return series.points.reduce((sum: number, p) => sum + (p ?? 0), 0)
+    /* A partial bucket is excluded from every total, as the study itself excludes it. */
+    const partial = new Set(series.partialBucketIndexes ?? [])
+    return series.points.reduce((sum: number, p, i) => (partial.has(i) ? sum : sum + (p ?? 0)), 0)
   }
   const index = result.buckets.indexOf(value.bucket)
   if (index === -1) return null

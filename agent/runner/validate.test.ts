@@ -21,16 +21,56 @@ const PASSING_TOOL_LOG: ToolLogEntry[] = [
       series: [{ id: 'trips.cancellationRate#_#current', points: [5, 6, 7] }],
     },
   },
+  /* RUN-2's real result, as the resolver returns it. The last bucket is partial:
+     KAFD's points sum to 8 and the study quotes 7, because a partial bucket is
+     excluded from every total. */
   {
     kind: 'run',
     runId: 'RUN-2',
     result: {
-      buckets: ['2026-06-24'],
-      series: [{ id: 'trips.completed#Al Malaz#current', points: [9] }],
+      buckets: ["2026-05-27", "2026-05-28", "2026-05-29", "2026-05-30", "2026-05-31", "2026-06-01", "2026-06-02", "2026-06-03", "2026-06-04", "2026-06-05", "2026-06-06", "2026-06-07", "2026-06-08", "2026-06-09", "2026-06-10", "2026-06-11", "2026-06-12", "2026-06-13", "2026-06-14", "2026-06-15", "2026-06-16", "2026-06-17", "2026-06-18", "2026-06-19", "2026-06-20", "2026-06-21", "2026-06-22", "2026-06-23", "2026-06-24", "2026-06-25"],
+      series: [
+        { id: 'trips.completed#Al Malqa#current', points: [0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0], partialBucketIndexes: [29] },
+        { id: 'trips.completed#KAFD#current', points: [1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 1], partialBucketIndexes: [29] },
+      ],
     },
   },
   { kind: 'run', runId: 'RUN-3', result: { buckets: ['2026-06-24'], series: [{ id: 'captains.active#_#current', points: [120] }] } },
 ]
+
+describe('validate — a total excludes the partial bucket', () => {
+  it('recomputes a total over complete buckets only, as the study states it', () => {
+    const log: ToolLogEntry[] = [
+      ...PASSING_TOOL_LOG,
+      {
+        kind: 'run',
+        runId: 'RUN-X',
+        result: {
+          buckets: ['d1', 'd2', 'd3'],
+          series: [{ id: 's', points: [1000, 1000, 400], partialBucketIndexes: [2] }],
+        },
+      },
+    ]
+    const study = {
+      ...DONE_JOB_CASE_STUDY,
+      findings: [
+        {
+          ...DONE_JOB_CASE_STUDY.findings[0]!,
+          evidence: ['RUN-X'],
+          values: [{ runId: 'RUN-X', seriesId: 's', bucket: 'total', value: 2000, unit: 'count', currency: null }],
+        },
+      ],
+      contributors: [],
+    }
+    expect(validate(study, log).ok).toBe(true)
+    /* 2,400 would include the partial bucket — outside rounding, so refused. */
+    const withPartial = {
+      ...study,
+      findings: [{ ...study.findings[0]!, values: [{ ...study.findings[0]!.values[0]!, value: 2400 }] }],
+    }
+    expect(validate(withPartial, log).ok).toBe(false)
+  })
+})
 
 describe('validate — a passing study', () => {
   it('accepts DONE_JOB_CASE_STUDY against a tool log that backs every cited runId and value', () => {

@@ -425,6 +425,44 @@
                         "type": "string",
                         "minLength": 1
                       }
+                    },
+                    "alertProposal": {
+                      "oneOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "reportId": {
+                              "type": "string",
+                              "minLength": 1
+                            },
+                            "seriesId": {
+                              "type": "string",
+                              "minLength": 1
+                            },
+                            "condition": {
+                              "type": "object",
+                              "properties": {
+                                "kind": {
+                                  "type": "string",
+                                  "minLength": 1
+                                }
+                              },
+                              "required": [
+                                "kind"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "reportId",
+                            "seriesId",
+                            "condition"
+                          ],
+                          "additionalProperties": false
+                        }
+                      ]
                     }
                   },
                   "required": [
@@ -813,6 +851,44 @@
                                   "type": "string",
                                   "minLength": 1
                                 }
+                              },
+                              "alertProposal": {
+                                "oneOf": [
+                                  {
+                                    "type": "null"
+                                  },
+                                  {
+                                    "type": "object",
+                                    "properties": {
+                                      "reportId": {
+                                        "type": "string",
+                                        "minLength": 1
+                                      },
+                                      "seriesId": {
+                                        "type": "string",
+                                        "minLength": 1
+                                      },
+                                      "condition": {
+                                        "type": "object",
+                                        "properties": {
+                                          "kind": {
+                                            "type": "string",
+                                            "minLength": 1
+                                          }
+                                        },
+                                        "required": [
+                                          "kind"
+                                        ]
+                                      }
+                                    },
+                                    "required": [
+                                      "reportId",
+                                      "seriesId",
+                                      "condition"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                ]
                               }
                             },
                             "required": [
@@ -1183,6 +1259,44 @@
                                         "type": "string",
                                         "minLength": 1
                                       }
+                                    },
+                                    "alertProposal": {
+                                      "oneOf": [
+                                        {
+                                          "type": "null"
+                                        },
+                                        {
+                                          "type": "object",
+                                          "properties": {
+                                            "reportId": {
+                                              "type": "string",
+                                              "minLength": 1
+                                            },
+                                            "seriesId": {
+                                              "type": "string",
+                                              "minLength": 1
+                                            },
+                                            "condition": {
+                                              "type": "object",
+                                              "properties": {
+                                                "kind": {
+                                                  "type": "string",
+                                                  "minLength": 1
+                                                }
+                                              },
+                                              "required": [
+                                                "kind"
+                                              ]
+                                            }
+                                          },
+                                          "required": [
+                                            "reportId",
+                                            "seriesId",
+                                            "condition"
+                                          ],
+                                          "additionalProperties": false
+                                        }
+                                      ]
                                     }
                                   },
                                   "required": [
@@ -1461,6 +1575,44 @@
               "type": "string",
               "minLength": 1
             }
+          },
+          "alertProposal": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "reportId": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "seriesId": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "condition": {
+                    "type": "object",
+                    "properties": {
+                      "kind": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "required": [
+                      "kind"
+                    ]
+                  }
+                },
+                "required": [
+                  "reportId",
+                  "seriesId",
+                  "condition"
+                ],
+                "additionalProperties": false
+              }
+            ]
           }
         },
         "required": [

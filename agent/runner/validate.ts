@@ -23,7 +23,7 @@
 
 export interface ToolLogResult {
   buckets: readonly string[]
-  series: readonly { id: string; points: readonly (number | null)[] }[]
+  series: readonly { id: string; points: readonly (number | null)[]; partialBucketIndexes?: readonly number[] }[]
 }
 
 /**
@@ -167,11 +167,14 @@ function citedRunIds(study: CaseStudyLike): string[] {
   return Array.from(ids)
 }
 
-/** Mirrors `api/_lib/handlers/agent.ts#recomputeValue` exactly: `'total'` sums the series, else it looks up the bucket. `null` means "could not be recomputed", itself a mismatch. */
+/** Mirrors `api/_lib/handlers/agent.ts#recomputeValue` exactly: `'total'` sums the series' complete buckets — a partial bucket is excluded from every total — else it looks up the bucket. `null` means "could not be recomputed", itself a mismatch. */
 function recomputeValue(result: ToolLogResult, seriesId: unknown, bucket: unknown): number | null {
   const series = result.series.find((s) => s.id === seriesId)
   if (!series) return null
-  if (bucket === 'total') return series.points.reduce<number>((sum, p) => sum + (p ?? 0), 0)
+  if (bucket === 'total') {
+    const partial = new Set(series.partialBucketIndexes ?? [])
+    return series.points.reduce<number>((sum, p, i) => (partial.has(i) ? sum : sum + (p ?? 0)), 0)
+  }
   const index = result.buckets.indexOf(String(bucket))
   if (index === -1) return null
   return series.points[index] ?? null
