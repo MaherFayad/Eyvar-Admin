@@ -1,9 +1,7 @@
 /**
- * The analyst agent (`an.*`), D38, WP-7.4. The agent's own prose is content
- * stored in a page, never a key (`01-analyst-agent.md` §4) — this is the
- * chrome around it: the index table, the composer, the job timeline
- * (`22-analytics-v2.md` §5.2), the provenance rail (§5.3) and the runner
- * status line (§5.4).
+ * Analyst agent copy (`an.*`), D38. The agent's own prose is content stored
+ * in a page, never a key (§4) — this is the chrome around it: index table,
+ * composer, job timeline (§5.2), provenance rail (§5.3), runner status (§5.4).
  */
 
 import type { Dictionary } from '@/lib'

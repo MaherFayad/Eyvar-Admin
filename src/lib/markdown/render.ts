@@ -1,9 +1,8 @@
 /**
  * `render`: a `BlockNode[]` in, React elements out — never a string of HTML.
- * There is no `dangerouslySetInnerHTML` in this module; every element is
- * built with `createElement` from the typed tree `parse.ts` produced, so a
- * `<script>` that survived as a `text` node can only ever become a text
- * node here too (AC-1181).
+ * No `dangerouslySetInnerHTML` here; every element is built with
+ * `createElement` from the typed tree `parse.ts` produced, so a `<script>`
+ * that survived as a `text` node can only ever render as text (AC-1181).
  */
 
 import { createElement, type Key, type ReactNode } from 'react'
@@ -25,9 +24,9 @@ const CODE_CLASS = 'rounded-sm bg-muted px-1 font-mono text-foreground'
 
 /**
  * `text.md` → React elements, in document order. Wraps every text run in a
- * `<bdi>` through the shared `isolatedRunProps` (AC-1183) rather than a
- * second isolation helper, and turns each `link` node into an external `<a>`
- * or an internal router `Link` per the policy `parse.ts` already applied.
+ * `<bdi>` via the shared `isolatedRunProps` (AC-1183), and turns each
+ * `link` node into an external `<a>` or internal router `Link` per the
+ * policy `parse.ts` already applied.
  */
 export function render(nodes: readonly BlockNode[]): ReactNode[] {
   return nodes.map((block, index) => renderBlock(block, index))

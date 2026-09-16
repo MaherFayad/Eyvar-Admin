@@ -1,9 +1,7 @@
 /**
- * The alert composer's preview (`22-analytics-v2.md` §4.3, AC-1226): the
- * threshold line or anomaly band dashed, a filled amber dot per would-fire
- * bucket. Dumb — the composer runs `evaluate()` and hands this the drawn
- * result. `--color-warning-graphic` matches the `firing` badge's tone (R7),
- * so the preview and the eventual notification agree on what "fires" means.
+ * The alert composer's preview (AC-1226): threshold or anomaly band dashed,
+ * an amber dot per would-fire bucket. Dumb — the composer runs `evaluate()`.
+ * `--color-warning-graphic` matches the `firing` badge's tone (R7).
  */
 
 import type { ReactElement } from 'react'

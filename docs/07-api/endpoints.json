@@ -16,7 +16,7 @@
       "client": "src/data/clients/agent.ts",
       "function": "createAgentJob",
       "params": null,
-      "body": "CreateAgentJobInput",
+      "body": null,
       "returns": "Single<AgentJob>",
       "statuses": []
     },
@@ -56,7 +56,7 @@
       "client": "src/data/clients/agent.ts",
       "function": "createAgentSchedule",
       "params": null,
-      "body": "CreateAgentScheduleInput",
+      "body": null,
       "returns": "Single<AgentSchedule>",
       "statuses": []
     },
@@ -66,7 +66,7 @@
       "client": "src/data/clients/agent.ts",
       "function": "updateAgentSchedule",
       "params": null,
-      "body": "UpdateAgentScheduleInput",
+      "body": null,
       "returns": "Single<AgentSchedule>",
       "statuses": []
     },
@@ -166,7 +166,7 @@
       "client": "src/data/clients/alerts.ts",
       "function": "muteAlertRule",
       "params": null,
-      "body": "{ until: IsoDateTime }",
+      "body": null,
       "returns": "Single<AlertRule>",
       "statuses": []
     },
@@ -175,7 +175,7 @@
       "path": "/api/v1/alerts/firings",
       "client": "src/data/clients/alerts.ts",
       "function": "listFirings",
-      "params": "q · filters[ruleId|severity|acknowledged] · page · pageSize",
+      "params": null,
       "body": null,
       "returns": "Paginated<AlertFiring>",
       "statuses": []
@@ -187,7 +187,7 @@
       "function": "acknowledgeFiring",
       "params": null,
       "body": null,
-      "returns": "AlertFiring",
+      "returns": "AlertFiring (§7 state 27)",
       "statuses": []
     },
     {
@@ -195,7 +195,7 @@
       "path": "/api/v1/annotations",
       "client": "src/data/clients/annotations.ts",
       "function": "listAnnotations",
-      "params": "from · to",
+      "params": null,
       "body": null,
       "returns": "Annotation[]",
       "statuses": []
@@ -2708,7 +2708,7 @@
       "client": "src/data/clients/pages.ts",
       "function": "savePage",
       "params": null,
-      "body": "{ title, icon, description, visibility, tags, scope, blocks, version }",
+      "body": null,
       "returns": "Single<Page>, or 409 { kind: 'conflict', details: [{ field: 'version', code: 'stale' }] }",
       "statuses": []
     },
@@ -2738,7 +2738,7 @@
       "client": "src/data/clients/pages.ts",
       "function": "savePage",
       "params": null,
-      "body": "{ title, icon, description, visibility, tags, scope, blocks, version }",
+      "body": null,
       "returns": "Single<Page>, or 409 { kind: 'conflict', details: [{ field: 'version', code: 'stale' }] }",
       "statuses": []
     },
@@ -3358,7 +3358,7 @@
       "client": "src/data/clients/reports.ts",
       "function": "contribution",
       "params": null,
-      "body": "ContributionInput",
+      "body": null,
       "returns": "ContributionResult",
       "statuses": []
     },
@@ -3388,7 +3388,7 @@
       "client": "src/data/clients/runs.ts",
       "function": "recordRun",
       "params": null,
-      "body": "ReportQuery",
+      "body": null,
       "returns": "{ runId, result, summary }",
       "statuses": []
     },
@@ -3408,7 +3408,7 @@
       "client": "src/data/clients/reports.ts",
       "function": "describeSeries",
       "params": null,
-      "body": "{ seriesId }",
+      "body": null,
       "returns": "DescribeResult",
       "statuses": []
     },
@@ -3418,7 +3418,7 @@
       "client": "src/data/clients/reports.ts",
       "function": "sampleRows",
       "params": null,
-      "body": "SampleRowsInput",
+      "body": null,
       "returns": "Record<string, unknown>[]",
       "statuses": []
     },

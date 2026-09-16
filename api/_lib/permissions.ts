@@ -1,12 +1,8 @@
 /**
- * Effective-permission resolution by user id (not by session) — the shape
- * `handlers/auth.ts`'s private `resolveOperatorPermissions` already computes
- * for a fresh session, needed here too because a cron evaluates a rule "as
- * its owner" (04-alerting-v2.md §1) and checks a recipient's permission at
- * delivery time (D43) without either one being the signed-in caller.
- * D17's rule, restated: baseline (`role_permissions`) union the user's signed
- * grants, minus their revokes.
- */
+ * Effective-permission resolution by user id, not session — needed because a
+ * cron evaluates a rule "as its owner" and checks a recipient's permission
+ * at delivery time (D43), without either being the signed-in caller. D17's
+ * rule: baseline `role_permissions` union signed grants, minus revokes. */
 import type { PermissionKey } from '@/data/types/navigation'
 import type { Database } from './db'
 

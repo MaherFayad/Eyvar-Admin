@@ -578,11 +578,9 @@ export const measureFixtures: Measure[] = [
       predicateKey: 'rb.pop.snapshot.daily',
       timeField: 'date',
       /* Was `subRevenueHalalas` — identical to `revenue.subscription`, never
-         divided by anything. `arpaHalalas` reads `subRevenueHalalas ÷
-         activeSubs` off the **same snapshot row**, never the row-level
-         `subscriptions.active` stock: the file header's own rule is that the
-         two subscription counts are an order of magnitude apart and "no
-         measure … is sourced from both". */
+         divided. `arpaHalalas` reads `subRevenueHalalas ÷ activeSubs` off the
+         **same snapshot row**, never the row-level `subscriptions.active`
+         stock — an order of magnitude apart, and no measure sources both. */
       valueField: 'arpaHalalas',
       coverage: COVERAGE.snapshots,
     },

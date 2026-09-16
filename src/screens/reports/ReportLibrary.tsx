@@ -97,10 +97,10 @@ const CHART_ICONS: Partial<Record<ChartType, typeof LineChartIcon>> = {
 const CHART_TYPES = Object.keys(CHART_ICONS) as ReadonlyArray<ChartType>
 
 /**
- * §8's library views — AC-1163. `all` is the default and precedes the five
- * named ones: it is what `listReports` already returned with no `view` param
- * (T9.13's own tests fix this list against it), and the mock's `view` switch
- * has no `'all'` branch, so it falls through to that same base filter.
+ * The library views (AC-1163). `all` is the default and precedes the five
+ * named ones: it is what `listReports` returns with no `view` param, and the
+ * mock's `view` switch has no `'all'` branch, so it falls through to the
+ * same base filter.
  */
 const LIBRARY_VIEWS = ['all', 'mine', 'team', 'starred', 'official', 'recent'] as const
 type LibraryView = (typeof LIBRARY_VIEWS)[number]

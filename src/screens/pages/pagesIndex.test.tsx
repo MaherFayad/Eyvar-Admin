@@ -202,12 +202,10 @@ describe('AC-1212 — New page → From template creates a draft copy owned by t
     expect(draft, 'a draft copy owned by the operator').toBeTruthy()
     expect(draft?.ownerId).toBe('USR-1')
 
-    /* `?edit=1` itself is fixed — `PageDetailScreen` now reads it and passes
-       `initialEditing` through `PageView` into `usePageEditor`. What still
-       blocks this test is a second, unrelated defect: `duplicatePage`
-       (`src/data/clients/pages.ts`, outside this file's owner) titles every
-       copy `"<title> copy"`, including a from-template draft, so the lookup
-       above by the template's own title never finds it. */
+    /* `?edit=1` is fixed here; what still blocks this test is F-V2-85:
+       `duplicatePage` titles every copy "<title> copy", including a
+       from-template draft, so the lookup above by the template's title
+       never finds it. */
     expect(screen.getByRole('button', { name: copy('pg.edit.done') })).toBeInTheDocument()
   })
 })

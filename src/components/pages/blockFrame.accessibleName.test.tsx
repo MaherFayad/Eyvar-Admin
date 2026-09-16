@@ -1,9 +1,7 @@
 /**
- * F-V2-87 — `BlockFrame` gave every block of one type the same accessible
- * name (`pg.block.<type>.name`), so two report blocks on one page presented
- * one identical name to a screen reader and an operator navigating by name
- * could not tell which block's menu they opened. Each block's frame, and
- * the kebab that shares its name, must now be distinguishable.
+ * F-V2-87 — every block of one type shared an accessible name; an operator
+ * navigating by name could not tell which menu they'd opened. Each block's
+ * frame and kebab must now be distinguishable.
  */
 
 import { render, screen } from '@testing-library/react'

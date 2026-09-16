@@ -1,8 +1,8 @@
 /**
- * Arabic for `src/screens/pages/copy.ts`. Same key set, same order, so the
- * two sides diff file by file (see `src/i18n/ar/index.ts`). Conventions from
- * `design/20-arabic-glossary.md`: Arabic punctuation, the terminal full stop
- * last, one MSA register, Western digits.
+ * Arabic for `src/screens/pages/copy.ts`, WP-0.4. Same key set, same order,
+ * so the two sides diff file by file (`src/i18n/ar/index.ts`). Conventions
+ * from `design/20-arabic-glossary.md`: Arabic punctuation, terminal full
+ * stop last, one MSA register, Western digits.
  */
 
 import type { Dictionary } from '@/lib'

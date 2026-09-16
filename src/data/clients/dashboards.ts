@@ -1,8 +1,7 @@
 /**
- * **Not the dashboard resource.** §11's CRUD is deleted; D39 makes a
- * dashboard one `kind` of `Page`, and `pages.ts` is that resource now. What
- * is left is the pure board-scope arithmetic three files outside this WP's
- * allow-list still call by this path; ported to `Page.scope` by WP-4.x.
+ * Not the dashboard resource: D39 makes a dashboard one `kind` of `Page`,
+ * and `pages.ts` is that resource now. This file is only the pure
+ * board-scope arithmetic three files outside this WP's set still call.
  */
 
 import type { FilterSpec, IsoDate } from '../types/common'
@@ -41,13 +40,9 @@ export interface ScopedTileQuery {
 }
 
 /**
- * **Apply a dashboard's range and filters to one tile's saved query.**
- *
- * Three rules, in this order: (1) a board filter applies only where the
- * report's `legalFilterFields` admit it; (2) a board filter on a field
- * REPLACES the report's own filter on that field, not joined with it; (3) the
- * range is applied only if it introduces no NEW violation, compared against
- * the report's own plan rather than against zero.
+ * Apply a dashboard's range/filters to one tile's query: a board filter
+ * applies only where `legalFilterFields` admits it, REPLACING rather than
+ * joining the report's own filter; the range applies only if it adds no NEW violation.
  */
 export function applyBoardScope(
   query: ReportQuery,
@@ -111,12 +106,9 @@ export function boardFilterFields(measures: readonly Measure[], dimensions: read
 
 /* ─────────────────── tile ordering — pure, keyboard-first ──────────────── */
 
-/**
- * Move a tile to a **1-based position**, keyboard-operable by construction.
- * A move is a removal and a re-insertion, not a swap, so moving tile 6 to
- * position 1 keeps every other tile's relative order. Out-of-range positions
- * return the list unchanged rather than throwing.
- */
+/** Move a tile to a 1-based position: removal + re-insertion, not a swap,
+ * so every other tile keeps its relative order. Out-of-range positions
+ * return the list unchanged, never throw. */
 export function moveTileTo(
   tiles: readonly DashboardTile[],
   tileId: string,

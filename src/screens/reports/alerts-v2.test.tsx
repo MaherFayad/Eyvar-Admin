@@ -1,8 +1,8 @@
 /**
- * The alerting v2 client — AC-1225…1239. Read through the client seam, never
- * a fixture module (`seam.test.ts`). AC-1226/1233 are `H` in the criteria
- * list — jsdom lays out no SVG, so their drawn proof is
- * `scripts/harness/alerts-v2.mjs`; this file only asserts their wiring.
+ * The alerting v2 client — AC-1225…1239, read through the client seam, never
+ * a fixture module. AC-1226/1233 are `H` criteria: jsdom draws no SVG, so
+ * their drawn proof is `scripts/harness/alerts-v2.mjs`; this file only
+ * asserts the wiring.
  */
 
 import { render, screen, waitFor, within } from '@testing-library/react'
@@ -78,10 +78,10 @@ async function openRule(user: ReturnType<typeof userEvent.setup>, name: string):
 }
 
 /**
- * `AlertRuleDialog.tsx`'s own `composerPending`: the panel names its report
- * and reads that report's series in two sequential fetches. Waits for
- * neither of the two loading sentences the card's own description carries —
- * the composer's real content, not a synchronous read racing either fetch.
+ * Waits for `AlertRuleDialog`'s own `composerPending`: the panel names its
+ * report then reads its series in two sequential fetches, so neither
+ * loading sentence may still show before asserting on the composer's real
+ * content — avoids racing either fetch.
  */
 async function waitForComposerLoaded(panel: HTMLElement): Promise<void> {
   await waitFor(() => {
@@ -259,13 +259,10 @@ describe('AC-1233 — the rules table sparkline never draws in a destructive ton
 
     const row = await rowNamed('Cancellation rate over 6%')
     const cell = within(row).getAllByRole('cell')[index]!
-    /* jsdom's `ResponsiveContainer` never resolves a real size, so it draws
-       no `<svg>` at all (the project's own standing note: a green suite
-       proves nothing about a drawn chart) — `[data-chart]` is `ChartContainer`
-       mounting, which is what this test can see; the drawn proof is the
-       harness. Bounded to the page's own rows, but each is its own
-       `runReport` — the default 1 000 ms `waitFor` is short for eleven of
-       them in series. */
+    /* jsdom's `ResponsiveContainer` never resolves a size, so no `<svg>`
+       draws; `[data-chart]` only proves `ChartContainer` mounted (drawn
+       proof is the harness). Timeout raised: eleven rows, each its own
+       `runReport`, outrun the default 1 000 ms `waitFor`. */
     await waitFor(() => expect(cell.querySelector('[data-chart]')).toBeTruthy(), { timeout: 5000 })
     /* The colours are `--chart-axis`/`--chart-fill`/`--color-value` tokens
        (`RuleSparkline`'s own props) — never a literal `destructive` fill or

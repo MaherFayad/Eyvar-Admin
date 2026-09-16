@@ -1,8 +1,7 @@
 /**
- * The job page — AC-1256 (polling stops when terminal, seam-instrumented,
- * not a spy), AC-1258 (a `done` job renders its result with the shared
- * block renderer plus Provenance), AC-1259 (`Open in builder`), AC-1260
- * (the action buttons), AC-1263 (chrome resolves through `an.*`).
+ * The job page: AC-1256 (polling stops when terminal), AC-1258 (a `done`
+ * job renders via the shared block renderer plus Provenance), AC-1259
+ * (`Open in builder`), AC-1260 (action buttons), AC-1263 (chrome via `an.*`).
  */
 
 import { act, render, screen, within } from '@testing-library/react'

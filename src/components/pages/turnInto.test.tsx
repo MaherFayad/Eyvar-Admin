@@ -68,13 +68,10 @@ describe('AC-1206 — Turn into converts text ↔ heading ↔ callout', () => {
     /* F-V2-87 — a title-less block's frame name is "Text 1" (type + position), not the bare type name. */
     await user.click(screen.getByRole('button', { name: copy('pg.edit.blockMenu').replace('{name}', 'Text 1') }))
     await screen.findByRole('menuitem', { name: copy('pg.edit.moveUp') })
-    /* Keyboard, not hover+click — a Radix `DropdownMenuSub` has no stable
-       geometry in jsdom, so a synthetic pointer click on a nested item
-       reliably lands on the parent menu instead (§7.3's own concern, proven
-       the hard way). This is the only block on the page, so `Move up`,
-       `Move down` and `Move to column…` are all disabled in place (AC-1198)
-       and Radix's roving focus skips them: `Duplicate · Turn into…` — two
-       steps down, then in. */
+    /* Keyboard, not hover+click — jsdom gives a DropdownMenuSub no stable
+       geometry, so a synthetic pointer click on a nested item lands on the
+       parent menu instead (§7.3). Move up/down/to-column are disabled here
+       (AC-1198) and roving focus skips them, landing two steps down. */
     await user.keyboard('{ArrowDown}{ArrowDown}{ArrowRight}')
     await screen.findByRole('menuitem', { name: copy('pg.block.heading.name') })
     await user.keyboard('{Enter}')

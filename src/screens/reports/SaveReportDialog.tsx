@@ -185,15 +185,10 @@ export function SaveReportDialog({
   const [pinFailed, setPinFailed] = useState(false)
   const [saving, setSaving] = useState(false)
 
-  /* Read only while the dialog is open — a picker nobody has opened should not
-     cost a request on every builder render. `deps: [open]` keeps the cache key
-     distinct from `DashboardsView`'s, which is keyed by its table params.
-     D46/§8 — `Dashboard` is gone; a dashboard is a `Page` of `kind: 'dashboard'`
-     now, and the picker offers those, filtered client-side to drop templates
-     (§6: "a shipped template, copied rather than opened" — not a live page an
-     operator pins a report to, and one ships with the same title as its
-     migrated original, which would otherwise make two options answer to one
-     name). */
+  /* Read only while the dialog is open, so a picker nobody has opened does
+     not cost a request on every builder render. Filtered client-side to drop
+     templates (D46/§8): a shipped template is copied rather than opened, and
+     it ships with the same title as its migrated original. */
   const pages = useAsync(
     async (signal) => {
       const result = await listPages(

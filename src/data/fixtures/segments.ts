@@ -1,13 +1,8 @@
 /**
- * Saved segments — population filters, `02-report-builder-v2.md` §2.5.
- *
- * `SEG-1`/`SEG-2` are referenced by `RPT-11` (`reports.ts`) as `{ kind:
- * 'saved' }` refs — a segment is a resource with its own identity, read by
- * reference the same way `MeasureRef` reads the catalogue. `SEG-4` carries a
- * `performed` spec that is refused today: no seeded measure declares
- * `supportsPerformed`, so composing it is legal, saving it is legal, and
- * running it returns `segment-performed-unsupported` until the catalogue
- * catches up. `SEG-5` is the long Arabic name (AC-898) — never translated.
+ * Saved segments — population filters (`02-report-builder-v2.md` §2.5).
+ * `SEG-1`/`SEG-2` are `RPT-11`'s `{ kind: 'saved' }` refs. `SEG-4`'s `performed`
+ * spec composes and saves legally but runs as `segment-performed-unsupported`
+ * until a measure declares `supportsPerformed`; `SEG-5` is the long Arabic name (AC-898), never translated.
  */
 
 import type { Segment } from '../types/segment'

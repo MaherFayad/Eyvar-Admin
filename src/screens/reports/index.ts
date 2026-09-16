@@ -16,11 +16,9 @@
 export { AlertHistoryDialog, type AlertHistoryDialogProps } from './AlertHistoryDialog'
 export { AlertRuleDialog, type AlertRuleDialogProps } from './AlertRuleDialog'
 /* Type-only: a VALUE re-export here defeats `ReportsScreen.tsx`'s own
-   `lazy(() => import('./AlertsView'))` — Rollup keeps a module that is both
-   statically and dynamically reachable from the same entry in that entry's
-   synchronous chunk, so recharts loaded on every `/management/reports` visit
-   regardless (performance audit finding 1). Nothing outside `screens/reports`
-   imports the value through this barrel (grepped), so nothing loses it. */
+   `lazy(() => import('./AlertsView'))` — a module both statically and
+   dynamically reachable from one entry ships in that entry's synchronous
+   chunk, so recharts would load on every visit regardless. */
 export type { AlertsViewProps } from './AlertsView'
 export { EMPTY_QUERY, ReportBuilder, type ReportBuilderProps } from './ReportBuilder'
 export { ReportLibrary, type ReportLibraryProps } from './ReportLibrary'

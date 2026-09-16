@@ -1,21 +1,8 @@
 /**
- * The runner-token identity scheme — `01-analyst-agent.md` §3.2, AC-1287.
- * Two distinct paths, never conflated:
- *
- *   - A **bare runner call** (heartbeat, claim, post events/findings/result/
- *     fail) authenticates with `AGENT_RUNNER_TOKEN` alone — `requireAgentRunnerToken`,
- *     used directly by `handlers/agent.ts`'s own routes.
- *   - An **acting-for call** (the agent's tools reaching the ordinary
- *     `/api/v1/*` surface — `reports.run`, `catalogue.*`, …) carries the same
- *     token plus `X-Eyvar-Acting-For` and `X-Eyvar-Job`. `authenticateActingFor`
- *     resolves this into the **named operator's own** `AuthenticatedOperator`
- *     — permissions loaded fresh from `permissions.ts`, never the runner's
- *     (which has none) and never a union — and refuses outright unless the
- *     named job is, right now, claimed (`state = 'running'`, `claimed_at`
- *     set) and was requested by that operator. `resolveOperator` (wired into
- *     `[...route].ts`) is what decides, per request, which of the two paths
- *     applies.
- */
+ * The runner-token identity scheme (AC-1287, §3.2). A bare runner call uses
+ * `requireAgentRunnerToken` alone; an acting-for call also carries
+ * `X-Eyvar-Acting-For`/`X-Eyvar-Job` and resolves to the named operator's
+ * own permissions via `authenticateActingFor` — never the runner's, never a union. */
 import { timingSafeEqual } from 'node:crypto'
 import { HttpError, unauthorizedError } from './errors'
 import { loadOperatorPermissions } from './permissions'
@@ -64,12 +51,10 @@ interface JobClaimRow {
 }
 
 /**
- * Resolves an acting-for request into the **named operator's** identity.
- * Every failure — wrong token, missing headers, a job not claimed, a job
- * claimed but requested by someone else, an inactive operator — is a
- * refusal; there is no partial success and no fallback to the runner's own
- * (nonexistent) permissions.
- */
+ * Resolves an acting-for request to the named operator's identity (AC-1287).
+ * Every failure — wrong token, missing headers, unclaimed job, mismatched
+ * requester, inactive operator — refuses outright; no fallback to the
+ * runner's own (nonexistent) permissions. */
 export async function authenticateActingFor(
   req: Request,
   db: Database,
@@ -114,16 +99,10 @@ export async function authenticateActingFor(
 }
 
 /**
- * Per-request operator resolution, called once by `[...route].ts` in place
- * of a bare `authenticate()` call. A bearer token that matches the runner
- * token AND carries an acting-for header pair is always fully validated
- * (throws on any problem, per `authenticateActingFor`) — it is never merely
- * ignored, which is what would let a wrong-job or wrong-operator header pair
- * silently fall back to "signed out" instead of being refused. A bare
- * runner call (no acting-for headers) resolves to `null`: `handlers/agent.ts`'s
- * own routes call `requireAgentRunnerToken` themselves and do not need an
- * operator. Anything else is the ordinary cookie path.
- */
+ * Called once by `[...route].ts` instead of a bare `authenticate()`. A
+ * runner token with an acting-for header pair is always fully validated
+ * (AC-1287) — never silently falls back to "signed out" on a wrong job or
+ * operator. No headers: `null`, since agent routes authenticate themselves. */
 export async function resolveOperator(
   req: Request,
   db: Database,

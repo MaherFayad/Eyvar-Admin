@@ -1,11 +1,7 @@
 /**
- * AC-1247: "An evidence mismatch triggers exactly one retry with the
- * mismatch appended; a second failure marks `failed:evidence`." This is
- * `processJob`'s own orchestration (§7), not `validate.ts`'s — so it needs
- * its own test, with `./httpClient.js` and `./spawn.js` mocked (no real
- * network, no real subscription) and everything else (`jobAssembly.ts`,
- * `validate.ts`) real, run against the actual `agent/prompts/` /
- * `agent/schemas/` files WP-7.3 landed.
+ * AC-1247: exactly one retry on an evidence mismatch, then `failed:evidence`.
+ * Tests `processJob`'s own orchestration (§7), with `./httpClient.js` and
+ * `./spawn.js` mocked and everything else real, against the actual `agent/prompts/`/`agent/schemas/` files.
  */
 
 import { resolve } from 'node:path'

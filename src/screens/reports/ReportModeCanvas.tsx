@@ -86,10 +86,9 @@ import { cn } from '@/lib/utils'
 import { Reasons } from './ReportModePanel'
 
 /**
- * AC-1169 §5 routes `conversion-over-time`/`time-to-convert` through these.
- * Both pull recharts (see the `formatMetricValue` note above), so `lazy`
- * keeps a cascade-only funnel or a cohort/journey tile from downloading it
- * — `WindowControl.tsx`'s `Calendar` is the same pattern.
+ * Routes `conversion-over-time`/`time-to-convert` through these (AC-1169
+ * §5). Both pull recharts, so `lazy` keeps a cascade-only funnel or a
+ * cohort/journey tile from downloading it.
  */
 const LazySeriesChart = lazy(() =>
   import('@/components/reports/SeriesChart').then((m) => ({ default: m.SeriesChart })),
@@ -241,11 +240,9 @@ function Conditions({ result, t }: { result: ReportResult; t: Translator }) {
 }
 
 /**
- * §5's third field, the one `isSeriesMode` and this file's own `mode ===
- * 'funnel'` branch used to skip entirely (AC-1169). `'conversion'` is the
- * default every normalised query already carries
- * (`normaliseReportQuery`, `report.ts:471`), so a non-funnel result reads
- * the same as an unset one — never a crash, never a guess.
+ * §5's third field (AC-1169). `'conversion'` is the default every
+ * normalised query already carries, so a non-funnel result reads the same
+ * as an unset one — never a crash, never a guess.
  */
 function funnelMeasuredAsOf(result: ReportResult): 'conversion' | 'conversion-over-time' | 'time-to-convert' {
   return result.query.mode === 'funnel' ? (result.query.funnel?.measuredAs ?? 'conversion') : 'conversion'
@@ -359,11 +356,10 @@ function NoData({
 /* ──────────────── conversion-over-time — a trend, not a cascade ────────── */
 
 /**
- * AC-1169 §5 — `resolveFunnelOverTime` already buckets by entry date at the
- * query's own grain; this only has to hand its one panel to `SeriesChart`
- * instead of letting it fall through to `FunnelCascade`, which reads
- * `points[0]` and drops every other bucket. No zoom, no annotations, no
- * view menu — a funnel gets no operator-chosen chart type (`MODE_CHART`).
+ * `resolveFunnelOverTime` already buckets by entry date; this hands its one
+ * panel to `SeriesChart` instead of letting it fall through to
+ * `FunnelCascade`, which reads `points[0]` and drops every other bucket. No
+ * zoom, no annotations, no view menu — a funnel gets no chosen chart type.
  */
 function FunnelTrend({ result, t, language }: { result: ReportResult; t: Translator; language: Language }) {
   const panel = result.panels[0]
@@ -389,11 +385,10 @@ function FunnelTrend({ result, t, language }: { result: ReportResult; t: Transla
 /* ──────────────── time-to-convert — a distribution, not a cascade ──────── */
 
 /**
- * AC-1169 §5 — five p25…p95 panels, meant for `DistributionCard`'s `bar`
- * kind (`resolveReport.ts:1169`). `panelTitle` never reads `.percentile` and
- * throws on the unmatched placeholder (`translate.ts:172`), so the panels
- * below keep the real `panelId`/`seriesIds` and only swap the title fields,
- * resolving P25…P95 once here as an already-translated `group`.
+ * Five p25…p95 panels for `DistributionCard`'s `bar` kind (AC-1169 §5).
+ * `panelTitle` never reads `.percentile` and throws on the unmatched
+ * placeholder, so these panels keep the real `panelId`/`seriesIds` and only
+ * swap the title fields, resolving P25…P95 as an already-translated `group`.
  */
 function FunnelDistribution({
   result,
@@ -770,11 +765,10 @@ function CohortMatrix({
 }
 
 /**
- * §6's curve: one line per cohort, folded at `COHORT_CURVE_FOLD_AT` (most
- * recent kept), with the size-weighted average bold. Hand-rolled SVG, not
- * Recharts — this file's own deep-`formatMetric` import keeps the 337 kB
- * Recharts chunk off every mode drawn here; one small static chart is not
- * worth reversing that.
+ * One line per cohort, folded at `COHORT_CURVE_FOLD_AT` (most recent kept),
+ * size-weighted average bold. Hand-rolled SVG, not Recharts — this file's
+ * deep `formatMetric` import keeps the Recharts chunk off every mode drawn
+ * here, and one small static chart is not worth reversing that.
  */
 function CohortCurve({
   result,

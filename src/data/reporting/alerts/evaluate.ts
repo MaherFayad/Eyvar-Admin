@@ -1,8 +1,7 @@
 /**
- * The pure condition evaluator (04-alerting-v2.md §3, spec 06 §12.3):
- * `evaluate(rule, series, now)` decides whether an `AlertCondition` is met.
- * A partial bucket is never the tested bucket, a baseline point, or one of
- * `missing`'s counted buckets; a gap stays `null`, read only by `missing`.
+ * Pure condition evaluator (04-alerting-v2.md §3, spec 06 §12.3). A partial
+ * bucket is never the tested bucket, a baseline point, or one of `missing`'s
+ * counted buckets; a gap stays `null`, read only by `missing`.
  */
 
 import type { AlertComparator, AlertCondition, AlertRule } from '../../types/alert'
@@ -17,12 +16,9 @@ export interface ResolvedSeries {
   points: readonly (number | null)[]
   partialBucketIndexes: readonly number[]
   /**
-   * The report's own `role: 'comparison'` series for this measure (§2's
-   * "previous-period"), index-aligned with `points` — `resolveReport.ts`
-   * already slices the prior window to the same bucket count, so `against:
-   * 'previous-period'` reads `previousPeriodPoints[testedIndex]` rather than
-   * re-deriving a prior window here. `null`/absent when the report has no
-   * period comparison enabled.
+   * The report's `role: 'comparison'` series (§2 previous-period), index-
+   * aligned with `points` and already sliced to the same bucket count by
+   * `resolveReport.ts`, so `previous-period` just indexes it. `null`/absent if disabled.
    */
   previousPeriodPoints?: readonly (number | null)[] | null
 }
@@ -97,11 +93,9 @@ function relativeFires(change: number, direction: 'up' | 'down' | 'either', amou
 }
 
 /**
- * `AlertCondition.relative`'s reference point. `previous-bucket` and
- * `same-bucket-previous-week` are index offsets in the same series;
- * `same-bucket-previous-week` refuses outside `day` grain (AC-1222) instead of
- * picking the nearest legal thing. `previous-period` has no offset — it reads
- * `series.previousPeriodPoints`, the report's own aligned comparison series.
+ * `AlertCondition.relative`'s reference point. `previous-bucket`/`same-bucket-previous-week`
+ * are index offsets; the latter REFUSES outside `day` grain (AC-1222) rather
+ * than picking the nearest legal thing. `previous-period` reads `series.previousPeriodPoints` instead.
  */
 function reference(
   condition: Extract<AlertCondition, { kind: 'relative' }>,
@@ -265,10 +259,9 @@ export function evaluate(rule: AlertRule, series: ResolvedSeries, now: IsoDateTi
 }
 
 /**
- * AC-1221's second half: a weekly rule on a daily cadence must transition at
- * most once per new bucket. The scheduler calls this before feeding an
- * outcome to `machine.nextAlertState` — an unchanged bucket means "nothing
- * new happened," not "the condition held."
+ * AC-1221's second half: a weekly rule on a daily cadence must transition
+ * at most once per new bucket. Called before `machine.nextAlertState` — an
+ * unchanged bucket means "nothing new happened," not "the condition held."
  */
 export function isNewBucket(bucketStart: IsoDate | null, lastBucketStart: IsoDate | null): boolean {
   if (bucketStart === null) return false

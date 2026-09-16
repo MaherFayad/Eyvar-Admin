@@ -1,8 +1,7 @@
 /**
- * §5's per-rung detail (F-V2-49, F-V2-57) — pure over the subject dates
- * `computeFunnelCore` (`mock/resolveReport.ts`) already extracts, so the mock
- * can fill `ReportResult.funnelStepDetail` without a second query. Fixture
- * and permission access stay in the mock; this file only aggregates.
+ * §5's per-rung detail (F-V2-49, F-V2-57): pure over the subject dates
+ * `computeFunnelCore` already extracts, so the mock fills
+ * `ReportResult.funnelStepDetail` without a second query.
  */
 
 import { daysInclusive } from './buckets'
@@ -35,10 +34,9 @@ export function medianDaysToNextStep(
 }
 
 /**
- * Who reached `previous` but not `current`, grouped by `groupOf`, folded into
- * `DROPOFF_OTHER` past `MAX_DROPOFF_GROUPS` (§7.4, applied to a rung rather
- * than a series). A `null` or `''` group excludes a subject, matching
- * `resolve/core.ts`'s `planGroupPaths` convention for an ungrouped row.
+ * Who reached `previous` but not `current`, grouped by `groupOf`, folded
+ * into `DROPOFF_OTHER` past `MAX_DROPOFF_GROUPS` (§7.4). A `null`/`''`
+ * group excludes a subject, matching `resolve/core.ts`'s convention.
  */
 export function dropoffByGroup(
   previous: ReadonlyMap<string, IsoDate>,

@@ -158,12 +158,11 @@ describe('a rule without a cadence never runs, said where it is read (§4.6)', (
   })
 
   it('AC-1235 — a cadence-less rule reads "Not scheduled" in Last checked, never blank', async () => {
-    /* §4.6's states table: `cadence === null` is "the honest absence of a lag
-       state," not a lag — it must not also carry the warning icon, and it
-       supersedes `Never checked` for every seeded rule, which all carry
-       `cadence: null` today. A rule with a cadence but no reading yet (not in
-       this fixture set) is the only case that would still reach `Never
-       checked`, and that is `mock-data-engineer`'s fixture to add. */
+    /* §4.6: `cadence === null` is honest absence, not a lag state — no
+       warning icon, and it supersedes `Never checked` for every seeded rule
+       (all `cadence: null` today). A cadence-with-no-reading-yet fixture
+       would still reach `Never checked`; that fixture is mock-data-engineer's
+       to add. */
     const rules = await alertRules()
     expect(rules.every((rule) => rule.cadence === null)).toBe(true)
 

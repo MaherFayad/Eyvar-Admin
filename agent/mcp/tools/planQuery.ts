@@ -1,9 +1,7 @@
 /**
- * T4 `plan_query` — 01-analyst-agent.md §5. "T4 before T5. A query with
- * violations is never run." Pure, imported directly from
- * `src/data/reporting/plan.ts` (never through `src/data/clients`, which pulls
- * in `config.ts` — see `source.ts`'s header) so this runs identically in
- * mock and http mode; only the catalogue fetch is source-gated.
+ * T4 `plan_query` — a query with violations is never run. Imported directly
+ * from `src/data/reporting/plan.ts`, never `src/data/clients` (which pulls
+ * in `config.ts`), so this runs identically in mock and http mode.
  */
 
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'

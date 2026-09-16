@@ -1,8 +1,7 @@
 /**
- * The one test in this WP that needs a real subscription — gated behind
- * `AGENT_E2E=1` so `npm --prefix agent test` never requires one (§11: "a
- * spawn test that runs `claude -p --max-turns 1` only when `AGENT_E2E=1`").
- * Run it explicitly: `AGENT_E2E=1 npx vitest run runner/spawn.e2e.test.ts`.
+ * The one test needing a real subscription — gated behind `AGENT_E2E=1`
+ * (§11) so `npm --prefix agent test` never requires one. Run explicitly:
+ * `AGENT_E2E=1 npx vitest run runner/spawn.e2e.test.ts`.
  */
 
 import { describe, expect, it } from 'vitest'

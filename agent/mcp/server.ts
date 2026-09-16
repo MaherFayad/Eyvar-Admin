@@ -1,10 +1,8 @@
 #!/usr/bin/env node
 /**
- * The stdio MCP server — `01-analyst-agent.md` §3.1, `mcp.json`'s
- * `{ "command": "node", "args": ["agent/dist/mcp/server.js"] }`.
- *
- * `EYVAR_MCP_SOURCE` (read by `source.ts`) picks mock or http. See
- * `agent/README.md` for every environment variable this process reads.
+ * The stdio MCP server (`mcp.json`'s `{ "command": "node", "args": [...] }`).
+ * `EYVAR_MCP_SOURCE` (`source.ts`) picks mock or http; see `agent/README.md`
+ * for every env var this process reads.
  */
 
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'

@@ -1,11 +1,7 @@
 /**
- * T3 `glossary`'s starter content. §5's own description of T3 says the real
- * thing is "server-side markdown, generated from `Measure.captionKey` and
- * `docs/05-restructure/specs/05-metrics-content.md` §5–§12 excerpts" — that
- * generator does not exist yet (flagged in the WP report). These entries are
- * the rules an analyst gets wrong most often if it is not told them; a
- * measure's own caption (T1's `caption`) is folded in by the tool when
- * `term` matches a measure key.
+ * T3 `glossary`'s starter content — a hand-written stand-in, not generated,
+ * though `api/_lib/glossary.ts` now has a real generator it should read
+ * instead (F-V2-54); a measure's own caption is folded in when `term` matches.
  */
 
 export interface GlossaryEntry {

@@ -1,8 +1,8 @@
 /**
  * The analyst's command-palette entry point, AC-1262. The other three
  * entry points `01-analyst-agent.md` §4 names live in files another work
- * package owns; deferred to the handoff rather than edited here. Global,
- * like `sessionCommands.ts`: no record, so no `TARGET_SOURCES` entry.
+ * package owns, deferred to the handoff. Global, like `sessionCommands.ts`:
+ * no record, so no `TARGET_SOURCES` entry.
  */
 
 import { SparklesIcon } from 'lucide-react'

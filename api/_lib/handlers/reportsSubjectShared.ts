@@ -1,15 +1,8 @@
 /**
- * Shared helpers for the three subject-shaped modes — `reportsFunnel.ts`,
- * `reportsCohort.ts`, `reportsJourney.ts` (WP-6.4c). Ports of the
- * module-private helpers `resolveReport.ts` keeps beside `resolveFunnel`/
- * `resolveCohort`/`resolveJourney` (`earliestPerSubject`, `groupBySubject`,
- * `latestPerSubject`, `mergeLatest`, `blockedFor`, `redactedSeries`,
- * `emptyModeResult`, `conversionWindowDays`) — not imported, because none of
- * them is exported from a `src/` file this WP may edit (`AGENT-BRIEF.md`:
- * "touch only `api/**`"). Each is pure and a direct, line-for-line port; the
- * AC-1276 equality test is what proves that port exact rather than merely
- * plausible.
- */
+ * Ports of `resolveReport.ts`'s private subject-shaped helpers, shared by
+ * `reportsFunnel.ts`/`reportsCohort.ts`/`reportsJourney.ts`. Not imported —
+ * none is exported from `src/` — so this is a second copy of logic,
+ * tolerable only while AC-1276's equality test covers it (F-V2-61). */
 import type { SubjectEvent } from '../compile'
 import type { FilterSpec, IsoDate } from '@/data/types/common'
 import type { Measure } from '@/data/types/measure'

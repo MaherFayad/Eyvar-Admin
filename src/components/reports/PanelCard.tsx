@@ -254,12 +254,10 @@ import type { Measure, ReportPanel, ReportResult, ReportSeries } from '@/data/ty
 import { formatDate, isolatedRunProps, type Language, type Translator } from '@/lib'
 import { cn } from '@/lib/utils'
 import { PanelChart, seriesOfPanel } from './PanelChart'
-/* WP-8.4 §5 — `PanelFrame` / `panelTitle` / `RelatedBoard(s)` / `PanelNumeral`
-   / `PanelProse` moved to `panelPrimitives.tsx`, which does not import
-   `recharts`. Re-exported below so `DistributionCard.tsx` and this file's own
-   tests keep their existing import path; `ResultCanvas` and `KpiCard` import
-   the primitives module directly instead, which is the actual fix (see that
-   file's header). */
+/* `PanelFrame`/`panelTitle`/`RelatedBoard(s)`/`PanelNumeral`/`PanelProse` live
+   in `panelPrimitives.tsx`, which does not import `recharts`. Re-exported here
+   only so `DistributionCard.tsx` and this file's tests keep their import path;
+   `ResultCanvas`/`KpiCard` import the primitives module directly instead. */
 import {
   PanelFrame,
   PanelNumeral,

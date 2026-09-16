@@ -1,8 +1,6 @@
 /**
- * A column's width — six named fractions over the twelve-twelfths row
- * (§3.4). The house segmented control (`ViewTabs`'s own primitive), the
- * licensed stadium-shape case DESIGN.md's MUST names: a mode switch that
- * changes what the rest of the card shows.
+ * A column's width: six named fractions over the twelve-twelfths row (§3.4),
+ * rendered with the house stadium segmented control (D12's licensed case).
  */
 
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'

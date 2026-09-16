@@ -1,8 +1,7 @@
 /**
- * `reports.*` CRUD library through the real router — WP-6.5: tags, star,
- * duplicate, version history, and AC-1280's second half (`DELETE
- * /reports/:id` refused and naming the pages that pin it, read from
- * `page_reports`, never by scanning `pages.blocks_json`).
+ * `reports.*` CRUD library: tags, star, duplicate, version history, and
+ * AC-1280's second half (`DELETE /reports/:id` refused, naming pinning
+ * pages, read from `page_reports`, never by scanning `pages.blocks_json`).
  */
 import { afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import type { PGlite } from '@electric-sql/pglite'

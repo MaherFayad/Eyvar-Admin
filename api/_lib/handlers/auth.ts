@@ -1,19 +1,8 @@
 /**
- * The full auth surface `src/data/clients/auth.ts` declares — WP-6.2b,
- * finishing what WP-6.2's docblock named out of scope: the `SignInOutcome`
- * union (second-factor challenge, TOTP enrolment, device trust, password
- * reset, invite activation). Conventions follow WP-6.2's `sign-in`/`sign-out`
- * exactly: a domain refusal is a 200 with a `{ kind: 'failed', ... }` body,
- * never a thrown error — only a malformed request (missing field, unknown
- * token shape) is an `HttpError`. `?mockFail=` equivalents do not exist
- * server-side; a transport failure is whatever actually failed.
- *
- * The one deliberate deviation from the mock: a *locked* challenge's
- * `lockedUntil` is stamped once (`locked_until`) and read back as-is, not
- * recomputed as "15 minutes from now" on every read — the mock does the
- * latter because its state is a fixture with no real clock behind it; a
- * lock that can never actually expire would be a defect here, not a feature.
- */
+ * The full `SignInOutcome` surface (challenge, TOTP enrolment, device
+ * trust, reset, activation). A domain refusal is a 200 `{ kind: 'failed' }`,
+ * never a thrown error. Unlike the mock, a locked challenge's `lockedUntil`
+ * is stamped once and read back as-is, not recomputed on every read. */
 import type { PermissionKey } from '@/data/types/navigation'
 import type { RoleName, Session } from '@/data/types/session'
 import type { IsoDateTime } from '@/data/types/common'
@@ -255,14 +244,10 @@ function failVerify(
 /* ──────────────────────────── sign in ─────────────────────────────────── */
 
 /**
- * POST /api/v1/auth/sign-in
- *   body: { email, password, rememberDevice? }
- *   -> SignInOutcome   { challenge | enrolment-required | failed }
- *
- * `rememberDevice` is accepted and ignored here — a device is not remembered
- * until the second factor actually clears, on `verifyCode` (the client
- * docblock's own rule).
- */
+ * POST /api/v1/auth/sign-in  body: { email, password, rememberDevice? }
+ * -> SignInOutcome { challenge | enrolment-required | failed }
+ * `rememberDevice` is accepted and ignored here — a device is remembered
+ * only once the second factor clears, on `verifyCode`. */
 /** IP-based, not per-account: `failed_password_attempts`/`password_locked_until` already rate-limit a known account (`recordFailedPassword`); this guards the transport itself against an unauthenticated flood — an unknown or freshly-typo'd email has no account row to lock. */
 const SIGN_IN_RATE_LIMIT = { windowMs: 15 * 60_000, max: 10 }
 
@@ -493,16 +478,10 @@ export function createEnrollSecondFactorHandler(
 }
 
 /**
- * POST /api/v1/auth/totp-secret
- *   body: { enrolmentToken }
- *   -> TotpEnrolment   { secret, otpauthUri, enrolmentToken }
- *
- * A real RFC 6238 secret (`api/_lib/otp.ts`), unlike the mock's fixed
- * literal — a QR that changes per run cannot be diffed by a visual
- * regression test, which is exactly why the *mock* keeps one fixed; the real
- * backend has no such constraint and a shared literal secret would be a
- * genuine vulnerability.
- */
+ * POST /api/v1/auth/totp-secret  body: { enrolmentToken }
+ * -> TotpEnrolment { secret, otpauthUri, enrolmentToken }
+ * A real RFC 6238 secret, unlike the mock's fixed literal (kept fixed there
+ * only for visual-diff stability) — a shared literal secret here would be a vulnerability. */
 export function createBeginTotpEnrolmentHandler(db: Database): RouteHandler<RequestContext> {
   return async (req) => {
     const body = await parseJsonBody(req)
@@ -528,14 +507,10 @@ async function deliverResetEmail(to: string, token: string): Promise<void> {
 }
 
 /**
- * POST /api/v1/auth/request-password-reset
- *   body: { email }
- *   -> RequestPasswordResetOutcome   — always `{ kind: 'accepted' }`
- *
- * One outcome, deliberately (§6.2): a response that differed for a known and
- * an unknown address is an account-enumeration oracle. The token is only
- * minted when the address resolves, but the reply is identical either way.
- */
+ * POST /api/v1/auth/request-password-reset  body: { email }
+ * -> RequestPasswordResetOutcome — always `{ kind: 'accepted' }` (§6.2): a
+ * reply differing for a known vs unknown address is an account-enumeration
+ * oracle. The token is minted only when the address resolves. */
 export function createRequestPasswordResetHandler(db: Database): RouteHandler<RequestContext> {
   return async (req) => {
     const body = await parseJsonBody(req)
@@ -641,14 +616,10 @@ export function createResetPasswordHandler(db: Database): RouteHandler<RequestCo
 }
 
 /**
- * POST /api/v1/auth/activate
- *   body: { token, password }
- *   -> ResetPasswordOutcome
- *
- * §6.6 — the `Invited -> Active` transition. The invite row is deleted on
- * success, which is what makes the token single-use: a replay finds no row
- * and resolves `unknown`, the same as a token nobody ever minted.
- */
+ * POST /api/v1/auth/activate  body: { token, password }  -> ResetPasswordOutcome
+ * §6.6's `Invited -> Active` transition. The invite row is deleted on
+ * success, which is what makes the token single-use: a replay resolves
+ * `unknown`, same as a token nobody minted. */
 export function createActivateInviteHandler(db: Database): RouteHandler<RequestContext> {
   return async (req) => {
     const body = await parseJsonBody(req)
@@ -679,14 +650,10 @@ export function createActivateInviteHandler(db: Database): RouteHandler<RequestC
 /* ────────────────────────── session lifecycle ─────────────────────────── */
 
 /**
- * POST /api/v1/auth/reauthenticate
- *   body: { password }   ← and nothing else (AC-567 (b): no operator-supplied identity)
- *   -> ReauthenticateOutcome
- *
- * AC-573 — the device decides whether a code is owed: a trusted device
- * resumes on the password alone, an untrusted one gets the ordinary
- * challenge, completed through the same `verifyCode`.
- */
+ * POST /api/v1/auth/reauthenticate  body: { password } only (AC-567b)
+ * -> ReauthenticateOutcome
+ * AC-573: the device decides whether a code is owed — a trusted device
+ * resumes on the password alone, an untrusted one gets the ordinary challenge. */
 export function createReauthenticateHandler(
   db: Database,
   generateCode: () => string = generateOtpCode,

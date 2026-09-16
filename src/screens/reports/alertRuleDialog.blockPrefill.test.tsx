@@ -1,15 +1,13 @@
 /**
- * `04-alerting-v2.md` §4 — a page's report block opens the composer with
- * "report and the first current series prefilled". `AlertRuleDialog.tsx`'s
- * `firstSeriesId` effect (~line 206) already does this; nothing here is
- * changed, only proved — no test exercised the `presetReportId`-with-no-
- * `presetSeriesId` path before this file.
+ * `04-alerting-v2.md` §4 — a page's report block opens the composer with the
+ * report and its first current series prefilled, via `AlertRuleDialog`'s own
+ * `firstSeriesId` effect. Proves the `presetReportId`-with-no-`presetSeriesId`
+ * path, previously untested.
  */
 
 import { render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it } from 'vitest'
-import { disableMockLatency, resetDataLayer } from '@/data/clients'
-import { alertRuleFixtures } from '@/data/fixtures/alerts'
+import { disableMockLatency, getAlertRule, resetDataLayer } from '@/data/clients'
 import { AlertRuleDialog } from './AlertRuleDialog'
 import { REPORTS_EN } from './copy'
 
@@ -25,8 +23,6 @@ beforeEach(() => {
   resetDataLayer()
 })
 
-const ALR_10 = alertRuleFixtures.find((r) => r.id === 'ALR-10')
-if (!ALR_10) throw new Error('fixture ALR-10 (reportId RPT-1, seriesId riders.registered#_#current) is missing')
 
 describe('a page block’s "Create alert…" prefills the series, not just the report', () => {
   it('defaults the series select to the report’s first legal current series', async () => {
@@ -57,11 +53,14 @@ describe('a page block’s "Create alert…" prefills the series, not just the r
   })
 
   it('does not overwrite an existing rule’s own series with the report’s first one', async () => {
+    /* Read through the client seam, never the fixture file (seam.test.ts). */
+    const alr10 = (await getAlertRule('ALR-10')).data
+
     render(
       <AlertRuleDialog
         open
         onOpenChange={() => {}}
-        rule={ALR_10}
+        rule={alr10}
         presetReportId="RPT-1"
         onSaved={() => {
           throw new Error('nothing saves itself — the operator must click Save')

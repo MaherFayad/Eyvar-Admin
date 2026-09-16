@@ -1,10 +1,8 @@
 /**
- * Transform controls — `22-analytics-v2.md` §1.3, WP-2.6b gap 1. Each of the
- * three checkboxes reads its disabled state and its reason from
- * `plan.transformOptions` (`planQuery`, `plan.ts`) — the same computation that
- * refuses a hand-edited URL carrying an illegal transform. This file used to
- * hold a second copy of the three predicates (`additive`, `hasSplit`,
- * `bucketCount`); it renders the planner's answer now, never its own.
+ * Transform controls. Each of the three checkboxes reads its disabled state
+ * and reason from `plan.transformOptions` (`plan.ts`) — the same computation
+ * that refuses a hand-edited URL carrying an illegal transform. It renders
+ * the planner's answer, never its own copy of the predicates.
  */
 
 import { useId } from 'react'

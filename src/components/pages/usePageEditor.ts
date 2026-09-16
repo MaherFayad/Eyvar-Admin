@@ -1,9 +1,7 @@
 /**
- * The page editor's own state — §5. Every edit updates local state and
- * schedules a save 800 ms later, coalesced (AC-1201). A 409 keeps every
- * local edit and shows the standing notice with `Reload` (AC-1202); undo is
- * a 20-step in-memory stack of full-tree snapshots (AC-1200), simpler and
- * exactly as correct as inverting each op individually would have been.
+ * The page editor's own state (§5). Every edit debounces a save 800ms later
+ * (AC-1201, coalesced); a 409 keeps the local edit and offers `Reload`
+ * (AC-1202); undo is a 20-step in-memory snapshot stack (AC-1200).
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react'
@@ -28,11 +26,9 @@ import type { Translator } from '@/lib'
 export type SaveStatus = 'idle' | 'saving' | 'saved' | 'conflict' | 'invalid'
 
 /**
- * S3 (`analytics-v2-pages-a11y.md`) — where focus goes after a delete: the
- * block that took the deleted one's place, the block's own container if that
- * container is now empty, or the page's own "Add block" control if the whole
- * page is now empty. `PageView` owns the DOM query; this hook only names the
- * target.
+ * S3 — where focus goes after a delete: the block that took its place, its
+ * container if now empty, or the page's "Add block" control if page-empty.
+ * `PageView` owns the DOM query; this hook only names the target.
  */
 export type PendingFocus = { kind: 'block'; id: string } | { kind: 'addBlock' }
 
@@ -161,11 +157,9 @@ export function usePageEditor({ page, t, initialEditing = false }: UsePageEditor
   }, [content, save])
 
   /**
-   * Adopts the server's current version, keeping every local edit, and
-   * resends it (AC-1202). The debounce effect fires on `[debouncedContent,
-   * editing]` alone — neither changes here — so without an explicit resend
-   * the kept edit would sit on screen, unsaved, until the operator typed
-   * again; navigating away first would lose it silently.
+   * Adopts the server's version, keeping every local edit, and resends it
+   * (AC-1202): the autosave effect only fires on [debouncedContent, editing]
+   * (F-V2-70), so without this explicit resend the kept edit sits unsaved.
    */
   const reload = useCallback(() => {
     if (!conflict) return
@@ -193,14 +187,11 @@ export function usePageEditor({ page, t, initialEditing = false }: UsePageEditor
 
   const deleteBlockWithUndo = useCallback(
     (id: string) => {
-      /* `content` (not the updater's own `current`) decides whether this
-         delete happened and where focus goes next — a boolean set INSIDE
-         `setContent`'s updater and read right after it is not reliable:
-         React does not always run that updater synchronously, so a second
-         delete fired in the same tick as the first (S3's own repro) read a
-         stale `false`. The actual removal still goes through `applyBlocks`,
-         which is safe against a stale `id` lookup the normal way every other
-         action here already is. */
+      /* `content`, not the updater's own `current`, decides whether this
+         delete happened: a flag set inside setContent's updater is not
+         reliably readable right after, since React may not run it
+         synchronously — a second delete in the same tick (S3's repro) read
+         a stale value. Removal still goes through `applyBlocks` as usual. */
       if (!findBlockFor(content.blocks, id)) return
       const focusTarget = focusAfterDelete(content.blocks, id)
       applyBlocks((blocks) => removeBlock(blocks, id) ?? blocks)
@@ -270,11 +261,9 @@ export function usePageEditor({ page, t, initialEditing = false }: UsePageEditor
 }
 
 /**
- * S3 — computed against the tree as it stood BEFORE the removal, since that
- * is the only place `id`'s siblings and parent are still visible. Mirrors
- * `findBlockFor`'s own toggle/columns traversal rather than importing
- * `blockOps.ts`'s private `locate`, which does not expose the parent id this
- * needs.
+ * S3 — computed against the tree as it stood BEFORE the removal, the only
+ * place `id`'s siblings and parent are visible. Mirrors `findBlockFor`'s
+ * traversal instead of `blockOps.ts`'s private `locate`, which lacks it.
  */
 function focusAfterDelete(blocks: readonly Block[], id: string): PendingFocus {
   const located = locateSiblings(blocks, id, null)

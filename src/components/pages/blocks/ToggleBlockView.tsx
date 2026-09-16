@@ -1,8 +1,7 @@
 /**
- * `toggle` — a section that opens and closes. `<button aria-expanded>` and
- * `hidden` on the content when closed, so it leaves the accessibility tree
- * rather than merely hiding visually (AC-1192). One level of nesting only
- * (`page.ts`'s own comment on `ToggleBlock`).
+ * `toggle` — a section that opens and closes: `aria-expanded` plus `hidden`
+ * on closed content, so it leaves the accessibility tree rather than
+ * merely hiding visually (AC-1192). One level of nesting only.
  */
 
 import { ChevronRightIcon } from 'lucide-react'

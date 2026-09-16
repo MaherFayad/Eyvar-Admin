@@ -1,8 +1,7 @@
 /**
- * Annotations — `02-report-builder-v2.md` §4.5. A marked date on a trend
- * chart: context, never query state, never serialised into a `ReportQuery`.
- * Write needs `manage_analytics`, a key not yet minted (`annotation.ts`); the
- * mock does not gate on it rather than invent one.
+ * Annotations (`02-report-builder-v2.md` §4.5): a marked date on a trend
+ * chart, context never serialised into `ReportQuery`. Write needs
+ * `manage_analytics`, not yet minted; the mock does not gate on it.
  */
 
 import { DATA_SOURCE, registerOperations } from '../config'
@@ -38,11 +37,8 @@ export interface AnnotationQuery {
 
 /**
  * GET /api/v1/annotations
- *   params: from · to
  *   -> Annotation[]
- *
- * A bare array, not `Paginated<T>`: a finding, not a quiet deviation. T17 and
- * every chart that draws these expect a whole range in one call at once.
+ * Bare array, not `Paginated<T>`: T17 and every chart drawing these expects a whole range in one call.
  */
 export async function listAnnotations(
   params: AnnotationQuery = {},

@@ -1,9 +1,7 @@
 /**
- * **P7-T1 and WP-1.5's acceptance, as tests.** `serialiseReportQuery` is what
- * makes a report shareable, bookmarkable and alertable (§9.2, AC-853/854/855);
- * WP-1.5 (AC-1100–1102) adds `v: 2` and the v2 query-model fields without
- * breaking a byte a v1 link already carries. AC-1101's fixtures live in
- * `serialise.v1.fixtures.ts`; AC-1102 is proven in §6 below.
+ * P7-T1/WP-1.5's acceptance, as tests. `serialiseReportQuery` makes a
+ * report shareable, bookmarkable, alertable (§9.2, AC-853-855); WP-1.5
+ * (AC-1100-1102) adds `v: 2` without breaking a byte a v1 link carries.
  */
 
 import { describe, expect, it } from 'vitest'
@@ -217,10 +215,9 @@ describe('2 — `trend` is the default and stays out of the URL', () => {
 
 describe('3 — existing v1 links keep decoding to the query they always named', () => {
   /**
-   * `RPT-1`'s query — *"number of drivers vs passengers trend"* — as the
-   * seven-key v1 serialiser produced it, before `mode` existed. Pinned as a
-   * string rather than recomputed, so this proves the current code against a
-   * link that was actually issued rather than against itself.
+   * `RPT-1`'s query, as the seven-key v1 serialiser produced it before
+   * `mode` existed. Pinned as a string, not recomputed, so this proves the
+   * code against a link that was actually issued, not against itself.
    */
   const MODELESS_RPT1 =
     'eyJtIjpbImNhcHRhaW5zLnJlZ2lzdGVyZWQiLCJyaWRlcnMucmVnaXN0ZXJlZCJdLCJnIjpudWxsLCJmIjpbXSwidyI6eyJraW5kIjoicHJlc2V0IiwicHJlc2V0IjoibGFzdC0zMGQifSwiZ3IiOiJkYXkiLCJjIjoibm9uZSIsImN0IjoibGluZSJ9'
@@ -257,12 +254,9 @@ describe('3 — existing v1 links keep decoding to the query they always named',
   })
 
   it('re-serialising a decoded v1 link upgrades the wire to v2, without changing what it means', () => {
-    /* Before WP-1.5 this test pinned the OLD guarantee: decode → re-encode
-       reproduces the identical bytes. `v: 2` is now written on every encode
-       (§2.9), so that byte-for-byte property cannot survive — and is not
-       meant to: an old link keeps DECODING to the report it always named
-       forever (AC-1101), and only upgrades its own wire form the next time
-       it is saved or re-shared, which is the point of versioning it at all. */
+    /* `v: 2` is written on every encode (§2.9), so byte-for-byte round-trip
+       does not survive — by design: an old link keeps DECODING to the same
+       report forever (AC-1101) and only upgrades its wire form on next save. */
     for (const legacy of [MODELESS_RPT1, MODELESS_ABSOLUTE]) {
       const decoded = deserialiseReportQuery(legacy)!
       const reEncoded = serialiseReportQuery(decoded)

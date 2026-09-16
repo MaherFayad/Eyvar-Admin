@@ -1,8 +1,7 @@
 /**
  * Shared PGlite test harness: applies every migration, then hands back a
- * `Database` plus small seed helpers. Not a `*.test.ts` file, so
- * `api/vitest.config.ts`'s `include: ['api/**\/*.test.ts']` never picks it
- * up as a suite on its own.
+ * `Database` plus small seed helpers. Not itself a `*.test.ts` file, so
+ * vitest's `include` glob never picks it up as a suite.
  */
 import { PGlite } from '@electric-sql/pglite'
 import { pgcrypto } from '@electric-sql/pglite/contrib/pgcrypto'

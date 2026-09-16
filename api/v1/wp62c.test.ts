@@ -1,14 +1,8 @@
 /**
- * WP-6.2c through the real router:
- *   - F-V2-22: `audit_log` actually receives a row for team, rbac, page,
- *     report, segment and annotation writes.
- *   - F-V2-21: the WP-6.2b gap list this WP closes — role CRUD, `holdersOf`,
- *     `changeRole`, the compensation cap, the on-call rota, `releaseHoldingsOf`
- *     wired into `suspend`, `/me/preferences`, and the sign-in rate limiter.
- *   - F-V2-38: agent result validation against `agent/schemas/*.json` per
- *     kind — `ask` specifically, since it used to be checked against the
- *     `case-study` shape and would always have failed.
- */
+ * Through the real router: F-V2-22 (`audit_log` receives a row for team,
+ * rbac, page, report, segment, annotation writes), F-V2-21 (role CRUD,
+ * `holdersOf`, `changeRole`, compensation cap, on-call rota, rate limiter),
+ * and F-V2-38 (agent result validation per kind, `ask` included). */
 import { afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import type { PGlite } from '@electric-sql/pglite'
 import { createTestDatabase, seedSession, seedUser } from '../_test/db'

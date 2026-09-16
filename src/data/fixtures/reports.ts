@@ -173,11 +173,9 @@ const riderActivationFunnel: ReportQuery = {
 
 /**
  * AC-1170/AC-1276 — `riderActivationFunnel` with `funnel.groupBy` set, so the
- * server's grouped drop-off is equality-tested against the mock at least once.
- * `rider.city` is the only dimension on the entry rung's own resource, which
- * holds one row per subject — the property `subjectGroupsOf`/
- * `computeFunnelGroupOf` both assume; `trip.*`/`subscription.*` do not have it.
- * Seven distinct cities in the fixture, one short of §7.4's eight-group fold.
+ * server's grouped drop-off is tested against the mock. `rider.city` is the
+ * only dimension on the entry rung's resource holding one row per subject
+ * (`subjectGroupsOf`/`computeFunnelGroupOf`'s assumption). Seven cities, one short of §7.4's eight-group fold.
  */
 const riderActivationFunnelByCity: ReportQuery = {
   measures: [],
@@ -317,9 +315,9 @@ const quickRideShareOfTrips: ReportQuery = {
 
 /**
  * WP-1.4b — a genuine money-over-count formula: `A` is `revenue.total`
- * (`money`, `SAR`), `B` is `trips.completed` (`count`). The raw pair disagrees
- * on unit and would refuse under §6.2 alone; `formulaUnit` (`formula.ts`) is
- * what legalises `A / B` here, resolving to one `ratio` series — SAR per trip.
+ * (SAR), `B` is `trips.completed` (count). The raw pair disagrees on unit and
+ * refuses under §6.2 alone; `formulaUnit` legalises `A / B` as one `ratio`
+ * series, SAR per trip.
  */
 const revenuePerCompletedTrip: ReportQuery = {
   measures: [{ key: 'revenue.total' }, { key: 'trips.completed' }],
@@ -439,10 +437,9 @@ const tripsThisWeekKpi: ReportQuery = {
 }
 
 /**
- * AC-1136 — `trip.pickup`'s 12 real districts clear `MAX_GROUPS` (8) on
- * their own; the 90-day window holds all of `fillerTrips`' 45-day spread so
- * every one actually appears. A real `grain` draws this through
- * `SeriesChart`'s compound plot, not `DistributionCard`.
+ * AC-1136 — `trip.pickup`'s 12 real districts clear `MAX_GROUPS` (8) alone;
+ * the 90-day window holds all of `fillerTrips`' spread so each appears. A
+ * real `grain` draws this through `SeriesChart`'s compound plot, not `DistributionCard`.
  */
 const tripsByDistrictWide: ReportQuery = {
   measures: [{ key: 'trips.completed' }],
@@ -456,10 +453,9 @@ const tripsByDistrictWide: ReportQuery = {
 }
 
 /**
- * AC-1132 — `trip.kind`'s cardinality is 2, inside the compound plot's
+ * AC-1132 — `trip.kind`'s cardinality (2) is inside the compound plot's
  * comparison cap (`ResultCanvas.tsx`'s `group.panels.length <= 2`).
- * `stacked-bar` plus a comparison draws the previous period as a dashed
- * outline behind the stack rather than inside it.
+ * `stacked-bar` plus a comparison draws the previous period as a dashed outline behind the stack, not inside it.
  */
 const tripsByKindStackedComparison: ReportQuery = {
   measures: [{ key: 'trips.completed' }],

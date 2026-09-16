@@ -1,19 +1,7 @@
 /**
- * The glossary generator `06-execution-plan.md`'s WP-6.3 row names, backing
- * `GET /api/v1/catalogue/glossary` (`01-analyst-agent.md` T3): "definitions
- * of business terms, measures' captions, the Riyadh/Sunday rules, the money
- * rule, coverage caveats."
- *
- * **One rule this file exists to keep: no hand-written sentence per
- * measure.** A hand-written description drifts the moment someone edits
- * `src/data/fixtures/measures.ts` and forgets the prose that described it —
- * exactly the seed-shaped-predicate failure `measure.ts`'s file header
- * names for `population`. Every per-measure line below is a template filled
- * from `Measure`'s own fields (population, temporality, aggregate, unit,
- * coverage, grain, permission); only the *business rules* section is fixed
- * prose, because those rules do not vary per measure and are cited from
- * `05-backend.md` rather than invented here.
- */
+ * The glossary generator, backing `GET /api/v1/catalogue/glossary` (T3).
+ * No hand-written sentence per measure — every line is a template filled
+ * from `Measure`'s own fields, so it cannot drift from the fixture. */
 import type { Measure } from '@/data/types/measure'
 
 const BUSINESS_RULES = `## Business rules
@@ -101,10 +89,9 @@ export function buildMeasureGlossaryEntry(measure: Measure): string {
 
 /**
  * The full glossary, or the subset matching `term` (case-insensitive
- * substring of key, label key or category) when given. Business rules
- * always come first — an agent reading only the head of the document still
- * gets the rules that govern every number.
- */
+ * substring of key, label key or category). Business rules always come
+ * first, so an agent reading only the head still gets the rules that
+ * govern every number. */
 export function buildGlossaryMarkdown(measures: readonly Measure[], term?: string | null): string {
   const matches = term
     ? measures.filter((m) => {

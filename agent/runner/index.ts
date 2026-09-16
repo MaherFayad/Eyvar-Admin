@@ -1,8 +1,7 @@
 /**
- * The daemon — `01-analyst-agent.md` §3.3, §7, §10: poll, claim, run,
- * report. One job at a time (`lock.ts`). `processJob` is exported
- * separately from `main` so a test can drive one cycle without a real
- * poll loop or a live backend.
+ * The daemon (§3.3, §7, §10): poll, claim, run, report — one job at a time
+ * (`lock.ts`). `processJob` is exported separately from `main` so a test
+ * can drive one cycle without a real poll loop or live backend.
  */
 
 import { resolve } from 'node:path'

@@ -1,9 +1,7 @@
 /**
- * AC-1262 — the one-shot URL contract every entry point (builder overflow,
- * page header, alert history row) writes and `AnalystView` reads once, then
- * strips. Mirrors `ReportBuilder`'s `openAlert` pattern: a plain query param
- * pair, not a second storage adapter. `label` travels with it so the chip
- * needs no second fetch — the operator already has the name on screen.
+ * AC-1262 — the one-shot URL contract every entry point writes and
+ * `AnalystView` reads once, then strips: a plain query-param pair mirroring
+ * `ReportBuilder`'s `openAlert`. `label` travels with it, needing no refetch.
  */
 
 import type { AgentJobContext } from '@/data/types/agent'

@@ -1,7 +1,6 @@
 /**
- * Cohort analysis engine for Eyvar analytics — grain-generic (G11).
- * Groups entities by the period they joined, at `day`/`week`/`month`, and
- * ages them under `rolling` (still active at N+), `nday` (active at exactly
+ * Cohort analysis engine (G11), grain-generic across `day`/`week`/`month`.
+ * Ages entities under `rolling` (active at N+), `nday` (active at exactly
  * N) or `bracket` (active within an operator's `[lo, hi)`).
  */
 
@@ -79,10 +78,9 @@ function cohortKeyOf(joinedAt: IsoDate | IsoDateTime, grain: CohortGrain): { key
 }
 
 /**
- * §6 / AC-1172: two `[lo, hi)` brackets overlap when one starts before the
- * other ends. Half-open on purpose — `[[0,7],[7,14]]` is the spec's own
- * example of legal, touching brackets, and inclusive-inclusive would flag day
- * 7 as belonging to both.
+ * §6 / AC-1172: `[lo, hi)` brackets overlap when one starts before the
+ * other ends. Half-open on purpose — `[[0,7],[7,14]]` is legal, touching;
+ * inclusive-inclusive would flag day 7 as belonging to both.
  */
 export function bracketsOverlap(brackets: readonly [number, number][]): boolean {
   for (let i = 0; i < brackets.length; i += 1) {
@@ -96,11 +94,9 @@ export function bracketsOverlap(brackets: readonly [number, number][]): boolean 
 }
 
 /**
- * Builds a cohort retention matrix from a population of entities.
- *
- * `today` is required and not optional: a cell for a period that has not
- * elapsed for a given cohort is `null`, never `0` — see `buildCohortMatrix`'s
- * original header, whose argument is unchanged by grain or method.
+ * Builds a cohort retention matrix from a population of entities. `today`
+ * is required: a cell for a period that hasn't elapsed for a given cohort
+ * is `null`, never `0`.
  */
 export function buildCohortMatrix<T>(
   entities: readonly T[],

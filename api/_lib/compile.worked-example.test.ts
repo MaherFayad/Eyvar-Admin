@@ -1,12 +1,8 @@
 /**
- * One-off generator for `docs/09-analytics-v2/examples/compile-quick-rides-by-city.sql`
- * (WP-6.4's brief) — captures the exact parameterised SQL `compile.ts` emits
- * for a real fixture measure and writes it to that file. Not a regression
- * test: it exists to be run once (`npx vitest run api/_lib/compile.worked-example.test.ts`)
- * whenever the compiler's query shape changes, so the worked example never
- * drifts from what the compiler actually produces. Deleted from the suite
- * after generating the doc — see WP-6.4's final report.
- */
+ * One-off generator for
+ * `docs/09-analytics-v2/examples/compile-quick-rides-by-city.sql`: captures
+ * the exact SQL `compile.ts` emits. Not a regression test — rerun it by hand
+ * whenever the compiler's query shape changes, then delete it from the suite. */
 import { describe, expect, it } from 'vitest'
 import { writeFile, readFile } from 'node:fs/promises'
 import path from 'node:path'

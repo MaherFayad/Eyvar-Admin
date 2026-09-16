@@ -1,19 +1,7 @@
 /**
- * The mock `Backend` — `01-analyst-agent.md` §3.4. Imports the frontend
- * clients directly, the same seam every screen uses
- * (`src/data/clients/index.ts`'s "components import from here… nothing
- * else"). Loaded only when `EYVAR_MCP_SOURCE !== 'http'`, and only via
- * `source.ts`'s dynamic `import()` — see that file for why.
- *
- * **Gap, flagged for the report rather than fixed here (out of `agent/**`'s
- * touch scope is `src/`, but this specific gap is inside it too — noted, not
- * patched):** `noteFinding` below has no client function to call through.
- * `src/data/clients/agent.ts` exports `listAgentJobs/getAgentJob/
- * listAgentJobEvents/createAgentJob/getAgentStatus` but nothing that appends
- * a finding (`POST /api/v1/agent/jobs/:id/findings`, T19's own endpoint).
- * This backend keeps findings in a module-level map instead, so T19 is
- * exercised and testable, but it is not writing through the same seam as
- * every other tool. The owner of `agent.ts` should add `noteAgentFinding`.
+ * The mock `Backend`. Imports the frontend clients directly, loaded only
+ * via `source.ts`'s dynamic `import()` (see that file for why). `noteFinding`
+ * writes to a module-level map since no client function exists yet (F-V2-54).
  */
 
 import {

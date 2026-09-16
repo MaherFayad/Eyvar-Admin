@@ -1,8 +1,7 @@
 /**
- * Everything a block needs that is not its own data — the catalogue, the
- * page's scope, the translator, and (in edit mode) the editor's actions.
- * One context rather than fifteen props threaded through every recursion
- * level (`toggle` → its blocks, `columns` → each column's blocks).
+ * Everything a block needs beyond its own data (catalogue, page scope,
+ * translator, edit actions) — one context instead of props threaded through
+ * every recursion level (a toggle's blocks, each column's blocks).
  */
 
 import { createContext, useContext } from 'react'

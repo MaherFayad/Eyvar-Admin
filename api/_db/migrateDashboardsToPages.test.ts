@@ -1,9 +1,7 @@
 /**
- * `migrateDashboardsToPages` — WP-6.5's companion to `0006_pages.sql`. No
- * real `dashboards` table exists yet (see the module's own header), so this
- * proves two things: it is a safe no-op against every database this WP can
- * actually run against, and it is correct against a `dashboards` table
- * shaped like `Dashboard`, the moment one exists.
+ * Proves `migrateDashboardsToPages` two ways: a safe no-op against every
+ * database this WP can reach (no `dashboards` table exists yet, F-V2-29),
+ * and correct once one exists, shaped like `Dashboard`.
  */
 import { afterEach, describe, expect, it } from 'vitest'
 import type { PGlite } from '@electric-sql/pglite'

@@ -100,13 +100,11 @@ describe('AC-1196 — the add-block affordance sits between every pair of blocks
   })
 })
 
-/* The defect this file exists to catch: picking `report`/`metric` used to
-   mount `ReportPickerPanel` and unmount it in the same tick (a Radix
-   dismiss-layer race, BlockList.tsx's `onOpenChange` guard), so the block
-   was never added. Each test proves the panel survives long enough to pick
-   a report AND that the resulting block carries that report's id — jsdom
-   cannot see the portal-teardown race itself (see the harness), but it can
-   catch a regression that brings back "the panel never opens". */
+/* Guards the add-block picker defect (F-V2-83 family): a Radix dismiss-layer
+   race used to unmount ReportPickerPanel in the same tick it mounted, so the
+   report was never added. Each test proves the panel survives to pick a
+   report and the resulting block carries its id — jsdom cannot see the
+   portal-teardown race itself, but it can catch this regression. */
 describe('AC-1204 — Report and Metric hand off to the report picker, and the pick lands on the page', () => {
   it('adds a report block, by pointer, for the chosen report', async () => {
     const user = userEvent.setup()

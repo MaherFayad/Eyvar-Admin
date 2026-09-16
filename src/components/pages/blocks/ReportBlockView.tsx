@@ -1,8 +1,7 @@
 /**
  * `report` — a chart or table from a saved report, resolved through
- * `useResolvedReport` (`DashboardTile`'s own five states, AC-1186). The
- * block IS the frame: `framed={false}` on both composers, one hairline per
- * block, matching the fidelity fix `DashboardTile.tsx` made for a tile.
+ * `useResolvedReport` (DashboardTile's five states, AC-1186). The block
+ * IS the frame: `framed={false}` on both composers, one hairline per block.
  */
 
 import { Badge } from '@/components/ui/badge'

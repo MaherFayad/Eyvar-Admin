@@ -1,9 +1,7 @@
 /**
- * Provider-agnostic email — `05-backend.md` §1: one adapter interface behind
- * `EMAIL_PROVIDER`, for alerts and digests. WP-6.6 (alert deliveries) is the
- * first WP to send mail, so it wires the real adapter here: Resend, chosen
- * as the reference implementation because `05-backend.md` §1 names it
- * ("Email … one adapter (Resend)").
+ * Provider-agnostic email (05-backend.md §1): one adapter interface behind
+ * `EMAIL_PROVIDER`, used for alerts and digests. Resend is the reference
+ * implementation, matching the doc's named choice.
  */
 
 export interface EmailMessage {
@@ -29,12 +27,10 @@ interface ResendErrorBody {
 }
 
 /**
- * Resend's plain HTTP API (`POST https://api.resend.com/emails`) — no SDK
- * dependency, matching `secrets.ts`'s "one primitive Node ships that needs
- * none" preference for a single call site. A non-2xx response throws with
- * Resend's own error message, which `alertDelivery.ts` records as the
- * delivery's `error` (AC-1284's shape, for email as for Slack).
- */
+ * Plain HTTP call, no SDK dependency (`secrets.ts`'s "no dependency needed
+ * for one call site" preference). A non-2xx throws with Resend's own error
+ * message, which `alertDelivery.ts` records as the delivery's `error`
+ * (AC-1284). */
 export class ResendEmailAdapter implements EmailAdapter {
   constructor(
     private readonly apiKey: string,
@@ -63,10 +59,9 @@ export class ResendEmailAdapter implements EmailAdapter {
 }
 
 /**
- * `EMAIL_PROVIDER=resend` with `EMAIL_API_KEY`/`EMAIL_FROM` set selects the
- * real adapter (`05-backend.md` §1's env table); anything else — including
- * unset, the default until a provider is configured — is the no-op so every
- * alert-delivery code path still compiles and runs.
+ * `EMAIL_PROVIDER=resend` with both keys set selects the real adapter
+ * (05-backend.md §1's env table); anything else, including unset, is the
+ * no-op so every alert-delivery path still compiles and runs.
  */
 export function createEmailAdapterFromEnv(): EmailAdapter {
   if (process.env.EMAIL_PROVIDER === 'resend') {

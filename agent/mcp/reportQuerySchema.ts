@@ -1,18 +1,15 @@
 /**
- * The `ReportQuery` shape, as Zod — shared by T4/T5/T6/T9, the four tools that
- * take a query. `src/data/types/report.ts` is the authority on the type; this
- * schema exists so a malformed query is refused with the field that is wrong
- * **before** `planQuery`/`resolveReport` ever see it (AC-1240's "refused with
- * the schema error, not executed").
+ * The `ReportQuery` shape, as Zod, shared by T4/T5/T6/T9. Exists so a
+ * malformed query is refused with the wrong field before `planQuery`/
+ * `resolveReport` ever see it (AC-1240).
  *
- * **Scope.** The core trend fields (`measures`, `groupBy`, `filters`,
- * `window`, `grain`, `periodComparison`, `chartType`) are validated strictly.
- * The five mode-specific configurations (`formula`, `transform`, `segments`,
+ * Core trend fields (`measures`, `groupBy`, `filters`, `window`, `grain`,
+ * `periodComparison`, `chartType`) are validated strictly. The five
+ * mode-specific configs (`formula`, `transform`, `segments`,
  * `comparisonDisplay`, `mode`, `funnel`, `cohort`, `journey`, `table`) are
- * validated loosely — present-or-absent, object-shaped — because their full
- * legality (server support, cardinality, step counts) is `planQuery`'s job
- * (T4), not the wire schema's. A tool that mis-shapes one of these still gets
- * a typed violation back from T4, just not from Zod first.
+ * only checked present-or-absent and object-shaped — their real legality
+ * (server support, cardinality, step counts) is `planQuery`'s job (T4), not
+ * the wire schema's.
  */
 
 import { z } from 'zod'

@@ -1,9 +1,7 @@
 /**
- * Descriptive, correlation and contribution statistics — 01-analyst-agent.md
- * §5 tools `describe_series`/`correlate`/`contribution`. Pure, shared by mock
- * and server. Unrounded internally (unlike `distribution.ts`'s display
- * helpers) since ×1.4826×k in `anomaly.ts` amplifies rounding error. Nulls
- * are gaps and partial buckets are excluded everywhere, per AGENT-BRIEF.md.
+ * Descriptive, correlation and contribution stats (§5's describe_series/
+ * correlate/contribution). Unrounded internally — `anomaly.ts`'s ×1.4826×k
+ * amplifies rounding error. Nulls are gaps; partial buckets excluded everywhere.
  */
 
 import type { IsoDate } from '../types/common'
@@ -150,11 +148,9 @@ function computeTrend(usable: readonly UsablePoint[]): Trend | null {
 }
 
 /**
- * A textbook two-sided CUSUM (Montgomery): allowance k = 0.5σ, decision
- * threshold h = 4σ, over the mean of the usable points. Not documented by any
- * spec here — `04-alerting-v2.md` names CUSUM but not its tuning — so it is a
- * stated choice, not a hidden one, exactly as the anomaly band's own comment
- * states its method rather than implying it is Amplitude's.
+ * Two-sided CUSUM (Montgomery): allowance k = 0.5σ, threshold h = 4σ, over
+ * the mean of the usable points. `04-alerting-v2.md` names CUSUM but not
+ * its tuning, so this is a stated choice, not a hidden one.
  */
 function computeChangePoints(usable: readonly UsablePoint[]): number[] {
   if (usable.length < 2) return []
@@ -336,11 +332,9 @@ function spearmanOf(xs: readonly number[], ys: readonly number[]): number | null
 }
 
 /**
- * Pearson and Spearman between two series at lag 0 … `maxLag`, over the
- * buckets where **both** have a value (T8). `b` is shifted forward by `lag`
- * buckets — positive lag asks "does a lead b by this many buckets". Refuses
- * below `MIN_CORRELATION_PAIRS` at lag 0, the base rate the agent judges
- * every other lag against.
+ * Pearson and Spearman at lag 0…`maxLag` (T8), over buckets where BOTH
+ * series have a value. `b` shifts forward by `lag` — positive asks "does a lead b".
+ * Refuses below `MIN_CORRELATION_PAIRS` at lag 0, the base rate every other lag is judged against.
  */
 export function correlate(
   a: readonly (number | null)[],
@@ -419,10 +413,9 @@ export interface ContributionResult {
 }
 
 /**
- * Which groups explain the change between two windows (T9): each part's
- * absolute and share-of-change contribution, ranked by absolute contribution.
- * `parts` should already carry `Other`, folded upstream — this function does
- * arithmetic over whatever groups it is given, not the folding rule itself.
+ * Which groups explain the change between two windows (T9): absolute and
+ * share-of-change per part, ranked by absolute contribution. `parts` should
+ * already carry `Other`, folded upstream — this is arithmetic only.
  */
 export function contribution(input: ContributionInput): ContributionResult {
   const totalChange = input.totalA === null || input.totalB === null ? null : input.totalB - input.totalA

@@ -18,10 +18,9 @@ export function byteSizeOf(value: unknown): number {
 }
 
 /**
- * The last line of defence for AC-1243: every tool caps its own arrays before
- * this runs, so this should never actually trip. When it does, it is a
- * programming error in the tool (a forgotten cap), not a domain refusal —
- * hence a thrown `Error`, not a typed `refuse()` result.
+ * The last line of defence for AC-1243: tools cap their own arrays before
+ * this runs, so it should never trip. If it does, it's a forgotten cap in
+ * the tool, not a domain refusal — hence a thrown `Error`, not `refuse()`.
  */
 export function assertUnderOutputCap(value: unknown, toolName: string): void {
   const bytes = byteSizeOf(value)
@@ -34,10 +33,10 @@ export function assertUnderOutputCap(value: unknown, toolName: string): void {
 }
 
 /**
- * A series' points, truncated to the most recent `MAX_SERIES_POINTS` buckets
- * — the window an analyst reasons over is almost always the recent one, and a
- * gap at the START of a long series is a less costly truncation than one at
- * the end. `partialBucketIndexes` is re-indexed to the truncated array.
+ * A series' points, truncated to the most recent `MAX_SERIES_POINTS`
+ * buckets — an analyst reasons over the recent window, so truncating from
+ * the start costs less than truncating the end. `partialBucketIndexes` is
+ * re-indexed to the truncated array.
  */
 export function truncateSeries<T>(
   buckets: readonly string[],

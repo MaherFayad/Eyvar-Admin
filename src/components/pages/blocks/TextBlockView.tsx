@@ -1,9 +1,7 @@
 /**
- * `text` — a paragraph of the markdown subset, `src/lib/markdown` (never a
- * second renderer, never `dangerouslySetInnerHTML`). AC-1203: the editor
- * shows while focused, the rendered preview otherwise. AC-1197: `/` at the
- * start of a line opens the same `AddBlockPicker` the `+` affordance does,
- * and the chosen type replaces this (typically still-empty) block.
+ * `text` — a paragraph of the markdown subset in `src/lib/markdown`, never
+ * a second renderer. AC-1203: editor while focused, preview otherwise.
+ * AC-1197: `/` opens the same `AddBlockPicker` as `+`, replacing this block.
  */
 
 import { useState } from 'react'

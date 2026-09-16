@@ -91,10 +91,9 @@ export const MAX_GROUPS = 8
 export const PIE_MAX_PARTS = 6
 
 /**
- * §7.2 / §3 / AC-839, AC-1115. A share of these three units is arithmetic
- * nonsense wearing a chart — a pie of percentages, a stack of ratios — under
- * every combination that would otherwise be legal. Shared by `pie` and the two
- * stacked forms rather than declared twice.
+ * §7.2 / §3 / AC-839, AC-1115: a share of these three units is arithmetic
+ * nonsense wearing a chart — a pie of percentages, a stack of ratios.
+ * Shared by `pie` and the two stacked forms rather than declared twice.
  */
 const SHARE_ILLEGAL_UNITS = new Set(['percent', 'ratio', 'rating'])
 
@@ -150,11 +149,9 @@ export const MIN_COHORT_HORIZON = 1
 export const COHORT_GRAINS: CohortGrain[] = ['day', 'week', 'month']
 
 /**
- * Which cohort grains `reporting/cohorts.ts` can actually compute. **This
- * constant is the wiring**: the `day` and `week` engines exist and are
- * tested (`gapDiff`, `cohorts.test.ts`), so all three are reachable; if a
- * future grain has no engine, it is added to `COHORT_GRAINS` and left out of
- * this list, exactly as `month` alone used to be.
+ * Which cohort grains `reporting/cohorts.ts` can actually compute — the
+ * wiring, not the offered list (`COHORT_GRAINS`). A future grain with no
+ * engine is added there and left out of this list.
  */
 const COMPUTED_COHORT_GRAINS: readonly CohortGrain[] = ['day', 'week', 'month']
 
@@ -179,24 +176,17 @@ const MODE_CHART: Record<ReportMode, ChartType | null> = {
 }
 
 /**
- * §3.5. A cohort's x-axis is age, a journey's is depth, neither a calendar, so
- * each collapses the window to `grain: 'none'`. A funnel's cascade and its
- * time-to-convert do the same — but `conversion-over-time` buckets BY entry
- * date, and `resolveFunnelOverTime` is already grain-aware, so that one shape
- * keeps the grain the way `table` does.
+ * §3.5: a cohort's x-axis is age, a journey's is depth — neither a
+ * calendar, so both collapse the window to `grain: 'none'`. A funnel does
+ * too, EXCEPT `conversion-over-time`, which buckets by entry date like `table`.
  */
 function modeFixesGrainToNone(mode: ReportMode, funnelMeasuredAs: FunnelMeasuredAs | undefined): boolean {
   if (mode === 'funnel') return funnelMeasuredAs !== 'conversion-over-time'
   return mode === 'cohort' || mode === 'journey'
 }
 
-/**
- * §7.3 / 02 §3. *Nearest* is defined, not inferred, and v2 extends the same
- * table rather than replacing it: `area → line → bar → table`,
- * `stacked-bar → bar → table`, `stacked-100 → stacked-bar → table`,
- * `horizontal-bar → bar → table`, `kpi → table` — each a chain, walked in order
- * until a legal one is found (AC-1119).
- */
+/** §7.3 / 02 §3: the fallback chain, walked in order until a legal chart
+ * is found (AC-1119). Nearest is defined here, not inferred. */
 const NEAREST: Record<ChartType, ChartType[]> = {
   line: ['bar', 'table'],
   area: ['line', 'bar', 'table'],
@@ -356,14 +346,11 @@ export function planQuery(query: ReportQuery, catalogue: Catalogue, today: IsoDa
     }
   }
 
-  /* §6.2's refusal, applied wherever a pair arrives from — the picker, a saved
-     report, or a hand-edited URL. AC-825. This is about **two raw measures
-     sharing one y-axis** (R4-1). A formula produces one series with one unit
-     that `formulaUnit` below decides for itself — 02 §2.2's table legalises
-     `A / B` across units on purpose, a currency over a count, so the raw pair
-     must not also refuse it (WP-1.4b). `Show A and B too` redraws the operands
-     as dashed context series from a view-only option (§2.2), never from
-     `ReportQuery`, so it never reaches this planner and needs no rule here. */
+  /* §6.2 / AC-825 (R4-1): two RAW measures sharing one y-axis, refused
+     wherever a pair arrives. A formula is one series with its own unit
+     (`formulaUnit` decides it, WP-1.4b) so this pair rule must not also
+     refuse it. `Show A and B too` is a view-only option, never in
+     `ReportQuery`, so it never reaches this planner. */
   const [first, second] = measures
   if (isSeriesMode && first && second && !query.formula) {
     const refusal = pairRefusal(first, second)
@@ -521,12 +508,9 @@ export function planQuery(query: ReportQuery, catalogue: Catalogue, today: IsoDa
 
   const bucketCount = countBuckets(window.from, window.to, query.grain)
 
-  /* §2.6 / AC-1112: a fixed comparison window must produce the same bucket
-     count, at this grain, as the primary window — the primitive
-     `buckets.test.ts` proves the two counts genuinely disagree for a
-     mismatched window; this is the refusal built on it. `reasonParams.required`
-     is the current window's count, so the date popover can state exactly how
-     many days/weeks/months the fixed window needs to be. */
+  /* §2.6 / AC-1112: a fixed comparison window must match the primary
+     window's bucket count at this grain. `reasonParams.required` is that
+     count, so the date popover can state exactly what's needed. */
   if (isSeriesMode && typeof query.periodComparison === 'object' && query.periodComparison.kind === 'fixed') {
     const comparison = comparisonWindow(window, query.periodComparison)
     const comparisonBucketCount = countBuckets(comparison.from, comparison.to, query.grain)
@@ -621,12 +605,9 @@ export function planQuery(query: ReportQuery, catalogue: Catalogue, today: IsoDa
     ? query.chartType
     : modeChart ?? nearestLegal(query.chartType, chartTypes)
 
-  /* G5, AC-1113: the series ceiling, counted **before** a request exists.
-     `measures × segments × groups`, each folded to at least one so an
-     unstarted picker does not read as zero series, and the group term folded
-     at `MAX_GROUPS` the same way the fold warning itself will be. Doubling for
-     a period comparison is a display fact (§2.6), not part of this ceiling —
-     the ceiling is stated in "current series". */
+  /* G5, AC-1113: the series ceiling, counted BEFORE a request exists.
+     `measures × segments × groups`, each folded to at least one. A period
+     comparison doubling is a display fact (§2.6), not part of this ceiling. */
   if (isSeriesMode) {
     const segmentCount = Math.max(1, (query.segments ?? []).length)
     const currentSeriesCount = Math.max(1, measures.length) * segmentCount * Math.min(splitParts, MAX_GROUPS + 1)
@@ -640,12 +621,9 @@ export function planQuery(query: ReportQuery, catalogue: Catalogue, today: IsoDa
     }
   }
 
-  /* G2 / AC-1104…AC-1107: the formula's own grammar and unit rules live in
-     `reporting/formula.ts`; this delegates rather than re-checking, and maps
-     `FormulaViolationCode` onto `QueryViolationCode` 1:1 (the two unions are
-     the same five strings by construction) so the two never drift. The error's
-     source position is carried through in `reasonParams` so the field can
-     underline exactly where the expression broke. */
+  /* G2 / AC-1104…AC-1107: delegates to `reporting/formula.ts` rather than
+     re-checking; `FormulaViolationCode` maps 1:1 onto `QueryViolationCode`
+     so the two never drift. Error position carries into `reasonParams`. */
   if (isSeriesMode && query.formula && measures[0]) {
     const refs: FormulaRefs = {
       A: {
@@ -788,12 +766,9 @@ function funnelViolations(query: ReportQuery, byKey: Map<MeasureKey, Measure>): 
     seen.add(signature)
   })
 
-  /* G10 / §5: `sequential`, `holdConstant` and `exclude` all need event-level
-     data no store here has — the same footing, gated the same way, unless
-     every rung's measure declares `funnelCapabilities` for the one asked. One
-     violation, not three: the three options share a control and a query
-     asking for more than one gets one reason, not a stack of identical
-     sentences. */
+  /* G10 / §5: `sequential`, `holdConstant`, `exclude` need event-level data
+     no store here has, unless every rung's measure declares the matching
+     `funnelCapabilities`. One violation for all three, not a stack. */
   if (spec) {
     const wantsSequential = spec.mode === 'sequential'
     const wantsHoldConstant = spec.holdConstant !== null
@@ -1134,11 +1109,9 @@ const FORMULA_REASON_KEY: Record<FormulaViolationCode, string> = {
 }
 
 /**
- * `FormulaError` → `QueryViolation`. The codes are the same five strings on
- * both sides by construction (`FormulaViolationCode` and the formula slice of
- * `QueryViolationCode`), so this is a field reshape, not a lookup — `position`
- * survives into `reasonParams` either way, which is what lets the rail
- * underline the exact character the expression broke on (AC-1104).
+ * `FormulaError` → `QueryViolation`: a field reshape, not a lookup — the
+ * codes are the same five strings by construction. `position` survives into
+ * `reasonParams`, letting the rail underline the exact character (AC-1104).
  */
 function formulaViolation(error: FormulaError): QueryViolation {
   const reasonParams: Record<string, string | number> =

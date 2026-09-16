@@ -1,8 +1,7 @@
 /**
- * `agent.*` through the real router — WP-6.7. AC-1287 (the atomic claim,
- * and acting-for refused for any job the runner has not claimed) and
- * AC-1288 (no number without a run) each get their own `describe` block,
- * named in the file's final report.
+ * `agent.*` through the real router. AC-1287 (the atomic claim, acting-for
+ * refused for any unclaimed job) and AC-1288 (no number without a run)
+ * each get their own `describe` block.
  */
 import { afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { readFile } from 'node:fs/promises'

@@ -1,10 +1,8 @@
 /**
- * Method + path-pattern dispatch for the single catch-all function. A path
- * that matches no registered pattern is a 404; a path that matches a pattern
- * under a different method is a 405 — `05-backend.md`'s router description.
- * Params are typed as `Record<string, string>`, merged onto the caller's
- * context so a handler sees `ctx.params.id` without re-parsing the URL.
- */
+ * Method + path-pattern dispatch for the single catch-all function
+ * (05-backend.md). No pattern match is a 404; a pattern match under the
+ * wrong method is a 405. Params merge onto the caller's context so a handler
+ * reads `ctx.params.id` without re-parsing the URL. */
 
 import { methodNotAllowedError, notFoundError } from './errors'
 

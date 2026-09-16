@@ -306,10 +306,10 @@ describe('P7-T3 — each mode renders its own answer, not a trend', () => {
 })
 
 /**
- * AC-1169 — the grain control follows the date axis, not which rail is on
- * screen. A funnel measured `conversion-over-time` draws a trend and needs
- * day/week/month; a plain funnel has no calendar axis and gets neither
- * control nor a silently-ignored one.
+ * AC-1169 — the grain control follows the date axis, not the rail on screen.
+ * A funnel measured `conversion-over-time` draws a trend and needs
+ * day/week/month; a plain funnel has no calendar axis and gets no control,
+ * silently-ignored or otherwise.
  */
 describe('AC-1169 — the grain control follows the date axis, not the rail', () => {
   it('offers a real grain for a funnel measured conversion-over-time, on the funnel rail', async () => {
@@ -404,11 +404,10 @@ describe('P7-T3 — the mode switcher does not compose an illegal query', () => 
 /* ──────────────────── P7-T5 — the third view exists (pages) ────────────── */
 
 /**
- * D39/F-V2-82: `listDashboards` and `Dashboard`/`DashboardTile` are deleted; a
+ * D39/F-V2-82: `listDashboards`/`Dashboard`/`DashboardTile` are deleted; a
  * dashboard is one `kind` of `Page`, holding `blocks` not `tiles`. Every
- * guarantee this block proved against tiles is re-proved against blocks, read
- * through `listPages` (never the fixture module, `seam.test.ts`). `DSH-1` …
- * `DSH-3` are the same three v1 boards, migrated under their original ids.
+ * former tile guarantee is re-proved against blocks, read through
+ * `listPages`. `DSH-1`…`DSH-3` are the same v1 boards, migrated as-is.
  */
 describe('P7-T5 — the third view exists and is reachable', () => {
   it('renders the pages list at `?view=dashboards` instead of the library', async () => {
@@ -489,16 +488,11 @@ describe('P7-T5 — the third view exists and is reachable', () => {
     const user = userEvent.setup()
     await user.click(await screen.findByRole('button', { name: pagesCopy('pg.edit.enter') }))
 
-    /* AC-1198/AC-1199 — the kebab is a real button, present in the DOM at
-       rest (not only on `:hover`, §7.3: `BlockFrame` also reveals it on
-       `:focus-within`); `Move up`/`Move down` are menu items reached from it,
-       keyboard-operable through the menu Radix builds rather than a drag
-       target — §7 does not exempt drag-and-drop.
-
-       Scoped to the FIRST block frame in document order, and found without
-       naming it: since F-V2-87 a frame is named after its own title, so
-       pinning this to any one name would break again the next time a fixture
-       is retitled. The kebab is the frame's one menu trigger. */
+    /* AC-1198/AC-1199: the kebab is a real button, present in the DOM at
+       rest — not only on `:hover` (§7.3, `BlockFrame` also reveals it on
+       `:focus-within`) — with `Move up`/`Move down` reached via Radix menu,
+       not a drag target. Scoped to the first block frame unnamed, since
+       F-V2-87 names a frame after its own title. */
     const reportFrame = (await screen.findAllByRole('group'))[0]!
     const kebab = within(reportFrame)
       .getAllByRole('button')

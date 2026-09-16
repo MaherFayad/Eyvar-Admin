@@ -1,11 +1,7 @@
 /**
  * Turns a claimed job into what the spawn needs: the prompt-version string
  * (AC-1252), the schema file for `--json-schema`, and the filled-in job
- * prompt (§6). `agent/prompts/kinds/<kind>.md` is already the *whole*
- * per-kind prompt — comment header, `# Job` block with `{{placeholders}}`,
- * kind-specific guidance, `# Output` — the runner only substitutes, it does
- * not compose a template of its own. Pure string/file work, no process
- * spawning, so it is testable without `claude` on the machine.
+ * prompt (§6) — `agent/prompts/kinds/<kind>.md` is already the whole template, so this only substitutes `{{placeholders}}`.
  */
 
 import { readFileSync } from 'node:fs'

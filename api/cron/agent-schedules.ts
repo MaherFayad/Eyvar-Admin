@@ -1,14 +1,8 @@
 /**
- * `/api/cron/agent-schedules` (every 15 minutes, `vercel.json`) — WP-7.6,
- * `01-analyst-agent.md` §8: enqueues a job for every due, enabled
- * `agent_schedules` row via `enqueueDueAgentSchedules` (AC-1266's exactly-once
- * arbitration lives there, shared verbatim with the runner-side fallback's
- * `POST /agent/schedules/enqueue-due`).
- *
- * §1a: Hobby refuses a cron finer than daily, so this endpoint may simply
- * never run there — `agent/runner/schedule.ts` is the fallback, not this
- * file papering over the gap.
- */
+ * `/api/cron/agent-schedules` (every 15 minutes): enqueues a job for every
+ * due, enabled `agent_schedules` row via `enqueueDueAgentSchedules`
+ * (AC-1266's arbitration, shared with the runner-side fallback). Hobby
+ * refuses a cron finer than daily — `agent/runner/schedule.ts` is the fallback. */
 import { createPgPoolDatabase, type Database } from '../_lib/db'
 import { requireCronSecret } from '../_lib/cronAuth'
 import { errorResponse } from '../_lib/errors'

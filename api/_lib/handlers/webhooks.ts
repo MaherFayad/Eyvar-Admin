@@ -1,14 +1,8 @@
 /**
- * `webhooks.*` — WP-6.6 (`05-backend.md` §7, §1: "a webhook is a credential").
- * A rule's `slack` channel references a webhook by id, never a URL typed
- * into the rule; this is where that id is minted and where the plaintext
- * URL is encrypted before it ever reaches a row or a response.
- *
- * `list` never returns `urlEncrypted` or the decrypted URL — only `id`,
- * `name`, `createdBy`, `createdAt` — so a webhook, once created, cannot be
- * read back in a form that could be replayed anywhere but this app's own
- * delivery path.
- */
+ * `webhooks.*` (05-backend.md §7, §1: "a webhook is a credential"). A
+ * rule's `slack` channel references a webhook by id; the plaintext URL is
+ * encrypted before it reaches a row or a response. `list` never returns
+ * `urlEncrypted` or the decrypted URL — only id, name, createdBy, createdAt. */
 import { notFoundError, validationError } from '../errors'
 import { jsonResponse, paginated, resolveOffsetPage, single } from '../envelope'
 import { requirePermission, type RequestContext } from '../auth'

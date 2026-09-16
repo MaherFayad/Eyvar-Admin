@@ -1,10 +1,8 @@
 /**
- * The team lifecycle through the real router — WP-6.2b: invite, resend,
- * revoke, suspend, reinstate, offboard, permission overrides, and F-016's
- * last-holder guard, including the concurrency case the work package names
- * explicitly: two simultaneous removals of the last two holders must not
- * both succeed.
- */
+ * The team lifecycle through the real router: invite, resend, revoke,
+ * suspend, reinstate, offboard, permission overrides, and F-016's
+ * last-holder guard — including two simultaneous removals of the last two
+ * holders, which must not both succeed. */
 import { afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import type { PGlite } from '@electric-sql/pglite'
 import { createTestDatabase, seedSession, seedUser } from '../_test/db'
@@ -238,12 +236,10 @@ describe('F-016 — the last manage_team holder', () => {
   })
 
   /**
-   * The concurrency requirement, verbatim: two simultaneous removals of the
-   * last two holders must not both succeed. `holder-1` and `holder-2` are
-   * the whole roster's `manage_team` holders (two `Owner`s, nobody else);
-   * suspending both at once must leave exactly one, never zero, and the
-   * loser must see the guard's refusal rather than a generic error.
-   */
+   * Two simultaneous removals of the last two holders must not both succeed.
+   * `holder-1`/`holder-2` are the whole roster's `manage_team` holders (two
+   * `Owner`s, nobody else); suspending both must leave exactly one, and the
+   * loser sees the guard's refusal, not a generic error. */
   it('two concurrent suspends of the last two holders: exactly one succeeds, the database arbitrates', async () => {
     const first = await seedUser(db, { email: 'race-holder-1@eyvar.test', password: 'pw', roleId: 'Owner' })
     const second = await seedUser(db, { email: 'race-holder-2@eyvar.test', password: 'pw', roleId: 'Owner' })

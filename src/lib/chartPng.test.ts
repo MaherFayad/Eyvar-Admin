@@ -1,8 +1,7 @@
 /**
- * The byte-level half of `chartPng.ts` — no canvas, no DOM. `renderChartPng`
- * itself is proven in a Playwright harness (jsdom has no canvas), but the
- * `tEXt` chunk it burns in is pure bytes and is proven here: AC-1159's
- * "whose `tEXt` chunk holds the same text" claim, at the byte level.
+ * Byte-level half of `chartPng.ts` — no canvas, no DOM; `renderChartPng`
+ * itself is proven in a Playwright harness instead. Proves AC-1159's `tEXt`
+ * chunk claim, at the byte level.
  */
 import { describe, expect, it } from 'vitest'
 import { crc32, insertTextChunk, readTextChunk } from './chartPng'

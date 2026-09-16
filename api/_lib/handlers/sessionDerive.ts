@@ -1,19 +1,8 @@
 /**
- * `Session.landingRoute` / `landingWorkspaceId` / `subTabPermissions` /
- * `claimedCount` — `session.ts`'s docblock: "derived server-side and arrive
- * resolved" (§8.2). Shared by `session.current` and every `auth.*` operation
- * that hands back a `Session` (`signIn`'s challenge completion,
- * `reauthenticate`'s resume), so the two can never disagree.
- *
- * Landing comes from `roles.landing_path`/`landing_workspace_id`
- * (`0004_team.sql`, seeded from `fixtures/teamUsers.ts`'s `ROLE_LANDING`).
- * `subTabPermissions` is `ROUTE_TABLE`'s `viewPermission` column, one entry
- * per sub-tab — `clients/routes.ts`'s `subTabViewPermissions()`, reproduced
- * here (the route table is static frontend data, safe to import directly)
- * so the map and the route table cannot disagree (D17). `claimedCount` is a
- * real `count(*)` against `claims`; nothing writes that table yet — see
- * `0004_team.sql`'s comment — so it is honestly zero rather than a guess.
- */
+ * `Session.landingRoute`/`landingWorkspaceId`/`subTabPermissions`/
+ * `claimedCount`, derived server-side (§8.2) so every op returning a
+ * `Session` agrees. `subTabPermissions` reproduces `routes.ts`'s own lookup
+ * so the two cannot disagree (D17); `claimedCount` is honestly `0` — nothing writes `claims` yet. */
 import { ROUTE_TABLE } from '@/data/fixtures/routeTable'
 import type { PermissionKey, WorkspaceId } from '@/data/types/navigation'
 import type { Database } from '../db'

@@ -1,9 +1,7 @@
 /**
- * `agent/schemas/case-study.schema.json` — WP-7.3, `01-analyst-agent.md` §7–§8,
- * AC-1251. The schema must be strict enough that a plausible-sounding but
- * unevidenced study cannot pass it: fewer than two alternatives fails, a
- * number with no `runId` fails, and the seeded `done` job's real result
- * (`src/data/fixtures/agent.ts`) validates clean.
+ * `case-study.schema.json` (WP-7.3, §7–§8, AC-1251): strict enough that a
+ * plausible but unevidenced study cannot pass — fewer than two alternatives
+ * fails, a number with no `runId` fails, and the seeded `done` job's real result validates clean.
  */
 
 import { readFileSync } from 'node:fs'

@@ -139,10 +139,9 @@ describe('session.current (AC-1274)', () => {
 })
 
 /**
- * WP-6.2b: `signIn` no longer mints a session by itself — it always returns
- * a `SignInOutcome` (200, even on rejection) and the session is minted by
- * `verifyCode` once the second factor clears. These four replace WP-6.2's
- * simplified "sign-in is a 401 or a session" tests with the two-step flow.
+ * `signIn` never mints a session itself — it always returns a
+ * `SignInOutcome` (200, even on rejection); the session is minted by
+ * `verifyCode` once the second factor clears.
  */
 describe('auth.signIn and idempotent replay (AC-1273, extended WP-6.2b)', () => {
   it('rejects an unknown email and a wrong password identically, as a 200 `failed` outcome', async () => {

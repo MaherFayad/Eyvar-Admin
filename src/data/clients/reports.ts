@@ -385,10 +385,7 @@ export async function deleteReport(
 /**
  * POST /api/v1/reports/:id/duplicate
  *   -> Single<SavedReport>
- *
- * §8's `Duplicate` row action. Owned by the acting operator, private, never
- * pinned to a dashboard — a copy starts with none of the original's
- * arrangements, only its query.
+ * §8's Duplicate action. Private, never pinned to a dashboard — the copy keeps only the original's query.
  */
 export async function duplicateReport(id: string, signal?: AbortSignal): Promise<Single<SavedReport>> {
   if (DATA_SOURCE === 'http') return http.post<Single<SavedReport>>(`/reports/${id}/duplicate`, undefined, { signal })
@@ -419,9 +416,7 @@ export async function duplicateReport(id: string, signal?: AbortSignal): Promise
 /**
  * POST /api/v1/reports/:id/star
  *   -> Single<SavedReport>
- *
- * Toggles the acting operator in `starredBy` — the `starred` library view's
- * source. Mirrors `pages.ts`'s `starPage`, the same control on the sibling resource.
+ * Toggles the acting operator in `starredBy`, the `starred` view's source. Mirrors `pages.ts`'s `starPage`.
  */
 export async function starReport(id: string, signal?: AbortSignal): Promise<Single<SavedReport>> {
   if (DATA_SOURCE === 'http') return http.post<Single<SavedReport>>(`/reports/${id}/star`, undefined, { signal })
@@ -442,10 +437,7 @@ export async function starReport(id: string, signal?: AbortSignal): Promise<Sing
 /**
  * GET /api/v1/reports/:id/versions
  *   -> Paginated<SavedReportVersion>
- *
- * Newest last on the record (`saveReport` appends), newest **first** on the
- * wire — the order `Version history` renders (§8, `Restore` loads the query
- * into the draft, never saves over it).
+ * Newest last on the record (`saveReport` appends) but newest FIRST on the wire. `Restore` loads into the draft, never saves over it.
  */
 export async function listReportVersions(
   id: string,
@@ -473,12 +465,9 @@ export interface SampleRowsInput {
 }
 
 /**
- * POST /api/v1/reports/sample
- *   body: SampleRowsInput
+ * POST /api/v1/reports/sample (T10, D44)
  *   -> Record<string, unknown>[]
- *
- * T10 (D44): masked rows, `name → initials`, `phone → last 2 digits`, ids
- * intact. Audit-logging the read is the server's job, not this mock's.
+ * Masked rows: `name` → initials, `phone` → last 2 digits, ids intact. Audit-logging the read is the server's job.
  */
 export async function sampleRows(input: SampleRowsInput, signal?: AbortSignal): Promise<Array<Record<string, unknown>>> {
   if (DATA_SOURCE === 'http') {
@@ -497,12 +486,9 @@ export interface ContributionInput {
 }
 
 /**
- * POST /api/v1/reports/contribution
- *   body: ContributionInput
+ * POST /api/v1/reports/contribution { query, windowA, windowB }
  *   -> ContributionResult
- *
- * T9: which groups of `query.groupBy[0]` explain the change between two
- * windows, via `reporting/stats.ts`'s pure `contribution`.
+ * T9: which groups of `query.groupBy[0]` explain the change between two windows, via `stats.ts`'s pure `contribution`.
  */
 export async function contribution(input: ContributionInput, signal?: AbortSignal): Promise<ContributionResult> {
   if (DATA_SOURCE === 'http') {
@@ -545,12 +531,9 @@ export async function contribution(input: ContributionInput, signal?: AbortSigna
 }
 
 /**
- * POST /api/v1/reports/runs/:runId/describe
- *   body: { seriesId }
+ * POST /api/v1/reports/runs/:runId/describe { seriesId }
  *   -> DescribeResult
- *
- * T7: descriptive stats over one series of a stored run, read back through
- * `runs.ts` rather than re-run, so the numbers match what was cited.
+ * T7: stats over one series of a stored run, read back via `runs.ts` rather than re-run, so numbers match what was cited.
  */
 export async function describeSeries(runId: string, seriesId: string, signal?: AbortSignal): Promise<DescribeResult> {
   if (DATA_SOURCE === 'http') {

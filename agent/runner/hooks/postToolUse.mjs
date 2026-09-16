@@ -1,15 +1,8 @@
 #!/usr/bin/env node
 /**
- * `PostToolUse` tool log — `01-analyst-agent.md` §3.3: "appends {tool,
- * input, output-digest, ts} to the job's tool log." A local, on-disk,
- * digest-only record (never the full output — that would duplicate
- * `agent_events` and risk holding unmasked row data past `sample_rows`'
- * own audit path) kept for §10's cost accounting ("the runner logs turns
- * and tool calls per job so the owner can see what a study costs").
- *
- * `EYVAR_TOOL_LOG_PATH` names the file (one per job, set by the runner
- * before spawning); when unset, the hook is a no-op rather than an error —
- * an interactive `/analyst` session (§9) has no per-job log to write to.
+ * `PostToolUse` hook: appends a digest-only tool-log entry (never the full
+ * output, avoiding `agent_events` duplication or a row-data leak) for §10's
+ * cost accounting. Unset `EYVAR_TOOL_LOG_PATH` (an interactive `/analyst` session) makes this a no-op, not an error.
  */
 
 import { readFileSync, appendFileSync } from 'node:fs'

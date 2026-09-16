@@ -1,8 +1,6 @@
 /**
- * The block's kebab menu, and `Shift+F10` on a focused frame — §3.1.
- * `Move up`/`Move down`/`Move to column…`/`Duplicate`/`Turn into…`/`Height`/
- * `View`/`Delete`, each disabled in place with a reason when inapplicable
- * (AC-1198), never hidden.
+ * The block's kebab menu, also opened by Shift+F10 (§3.1). Each action is
+ * disabled in place with a reason when inapplicable, never hidden (AC-1198).
  */
 
 import { useState, type ReactNode } from 'react'

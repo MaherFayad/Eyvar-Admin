@@ -1,8 +1,7 @@
 /**
- * Annotations (D42, `02-report-builder-v2.md` §4.5): a marked date on a trend
- * chart. Context, not query state — never serialised into `ReportQuery`.
- * Write needs `manage_analytics`, a key not yet in `PermissionKey` (D17); flagged
- * for the navigation owner rather than minted here.
+ * Annotations (D42, `02-report-builder-v2.md` §4.5): a marked date on a
+ * trend chart. Context, not query state — never serialised into `ReportQuery`.
+ * Write needs `manage_analytics`, not yet in `PermissionKey` (D17); flagged for the navigation owner, not minted here.
  */
 
 import type { IsoDate, IsoDateTime } from './common'

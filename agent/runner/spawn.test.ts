@@ -1,15 +1,7 @@
 /**
- * AC-1249: the spawn argv. `buildSpawnArgs` is pure — no process, no
- * subscription. The `stream-json` parsing (`collectFromLines`) is tested
- * against captured-shape transcript lines — real message shapes observed
- * from an actual `claude -p` run on this machine (assistant `tool_use` /
- * user `tool_result` pairs, the `StructuredOutput` tool, `rate_limit_event`,
- * the terminal `result`'s `structured_output` field) — with no process
- * involved. `spawnAndCollect`'s own process plumbing (timeout → SIGTERM,
- * exit code) is proven against a real, trivial `node` invocation instead of
- * a fake `claude` binary, since `buildSpawnArgs`'s argv is always
- * claude-shaped and cannot itself run an arbitrary test script; the real
- * spawn against a live subscription is the gated `spawn.e2e.test.ts`.
+ * AC-1249: the spawn argv. `buildSpawnArgs` is pure; `collectFromLines` is
+ * tested against captured-shape `stream-json` transcript lines (real shapes
+ * from an actual run). `spawnAndCollect`'s process plumbing uses a trivial `node` invocation instead of a fake `claude` binary; the real spawn is `spawn.e2e.test.ts`.
  */
 
 import { resolve } from 'node:path'

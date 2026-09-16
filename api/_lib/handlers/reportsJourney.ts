@@ -35,10 +35,9 @@ function journeyPanel(panelId: string, seriesIds: string[], measureLabelKey: str
 }
 
 /**
- * `journeyVocabulary` (`resolveReport.ts`): one measure per (store, date
- * field, predicate), preferring a flow — over the WHOLE catalogue, not just
- * the measures a query happens to name, exactly as the mock reads
- * `Object.values(measuresByKey)`.
+ * `journeyVocabulary`: one measure per (store, date field, predicate),
+ * preferring a flow — over the WHOLE catalogue, not just the measures a
+ * query names, matching the mock's `Object.values(measuresByKey)`.
  */
 function journeyVocabulary(
   kind: SubjectKind,

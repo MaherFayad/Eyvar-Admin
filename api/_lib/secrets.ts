@@ -1,8 +1,7 @@
 /**
- * Encryption at rest for stored credentials — `05-backend.md` §1 "Secrets at
- * rest": a Slack webhook URL is a credential, encrypted with `SECRETS_KEY`
- * (AES-256-GCM) before it reaches `webhooks.url_encrypted`. `node:crypto`,
- * not a dependency — this is the one primitive Node ships that needs none.
+ * Encryption at rest for stored credentials (05-backend.md §1): a Slack
+ * webhook URL is encrypted with `SECRETS_KEY` (AES-256-GCM) before it
+ * reaches `webhooks.url_encrypted`. `node:crypto`, not a dependency.
  */
 
 import { createCipheriv, createDecipheriv, randomBytes } from 'node:crypto'

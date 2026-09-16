@@ -114,10 +114,8 @@ import { ANALYST_EN } from '@/screens/analyst/copy'
 /**
  * `AlertsView` statically imports recharts for its per-rule sparkline, so a
  * static import here would pull recharts into every `/management/reports`
- * visit — the cost the file's own header warns against for `TrendChart`
- * (performance audit finding 1). Deferred the same way `routes.tsx`'s `Chunk`
- * defers a whole screen chunk: recharts loads only once an operator opens
- * the Alerts view.
+ * visit. Deferred the same way `routes.tsx`'s `Chunk` defers a whole screen
+ * chunk: recharts loads only once an operator opens the Alerts view.
  */
 const LazyAlertsView = lazy(() =>
   import('./AlertsView').then((m) => ({ default: m.AlertsView })),

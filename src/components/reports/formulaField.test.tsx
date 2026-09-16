@@ -1,8 +1,7 @@
 /**
- * The formula field — AC-1104 … AC-1107, AC-1155, and the R5a no-red rule.
- * `formulaViolation` (`plan.ts`) is exercised through the real `planQuery`, so
- * a parse error's position and every semantic refusal come from the same code
- * path `reports.run` refuses with — not a hand-copied string here.
+ * The formula field — AC-1104…AC-1107, AC-1155, R5a (no red). Exercises the
+ * real `planQuery`/`formulaViolation` path so refusal text matches what
+ * `reports.run` actually refuses with, not a hand-copied string.
  */
 
 import { useState } from 'react'

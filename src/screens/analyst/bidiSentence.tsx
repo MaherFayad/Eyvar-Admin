@@ -1,9 +1,7 @@
 /**
- * AR2 — a raw operator id substituted into a translated sentence still needs
- * `<bdi>` isolation (`PagesView.tsx`'s owner column already does this for a
- * standalone cell); `translate.ts` returns a plain string, so a marker is
- * substituted for the isolated param, the finished sentence is split on it,
- * and the real value is rendered isolated in its place.
+ * AR2 — a raw id inside a translated sentence still needs `<bdi>` isolation.
+ * Since `translate.ts` returns a plain string, a marker stands in for the
+ * param; the sentence is split on it and the value re-inserted isolated.
  */
 
 import type { ReactNode } from 'react'

@@ -1231,10 +1231,9 @@ export function DataTable<T>(props: DataTableProps<T>) {
   /** T6.2 — the row whose kebab is open, so `.` and a click reach one state. */
   const [openActionsRow, setOpenActionsRow] = useState<string | null>(null)
   /**
-   * F-V2-83 — an action picked from the kebab, held until the menu's own
-   * `onCloseAutoFocus` says its close is done. Running it any earlier (even
-   * one tick later, via a caller's own timer) can still land inside Radix's
-   * teardown and lose a dialog it opens; see `rowActions.tsx`'s `deferTo`.
+   * F-V2-83 — an action from the kebab, held until the menu's own
+   * `onCloseAutoFocus` confirms teardown is done; running it even one tick
+   * earlier can land inside Radix's teardown and lose a dialog it opens.
    */
   const pendingKebabActionRef = useRef<(() => void) | null>(null)
   const narrowed = table.isFiltered || emptyKind === 'no-match'
@@ -1849,11 +1848,9 @@ export function DataTable<T>(props: DataTableProps<T>) {
         <DropdownMenuContent
           align="end"
           /* F-V2-83 — the one point Radix guarantees runs after this menu's
-             own `FocusScope` has finished tearing down (`focus-scope.tsx`'s
-             unmount effect dispatches it from inside its own deferred
-             callback). Not prevented: letting focus land back on the kebab
-             first is what gives a dialog opened here a sane place to restore
-             focus TO when it closes. */
+             `FocusScope` finishes tearing down. Not prevented: focus landing
+             back on the kebab first gives a dialog opened here a sane place
+             to restore focus TO when it closes. */
           onCloseAutoFocus={() => {
             const run = pendingKebabActionRef.current
             pendingKebabActionRef.current = null

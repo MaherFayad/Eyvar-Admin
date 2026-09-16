@@ -1,8 +1,7 @@
 /**
- * Report runs — the provenance store behind `X-Eyvar-Record-Run: 1` (T5,
- * `05-backend.md` §5). `reports.run` answers a query; a **run** is that
- * answer kept, with an id, so a finding can cite it and `describe`/`Open in
- * builder` can read it back without re-running the query.
+ * Report runs, the provenance store behind `X-Eyvar-Record-Run: 1` (T5,
+ * `05-backend.md` §5): `reports.run`'s answer kept with an id, so a finding
+ * can cite it and `describe`/`Open in builder` read it back unre-run.
  */
 
 import { DATA_SOURCE, registerOperations } from '../config'
@@ -53,10 +52,9 @@ onFixturesLoaded((f) => {
 let seedingInFlight: Promise<void> | null = null
 
 /**
- * AC-1258 — `recordRun`'s only caller is T5, so an untouched session starts
- * with an empty store and `AGT-1`'s real citations resolve as "missing".
- * Runs each seed query for real, once, lazily on the first `getRun`; never a
- * total typed in by hand. `resetRuns()` clears `seedingInFlight` to reseed.
+ * AC-1258: an untouched session starts with an empty store, so it seeds by
+ * actually running each query once, lazily on first `getRun` — never a
+ * hand-typed total. `resetRuns()` clears `seedingInFlight` to reseed.
  */
 async function ensureAgentSeedRuns(): Promise<void> {
   await loadFixtures()
@@ -89,11 +87,8 @@ async function ensureAgentSeedRuns(): Promise<void> {
 
 /**
  * POST /api/v1/reports/run, header `X-Eyvar-Record-Run: 1`
- *   body: ReportQuery
  *   -> { runId, result, summary }
- *
- * T5's tool endpoint. Records unconditionally — "T5 always records" (§5's
- * rule) — so every call mints a fresh `runId`, never reuses one.
+ * T5's endpoint records unconditionally (§5: "T5 always records"), so every call mints a fresh `runId`.
  */
 export async function recordRun(
   query: ReportQuery,
@@ -129,9 +124,7 @@ export async function recordRun(
 /**
  * GET /api/v1/reports/runs/:runId
  *   -> Single<ReportRun>
- *
- * Read by `describeSeries` (`reports.ts`) and by the job page's `Open in
- * builder` link per run (§4).
+ * Read by `describeSeries` (`reports.ts`) and by the job page's `Open in builder` link per run (§4).
  */
 export async function getRun(runId: string, signal?: AbortSignal): Promise<Single<ReportRun>> {
   if (DATA_SOURCE === 'http') return http.get<Single<ReportRun>>(`/reports/runs/${runId}`, undefined, { signal })
@@ -157,11 +150,9 @@ export interface CompareWindowsResult {
   deltas: SeriesDelta[]
 }
 
-/**
- * T6 `compare_windows` — two `recordRun` calls at `windowA`/`windowB`, joined
- * by `measureKey` + `groupValue` (role `current` only; a comparison series
- * inside either window is not this tool's concern, `periodComparison` is).
- */
+/** T6 `compare_windows`: two `recordRun` calls joined by `measureKey` +
+ * `groupValue`, role `current` only — a comparison series inside either
+ * window is `periodComparison`'s concern, not this tool's. */
 export async function compareWindows(
   query: ReportQuery,
   windowA: ReportWindow,

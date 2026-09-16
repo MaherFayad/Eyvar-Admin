@@ -1,17 +1,7 @@
 /**
- * The analyst agent — jobs, their transcripts and one case study, `01-analyst-agent.md`.
- *
- * Only `USR-1` (Owner) and `USR-7` (Trust & Safety) hold `view_analytics` in
- * the seeded team, so every job's `requestedBy` is one of the two — the same
- * constraint a real deploy would have. `AGT-1`'s case study is requested by
- * `USR-7`, who holds `view_analytics` but not `view_finance`: its
- * `dataQuality.blockedSeries` names `revenue.total`, seeded rather than
- * invented, because the agent sees exactly what the asking operator sees
- * (§3.2). `AGT-1`'s finding cites `cancellationTrend` (`reports.ts`) and its
- * firing is `ALR-1`'s, so `Explain this firing` has a real destination.
- *
- * `AgentRunner` (WP-1.7 mints it in `types/agent.ts`) types
- * `agentRunnerStatusFixture` below, `GET /api/v1/agent/status`'s response.
+ * The analyst agent — jobs, transcripts and one case study, `01-analyst-agent.md`.
+ * Only `USR-1`/`USR-7` hold `view_analytics`, so every job's `requestedBy` is
+ * one of the two; `AGT-1`'s `blockedSeries` is seeded, not invented, because the agent sees only what its requester sees (§3.2).
  */
 
 import { offsetFromNow } from '../mock/clock'
@@ -28,9 +18,9 @@ import type {
 
 /**
  * `AGT-1`'s output — a triage of `ALR-1`'s firing (`alerts.ts`). Every number
- * names the `runId` that produced it (§7's "no number without a run"); the
- * two alternatives are the ones the analyst tested and rejected, one of them
- * against `ANN-6`'s payment-gateway outage (`annotations.ts`).
+ * must trace to the `runId` that produced it, checked by `agent.test.ts`
+ * (F-V2-97); the two alternatives are ones the analyst tested and rejected,
+ * one against `ANN-6`'s payment-gateway outage (`annotations.ts`).
  */
 export const DONE_JOB_CASE_STUDY: CaseStudy = {
   title: 'Why did the cancellation rate cross 6% on 24 June?',

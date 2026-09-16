@@ -1,10 +1,7 @@
 /**
- * Report transforms — §2.3, §2.6. Pure functions over `ReportSeries.points`'
- * shape (`(number | null)[]`), applied by the resolver after aggregation. A gap
- * (`null`) never becomes a `0` (README non-negotiable 3). `percentOfTotal`,
- * `difference` and `percentChange` also null a partial bucket's own output
- * (non-negotiable 4); `cumulative`/`rollingAverage` are not comparisons, so a
- * partial bucket's real value still counts — the renderer marks it separately.
+ * Report transforms (§2.3, §2.6): pure over `ReportSeries.points`. A gap
+ * (`null`) never becomes `0`. `percentOfTotal`/`difference`/`percentChange`
+ * also null a partial bucket's output; `cumulative`/`rollingAverage` are not comparisons, so it still counts.
  */
 
 /**
@@ -22,10 +19,9 @@ export function cumulative(points: readonly (number | null)[]): (number | null)[
 }
 
 /**
- * The trailing `window`-bucket mean, including the current bucket (§2.3's ROLLAVG
- * wording). `null` for the first `window − 1` buckets, and `null` for any bucket
- * whose window contains a gap — averaging around a missing value would invent one,
- * which the gap rule forbids as much as substituting a zero would.
+ * The trailing `window`-bucket mean, including the current bucket (§2.3's
+ * ROLLAVG). `null` for the first `window − 1` buckets, and for any window
+ * containing a gap — averaging around a missing value would invent one.
  */
 export function rollingAverage(points: readonly (number | null)[], window: number): (number | null)[] {
   if (!Number.isInteger(window) || window < 1) {
@@ -44,10 +40,9 @@ export function rollingAverage(points: readonly (number | null)[], window: numbe
 }
 
 /**
- * Each series' bucket value as a share of the sum across every series at that same
- * bucket (a split's groups, `Other` included) — §2.3, AC-1110. A `null` value stays
- * `null`; a bucket where every series is `null`, or whose real total is `0`, has no
- * defined share and every series reads `null` there rather than a divide-by-zero.
+ * Each series' bucket value as a share of the sum across every series at
+ * that bucket (§2.3, AC-1110). A bucket with every series `null`, or a real
+ * total of `0`, reads `null` for every series there rather than a divide-by-zero.
  */
 export function percentOfTotal(
   series: readonly (readonly (number | null)[])[],
@@ -98,12 +93,9 @@ export function difference(
 }
 
 /**
- * `comparisonDisplay: 'percent-change'` (§2.6): `(current − comparison) / |comparison| × 100`.
- * A zero or missing comparison baseline has no percentage — `metrics.ts`'s
- * previous-period rule ("dividing by a zero baseline yields ∞ or NaN … no
- * comparison is the honest answer for a period") applies here unconditionally,
- * since a period comparison is exactly what this is. A partial current bucket
- * is excluded like any comparison.
+ * `comparisonDisplay: 'percent-change'` (§2.6):
+ * `(current − comparison) / |comparison| × 100`. A zero or missing baseline
+ * has no percentage; a partial current bucket is excluded like any comparison.
  */
 export function percentChange(
   current: readonly (number | null)[],

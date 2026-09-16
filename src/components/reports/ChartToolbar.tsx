@@ -106,11 +106,9 @@ import { formatDate, type Language, type Translator } from '@/lib'
 import { ComparisonControl, ComparisonDisplayToggle, WindowControl } from './WindowControl'
 
 /**
- * The twelve shapes, and the `(mode, chartType)` each one is. `chartType:
- * null` means the mode fixes its own shape. **v2 adds five** — `area`,
- * `stacked-bar`, `stacked-100`, `horizontal-bar`, `kpi` — grouped with `pie`;
- * icons reuse the registry's nearest glyph rather than minting one (`icons.ts`
- * is not this WP's file).
+ * Each visualisation's `(mode, chartType)` pair; `chartType: null` means the
+ * mode fixes its own shape. Icons reuse the registry's nearest glyph rather
+ * than minting one.
  */
 const VISUALISATIONS = [
   { id: 'line', mode: 'trend', chartType: 'line', icon: LineChartIcon },
@@ -179,18 +177,16 @@ export interface ChartToolbarProps {
   /** Re-runs the question on screen. The same callback the canvas's error retry uses. */
   onRefresh: () => void
   /**
-   * WP-5.5 (G15) — the bell. The builder decides what "prefilled from the
-   * report in front of the operator" means (a saved report opens the
-   * composer directly; an unsaved one is named and saved first, §04's
-   * standing rule), so this row only renders the trigger. AC-1161: disabled
-   * with the plan's own reason when the question is illegal, never hidden.
+   * The alert bell. The builder decides what "prefilled" means — a saved
+   * report opens the composer directly, an unsaved one is named and saved
+   * first. AC-1161: disabled with the plan's own reason when the question is
+   * illegal, never hidden.
    */
   onCreateAlert: () => void
   /**
-   * `trend` and `table` only — gates the comparison control. Distinct from
-   * `hasDateAxis` (AC-1169) below: a `conversion-over-time` funnel has a date
-   * axis and a grain but still configures through the funnel rail and offers
-   * no comparison, so it leaves this `false`.
+   * `trend` and `table` only. Distinct from `hasDateAxis` (AC-1169): a
+   * `conversion-over-time` funnel has a date axis but configures through the
+   * funnel rail and offers no comparison, so this stays `false` there.
    */
   seriesMode: boolean
   /**
@@ -435,13 +431,10 @@ export function ChartToolbar({
           </>
         )}
 
-        {/* ── the comparison — §1.4, §1.5 ────────────────────────────────
-            `ComparisonControl` and `ComparisonDisplayToggle` are
-            `WindowControl.tsx`'s (WP-2.6): the fifth `Fixed range…` row, its
-            own popover, `previous-quarter`, and the `Show as` toggle. This
-            file keeps only the trailing clear (§A7), unchanged. Gated on
-            `seriesMode`, not `hasDateAxis` — a funnel trend has no previous
-            period to compare to. */}
+        {/* `ComparisonControl` and `ComparisonDisplayToggle` are
+            `WindowControl.tsx`'s; this file keeps only the trailing clear.
+            Gated on `seriesMode`, not `hasDateAxis` — a funnel trend has no
+            previous period to compare to. */}
         {seriesMode && (
           <>
             <ComparisonControl

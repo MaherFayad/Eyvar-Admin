@@ -1,8 +1,7 @@
 /**
- * T8 `correlate` — 01-analyst-agent.md §5. Pearson and Spearman between two
- * series of two stored runs, at lag 0…maxLag. Arithmetic is
- * `src/data/reporting/stats.ts`'s `correlate()` — called, never
- * reimplemented.
+ * T8 `correlate` — Pearson and Spearman between two series of two stored
+ * runs, at lag 0…maxLag. Arithmetic is `stats.ts`'s `correlate()`, called
+ * never reimplemented.
  */
 
 import { z } from 'zod'

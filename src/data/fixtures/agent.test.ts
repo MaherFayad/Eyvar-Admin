@@ -1,8 +1,7 @@
 /**
- * "No number without a run" (`agent/prompts/analyst.md`) — `AGT-1` is the
- * seeded case study that demonstrates the rule, so every figure its
- * findings and contributors cite must equal what the run it names actually
- * returns from the real resolver, not a typed-in total (AC-1258).
+ * "No number without a run": `AGT-1`'s findings and contributors must equal
+ * what the cited run actually returns from the real resolver, not a
+ * typed-in total (AC-1258).
  */
 import { describe, expect, it } from 'vitest'
 import { DONE_JOB_CASE_STUDY } from './agent'

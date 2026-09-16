@@ -1,10 +1,7 @@
 /**
- * `agent.schedules` (§8, WP-7.6) — the client half of AC-1266/AC-1267's
- * schedules tab: list, create, and the enable/disable toggle, in mock mode.
- * The exactly-once arbitration itself is a server property, proved against
- * the real database in `api/v1/agent.test.ts`; this file only proves the
- * client's own contract (the seam, and a round-trip that leaves other
- * schedules untouched).
+ * `agent.schedules` client contract (AC-1266/AC-1267): list, create, and the
+ * enable/disable toggle, in mock mode. Exactly-once arbitration is a server
+ * property proved in `api/v1/agent.test.ts`, not here.
  */
 import { beforeEach, describe, expect, it } from 'vitest'
 import { disableMockLatency, knownOperations, mockFailures } from '../config'

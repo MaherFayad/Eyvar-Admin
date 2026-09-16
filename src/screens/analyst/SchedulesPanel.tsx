@@ -1,10 +1,7 @@
 /**
- * The Schedules tab (`01-analyst-agent.md` §8, AC-1266/AC-1267) — a small
- * list (one team's weekly reviews), so no `DataTable`/index-table furniture:
- * a composer card plus a plain list, both restyled on arrival (`Card`,
- * `Switch` — §4.3's "instant-effect settings only", exactly what an
- * enable/disable toggle is). Four states, per the block: content, empty,
- * loading, error.
+ * The Schedules tab (§8, AC-1266/AC-1267): a small list (one team's weekly
+ * reviews), so a composer card plus a plain list rather than a `DataTable`.
+ * `Switch` fits §4.3's "instant-effect settings only". Four states per block.
  */
 
 import { useState } from 'react'

@@ -343,12 +343,10 @@ describe('the owner’s second sentence — the report runs itself', () => {
 
 describe('history — an auto-run replaces, a deliberate act pushes', () => {
   it('leaves one Back between an edited report and where the operator came from', async () => {
-    /* Three chained real debounce waits (~2.8 s each) left this test ~11.7 s
-       deep in a 15 s ceiling — comfortable in isolation, gone the moment the
-       process is sharing CPU with other workers. The guarantee is about HOW
-       MANY history entries three edits cost, not about how long they take to
-       settle, so the debounce is driven by fake timers instead of waited out
-       — same fix as `pageEditorAutosave.test.tsx` (AC-1201). */
+    /* The guarantee is how many history entries three edits cost, not how
+       long they take to settle — so fake timers drive the debounce instead
+       of real waits, which risked the suite's time ceiling under load. Same
+       fix as `pageEditorAutosave.test.tsx` (AC-1201). */
     vi.useFakeTimers({ shouldAdvanceTime: true })
     try {
       const user = userEvent.setup({ delay: null })

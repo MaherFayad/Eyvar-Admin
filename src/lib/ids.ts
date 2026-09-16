@@ -1,9 +1,8 @@
 /**
- * `ulid()` — a client-generated, sortable id for an optimistic block insert
- * that needs a stable identity before its save returns (D39, page.ts §2).
- * Monotonic within one tab, so two calls in the same millisecond still sort
- * in call order. Not Crockford-conformant — this id never crosses a wire
- * boundary that checks the format.
+ * `ulid()` — client-generated, sortable id for an optimistic block insert
+ * needing identity before its save returns (D39, page.ts §2). Monotonic
+ * within one tab, so two same-millisecond calls still sort in order. Not
+ * Crockford-conformant — never crosses a wire boundary that checks format.
  */
 
 const ALPHABET = '0123456789abcdefghijklmnopqrstuvwxyz'

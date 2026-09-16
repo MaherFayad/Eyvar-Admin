@@ -1,13 +1,8 @@
 /**
- * A transport rate limiter — WP-6.2c / F-V2-21's gap list, last item. Not an
- * in-memory counter: a Vercel Function has no memory shared across
- * invocations (`05-backend.md` §1's whole reason for the Neon HTTP driver),
- * so the counter has to live in `rate_limit_buckets` (`0011_wp62c.sql`).
- *
- * A fixed window, not a sliding one: simpler, and the only guarantee the
- * transport needs is "no more than N attempts land inside any window",
- * which a fixed window gives with one row and one statement.
- */
+ * A transport rate limiter (F-V2-21). Not an in-memory counter: a Vercel
+ * Function shares no memory across invocations, so the counter lives in
+ * `rate_limit_buckets`. A fixed window, not sliding — "no more than N
+ * attempts per window" needs only one row and one statement. */
 import type { Database } from './db'
 
 export interface RateLimitResult {
@@ -22,10 +17,9 @@ interface BucketRow {
 }
 
 /**
- * `key` is the caller's to construct (e.g. `signin:<ip>`) — this module has
- * no opinion on what dimension to limit by. One `INSERT ... ON CONFLICT` per
- * call: a fresh key starts the window; a key already inside its window is
- * incremented; a key past its window resets to `1` and a fresh `window_start`.
+ * `key` is the caller's to construct (e.g. `signin:<ip>`) — no opinion here
+ * on what dimension to limit by. One `INSERT ... ON CONFLICT`: a fresh key
+ * starts the window, an in-window key increments, a past-window key resets.
  */
 export async function checkRateLimit(
   db: Database,

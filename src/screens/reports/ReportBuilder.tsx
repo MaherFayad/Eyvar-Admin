@@ -457,10 +457,9 @@ export function ReportBuilder({
      rather than leaving the series picker for the operator to redo. */
   const [alertPresetSeriesId, setAlertPresetSeriesId] = useState<string | undefined>(undefined)
   /**
-   * WP-5.5 — an alert must point at a SAVED report (`04-alerting-v2.md`
-   * §"From a chart"). An unsaved question is named and saved here, inline,
-   * rather than in `SaveReportDialog` stacked on top of the composer: two
-   * modals for one decision reads as two decisions. Cancelling saves nothing.
+   * An alert must point at a SAVED report. An unsaved question is named and
+   * saved here, inline, rather than in `SaveReportDialog` stacked on top of
+   * the composer: two modals for one decision reads as two decisions.
    */
   const [alertNamePrompt, setAlertNamePrompt] = useState(false)
   const [alertNameDraft, setAlertNameDraft] = useState('')
@@ -857,10 +856,10 @@ export function ReportBuilder({
   }, [ranQuery, query, report, today])
 
   /**
-   * AC-1159 — the chart's own `<svg>` in `chartContainerRef`, rasterised at 2×
-   * with a caption band and the same text in a `tEXt` chunk (`chartPng.ts`).
-   * `table` and the mode canvases have no plot yet, so `pngExportable` below
-   * keeps this disabled in place rather than exporting a blank image.
+   * The chart's own `<svg>` in `chartContainerRef`, rasterised at 2× with a
+   * caption band (`chartPng.ts`, AC-1159). `table` and the mode canvases have
+   * no plot yet, so `pngExportable` keeps this disabled in place rather than
+   * exporting a blank image.
    */
   const exportPng = useCallback(async () => {
     const target = ranQuery ?? query

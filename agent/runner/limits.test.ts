@@ -1,11 +1,7 @@
 /**
  * §10 / AC-1248. Three captured limit messages: two `rate_limit_event`
- * shapes are copied verbatim from a real `claude -p --output-format
- * stream-json` run on this machine's own subscription (the `allowed`/
- * `allowed_warning` statuses genuinely occurred; `rejected` is the same
- * real shape with the one field that differs from the two above), and the
- * third is the CLI's own plain-text wording for a session-ending block
- * (`code.claude.com/docs/en/headless` names this exact phrase).
+ * shapes copied verbatim from a real subscription run (`allowed_warning`
+ * occurred live; `rejected` is the same shape, its one differing field), plus the CLI's own plain-text wording for a session-ending block.
  */
 
 import { describe, expect, it } from 'vitest'

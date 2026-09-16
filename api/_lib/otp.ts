@@ -1,9 +1,8 @@
 /**
  * One-time codes (SMS second factor, password/invite tokens) and TOTP
- * (RFC 6238) — `password.ts`'s "no new dependency" rule extends here:
- * `node:crypto` has everything HOTP/TOTP needs (HMAC-SHA1 over a counter),
- * so this is ~70 lines instead of an `otplib` dependency.
- */
+ * (RFC 6238). `node:crypto` has everything HOTP/TOTP needs (HMAC-SHA1 over
+ * a counter), so no `otplib` dependency, matching `password.ts`'s "no new
+ * dependency" rule. */
 import { createHmac, randomBytes, randomInt, timingSafeEqual } from 'node:crypto'
 
 const CODE_DIGITS = 6

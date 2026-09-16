@@ -1,10 +1,7 @@
 /**
- * The job timeline (`22-analytics-v2.md` §5.2, AC-1256/AC-1257/AC-1261) — a
- * live `role="log"` list of tool-call steps plus interim findings. A `done`
- * job collapses it behind `Show steps` (`Collapsible`, already restyled).
- * The in-flight step's dot reuses `Skeleton`'s own guarded `animate-pulse`
- * (R18: a loading indicator, not an idle ambient loop) rather than a bespoke
- * spinner — the convention `durationMs === 0` marks that one event unsettled.
+ * The job timeline (AC-1256/AC-1257/AC-1261): a live log of tool-call steps
+ * plus interim findings, collapsed behind `Show steps` once done. The
+ * in-flight dot reuses Skeleton's pulse animation (R18, not an ambient loop).
  */
 
 import { useState } from 'react'

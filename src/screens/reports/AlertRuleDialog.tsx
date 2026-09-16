@@ -1,9 +1,8 @@
 /**
- * The alert rule composer — v2 (`22-analytics-v2.md` §4). An inline panel,
- * not a `Dialog` (owner's no-dialog ruling): it replaces the trigger's
- * surrounding content in place. Four condition kinds; the preview runs the
- * same `evaluate()` the server runs (AC-1226). `critical` severity stays
- * disabled (Q-RB-9); D43's recipient filter now runs on `effectivePermissions`.
+ * The alert rule composer. An inline panel, not a `Dialog` (owner's
+ * no-dialog ruling): it replaces the trigger's surrounding content in
+ * place. The preview runs the same `evaluate()` the server runs (AC-1226).
+ * D43's recipient filter runs on `effectivePermissions`.
  */
 
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react'

@@ -1,23 +1,6 @@
 /**
- * The spawn — `01-analyst-agent.md` §3.3, AC-1249. `buildSpawnArgs` is pure
- * (the argv AC-1249 checks); `runAnalystSpawn` does the actual
- * `child_process.spawn`, streams `stream-json`, and enforces the 20-minute
- * timeout.
- *
- * **Confirmed against a real `claude -p` invocation on this machine**
- * (not assumed from the doc): `--json-schema` does not make the final
- * assistant message raw JSON. It adds a built-in `StructuredOutput` tool —
- * present in `system/init`'s `tools` regardless of `--allowedTools` /
- * `--disallowedTools` — and the model must call it; its `input` is the
- * validated structured answer, echoed again in the terminal `result`
- * message's own `structured_output` field. `agent/settings.json`'s
- * PreToolUse hook must special-case this one non-`mcp__eyvar__` tool or the
- * model could never submit an answer at all (see that file's own comment).
- * The same real run also showed the installed CLI (2.1.226) rejecting
- * `--permission-prompts` outright ("unknown option") — that flag needs
- * 2.1.259+; §3.3 still requires it in the argv this file builds, since the
- * runner is meant to run on a kept-current machine, and AC-1249 checks for
- * its presence, not that this particular sandbox's CLI accepts it.
+ * The spawn (§3.3, AC-1249, D38): `buildSpawnArgs` is pure argv construction; `runAnalystSpawn` does the real `child_process.spawn` against the owner's subscription, streaming `stream-json` and enforcing the timeout.
+ * Confirmed live: `--json-schema` adds a built-in `StructuredOutput` tool the model must call to answer at all, regardless of `--allowedTools`/`--disallowedTools` — `agent/settings.json`'s PreToolUse hook special-cases it for exactly this reason.
  */
 
 import { spawn as spawnProcess, exec as execProcess } from 'node:child_process'
@@ -174,11 +157,9 @@ function extractCandidate(resultMessage: StreamMessage | null): unknown {
 }
 
 /**
- * The line-by-line `stream-json` state machine, extracted from the process
- * plumbing so it is directly testable against a captured transcript with no
- * child process at all (`collectFromLines`, used by `spawn.test.ts`) — the
- * real spawn (`runAnalystSpawn`) feeds it the same way, one line at a time
- * as stdout arrives.
+ * The line-by-line `stream-json` state machine, split out so it is testable
+ * against a captured transcript with no child process (`collectFromLines`,
+ * used by `spawn.test.ts`) — the real spawn feeds it the same way.
  */
 function createStreamCollector() {
   const lines: string[] = []
@@ -277,15 +258,9 @@ export function collectFromLines(lines: readonly string[]): Omit<SpawnOutcome, '
 }
 
 /**
- * `child.kill('SIGTERM')` alone is not enough here: `spawnAndCollect` runs
- * with `shell: true`, so the direct child is the shell (`cmd.exe` on
- * Windows), not `claude` itself — killing the shell does not kill its own
- * child. Confirmed live: a hung process survived `child.kill('SIGTERM')`
- * for the full 10 s test timeout on this machine. `taskkill /t /f` kills
- * the whole process tree by pid on Windows; POSIX's plain `SIGTERM` is
- * enough there since a shell it starts (`/bin/sh -c ...`) forwards signals
- * to its own child by default in the case that matters here (no
- * `detached: true`, no new process group).
+ * `child.kill('SIGTERM')` alone is not enough: `shell: true` makes the
+ * direct child the shell, not `claude` — confirmed live, a hung process
+ * survived a bare SIGTERM. `taskkill /pid ... /t /f` kills the whole tree on Windows; plain `SIGTERM` suffices on POSIX.
  */
 function killProcessTree(child: ReturnType<typeof spawnProcess>): void {
   if (process.platform === 'win32' && child.pid) {
@@ -298,22 +273,17 @@ function killProcessTree(child: ReturnType<typeof spawnProcess>): void {
 }
 
 /**
- * Command-agnostic process plumbing: spawn, stream stdout line-by-line
- * through a fresh collector, enforce the timeout. Separated from
- * `runAnalystSpawn` so the timeout/SIGTERM/exit-code behaviour is testable
- * against a plain, valid `node` invocation — `buildSpawnArgs`'s argv is
- * always claude-shaped and cannot itself run an arbitrary test script.
+ * Command-agnostic process plumbing: spawn, stream stdout through a fresh
+ * collector, enforce the timeout. Separated from `runAnalystSpawn` so this
+ * is testable against a plain `node` invocation, since `buildSpawnArgs`'s argv is always claude-shaped.
  */
 async function spawnAndCollect(command: string, args: string[], cwd: string, env: Record<string, string>, timeoutMs: number): Promise<SpawnOutcome> {
   const collector = createStreamCollector()
   let timedOut = false
 
-  // `shell: true` — Windows' `child_process.spawn` does not resolve a PATH executable without a
-  // shell (no PATHEXT lookup), and the runner's target machine's OS is not assumed either way.
-  // `command` is quoted by hand when it holds a space: `shell: true` passes it to the shell
-  // unquoted, and on Windows the install path itself often has one (`C:\Program Files\...`) —
-  // confirmed by running exactly this against `process.execPath` on this machine, which split on
-  // the space and failed with `'C:\Program' is not recognized...` before this fix.
+  // `shell:true` needs `command` hand-quoted when it has a space: Windows passes
+  // it to the shell unquoted, and CLI install paths often have one
+  // (`C:\Program Files\...`) — confirmed live, this broke before the quoting fix.
   const shellSafeCommand = command.includes(' ') ? `"${command}"` : command
   const child = spawnProcess(shellSafeCommand, args, { cwd, shell: true, env: { ...process.env, ...env } })
 

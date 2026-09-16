@@ -1,9 +1,7 @@
 /**
- * §8's runner-side fallback (AC-1266/AC-1267) — `checkSchedulesDue` itself,
- * with `./httpClient.js` mocked (no real network). The exactly-once
- * arbitration is a server property (`api/v1/agent.test.ts`'s AC-1266
- * describe block); this file only proves the throttle and the "never
- * crashes the poll loop" contract.
+ * §8's runner-side fallback (AC-1266/AC-1267) — `checkSchedulesDue`, with
+ * `./httpClient.js` mocked. The exactly-once arbitration is a server
+ * property (`api/v1/agent.test.ts`'s AC-1266 block); this only proves the throttle and the "never crashes the poll loop" contract.
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { readRunnerEnv } from './env.js'

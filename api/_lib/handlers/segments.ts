@@ -1,9 +1,7 @@
 /**
- * `segments.*` — WP-6.5 (`05-backend.md` §3, §7). A saved, reusable
- * population filter (`src/data/types/segment.ts`'s `Segment`), which this
- * module returns verbatim — that type has no field this schema cannot
- * round-trip, so there is no separate wire shape the way `reports.ts` needs
- * one.
+ * `segments.*` (05-backend.md §3, §7): a saved, reusable population filter,
+ * returned verbatim — `Segment` has no field this schema cannot round-trip,
+ * so there is no separate wire shape the way `reports.ts` needs one.
  */
 import type { ApiErrorDetail } from '../errors'
 import { notFoundError, validationError } from '../errors'

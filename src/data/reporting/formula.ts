@@ -1,8 +1,7 @@
 /**
- * The report-builder formula grammar, `02-report-builder-v2.md` §2.2's
- * `expr`/`term`/`factor` grammar verbatim — `parseFormula` (syntax, AC-1104),
- * `formulaUnit` (unit rules, AC-1105 … AC-1107) and `evaluateFormula`
- * (arithmetic; a gap is `null`, never `0`, per AGENT-BRIEF "the traps").
+ * Report-builder formula grammar (`02-report-builder-v2.md` §2.2's
+ * `expr`/`term`/`factor` verbatim): `parseFormula` (AC-1104), `formulaUnit`
+ * (AC-1105…AC-1107), `evaluateFormula` (a gap is `null`, never `0`).
  */
 
 import type { CurrencyCode } from '@/data/types/common'
@@ -79,10 +78,9 @@ const SIMPLE_TOKENS: Record<string, SimpleTokenType> = {
 }
 
 /**
- * §9.2: an Arabic-locale keyboard sends Arabic-Indic digits. `toLatinDigits`
- * maps one code point to one ASCII digit, so the normalised string is the same
- * length as the source and every reported position still points at what the
- * operator typed.
+ * §9.2: Arabic-Indic digits. `toLatinDigits` maps one code point to one
+ * ASCII digit, keeping the normalised string the same length as the source
+ * so every reported position still points at what the operator typed.
  */
 function tokenize(source: string): { tokens: Token[] } | { error: FormulaParseError } {
   const normalised = toLatinDigits(source)
@@ -264,10 +262,9 @@ function parseExpr(c: Cursor): NodeResult {
 }
 
 /**
- * AC-1104. Syntax only — never throws, and never reports `formula-unknown-ref`
- * or a unit refusal; those need the query's measures and are `formulaUnit`'s
- * job. An empty or whitespace-only expression is a parse error at the position
- * right after the (trimmed-away) whitespace, same as any other missing operand.
+ * AC-1104: syntax only, never throws. Never reports `formula-unknown-ref`
+ * or a unit refusal — those need the query's measures and are
+ * `formulaUnit`'s job.
  */
 export function parseFormula(expr: string): FormulaParseResult {
   const scanned = tokenize(expr)
@@ -381,10 +378,9 @@ function unitOf(node: FormulaNode, refs: FormulaRefs): UnitResult {
 }
 
 /**
- * AC-1105: `A / B * 100` is `percent`. The grammar has no unit-suffix
- * operator, so scaling a ratio by the exact literal `100` is its one spelling
- * of "as a percentage"; any other multiplier leaves a scaled, still
- * dimensionless ratio.
+ * AC-1105: `A / B * 100` is `percent` — scaling a ratio by the exact
+ * literal `100` is the grammar's only spelling of "as a percentage"; any
+ * other multiplier leaves a scaled, still dimensionless ratio.
  */
 function promoteRatioToPercent(
   leftNode: FormulaNode,
@@ -514,10 +510,9 @@ function rollingAverage(points: (number | null)[], n: number): (number | null)[]
 }
 
 /**
- * Mirrors `transforms.ts`'s `cumulative` (AC-1110) exactly, so a formula's
- * `CUMSUM` and the `cumulative` transform never disagree over the same
- * series: a gap does not reset or zero the total, it carries forward
- * silently, but the gap's own bucket is `null` so the chart draws the break.
+ * Mirrors `transforms.ts`'s `cumulative` (AC-1110): a gap does not reset or
+ * zero the running total — it carries forward silently — but the gap's own
+ * bucket stays `null` so the chart still draws the break.
  */
 function cumulativeSum(points: (number | null)[]): (number | null)[] {
   let running = 0
@@ -566,10 +561,9 @@ function evalNode(node: FormulaNode, series: FormulaSeriesInput): (number | null
 }
 
 /**
- * AGENT-BRIEF: never throws on user input. An expression that fails to parse
- * evaluates to a gap at every bucket, since the caller is expected to have
- * checked `parseFormula`/`formulaUnit` before ever reaching here; a `B`
- * referenced without a `B` series behaves the same way (`seriesOf` above).
+ * Never throws on user input. A parse failure evaluates to a gap at every
+ * bucket — the caller is expected to have checked `parseFormula`/
+ * `formulaUnit` first; an unreferenced `B` series behaves the same way.
  */
 export function evaluateFormula(series: FormulaSeriesInput, expr: string): (number | null)[] {
   const parsed = parseFormula(expr)

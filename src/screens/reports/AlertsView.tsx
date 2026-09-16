@@ -1,10 +1,8 @@
 /**
- * The alert rules list and the firings feed (`?view=alerts`) — v2
- * (`22-analytics-v2.md` §4, `04-alerting-v2.md` §4). A `ViewTabs` strip (not a
- * route) switches **Rules** and **Firings**; the composer opens in place of
- * the list, never as a dialog. One badge per row; a breach is never red
- * (R5a). Rules applied: R10 (one standing-condition banner), X15 (a hint,
- * not a hover-only fact), §7.3 (a mute control is a column, not hover-only).
+ * The alert rules list and the firings feed (`?view=alerts`). A `ViewTabs`
+ * strip (not a route) switches **Rules** and **Firings**; the composer opens
+ * in place of the list, never as a dialog. One badge per row; a breach is
+ * never red (R5a). One standing-condition banner (R10).
  */
 
 import { useState } from 'react'
@@ -167,12 +165,11 @@ export function AlertsView({
     }
   }
 
-  /* The rules table's sparkline (AC-1233) and the anomaly no-baseline row
-     state (§7 state 23) both need each visible rule's own resolved series —
-     no endpoint returns a rolling reading list for a rule at rest, so this
-     runs each row's report once, the same path `evaluateAlertRule` already
-     takes server-side. Bounded to the current page; a failed row is simply
-     omitted rather than failing the whole row. */
+  /* The rules table's sparkline (AC-1233) and anomaly no-baseline state
+     need each visible rule's own resolved series — no endpoint returns a
+     rolling reading for a rule at rest, so this runs each row's report once,
+     the same path `evaluateAlertRule` takes server-side. A failed row is
+     simply omitted, never fails the whole row. */
   const ruleIdsKey = rows.map((rule) => rule.id).join(',')
   const rowSeries = useAsync<Record<string, RowSeriesInfo>>(
     async (signal) => {

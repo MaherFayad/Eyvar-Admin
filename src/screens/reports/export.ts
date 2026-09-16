@@ -1,10 +1,8 @@
 /**
- * `ReportCsv` → a file on disk, and the PNG audit call beside it — §10.1/§10.2,
- * `02-report-builder-v2.md` §9, AC-1160. Renamed from `csv.ts`; the old path is
- * now a re-export shim so `DataTable.tsx`, `BreakdownList.tsx`, `ExportCard.tsx`
- * and `RevenueScreen.tsx` (other roles' files) keep resolving it. Money here is
- * decimal SAR, §10.2's one deliberate break of the halalas rule; the conversion
- * happens in `reports.ts`, never here — this file only serialises and downloads.
+ * `ReportCsv` → a file on disk, and the PNG audit call beside it (AC-1160).
+ * `csv.ts` is now a re-export shim for this file. Money here is decimal SAR
+ * — the one deliberate break of the halalas-integer rule (§10.2); the
+ * conversion happens in `reports.ts`, never here.
  */
 
 import type { FilterSpec, IsoDate } from '@/data/types'
@@ -75,13 +73,10 @@ function row(fields: readonly string[]): string {
 }
 
 /**
- * Hand the text to the browser.
- *
- * A blob and an object URL rather than a data URI: a 400-bucket report over
- * eight series is 3,200 rows, and a data URI of that length is refused by more
- * than one browser. The URL is revoked immediately after the click — an object
- * URL that is never revoked keeps the whole blob alive for the life of the tab,
- * and an operations console is open all day.
+ * Hand the text to the browser via a blob and object URL, not a data URI —
+ * a large CSV is refused as a data URI by more than one browser. The URL is
+ * revoked immediately after the click: an unrevoked object URL keeps the
+ * blob alive for the life of the tab, and this console stays open all day.
  */
 export function downloadCsv(filename: string, text: string): void {
   const blob = new Blob([text], { type: 'text/csv;charset=utf-8' })

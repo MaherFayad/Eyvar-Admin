@@ -1,8 +1,8 @@
 /**
- * §2.8: view-only chart prefs, kept OUT of `ReportQuery` so flipping one costs
- * no request. Persisted through `persistence.ts`'s D16 class-3 cache, keyed on
- * the report id or the query hash for a draft. Not in `UI_STATE_KEYS` (the
- * shell's own schema); namespaced `ui.chartView.*` so sign-out still sweeps it.
+ * §2.8: view-only chart prefs, kept OUT of `ReportQuery` so flipping one
+ * costs no request. Persisted via `persistence.ts`'s D16 class-3 cache,
+ * keyed on the report id or draft query hash, namespaced `ui.chartView.*`
+ * so sign-out still sweeps it (not in the shell's own `UI_STATE_KEYS`).
  */
 
 import { useEffect, useMemo, useState } from 'react'
@@ -65,9 +65,9 @@ export interface UseChartViewResult {
 
 /**
  * `key` is the report id, or `serialiseReportQuery(query)` for an unsaved
- * draft (the caller's choice — this hook does not compute the hash itself, so
- * it never has to know the query shape). `chartType` seeds the stated default
- * the first time this key is ever seen.
+ * draft — the caller's choice, since this hook never computes the hash
+ * itself. `chartType` seeds the stated default the first time this key is
+ * ever seen.
  */
 export function useChartView(key: string, chartType: ChartType): UseChartViewResult {
   const storeKey = `ui.chartView.${key}`

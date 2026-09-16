@@ -1,9 +1,7 @@
 /**
- * The ask composer (`22-analytics-v2.md` §5.1, AC-1255) — an inline card,
- * never a dialog (owner's no-dialog ruling). `Kind` is a segmented control
- * because it changes the output schema entirely (R15's stadium exception).
- * `Ask` is the view's one primary (R3); restyled on arrival: `Card`,
- * `Tabs`/`TabsList variant="segmented"`, `Textarea`, `Popover` + `Command`.
+ * The ask composer (AC-1255): an inline card, never a dialog (owner's
+ * no-dialog ruling). `Kind` is a segmented control since it changes the
+ * output schema (R15's exception); `Ask` is the view's one primary (R3).
  */
 
 import { useState } from 'react'

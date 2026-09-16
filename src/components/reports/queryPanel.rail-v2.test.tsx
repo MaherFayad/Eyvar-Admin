@@ -1,9 +1,8 @@
 /**
- * `QueryPanel`'s v2 rows — §5.3's new order (WP-2.6): Formula and Transform
- * land between the second measure and Split by; Segments lands between Split
- * by and Filters. `groupBy`'s v2 array shape (G4) is exercised here too, and
- * WP-2.6b closes the two gaps the WP-2.6 handoff flagged: a second split
- * level, and `Measured as` (G1).
+ * `QueryPanel`'s v2 rows — §5.3 order (WP-2.6): Formula/Transform between
+ * the second measure and Split by; Segments between Split by and Filters.
+ * Covers `groupBy`'s v2 array shape (G4) and WP-2.6b's two gaps: a second
+ * split level and `Measured as` (G1).
  */
 
 import { render, screen, within } from '@testing-library/react'

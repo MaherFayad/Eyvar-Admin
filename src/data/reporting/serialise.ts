@@ -1,9 +1,7 @@
 /**
- * `ReportQuery` ⇄ URL, the storage adapter §9.2 assigns it while Q1 is open
- * (AC-853). One opaque `q` param, base64url of JSON, not one param per
- * control. v2 writes `v: 2` and is lossless up to `normaliseReportQuery`
- * (AC-1102); a URL with no `v` key is v1 and migrates through that same
- * function (AC-1100/1101), so there is one migration path, not two.
+ * `ReportQuery` ⇄ URL (§9.2, AC-853): one opaque `q` param, base64url of
+ * JSON, not one param per control. v2 writes `v: 2`, lossless up to
+ * `normaliseReportQuery` (AC-1102); a v1 URL migrates through that same function — one path, not two.
  */
 
 import {
@@ -152,9 +150,8 @@ function encodeFunnel(funnel: FunnelSpec): WireFunnelV2 {
 
 /**
  * Reads either wire shape and hands back the matching `ReportQueryInput`
- * shape untouched — `normaliseReportQuery` is the one place that migrates
- * v1's `conversionWindowDays` into `conversionWindow`, so this function does
- * not repeat that decision.
+ * shape untouched. `normaliseReportQuery` is the one place that migrates
+ * v1's `conversionWindowDays` into `conversionWindow` — not repeated here.
  */
 function decodeFunnel(
   raw: WireFunnelV1 | WireFunnelV2 | undefined,
@@ -320,10 +317,9 @@ function decodeTable(raw: WireTable | undefined): TableSpec | undefined {
 }
 
 /**
- * Keys in a fixed order (§9.2: one question, one link). `v: 2` first, then
- * the seven keys every v1 URL carried, then `mo`/`fn`/`co`/`jo` and the five
- * v2 keys — each written only when it differs from its default, so a plain
- * query serialises to `v` plus the v1 set and nothing more (AC-1102).
+ * Keys in a fixed order (§9.2: one question, one link). `v: 2`, the seven
+ * v1 keys, then `mo`/`fn`/`co`/`jo` and the v2 keys — each written only
+ * when it differs from its default (AC-1102).
  */
 export function serialiseReportQuery(query: ReportQuery): string {
   /* A public entry point: a stored saved report or a test may still hold a
@@ -383,9 +379,7 @@ interface WireQuery {
 /**
  * Restore. Returns `null` on anything unparseable — a domain outcome the
  * panel renders as "this link is not a report", never a thrown exception
- * (§8.3 state 2). A v1 URL (no `v` key) decodes into the same
- * `ReportQueryInput` shape `normaliseReportQuery` already migrates, so the
- * migration rules live in exactly one function (AC-1100/1101).
+ * (§8.3 state 2). A v1 URL decodes via the same `normaliseReportQuery` migration (AC-1100/1101).
  */
 export function deserialiseReportQuery(encoded: string): ReportQuery | null {
   try {

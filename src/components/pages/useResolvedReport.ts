@@ -1,9 +1,7 @@
 /**
- * Resolves one `reportId` under a page's scope — the same four/five states
- * `DashboardTile.tsx` proved (AC-1186), extracted so `ReportBlock` and
- * `MetricBlock` share one fetch-and-scope path instead of two. Each block
- * owns its own call: a page with nine blocks never fails as a unit
- * (`03-pages-and-dashboards.md` §1, "the `missing` tile state … unchanged").
+ * Resolves one `reportId` under a page's scope — DashboardTile's states
+ * (AC-1186), shared by `ReportBlock`/`MetricBlock` instead of duplicated.
+ * Each block owns its own call, so a page of blocks never fails as a unit.
  */
 
 import { useCallback, useMemo } from 'react'

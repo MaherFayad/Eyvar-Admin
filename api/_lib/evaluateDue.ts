@@ -1,19 +1,8 @@
 /**
- * `api/cron/alerts-hourly.ts` and `alerts-daily.ts` share this
- * (05-backend.md §8): select rules due for the given cadence, run each one's
- * report as its owner, `evaluate()` and `machine.nextAlertState()` — the
- * **imported** definitions (`src/data/reporting/alerts/`), never
- * reimplemented — persist the transition, and on a firing deliver through
- * `alertDelivery.ts`.
- *
- * A partial bucket is never evaluated because `evaluate()` enforces it on
- * the `ResolvedSeries` built straight from `reports.run`'s own
- * `partialBucketIndexes` — this file picks no bucket itself, only passes the
- * report's own marking through. AC-1221/AC-1286: `isNewBucket` gates a
- * weekly-or-coarser rule's `conditionMet` to `null` on a cadence tick that
- * lands on the same complete bucket as last time, so a weekly rule on the
- * daily cadence can fire at most once per new bucket.
- */
+ * Shared by `alerts-hourly.ts`/`alerts-daily.ts` (05-backend.md §8): selects
+ * rules due for the cadence, calls the **imported** `evaluate()`/
+ * `machine.nextAlertState()` — never reimplemented — persists the
+ * transition, and delivers through `alertDelivery.ts` on a firing. */
 import { evaluate, isNewBucket, type ResolvedSeries } from '@/data/reporting/alerts/evaluate'
 import { nextAlertState, type AlertMachineInput, type AlertTransition } from '@/data/reporting/alerts/machine'
 import { reportQueryPath } from '@/data/reporting/serialise'
@@ -233,6 +222,9 @@ async function evaluateOneRule(opts: EvaluateOneRuleOptions): Promise<void> {
   // one's comparison" regardless of id formatting.
   const comparison = result.series.find((s) => s.role === 'comparison' && s.measureKey === target.measureKey && s.groupValue === target.groupValue) ?? null
 
+  // partialBucketIndexes passes through unchanged — this file picks no bucket
+  // itself; evaluate() is what excludes it from the condition (AGENT-BRIEF's
+  // partial-bucket trap).
   const resolvedSeries: ResolvedSeries = {
     buckets: result.buckets,
     points: target.points,

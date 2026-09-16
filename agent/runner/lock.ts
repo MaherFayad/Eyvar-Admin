@@ -1,9 +1,7 @@
 /**
- * §3.3: "One job at a time per runner. A second runner instance refuses to
- * start if a lock file is held." An `O_EXCL` create is the whole mechanism —
- * atomic on every OS this might run on, no separate check-then-write race.
- * Lives outside `agent/sandbox/` (which must stay empty for the spawned
- * session) and outside git (added to `agent/.gitignore`).
+ * §3.3: one job at a time per runner — a second instance refuses to start
+ * while the lock file is held. An `O_EXCL` create is the whole mechanism,
+ * atomic with no check-then-write race. Lives outside `agent/sandbox/` and git.
  */
 
 import { openSync, closeSync, unlinkSync, writeSync, existsSync, readFileSync } from 'node:fs'

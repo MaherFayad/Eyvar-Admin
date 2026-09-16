@@ -1,8 +1,7 @@
 /**
- * WP-2.6b gaps 1 (G1) and 3 (G4): `plan.ts` carried no violation for an
- * illegal transform or a third `groupBy` level, so a hand-edited URL was
- * never refused (D9 CQ-3). `transformOptions` is the one computation both
- * the disabled control and the pushed violation read.
+ * G1/G4: `plan.ts` carried no violation for an illegal transform or a
+ * third `groupBy` level, so a hand-edited URL was never refused (D9 CQ-3).
+ * `transformOptions` is the one computation both the control and the violation read.
  */
 
 import { describe, expect, it } from 'vitest'

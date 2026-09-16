@@ -9,11 +9,8 @@ import type { MeasureKey } from './measure'
 
 /**
  * A behavioural filter: *"did this many of this measure in this window"*.
- *
- * Refused by the mock for any measure whose population is not a subject
- * resource (`reporting/subjects.ts`), and by the planner with
- * `segment-performed-unsupported` until `Measure.supportsPerformed` says the
- * server can answer it.
+ * Refused by the mock unless the measure is a subject population; the
+ * planner refuses with `segment-performed-unsupported` until `Measure.supportsPerformed` allows it.
  */
 export interface PerformedSpec {
   measureKey: MeasureKey

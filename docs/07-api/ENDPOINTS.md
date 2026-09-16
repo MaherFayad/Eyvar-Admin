@@ -15,12 +15,12 @@ client and regenerate. Conventions, envelopes, auth and error shapes live in
 | Method | Path | Returns | Request | Fails with | Function |
 |---|---|---|---|---|---|
 | GET | `/api/v1/agent/jobs` | `Paginated<AgentJob>` | `q · view=mine\|team · filters[state\|kind] · page · pageSize` | - | `listAgentJobs()` |
-| POST | `/api/v1/agent/jobs` | `Single<AgentJob>` | `CreateAgentJobInput` | - | `createAgentJob()` |
+| POST | `/api/v1/agent/jobs` | `Single<AgentJob>` | - | - | `createAgentJob()` |
 | GET | `/api/v1/agent/jobs/:id` | `Single<AgentJob>` | - | - | `getAgentJob()` |
 | GET | `/api/v1/agent/jobs/:id/events?after=seq` | `AgentEvent[]` | - | - | `listAgentJobEvents()` |
 | GET | `/api/v1/agent/schedules` | `AgentSchedule[]` | - | - | `listAgentSchedules()` |
-| POST | `/api/v1/agent/schedules` | `Single<AgentSchedule>` | `CreateAgentScheduleInput` | - | `createAgentSchedule()` |
-| PATCH | `/api/v1/agent/schedules/:id` | `Single<AgentSchedule>` | `UpdateAgentScheduleInput` | - | `updateAgentSchedule()` |
+| POST | `/api/v1/agent/schedules` | `Single<AgentSchedule>` | - | - | `createAgentSchedule()` |
+| PATCH | `/api/v1/agent/schedules/:id` | `Single<AgentSchedule>` | - | - | `updateAgentSchedule()` |
 | GET | `/api/v1/agent/status` | `AgentRunner` | - | - | `getAgentStatus()` |
 
 ## `src/data/clients/alerts.ts`
@@ -35,15 +35,15 @@ client and regenerate. Conventions, envelopes, auth and error shapes live in
 | GET | `/api/v1/alerts/:id/config-history` | `Paginated<ConfigHistoryEntry>` | - | - | `getAlertConfigHistory()` |
 | POST | `/api/v1/alerts/:id/evaluate` | `AlertEvaluation` | - | - | `evaluateAlertRule()` |
 | GET | `/api/v1/alerts/:id/history` | `Paginated<AlertFiring>` | `page · pageSize` | - | `listAlertFirings()` |
-| POST | `/api/v1/alerts/:id/mute` | `Single<AlertRule>` | `{ until: IsoDateTime }` | - | `muteAlertRule()` |
-| GET | `/api/v1/alerts/firings` | `Paginated<AlertFiring>` | `q · filters[ruleId\|severity\|acknowledged] · page · pageSize` | - | `listFirings()` |
-| POST | `/api/v1/alerts/firings/:id/acknowledge` | `AlertFiring` | - | - | `acknowledgeFiring()` |
+| POST | `/api/v1/alerts/:id/mute` | `Single<AlertRule>` | - | - | `muteAlertRule()` |
+| GET | `/api/v1/alerts/firings` | `Paginated<AlertFiring>` | - | - | `listFirings()` |
+| POST | `/api/v1/alerts/firings/:id/acknowledge` | `AlertFiring (§7 state 27)` | - | - | `acknowledgeFiring()` |
 
 ## `src/data/clients/annotations.ts`
 
 | Method | Path | Returns | Request | Fails with | Function |
 |---|---|---|---|---|---|
-| GET | `/api/v1/annotations` | `Annotation[]` | `from · to` | - | `listAnnotations()` |
+| GET | `/api/v1/annotations` | `Annotation[]` | - | - | `listAnnotations()` |
 | POST | `/api/v1/annotations` | `Annotation` | `SaveAnnotationInput` | - | `saveAnnotation()` |
 | DELETE | `/api/v1/annotations/:id` | `204` | - | - | `deleteAnnotation()` |
 | PATCH | `/api/v1/annotations/:id` | `Annotation` | `SaveAnnotationInput` | - | `saveAnnotation()` |
@@ -357,10 +357,10 @@ client and regenerate. Conventions, envelopes, auth and error shapes live in
 | Method | Path | Returns | Request | Fails with | Function |
 |---|---|---|---|---|---|
 | GET | `/api/v1/pages` | `Paginated<Page>` | `q · view=mine\|team\|starred\|drafts\|templates · filters[kind\|ownerId] · page · pageSize` | - | `listPages()` |
-| POST | `/api/v1/pages` | `Single<Page>, or 409 { kind: 'conflict', details: [{ field: 'version', code: 'stale' }] }` | `{ title, icon, description, visibility, tags, scope, blocks, version }` | - | `savePage()` |
+| POST | `/api/v1/pages` | `Single<Page>, or 409 { kind: 'conflict', details: [{ field: 'version', code: 'stale' }] }` | - | - | `savePage()` |
 | DELETE | `/api/v1/pages/:id` | `204` | - | - | `deletePage()` |
 | GET | `/api/v1/pages/:id` | `Single<Page>` | - | - | `getPage()` |
-| PATCH | `/api/v1/pages/:id` | `Single<Page>, or 409 { kind: 'conflict', details: [{ field: 'version', code: 'stale' }] }` | `{ title, icon, description, visibility, tags, scope, blocks, version }` | - | `savePage()` |
+| PATCH | `/api/v1/pages/:id` | `Single<Page>, or 409 { kind: 'conflict', details: [{ field: 'version', code: 'stale' }] }` | - | - | `savePage()` |
 | POST | `/api/v1/pages/:id/duplicate` | `Single<Page>` | - | - | `duplicatePage()` |
 | POST | `/api/v1/pages/:id/publish` | `Single<Page>` | - | - | `publishPage()` |
 | POST | `/api/v1/pages/:id/star` | `Single<Page>` | - | - | `starPage()` |
@@ -460,11 +460,11 @@ client and regenerate. Conventions, envelopes, auth and error shapes live in
 | POST | `/api/v1/reports/:id/duplicate` | `Single<SavedReport>` | - | - | `duplicateReport()` |
 | POST | `/api/v1/reports/:id/star` | `Single<SavedReport>` | - | - | `starReport()` |
 | GET | `/api/v1/reports/:id/versions` | `Paginated<SavedReportVersion>` | - | - | `listReportVersions()` |
-| POST | `/api/v1/reports/contribution` | `ContributionResult` | `ContributionInput` | - | `contribution()` |
+| POST | `/api/v1/reports/contribution` | `ContributionResult` | - | - | `contribution()` |
 | POST | `/api/v1/reports/export` | `ReportCsv` | `ReportQuery` | - | `exportReport()` |
 | POST | `/api/v1/reports/run` | `ReportResult` | `ReportQuery` | - | `runReport()` |
-| POST | `/api/v1/reports/runs/:runId/describe` | `DescribeResult` | `{ seriesId }` | - | `describeSeries()` |
-| POST | `/api/v1/reports/sample` | `Record<string, unknown>[]` | `SampleRowsInput` | - | `sampleRows()` |
+| POST | `/api/v1/reports/runs/:runId/describe` | `DescribeResult` | - | - | `describeSeries()` |
+| POST | `/api/v1/reports/sample` | `Record<string, unknown>[]` | - | - | `sampleRows()` |
 
 ## `src/data/clients/requests.ts`
 
@@ -519,7 +519,7 @@ client and regenerate. Conventions, envelopes, auth and error shapes live in
 
 | Method | Path | Returns | Request | Fails with | Function |
 |---|---|---|---|---|---|
-| POST | `/api/v1/reports/run,` | `{ runId, result, summary }` | `ReportQuery` | - | `recordRun()` |
+| POST | `/api/v1/reports/run,` | `{ runId, result, summary }` | - | - | `recordRun()` |
 | GET | `/api/v1/reports/runs/:runId` | `Single<ReportRun>` | - | - | `getRun()` |
 
 ## `src/data/clients/safety.ts`

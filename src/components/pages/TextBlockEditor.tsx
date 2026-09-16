@@ -1,8 +1,7 @@
 /**
- * The text block's edit surface — a growing `<textarea>` plus a four-button
- * formatting bar that wraps the selection with markdown syntax (AC-1203).
- * Preview (`Markdown`) renders once the block loses focus; this component
- * never renders the parsed tree itself.
+ * The text block's edit surface: a growing textarea plus a formatting bar
+ * that wraps the selection in markdown (AC-1203). Preview renders only
+ * once the block loses focus — this component never renders the parsed tree.
  */
 
 import { useRef, type ChangeEvent } from 'react'

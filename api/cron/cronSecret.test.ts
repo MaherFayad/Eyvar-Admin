@@ -1,9 +1,7 @@
 /**
  * Every `/api/cron/*` default export refuses an unauthenticated call before
- * touching the database — the brief's "Every cron handler is guarded by
- * `CRON_SECRET`; an unauthenticated call is refused. Test that." `snapshot.ts`
- * carries its own copy of this test beside its other behaviour; this file is
- * the other four.
+ * touching the database (`CRON_SECRET`). `snapshot.ts` carries its own copy
+ * of this test beside its other behaviour; this file is the other four.
  */
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 

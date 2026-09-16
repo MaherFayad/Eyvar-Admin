@@ -91,10 +91,9 @@ export type ReportPreset =
   | 'last-12-months'
   | 'last-year'
   /**
-   * §2.7: matches Amplitude's range list without a custom range. `buckets.ts`'s
-   * `resolvePreset` typed these against a local `ReportPresetV2` superset
-   * (F-V2-5) until this union caught up; that superset is retired the same
-   * change this lands.
+   * §2.7: matches Amplitude's range list without a custom range. `buckets.ts`
+   * no longer needs a separate `ReportPresetV2` superset now this union
+   * covers it (F-V2-5).
    */
   | 'this-quarter'
   | 'last-quarter'
@@ -170,10 +169,9 @@ export type ChartType =
 
 /**
  * §3.2. A ref, not a copy of the measure — the catalogue is the definition.
- *
  * `aggregate` (G1) is legal only when `Measure.bucketAggregateOptions`
- * includes it; the planner emits `illegal-aggregate` otherwise. Absent means
- * the catalogue's own `Measure.bucketAggregate`.
+ * includes it (else `illegal-aggregate`); absent means the catalogue's own
+ * `bucketAggregate`.
  */
 export interface MeasureRef {
   key: MeasureKey
@@ -274,10 +272,9 @@ export type FunnelMeasuredAs = 'conversion' | 'conversion-over-time' | 'time-to-
 export interface FunnelSpec {
   steps: FunnelStep[]
   /**
-   * How long one subject has to reach the last step from the first. **`null`
-   * means the report window** — any other default is invented (AC-453).
-   * `normaliseReportQuery` migrates v1's `conversionWindowDays: n` here as
-   * `{ value: n, unit: 'day' }` (G10, §5).
+   * How long a subject has to reach the last step. **`null` means the report
+   * window** — any other default is invented (AC-453). `normaliseReportQuery`
+   * migrates v1's `conversionWindowDays: n` as `{ value: n, unit: 'day' }` (G10).
    */
   conversionWindow: { value: number; unit: 'hour' | 'day' | 'week' } | null
   /** Default `'ordered'`. `sequential` needs `Measure.funnelCapabilities.sequential`. */
@@ -492,10 +489,9 @@ function normaliseCohortSpec(cohort: CohortSpec | CohortSpecV1): CohortSpec {
 }
 
 /**
- * The query with every v1 shape migrated and every v2 default made explicit
- * (D42). `serialiseReportQuery` is **lossless up to this normalisation**: a
- * query with no `mode` and one with `mode: 'trend'` produce the same URL and
- * so come back as one value — the property the round-trip tests assert.
+ * Every v1 shape migrated, every v2 default made explicit (D42).
+ * `serialiseReportQuery` is **lossless up to this normalisation** — a query
+ * with no `mode` and one with `mode: 'trend'` produce the same URL.
  */
 export function normaliseReportQuery(query: ReportQueryInput): ReportQuery & { mode: ReportMode } {
   return {
@@ -558,10 +554,9 @@ export type ReportWarning =
    */
   | 'funnel-counted-not-followed'
   /**
-   * `funnel.mode: 'sequential'`, resolved directly rather than through
-   * `planQuery`'s `funnel-needs-server` (G10, §5). No store here has the
-   * event-level ordering it needs, so the resolver refuses rather than
-   * silently answering as `ordered` under another name.
+   * `funnel.mode: 'sequential'`, resolved directly, not via `planQuery`'s
+   * `funnel-needs-server` (G10, §5). No store has the event-level ordering
+   * it needs, so the resolver refuses rather than answering as `ordered`.
    */
   | 'funnel-sequential-not-resolved'
 
@@ -667,11 +662,9 @@ export interface ReportResult {
    */
   cohortSizes?: number[]
   /**
-   * §5 (F-V2-49, F-V2-57), `mode: 'funnel'` only, one entry per rung in step
-   * order, aligned to the funnel's own current-role series by `seriesId` —
-   * never a second query for it (the orchestrator's WP-3.5 ruling: extend
-   * this result, do not re-ask). `undefined` in every other mode and in any
-   * `resolveReport` not yet taught to fill it.
+   * §5 (F-V2-49, F-V2-57), `mode: 'funnel'` only, one entry per rung, aligned
+   * to the funnel's series by `seriesId` — extends this result rather than a
+   * second query (WP-3.5). `undefined` outside funnel mode.
    */
   funnelStepDetail?: FunnelStepDetail[]
 }
@@ -811,11 +804,9 @@ export interface OptionLegality<T extends string> {
 }
 
 /**
- * WP-2.6b, gap 1. Whether each transform toggle **could legally be turned on
- * right now** — computed once in `planQuery` from the same facts the pushed
- * `QueryViolation` reads, so `TransformControls` disables a checkbox in place
- * and a hand-edited URL that already holds an illegal transform is refused by
- * the identical rule, never a second copy of it.
+ * WP-2.6b: whether a transform toggle **could legally be turned on now** —
+ * computed once in `planQuery`, so `TransformControls` disables a checkbox
+ * in place and a hand-edited illegal-transform URL is refused by the same rule.
  */
 export interface TransformLegality {
   cumulative: OptionLegality<'cumulative'>
@@ -1160,10 +1151,9 @@ export type { Halalas }
 /* ─────────────────────── run provenance (F-V2-90, AC-1276) ──────────────── */
 
 /**
- * One series' arithmetic over a recorded run — T5's own stats
- * (`05-backend.md` §5). Lives here, not in `clients/runs.ts`, so both the
- * mock's `recordRun` and `handlers/reportsRun.ts` import one function and a
- * summary cannot drift between them the way `runId` once did (F-V2-90).
+ * One series' arithmetic over a recorded run — T5's stats (`05-backend.md`
+ * §5). Lives here, not in `clients/runs.ts`, so the mock and
+ * `handlers/reportsRun.ts` share one function (F-V2-90).
  */
 export interface RunSeriesSummary {
   total: number | null

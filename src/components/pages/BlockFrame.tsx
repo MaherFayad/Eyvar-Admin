@@ -1,9 +1,6 @@
 /**
- * The chrome around one block — §3.1. Always the accessible region
- * (`role="group"`, named), so a screen reader walks the page block by block
- * in both modes; the border, handle and kebab render only in edit mode.
- * Restyled on arrival: `border-transparent` at rest, `border-border` on
- * hover/focus-within (D19's two-step rule), focus ring survives.
+ * The chrome around one block (§3.1): an always-present accessible region,
+ * with the border, handle and kebab shown only in edit mode (D19).
  */
 
 import { useState, type ReactNode } from 'react'
@@ -23,12 +20,8 @@ export interface BlockFrameProps {
   children: ReactNode
 }
 
-/**
- * F-V2-87 — two blocks of the same type must not share one accessible name
- * (a screen-reader operator navigating by name could not tell which block's
- * menu they opened). Prefer the block's own title; blocks with no title
- * field always fall back.
- */
+/** F-V2-87 — two blocks of the same type must not share one accessible
+ * name; prefer the block's own title over the type+position fallback. */
 function blockOwnTitle(block: Block): string | null {
   switch (block.type) {
     case 'heading':

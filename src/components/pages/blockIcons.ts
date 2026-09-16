@@ -1,8 +1,6 @@
 /**
- * Block-type glyphs the shared registry (`components/icons.ts`) does not
- * carry yet — that file is another owner's, so these stay local rather than
- * landing there unreviewed. Same `icon()` contract: 1.75 stroke, `size-4`.
- * Flagged in the WP-4.2 handoff for the icon owner to promote if wanted.
+ * Block-type glyphs missing from the shared icon registry, kept local since
+ * that file has another owner. Same icon() sizing/stroke contract.
  */
 
 import { createElement, forwardRef } from 'react'

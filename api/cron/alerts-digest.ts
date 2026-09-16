@@ -1,11 +1,8 @@
 /**
- * `/api/cron/alerts-digest` (`0 5 * * *` UTC, 08:00 Riyadh) — 04-alerting-v2.md
- * §6: one in-app notification per opted-in operator (`users.alerts_digest_opt_in`,
- * off by default), summarising the rules they own or receive that fired in
- * the last 24 hours, with counts by rule. An operator with zero firings in
- * the window, or who never opted in, gets nothing — this cron never writes
- * an empty digest.
- */
+ * `/api/cron/alerts-digest` (`0 5 * * *` UTC, 08:00 Riyadh, §6): one in-app
+ * notification per opted-in operator (`alerts_digest_opt_in`, off by
+ * default), summarising fired rules from the last 24 hours. Zero firings or
+ * no opt-in gets nothing — never an empty digest. */
 import { createPgPoolDatabase, type Database } from '../_lib/db'
 import { requireCronSecret } from '../_lib/cronAuth'
 import { errorResponse } from '../_lib/errors'

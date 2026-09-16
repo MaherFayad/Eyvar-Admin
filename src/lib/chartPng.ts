@@ -1,9 +1,8 @@
 /**
- * A chart's `<svg>` → a PNG on disk (G16, `02-report-builder-v2.md` §9): drawn
- * at 2× with a caption band (title, window, grain, comparison, filters,
- * `asOf`, page URL) and the same text in a `tEXt` chunk, so the file traces
- * back to what produced it. jsdom has no canvas; the rasterising half is
- * proven in `scripts/harness/`, the byte-level chunk work in `chartPng.test.ts`.
+ * A chart's `<svg>` → PNG (G16, `02-report-builder-v2.md` §9): drawn at 2×
+ * with a caption band, and the caption text also burned into a `tEXt`
+ * chunk so the file traces back to what produced it (jsdom has no canvas;
+ * rasterising is proven in `scripts/harness/`, chunk bytes in `chartPng.test.ts`).
  */
 
 /** Every field the caption band states, left to right. */
@@ -45,11 +44,10 @@ function captionLines(caption: ChartPngCaption): string[] {
 }
 
 /**
- * Every custom property visible AT `source`, as a `:root` block: `globals.css`
- * tokens plus `ChartContainer`'s `[data-chart]`-scoped `--color-<key>` layer.
- * The standalone SVG document below (an object URL) has access to neither,
- * so reading the SOURCE element rather than the page root is what resolves
- * both — the root alone left every mark in the SVG spec's fallback ink.
+ * Every custom property visible AT `source`, as a `:root` block:
+ * `globals.css` tokens plus `ChartContainer`'s `--color-<key>` layer. The
+ * standalone SVG's object URL sees neither unless read from `source`, not
+ * the page root — reading the root alone left marks in the SVG's fallback ink.
  */
 function inlineCssCustomProperties(source: Element): string {
   const computed = getComputedStyle(source)
@@ -96,10 +94,10 @@ function canvasToPngBlob(canvas: HTMLCanvasElement): Promise<Blob> {
 }
 
 /**
- * The chart plus its caption band, at `scale`× — with the caption's text also
- * carried in the file's `tEXt` chunk. §9's "traceable back to what produced
- * it" is this function's whole job; the visible band is for a human, the
- * chunk is for whoever finds the file later with no chat thread attached.
+ * The chart plus its caption band, at `scale`× — with the caption text also
+ * carried in the `tEXt` chunk (§9's "traceable back to what produced it").
+ * The band is for a human; the chunk is for whoever finds the file later
+ * with no chat thread attached.
  */
 export async function renderChartPng(options: RenderChartPngOptions): Promise<Blob> {
   const { svg, caption, query, scale = DEFAULT_SCALE } = options

@@ -1,24 +1,6 @@
 /**
- * §7's enforcement, AC-1246, AC-1247 — the guarantee the product rests on:
- * "an agent that can assert an unbacked number is worse than no agent." Runs
- * before anything is posted to `/result`. The backend re-validates from
- * first principles too (`api/_lib/handlers/agent.ts`'s own `checkEvidence` —
- * never trusted, mirrored independently here so the runner can retry *once*
- * without spending a round trip on every mismatch, per §7 / AC-1247), but
- * this file is what decides whether that retry happens at all.
- *
- * Two failure categories, not one, because they get different treatment:
- *
- *  - `'schema'` — the shape is wrong on its face (missing fields, fewer than
- *    two `alternatives`, no `dataQuality`, an unmasked phone/email). Nothing
- *    here would be fixed by "try again with the same mismatch note" — the
- *    model needs to restructure its answer, and the doc (§7) states this as
- *    an outright schema failure, not a retryable one.
- *  - `'evidence'` — a cited `runId` this job never produced, or a number
- *    that does not match what the cited run actually recorded. AC-1247:
- *    "An evidence mismatch triggers exactly one retry with the mismatch
- *    appended; a second failure marks `failed:evidence`." Only this
- *    category gets that retry — the caller (`index.ts`) implements it.
+ * §7's enforcement (AC-1246, AC-1247): "an agent that can assert an unbacked number is worse than no agent." Runs before `/result` is posted; the backend re-validates independently, but this file decides whether a retry happens.
+ * `'schema'` failures (malformed shape) are not retryable; `'evidence'` failures (a bad runId or a number that doesn't match) get exactly one retry (AC-1247), then `failed:evidence`.
  */
 
 export interface ToolLogResult {
@@ -27,13 +9,9 @@ export interface ToolLogResult {
 }
 
 /**
- * One run this job actually produced, as observed in the spawn's own
- * stream. `'run'` carries the full result (from `run_report`, T5) so a
- * finding's numbers can be recomputed against it. `'run-ref'` is a runId
- * this job produced but whose tool (`compare_windows`/`contribution`, T6/T9)
- * returns only deltas, not raw series — its citation is still verifiable,
- * its individual finding values are not; those are left to the backend's
- * own check rather than silently declared correct.
+ * A run this job actually produced. `'run'` carries the full result
+ * (`run_report`, T5), recomputable; `'run-ref'` (T6/T9) returns only
+ * deltas — citable but not recomputable, left to the backend's check.
  */
 export type ToolLogEntry = { kind: 'run'; runId: string; result: ToolLogResult } | { kind: 'run-ref'; runId: string }
 
@@ -120,10 +98,9 @@ function checkShape(raw: unknown): { study: CaseStudyLike | null; violations: st
 }
 
 /**
- * "Any string that looks like an unmasked phone or email in the output
- * fails the job" (§7). A *masked* value (D44: `••<last 2>` for a phone,
- * `x••••@domain` for an email) never matches these — the bullet character
- * is not a valid local-part or digit, which is exactly why it is the mask.
+ * "Any string that looks like an unmasked phone or email fails the job"
+ * (§7). A masked value (D44: `••<last 2>` for a phone, `x••••@domain` for
+ * an email) never matches — the bullet is not a valid digit or local-part.
  */
 const EMAIL_PATTERN = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/
 /** A digit run with plausible phone punctuation. Counted by digit, not span length, below — an ISO date (`2026-06-24`, 8 digits) must not trip this; a real phone number (Saudi mobile: 10 digits, +966: 12) must. */

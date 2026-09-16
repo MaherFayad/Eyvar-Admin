@@ -1,9 +1,7 @@
 /**
- * Autosave — AC-1201, AC-1202. The 800 ms debounce and the single-flight
- * save queue both need fake timers, which is why the pages package skipped
- * them. A 409 that discards an operator's edit is silent data loss, so the
- * second describe proves the edit survives on the record, not merely on
- * screen.
+ * Autosave (AC-1201, AC-1202): the debounce and save queue need fake
+ * timers. A 409 that discards an edit is silent data loss (F-V2-70), so
+ * the second describe proves the edit survives on the record, not screen.
  */
 
 import { act, render, screen } from '@testing-library/react'

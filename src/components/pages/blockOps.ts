@@ -1,10 +1,7 @@
 /**
- * Pure tree operations over `Block[]` (D39, `03-pages-and-dashboards.md` §5).
- * `usePageEditor` calls these and nothing else touches the tree shape — one
- * place that knows a `toggle`'s children and a `columns` column's children
- * are both "a container", so `Alt+↑`, `Ctrl+D` and `Delete` work identically
- * wherever the focused block lives. Undo is snapshot-based (see
- * `usePageEditor.ts`), so this module never has to invert its own writes.
+ * Pure tree operations over `Block[]` (D39): the one place that treats a
+ * toggle's children and a columns column's children alike as "a container".
+ * Undo is snapshot-based (`usePageEditor.ts`), so writes need no inverse.
  */
 
 import { ulid } from '@/lib/ids'
@@ -68,10 +65,8 @@ export function insertBlock(blocks: readonly Block[], index: number, block: Bloc
 }
 
 /**
- * Inserts into a named container: the page root (`parentId: null`), a
- * toggle's own list, or one column of a `columns` block (`columnIndex`).
- * The block/slash-command picker and "Add block" inside a toggle/column all
- * resolve to one call here.
+ * Inserts into a named container: page root, a toggle's list, or one column
+ * of a columns block. Every insertion entry point resolves to this one call.
  */
 export function insertIntoContainer(
   blocks: readonly Block[],

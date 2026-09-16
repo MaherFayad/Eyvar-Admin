@@ -1,9 +1,7 @@
 /**
- * The analyst agent's operator-facing surface — `01-analyst-agent.md` §4, §5.
- * The runner-token routes (events, findings, result) are `agent/mcp/`'s, over
- * HTTP directly, never through this barrel. `AgentJobState` has no
- * `'cancelled'` member yet, so `cancelAgentJob` is not implemented here;
- * flagged in the handoff rather than minted.
+ * Analyst agent's operator-facing surface (`01-analyst-agent.md` §4-5).
+ * Runner-token routes go through `agent/mcp/` directly, never this barrel.
+ * `cancelAgentJob` is unimplemented: no `'cancelled'` member on `AgentJobState`.
  */
 
 import { DATA_SOURCE, registerOperations } from '../config'
@@ -98,11 +96,7 @@ export async function getAgentJob(id: string, signal?: AbortSignal): Promise<Sin
 /**
  * GET /api/v1/agent/jobs/:id/events?after=seq
  *   -> AgentEvent[]
- *
- * A bare array, the same finding `annotations.ts` makes: the job page polls
- * this every 2 s while `running` (§4) and needs the whole tail each time, not
- * a page of it. `after` is the event id already shown, so a re-poll only
- * asks for what it does not have.
+ * Bare array: polls every 2s while running (§4); `after` is the last event id shown, so a re-poll asks only for what's new.
  */
 export async function listAgentJobEvents(
   jobId: string,
@@ -129,12 +123,8 @@ export interface CreateAgentJobInput {
 
 /**
  * POST /api/v1/agent/jobs
- *   body: CreateAgentJobInput
  *   -> Single<AgentJob>
- *
- * Creates `queued`. The mock has no runner to claim it (`EYVAR_MCP_SOURCE`'s
- * own mock path is `agent/`'s, not this one); the job simply waits, which is
- * an honest state to show, not a simulation of one.
+ * Creates `queued` and stops: the mock has no runner to claim it (that's `agent/`'s own mock path) — an honest wait, not a simulated claim.
  */
 export async function createAgentJob(input: CreateAgentJobInput, signal?: AbortSignal): Promise<Single<AgentJob>> {
   if (DATA_SOURCE === 'http') return http.post<Single<AgentJob>>('/agent/jobs', input, { signal })
@@ -163,9 +153,7 @@ export async function createAgentJob(input: CreateAgentJobInput, signal?: AbortS
 /**
  * GET /api/v1/agent/status
  *   -> AgentRunner
- *
- * The analyst view's header line (§4): `Runner online · last seen 12:03` /
- * `Runner offline` / `At usage limit until 14:00`.
+ * Drives the analyst view's header line (§4): online/offline/at-limit text.
  */
 export async function getAgentStatus(signal?: AbortSignal): Promise<AgentRunner> {
   if (DATA_SOURCE === 'http') return http.get<AgentRunner>('/agent/status', undefined, { signal })
@@ -190,10 +178,7 @@ export function resetAgent(): void {
 /**
  * GET /api/v1/agent/schedules
  *   -> AgentSchedule[]
- *
- * The Schedules tab (§8) — a bare array, the same finding `listAgentJobEvents`
- * makes: the list is always small (one team's weekly reviews), so there is no
- * pagination furniture to wire.
+ * Bare array (§8): the list is always small, so there's no pagination to wire, same as `listAgentJobEvents`.
  */
 export async function listAgentSchedules(signal?: AbortSignal): Promise<AgentSchedule[]> {
   if (DATA_SOURCE === 'http') return http.get<AgentSchedule[]>('/agent/schedules', undefined, { signal })
@@ -208,11 +193,8 @@ export interface CreateAgentScheduleInput {
 
 /**
  * POST /api/v1/agent/schedules
- *   body: CreateAgentScheduleInput
  *   -> Single<AgentSchedule>
- *
- * `kind` is always `weekly-review` (§8) — the server does not accept it from
- * the body, and neither does this input type.
+ * `kind` is always `weekly-review` (§8); the input type omits it because the server does not accept it from the body.
  */
 export async function createAgentSchedule(input: CreateAgentScheduleInput, signal?: AbortSignal): Promise<Single<AgentSchedule>> {
   if (DATA_SOURCE === 'http') return http.post<Single<AgentSchedule>>('/agent/schedules', input, { signal })
@@ -242,11 +224,8 @@ export interface UpdateAgentScheduleInput {
 
 /**
  * PATCH /api/v1/agent/schedules/:id
- *   body: UpdateAgentScheduleInput
  *   -> Single<AgentSchedule>
- *
- * The enable/disable toggle (AC-1266's "a disabled schedule enqueues none")
- * goes through this same endpoint as a cron or template edit.
+ * The enable/disable toggle (AC-1266: a disabled schedule enqueues none) shares this endpoint with a cron or template edit.
  */
 export async function updateAgentSchedule(id: string, input: UpdateAgentScheduleInput, signal?: AbortSignal): Promise<Single<AgentSchedule>> {
   if (DATA_SOURCE === 'http') return http.patch<Single<AgentSchedule>>(`/agent/schedules/${id}`, input, { signal })

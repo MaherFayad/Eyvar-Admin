@@ -1,9 +1,8 @@
 /**
- * The three queries `AGT-1` cites (AC-1258, "no number without a run"),
- * run for real on read. `pickupDistrictSplit` is F2's decompose step, so it
- * carries `periodComparison`: one run whose `current`/`comparison` series
- * give `agent.ts` a real per-district `deltaAbs`. The comparison window
- * reaches before the fixture's earliest row; `agent.ts`'s `dataQuality.gaps` names it.
+ * The three queries `AGT-1` cites (AC-1258, "no number without a run"), run
+ * for real on read. `pickupDistrictSplit` carries `periodComparison` so
+ * `agent.ts` gets a real per-district `deltaAbs`; its window reaches before
+ * the fixture's earliest row, which `agent.ts`'s `dataQuality.gaps` names.
  */
 
 import type { ReportQuery } from '../types/report'

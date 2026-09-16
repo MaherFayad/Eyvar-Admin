@@ -1,15 +1,8 @@
 /**
- * Firing delivery — 04-alerting-v2.md §3's order: an `alert_firings` row (the
- * caller's job, before this runs), then one `notifications` row per in-app
- * recipient, then email per `email` channel user, then Slack per webhook.
- * AC-1283: one `alert_deliveries` row per recipient per channel attempt,
- * AC-1284: a failed Slack post is recorded `failed` and never thrown — this
- * function never rejects on a delivery failure, only on a programming error.
- *
- * D43: `dropRecipients` (`src/data/reporting/alerts/machine.ts`) is the one
- * reader of "does this recipient still hold the measure's permission" — not
- * reimplemented here.
- */
+ * Firing delivery, in order: `alert_firings`, then in-app `notifications`,
+ * then email, then Slack. AC-1283: one `alert_deliveries` row per recipient
+ * per channel; AC-1284: never rejects on delivery failure. D43's permission
+ * check (`dropRecipients`, `alerts/machine.ts`) is not reimplemented here. */
 import type { AlertChannel, AlertSeverity } from '@/data/types/alert'
 import type { NotificationPriority } from '@/data/types/notifications'
 import { dropRecipients, type RecipientPermission } from '@/data/reporting/alerts/machine'

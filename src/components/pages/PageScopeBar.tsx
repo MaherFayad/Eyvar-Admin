@@ -1,8 +1,7 @@
 /**
- * The page's scope bar — range and filter chips applied to every `report`/
- * `metric` block through `applyBoardScope` (§5, ported verbatim from
- * `DashboardDetailScreen.tsx`'s `BoardRangeControl`/`BoardFilterControl`,
- * unchanged mechanism and copy, per `03-pages-and-dashboards.md` §5).
+ * The page's scope bar: range/filter chips applied to every report or
+ * metric block via `applyBoardScope` (§5, ported from
+ * `DashboardDetailScreen.tsx`'s board range/filter controls).
  */
 
 import { Suspense, lazy, useState } from 'react'

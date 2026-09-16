@@ -166,10 +166,9 @@ export function resolvePreset(preset: ReportPreset, today: IsoDate): { from: Iso
 }
 
 /**
- * Equal-length prior window, the same calendar window one quarter/year earlier,
- * or an operator-named `fixed` window (§2.6, AC-830). `fixed` is returned as
- * named — the bucket-count match against the current window is `comparison-length`,
- * the planner's job, since this function has no `grain` to count with.
+ * Equal-length prior window, the same calendar window a quarter/year
+ * earlier, or an operator-named `fixed` window (§2.6, AC-830). `fixed` is
+ * returned as-is; matching its bucket count is `comparison-length`'s job in the planner.
  */
 export function comparisonWindow(
   current: { from: IsoDate; to: IsoDate },

@@ -1,8 +1,7 @@
 /**
- * `ReportBlockView`'s five states — moved and renamed from
- * `dashboards.test.tsx` / `pinnedShape.test.tsx` (D39). Same defects those
- * files proved against a `DashboardTile`, proven here against a `report`
- * block through `useResolvedReport` (AC-1186), never a fixture import.
+ * `ReportBlockView`'s five states (D39), proven the same way
+ * `dashboards.test.tsx`/`pinnedShape.test.tsx` proved them against a
+ * `DashboardTile`: through `useResolvedReport` (AC-1186), never a fixture.
  */
 
 import { render, screen, waitFor } from '@testing-library/react'

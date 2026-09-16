@@ -162,9 +162,9 @@ export interface CaseStudy {
 
 /**
  * `GET /api/v1/agent/status` — the runner's own state, read by the analyst
- * view's header line (`01-analyst-agent.md` §4: `Runner online · last seen
- * 12:03` / `Runner offline` / `At usage limit until 14:00`). A gap WP-1.8
- * found seeding real data: this had no type, only an object shaped like it.
+ * view's header line (`01-analyst-agent.md` §4: `Runner online` / `Runner
+ * offline` / `At usage limit`). WP-1.8 found this had no type, only an
+ * object shaped like one.
  */
 export interface AgentRunner {
   online: boolean

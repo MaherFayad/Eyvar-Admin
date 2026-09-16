@@ -1,10 +1,8 @@
 /**
- * The Postgres seam — `05-backend.md` §1: Neon's HTTP driver for request
- * handlers (no pool, survives Fluid Compute), `pg` + `attachDatabasePool` for
- * the long-running cron functions, and PGlite for tests. All three implement
- * `Database`, so `api/_lib/compile.ts` and every handler (WP-6.2+) write one
- * `db.sql` tagged template and never import a driver directly.
- */
+ * The Postgres seam (05-backend.md §1): Neon's HTTP driver for handlers, `pg`
+ * + `attachDatabasePool` for long-running crons, PGlite for tests. All three
+ * implement `Database`, so callers write one `db.sql` tagged template and
+ * never import a driver directly. */
 
 import { neon } from '@neondatabase/serverless'
 import { Pool } from 'pg'
@@ -55,12 +53,10 @@ export function createPgPoolDatabase(connectionString: string): Database {
 }
 
 /**
- * Wraps an already-constructed PGlite instance (or any object with the same
- * `.query()` shape) so tests run the identical `Database` interface against
- * in-process Postgres. The instance's lifecycle is the caller's — `close()`
- * here is a no-op so one PGlite instance can back several `Database` wrappers
- * in a test file.
- */
+ * Wraps a PGlite instance (or anything with the same `.query()` shape) so
+ * tests run the identical `Database` interface. Lifecycle is the caller's —
+ * `close()` is a no-op so one instance can back several `Database` wrappers
+ * in a test file. */
 export function createPgliteDatabase(pglite: {
   query<T>(text: string, params?: unknown[]): Promise<{ rows: T[] }>
 }): Database {

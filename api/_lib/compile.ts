@@ -1,29 +1,8 @@
 /**
- * The measure compiler — WP-6.4, `05-backend.md` §6. Resolves one measure's
- * population against `measure_sources` into `CoreRow[]`
- * (`src/data/reporting/resolve/core.ts`): a parameterised, catalogue-driven
- * SQL `SELECT`, never a string-interpolated value, every identifier checked
- * against the target table's real columns before it reaches a query.
- *
- * ## Why bucketing, aggregation, grouping and the comparison are not SQL here
- *
- * `05-backend.md` §1 states the project's own rule for shared logic: *"the
- * planner, formula, anomaly, state machine… run identically on both sides."*
- * `resolveTrendLeg`/`resolveFormulaLeg` are exactly that kind of module —
- * pure, already imported by `api/` through the `@` alias, and the **tested
- * definition** WP-6.4's brief names them as. Reimplementing their bucket
- * arithmetic, the eight-per-level fold with its `localeCompare(['ar','en'])`
- * tie-break, and the mean's `Math.round(x * 10) / 10` rounding as a second
- * copy in SQL would not make AC-1276 more likely to pass — it would be a
- * second implementation that can drift from the first one silently. Calling
- * the same function the mock calls makes that drift structurally impossible.
- *
- * So the SQL below does the part that is genuinely different on a server:
- * resolving a catalogue population plus a request's filters into a safe,
- * bounded row fetch — the part where scale and untrusted input actually meet
- * the database. Steps 2–6 of §6 run exactly as `src/data/mock/resolveReport.ts`
- * runs them, over the rows this file fetches instead of over fixtures.
- */
+ * The measure compiler (05-backend.md §6): resolves a measure's population
+ * into `CoreRow[]` via parameterised SQL, then runs the *same*
+ * `resolveTrendLeg`/`resolveFormulaLeg` the mock runs — never a second SQL
+ * implementation — so server and mock cannot drift (AC-1276). */
 
 import { toMeasure, toDimension } from './handlers/catalogue'
 import type { Database } from './db'
@@ -105,16 +84,10 @@ export function quoteIdent(name: string): string {
 }
 
 /**
- * Builds a parameterised query the same way a tagged template does —
- * `api/_lib/db.ts`'s `Database.sql` only accepts a real tagged template, and
- * a leg's `WHERE` has an unknown number of conditions at compile time. This
- * assembles the same `(strings, values)` pair a literal `` sql`…${x}…` ``
- * would produce, then hands it to `db.sql` unchanged — no second parsing
- * path, no value ever reaches the SQL text itself.
- *
- * Exported so `handlers/agent.ts`'s `sample_rows` (D44) reuses this exact
- * builder for its own dynamic `WHERE` rather than a second copy.
- */
+ * Builds a parameterised query the same shape a tagged template produces,
+ * for a `WHERE` with an unknown number of conditions — `db.sql` accepts only
+ * a real tagged template, so no value ever reaches the SQL text itself.
+ * Exported so `handlers/agent.ts`'s `sample_rows` (D44) reuses this builder. */
 export class SqlBuilder {
   private parts: string[] = ['']
   private params: unknown[] = []
@@ -178,10 +151,8 @@ function liveToBoundSql(resolved: ResolvedField, exclusive: boolean): string {
 }
 
 /**
- * Every configured bound, resolved against real columns — a bound naming a
- * column this resource cannot read is dropped, never forced-empty (mirrors
- * the old `live_to_column`'s trust of the catalogue's own row). Combined
- * with SQL `LEAST(...)`, which ignores a NULL argument, so an unresolved or
+ * An unresolvable bound is dropped, never forced-empty. Combined with SQL
+ * `LEAST(...)`, which ignores a NULL argument, so an unresolved or
  * never-cancelled bound simply does not constrain the window.
  */
 async function liveToExprSql(
@@ -294,15 +265,10 @@ interface RawRow {
 }
 
 /**
- * Every row of `measure`'s population matching `opts.filters`, as `CoreRow[]`
- * ready for `resolveTrendLeg`/`resolveFormulaLeg`. Throws only when the
- * catalogue itself is broken (no `measure_sources` row for the population's
- * resource — R5-15's server-side belt); a **query-shaped** failure, like a
- * filter naming a field this resource has no column for, degrades to zero
- * matching rows, exactly as `matchesAll` returns `false` for every row rather
- * than erroring (`resolveReport.ts`'s own comment: *"the planner rejects such
- * a query before it reaches here; this is the belt to that brace"*).
- */
+ * Rows ready for `resolveTrendLeg`/`resolveFormulaLeg`. Throws only when the
+ * catalogue itself is broken — no `measure_sources` row for the population
+ * (R5-15's server-side belt). A query-shaped failure (an unresolvable filter
+ * field) degrades to zero rows instead, matching `matchesAll`'s behaviour. */
 export async function fetchMeasureRows(
   db: Database,
   measure: Measure,
@@ -419,12 +385,10 @@ export async function fetchMeasureRows(
 /* ─────────────────────────── segments: `performed` ───────────────────────── */
 
 /**
- * `subjectsMeetingPerformed` (`resolveReport.ts`), over SQL rows instead of
- * fixtures: subject ids whose row count within `window` meets `spec.op`.
- * `'each-bucket'` vs `{rollingDays}` is not bucket-accurate here either —
- * the mock's own documented simplification (§ "a bucket-accurate mock is
- * future work"), carried through rather than invented differently.
- */
+ * `subjectsMeetingPerformed`, over SQL rows: subject ids whose row count
+ * within `window` meets `spec.op`. `'each-bucket'` vs `{rollingDays}` is not
+ * bucket-accurate here either — the mock's own simplification (F-V2-19),
+ * carried through rather than invented differently. */
 export async function subjectsMeetingPerformed(
   db: Database,
   performedMeasure: Measure,
@@ -471,21 +435,12 @@ export async function subjectsMeetingPerformed(
 
 /* ────────────────── subject events: funnel, cohort, journey ──────────────── */
 
-/**
- * `SubjectEvent` (`src/data/mock/resolveReport.ts`), fetched instead of read
- * off a fixture row. `rowId` is `"${resource}#${primary key}"` — a stable
- * identity for "the same physical row", not a sort key; see
- * `0010_subject_modes.sql`'s header for why a real key stands in for the
- * mock's array-index `rowId` without changing any observable result.
- *
- * `dimValue` is `null` unless a caller asks for `holdConstant`'s dimension
- * AND that dimension's field exists on `measure`'s own table — see
- * `fetchSubjectEvents`'s `dimension` parameter.
- */
 export interface SubjectEvent {
   subjectId: string
   date: IsoDate
+  /** `"${resource}#${primary key}"` — a stable identity for "the same physical row", never a sort key (`0010_subject_modes.sql`). */
   rowId: string
+  /** `null` unless a caller asks for `holdConstant`'s dimension and it exists on this table — see `fetchSubjectEvents`'s `dimension` param. */
   dimValue: string | null
 }
 
@@ -497,17 +452,10 @@ export interface SubjectEventSet {
 }
 
 /**
- * `eventsOf` (`resolveReport.ts`), over SQL rows: every row of `measure`'s
- * population, `filters` and `window` narrowed together, as one event per
- * subject per row. Population `predicate` and `filters` are ANDed in SQL —
- * the same rule `appendFilterSql` already applies for the trend/formula path,
- * so a funnel rung filtered to Quick Rides narrows by exactly the rule a
- * trend filtered to Quick Rides narrows by (AC-814).
- *
- * Sorted `date, subjectId, rowId` ascending, matching the mock's own
- * determinism — kept for parity even though no caller's *output* actually
- * depends on the `rowId` leg of that tie-break (see `0010_subject_modes.sql`).
- */
+ * `eventsOf`, over SQL rows: population `predicate` and `filters` are ANDed
+ * by the same rule `appendFilterSql` applies to the trend/formula path
+ * (AC-814). Sorted `date, subjectId, rowId` to match the mock's own
+ * determinism, though no caller's output depends on the `rowId` tie-break. */
 export async function fetchSubjectEvents(
   db: Database,
   measure: Measure,
@@ -532,14 +480,10 @@ export async function fetchSubjectEvents(
   const rowIdField = await resolveColumn(db, source.table_name, fieldColumns, source.row_id_column)
   if (!rowIdField) return { kind, events: [], truncated: false }
 
-  /* `dimension.key`, not `dimension.field` — the same lookup `compile.ts`'s
-     own `groupBy` resolution already uses (`effectiveLevels`): a fixture
-     table's real column is named after the catalogue's namespaced KEY
-     (`"trip.pickup"`), never `Dimension.field`'s bare JS property name
-     (`pickup`). Only meaningful when the *held* dimension's field lives on
-     this same table — see this function's own docblock and `holdConstant`'s
-     comment in `handlers/reportsFunnel.ts` for what a rung whose store
-     cannot answer it means. */
+  /* `dimension.key`, not `dimension.field` — the catalogue's namespaced key
+     (`"trip.pickup"`) is the real column name, never `Dimension.field`'s
+     bare JS property (`pickup`). Only meaningful when the held dimension's
+     field lives on this same table; see `holdConstant` in `reportsFunnel.ts`. */
   const dimField =
     dimension && dimension.resource === measure.population.resource
       ? await resolveColumn(db, source.table_name, fieldColumns, dimension.key)
@@ -595,15 +539,10 @@ export async function fetchSubjectEvents(
 }
 
 /**
- * `lastActiveOf` (`resolveReport.ts`): "when was this subject last seen",
- * read off the store rather than derived from any measure — the same
- * deliberate exception the mock's own docblock states (*"the one `RowSource`-
- * shaped fact the cohort engine needs and the trend resolver never asks
- * for"*). A rider's own `lastTripAt`; a driver's latest `trips.endedAt`
- * (`0010_subject_modes.sql`'s two added columns). Whole-index, not
- * per-subject, so `resolveCohort` makes one query per kind rather than one
- * per subject.
- */
+ * `lastActiveOf`: "when was this subject last seen," read off the store as a
+ * deliberate exception, not derived from any measure. A rider's own
+ * `lastTripAt`; a driver's latest `trips.endedAt`. Whole-index, not
+ * per-subject, so `resolveCohort` makes one query per kind. */
 export async function fetchLastActiveIndex(db: Database, kind: SubjectKind): Promise<Map<string, IsoDate>> {
   const out = new Map<string, IsoDate>()
   if (kind === 'rider') {

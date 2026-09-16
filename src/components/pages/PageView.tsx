@@ -209,12 +209,10 @@ export function PageView({
             : { label: t('pg.edit.enter'), onClick: () => editor.setEditing(true) }
           : undefined
       }
-      /* AC-1262 — a `secondaryActions` entry, not `overflowActions`: it is
-         read-only, so any operator viewing the page gets it, not only
-         `canEdit`, and it stays within `PageHeader`'s two-item inline cap
-         (D8-b) so it cannot push `Duplicate`/`Delete` into the disclosure
-         menu they render outside of today. Reuses `rb.overflow.ask`'s
-         wording (`REPORTS_EN`, already merged into this screen's `t`). */
+      /* AC-1262 — secondaryActions, not overflowActions: read-only so every
+         viewer gets it (not only canEdit), and it stays within PageHeader's
+         two-item inline cap (D8-b) rather than pushing Duplicate/Delete
+         into the disclosure menu. */
       secondaryActions={[
         {
           label: t('rb.overflow.ask'),

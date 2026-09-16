@@ -1,8 +1,7 @@
 /**
- * WP-8.4 §5 — the pure half of `SeriesChart.tsx` / `PanelCard.tsx`: no mark,
- * no `recharts` import, so a caller of a title, a colour or a numeral never
- * loads a chart to get one. Fixes the "reachable both ways" chain named in
- * `docs/09-analytics-v2/handoffs/performance.md` (`ResultCanvas`, `KpiCard`).
+ * The pure half of `SeriesChart.tsx`/`PanelCard.tsx`: no mark, no `recharts`
+ * import, so a caller of a title, a colour or a numeral never loads a chart
+ * to get one. Fixes the "reachable both ways" static-import chain.
  */
 
 import type { ReactNode } from 'react'
@@ -18,9 +17,8 @@ import { splitMetricValue } from '@/components/metrics/formatMetric'
 /* ─────────────────────── SeriesChart's series identity ───────────────────── */
 
 /**
- * The six categorical stops, in draw order, plus v2's `--chart-s7`/`-s8`
- * (`docs/09-analytics-v2/02-report-builder-v2.md` §4.8). Kept identical to
- * `SeriesChart.tsx`'s own copy before the move — see that file's header for
+ * The eight categorical stops, in draw order (D40). Kept identical to
+ * `SeriesChart.tsx`'s own copy before the move; see that file's header for
  * why eight and not more.
  */
 const SERIES_STOPS = [
@@ -106,11 +104,9 @@ export interface RelatedBoard {
 }
 
 /**
- * **`displayedAsMetricKeys` → the boards that show this measure.**
- *
- * See `PanelCard.tsx`'s file header for the full derivation (Amplitude's
- * similarity model, refused, and F-9's real back-reference instead);
- * unchanged by the move.
+ * `displayedAsMetricKeys` → the boards that show this measure (F-9's real
+ * back-reference, not Amplitude's similarity model). See `PanelCard.tsx`'s
+ * file header for the full derivation; unchanged by the move.
  */
 export function relatedBoards(measure: Measure | null): RelatedBoard[] {
   if (measure === null) return []
@@ -157,10 +153,8 @@ export function RelatedBoards({ boards, t }: { boards: readonly RelatedBoard[]; 
 /* ─────────────────────── the KPI/panel numeral and prose ─────────────────── */
 
 /**
- * **The panel's headline quantity — one component, both panel shapes.**
- *
- * See `PanelCard.tsx`'s file header for the two-rung derivation and its
- * measurements; unchanged by the move.
+ * The panel's headline quantity — one component, both panel shapes. See
+ * `PanelCard.tsx`'s file header for the full derivation; unchanged by the move.
  */
 export function PanelNumeral({
   value,

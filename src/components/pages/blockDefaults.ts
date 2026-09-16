@@ -1,8 +1,7 @@
 /**
- * One fresh, empty block per insertable type — what the add-block picker and
- * the slash command both insert before the operator has typed anything.
- * `report`/`metric` are not here: they hand off to `ReportPickerPanel`
- * instead of inserting an empty pointer (§3.2).
+ * One fresh, empty block per insertable type, for the add-block picker and
+ * slash command. `report`/`metric` are absent: they hand off to
+ * `ReportPickerPanel` instead of inserting an empty pointer (§3.2).
  */
 
 import { ulid } from '@/lib/ids'

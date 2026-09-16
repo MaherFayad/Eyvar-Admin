@@ -1,26 +1,8 @@
 /**
- * `agent.*` — WP-6.7 (`05-backend.md` §5; `01-analyst-agent.md` §3, §5–§8, §10;
- * AC-1287, AC-1288). The operator-facing surface (`create`/`list`/`get`/
- * `events`/`status`) mirrors `src/data/clients/agent.ts`'s docblocks field
- * for field. The runner-token surface (`heartbeat`, `claim`, `events` (POST),
- * `findings`, `result`, `fail`) has no client — `01-analyst-agent.md` §3.1
- * says those routes are `agent/mcp/`'s, called directly over HTTP, never
- * through the client barrel — so their request shapes are built from
- * `05-backend.md` §5's endpoint table directly.
- *
- * `POST /:id/result` is the endpoint AC-1288 rests on: it re-validates a
- * submitted `CaseStudy` from first principles — never trusting that the
- * runner's own `agent/runner/validate.ts` already checked it — and refuses
- * (422, nothing stored, job state unchanged) rather than fail the job
- * outright, so the runner's own one-retry policy (§7) still has a job to
- * retry against. Only `POST /:id/fail` ever writes `failure_reason`.
- *
- * `POST /reports/sample` (T10, D44) is not named by any WP in
- * `06-execution-plan.md` — it is the analyst's only row-level tool and this
- * WP's brief names its guarantees explicitly, so it is built here rather
- * than left absent; noted in the handoff as a file another WP may expect to
- * own.
- */
+ * `agent.*` (AC-1287, AC-1288). Operator routes mirror `clients/agent.ts`;
+ * runner-token routes have no client, called directly by `agent/mcp/`.
+ * `POST /:id/result` re-validates a submitted `CaseStudy` from first
+ * principles and refuses (422, nothing stored) rather than failing the job. */
 import { caseStudyToBlocks } from '@/data/reporting/agent/caseStudyToBlocks'
 import { validatePage } from '@/data/reporting/pages/validate'
 import type { Block, IconName, Page, PageKind, PageVisibility } from '@/data/types/page'
@@ -255,14 +237,10 @@ async function contextObjectExists(db: Database, context: AgentJobContext): Prom
 }
 
 /**
- * POST /api/v1/agent/jobs
- *   body: { kind, question, language, contextObjects }
- *   -> Single<AgentJob>, 201
- *
- * "validates kind and context ids the operator can see" (05-backend.md §5):
- * a context object naming an id that does not exist is refused before the
- * job is created, never silently dropped.
- */
+ * POST /api/v1/agent/jobs  body: { kind, question, language, contextObjects }
+ * -> Single<AgentJob>, 201 (05-backend.md §5). A context object naming an
+ * id that does not exist is refused before the job is created, never
+ * silently dropped. */
 export function createCreateAgentJobHandler(db: Database): RouteHandler<RequestContext> {
   return async (req, ctx) => {
     const operator = requirePermission(ctx, CREATE_PERMISSION)
@@ -330,13 +308,10 @@ async function fetchScheduleRow(db: Database, id: string): Promise<AgentSchedule
 }
 
 /**
- * A 5-field cron, restricted the way §8 names: day-of-month and month must
- * be `*` (nothing finer than daily), minute and hour are a single fixed
- * time, and day-of-week is either `*` (daily) or one fixed day, `0`–`6`
- * matching `WEEK_START_DOW`'s own Sunday-is-`0` convention
- * (`src/data/reporting/buckets.ts`) — the same digit means the same day in
- * both places, deliberately.
- */
+ * A 5-field cron, restricted to §8's shape: day-of-month and month are
+ * always `*`, minute and hour a fixed time, day-of-week `*` or one day,
+ * `0`–`6` matching `WEEK_START_DOW`'s Sunday-is-`0` convention — the same
+ * digit means the same day in both places, deliberately. */
 export interface ParsedScheduleCron {
   hour: number
   minute: number
@@ -401,20 +376,10 @@ export interface EnqueueDueSchedulesSummary {
 }
 
 /**
- * §8 / AC-1266: enqueues exactly one job per due, enabled schedule per
- * period. Called by both `api/cron/agent-schedules.ts` (`CRON_SECRET`) and
- * the runner-side fallback's `POST /agent/schedules/enqueue-due` (runner
- * token) — the two concurrent writers AC-1266 requires the arbitration to
- * survive. A disabled schedule is skipped outright, before the cron
- * arithmetic runs, so it enqueues nothing (§8's other half).
- *
- * The claim is the `INSERT … ON CONFLICT (schedule_id, period_start) DO
- * NOTHING RETURNING …` on `agent_schedule_enqueues`: whichever caller's
- * insert returns a row created the job; the other's returns nothing and it
- * does nothing further. This is the database arbitrating a unique
- * constraint, the same mechanism `idempotency.ts`'s `DbIdempotencyStore`
- * uses — never a read-then-write check in this process.
- */
+ * AC-1266: enqueues exactly one job per due, enabled schedule per period.
+ * Called by both the cron entry and the runner-side fallback — two
+ * concurrent writers. The claim is `INSERT ... ON CONFLICT (schedule_id,
+ * period_start) DO NOTHING RETURNING ...`: the database arbitrates the unique constraint, never a read-then-write check here. */
 export async function enqueueDueAgentSchedules(db: Database, now: () => IsoDateTime = () => new Date().toISOString()): Promise<EnqueueDueSchedulesSummary> {
   const nowIso = now()
   const today = localDayOf(nowIso)
@@ -522,12 +487,9 @@ export function createUpdateAgentScheduleHandler(db: Database): RouteHandler<Req
 
 /**
  * POST /api/v1/agent/schedules/enqueue-due  runner token  -> { checked, enqueued }
- *
- * `agent/runner/schedule.ts`'s fallback call (§1a: Vercel Hobby refuses a
- * cron finer than daily, so the long-running runner is the only thing that
- * checks schedules often enough there). Shares `enqueueDueAgentSchedules`
- * with the cron entry verbatim — same arbitration, same "exactly once".
- */
+ * The runner's fallback call (Vercel Hobby refuses a cron finer than
+ * daily). Shares `enqueueDueAgentSchedules` with the cron entry verbatim —
+ * same arbitration, same "exactly once". */
 export function createEnqueueDueAgentSchedulesHandler(db: Database): RouteHandler<RequestContext> {
   return async (req) => {
     requireAgentRunnerToken(req)
@@ -608,17 +570,10 @@ export function createAgentHeartbeatHandler(db: Database): RouteHandler<RequestC
 }
 
 /**
- * POST /api/v1/agent/jobs/claim  runner token  body: { runnerId? }
- *   -> Single<AgentJob>, 200 when a job was claimed; 204 when none is due.
- *
- * AC-1287: the atomic claim. The row is chosen and locked in one scalar
- * subquery (`SELECT … FOR UPDATE SKIP LOCKED … LIMIT 1`) evaluated as part
- * of the same `UPDATE` statement, so two concurrent claims can never both
- * select the same row — one wins the `UPDATE`, the other's subquery either
- * skips the now-locked row (finds a different queued job) or returns no
- * row at all (204), never a duplicate claim. This is the database
- * arbitrating, not a read-then-write race the handler resolves itself.
- */
+ * POST /api/v1/agent/jobs/claim  runner token  -> Single<AgentJob> (200), or 204 when none is due.
+ * AC-1287: `SELECT ... FOR UPDATE SKIP LOCKED ... LIMIT 1` inside the same
+ * `UPDATE`, so two concurrent claims never select the same row — one wins,
+ * the other skips it or finds nothing (204). The database arbitrates, not the handler. */
 export function createClaimAgentJobHandler(db: Database): RouteHandler<RequestContext> {
   return async (req) => {
     requireAgentRunnerToken(req)
@@ -719,14 +674,10 @@ export function createPostAgentJobFindingHandler(db: Database): RouteHandler<Req
 }
 
 /**
- * POST /api/v1/agent/jobs/:id/fail  runner token
- *   body: { outcome: 'failed', reason: 'timeout'|'evidence'|'schema' } | { outcome: 'deferred', retryAt?: IsoDateTime }
- *   -> Single<AgentJob>
- *
- * The runner's own exhaustion of its retry budget (§7, §10) — the one path
- * that writes `failure_reason`, distinct from `/:id/result`'s refusal,
- * which leaves a `running` job retryable.
- */
+ * POST /api/v1/agent/jobs/:id/fail  runner token  -> Single<AgentJob>.
+ * body: { outcome: 'failed', reason } | { outcome: 'deferred', retryAt? }.
+ * The runner's retry-budget exhaustion (§7, §10) — the only path that
+ * writes `failure_reason`; `/:id/result`'s refusal leaves the job retryable instead. */
 const FAILURE_REASONS: readonly AgentJobFailureReason[] = ['timeout', 'evidence', 'schema']
 const DEFAULT_DEFER_MINUTES = 60
 
@@ -815,16 +766,10 @@ interface EvidenceCheck {
 }
 
 /**
- * AC-1288, in full: every cited runId must exist as a `report_runs` row
- * **belonging to this job** (`job_id = jobId` — a real run from a different
- * job is exactly as refused as a run id that does not exist at all), and
- * every `finding.values[]` entry must match what that run actually recorded.
- *
- * Takes the citation set and the findings array directly rather than a
- * `CaseStudy` — `ask` cites a narrower set (`citedRunIdsFromFindings`, no
- * `baseline`/`contributors`/`alternatives`) but its `findings[]` shape is
- * otherwise identical, so this one function serves both.
- */
+ * AC-1288 in full: every cited runId must be a `report_runs` row belonging
+ * to THIS job — a run from a different job is refused like one that
+ * doesn't exist — and every `finding.values[]` entry must match what that
+ * run recorded. Takes the citation set and findings directly so `ask`'s narrower set can share this function. */
 async function checkEvidence(db: Database, jobId: string, ids: string[], findings: readonly CaseStudyFinding[]): Promise<EvidenceCheck> {
   const violations: string[] = []
   if (ids.length === 0) return { ok: true, violations: [] }
@@ -947,21 +892,10 @@ function headingBlock(id: string, text: string): Block {
 }
 
 /**
- * `ask` has no renderer of its own in `src/data/reporting/agent/` —
- * `caseStudyToBlocks()` is the only one that exists, and it reads
- * `decision`/`headline`/`baseline`/`contributors`/`alternatives`/
- * `recommendations`, none of which an `AskResult` (`agent/schemas/
- * ask.schema.json`: `answer`, `findings`, `dataQuality`, `followUps`) has.
- * `src/data/types/agent.ts`'s `AgentJob`/`CaseStudy` types have no
- * `AskResult` member either — both are `src/` files this WP does not own.
- * Rather than force an `ask` result through `caseStudyToBlocks` (which
- * would either throw on the missing fields or silently drop `answer`), this
- * is a small, self-contained renderer using only block types (`heading`,
- * `text`) already in `@/data/types/page` — every field the answer actually
- * has reaches the page; nothing is invented to fill a `CaseStudy` shape it
- * was never in. Flagged in this WP's report as the gap a real `AskResult`
- * type + renderer on the `src/` side should close.
- */
+ * `ask` has no renderer in `src/data/reporting/agent/` — `caseStudyToBlocks`
+ * reads fields an `AskResult` does not have, and `src/`'s `AgentJob`/
+ * `CaseStudy` types have no `AskResult` member (F-V2-89). This is a small,
+ * self-contained renderer using only `heading`/`text` blocks instead. */
 function askResultToBlocks(answer: {
   title: string
   answer: { text: string; confidence: string; confidenceReason: string }
@@ -994,28 +928,10 @@ async function storeAskResultPage(
 }
 
 /**
- * POST /api/v1/agent/jobs/:id/result  runner token  body: the kind's output
- *   -> Single<AgentJob>
- *
- * Refuses (422, nothing stored, job left `running`) on a schema violation or
- * an evidence violation — AC-1288's two named cases: a foreign `runId`, and
- * a finding whose numbers do not match its cited run. Only a successful
- * validation writes anything: the page, then the job's `done` state.
- *
- * F-V2-38 (WP-6.2c): every kind now validates against its **own**
- * `agent/schemas/*.json` file (`validateAgentResult`), not one hand-rolled
- * `CaseStudy` shape applied to all five. Before this WP, `'ask'` results
- * were checked against the `case-study`/`triage-alert`/`weekly-review`
- * shape (`decision`/`headline`/`baseline`/`contributors`/`alternatives`/
- * `recommendations`) — fields an `AskResult` (`answer`/`findings`/
- * `dataQuality`/`followUps`) does not have, so a genuinely correct `ask`
- * result would always have been refused. `case-study`/`triage-alert`/
- * `weekly-review` share one wire shape by design (`jobAssembly.ts`'s own
- * comment: "triage and review are literally the case-study shape") and keep
- * going through `checkEvidence`/`storeCaseStudyPage` unchanged; `'ask'` gets
- * its own, narrower evidence check and its own renderer (`storeAskResultPage`
- * — see that function's header for the `src/`-side gap this leaves).
- */
+ * POST /api/v1/agent/jobs/:id/result  runner token  -> Single<AgentJob>.
+ * Refuses (422, nothing stored) on a schema or evidence violation (AC-1288:
+ * a foreign runId, or a finding whose numbers mismatch its cited run). Each
+ * kind validates against its own `agent/schemas/*.json` file (F-V2-38). */
 function throwSchemaViolations(violations: readonly { path: string; message: string }[], summary: string): never {
   throw validationError(
     violations.map((v) => ({ field: v.path, code: 'schema', message: v.message })),
@@ -1125,16 +1041,10 @@ function maskValue(column: string, raw: unknown): unknown {
 const SAMPLE_ROW_CAP = 50
 
 /**
- * POST /api/v1/reports/sample (T10, D44)
- *   body: { resource, filters?: FilterSpec[], limit? }
- *   -> { rows: Record<string, unknown>[] }
- *
- * The only row-level tool (§5). Refused for an operator without `view` on
- * the resource's measures; capped at 50 regardless of what is asked;
- * declared-PII columns masked server-side, never left to the caller; every
- * call writes one `audit_log` row naming who, when, which job (when reached
- * through the agent path), and which resource (D44).
- */
+ * POST /api/v1/reports/sample (T10, D44)  body: { resource, filters?, limit? }
+ * -> { rows }. The only row-level tool: refused without `view` on the
+ * resource's measures, capped at 50, declared-PII columns masked
+ * server-side, every call audit-logged with who/when/job/resource. */
 export function createSampleRowsHandler(db: Database): RouteHandler<RequestContext> {
   return async (req, ctx) => {
     const operator = requirePermission(ctx, 'view_analytics')

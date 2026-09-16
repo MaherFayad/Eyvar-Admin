@@ -1,12 +1,8 @@
 /**
- * `annotations.*` — WP-6.5 (`05-backend.md` §3, §7). A marked date on a
- * trend chart (`src/data/types/annotation.ts`'s `Annotation`), returned
- * verbatim — the type and the table agree field for field.
- *
- * Only list, create and delete exist (`05-backend.md` §7's endpoint list
- * has no `GET /:id` or `PATCH` for this resource) — an annotation is
- * replaced by deleting and re-adding, never edited in place.
- */
+ * `annotations.*` (05-backend.md §3, §7): a marked date on a trend chart,
+ * returned verbatim — type and table agree field for field. Only list,
+ * create and delete exist; an annotation is replaced by deleting and
+ * re-adding, never edited in place. */
 import type { ApiErrorDetail } from '../errors'
 import { notFoundError, validationError } from '../errors'
 import { jsonResponse, paginated, resolveOffsetPage, single } from '../envelope'

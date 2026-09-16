@@ -1,22 +1,7 @@
 /**
- * `reports.run` end-to-end through the real router — WP-6.4, AC-1276,
- * AC-1277, AC-1278; WP-6.4c closes the funnel/cohort/journey gap.
- *
- * AC-1276 is not hand-written: for every seeded saved report, this file runs
- * `resolveReport` (the mock's own resolver, over the exact fixture arrays
- * this suite also seeds into PGlite) and separately runs `reports.run`
- * through the real HTTP handler, then deep-compares the two `ReportResult`s
- * field for field. Both sides are pinned to the fixed clock
- * (`EYVAR_TODAY`/`EYVAR_NOW`) so a window resolves identically on both.
- *
- * `RPT-6`/`RPT-7`/`RPT-8` (`funnel`/`cohort`/`journey`) are no longer
- * excluded — WP-6.4c's `reportsFunnel.ts`/`reportsCohort.ts`/
- * `reportsJourney.ts` resolve them for real. `sequential` and `holdConstant`
- * (`02-report-builder-v2.md` §5) have no mock counterpart to equality-test
- * against — the "funnel server-only options" describe block below asserts
- * their computed result directly against a hand-checked expectation instead,
- * over a handful of fixture rows the test seeds itself and traces in its own
- * name and comments.
+ * `reports.run` end-to-end (AC-1276, AC-1277, AC-1278): deep-compares the
+ * mock's `resolveReport` against the real handler over shared fixtures and
+ * a fixed clock. `sequential`/`holdConstant` assert a hand-checked value instead — no mock exists to compare against (F-V2-63).
  */
 import { afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { readFile } from 'node:fs/promises'
@@ -115,13 +100,7 @@ function run(query: unknown, cookie: string): Request {
   })
 }
 
-/**
- * Nothing excluded any more. WP-6.4b closed two earlier gaps this list used
- * to carry (`RPT-11`'s saved segments, `RPT-14`'s live window); WP-6.4c
- * closes the last one — `RPT-6`/`RPT-7`/`RPT-8` (`funnel`/`cohort`/`journey`)
- * now resolve for real and equality-test the same as every other saved
- * report.
- */
+/** Nothing excluded: every saved report, including `RPT-6`/`RPT-7`/`RPT-8` (funnel/cohort/journey), equality-tests the same way. */
 const allSavedReports = savedReportFixtures
 
 describe('reports.run (AC-1276): server equals the mock, bucket for bucket', () => {
@@ -144,10 +123,9 @@ describe('reports.run (AC-1276): server equals the mock, bucket for bucket', () 
 })
 
 /**
- * Neither `financials.arpa` nor `requests.timeToAssign` is named by a seeded
- * saved report, so the loop above never ran them through the equality check —
- * the 2026-09-16 wrong-number fixes (`measures.ts`, `0013_wrong_number_fixes.sql`)
- * would have shipped with zero AC-1276 coverage. Ad-hoc queries, same pattern.
+ * Neither `financials.arpa` nor `requests.timeToAssign` is named by a
+ * seeded saved report, so the loop above never runs them through the
+ * equality check (F-V2-95) — these ad-hoc queries close that AC-1276 gap.
  */
 describe('reports.run (AC-1276): the two 2026-09-16 wrong-number fixes, ad hoc', () => {
   it('financials.arpa — same-row ratio, mock and server agree bucket for bucket', async () => {
@@ -323,34 +301,15 @@ describe('reports.run: auth and legality', () => {
 })
 
 /**
- * WP-6.4c: `sequential` and `holdConstant` (`02-report-builder-v2.md` §5)
- * have no mock to equality-test against — `resolveReport.ts` never computes
- * them. Each test seeds a handful of its own fixture rows (isolated from the
- * standard fixtures by a rider id / pickup value used nowhere else), so the
- * expected numbers can be traced by hand from the rows the test itself
- * inserts, not from the ~130-row shared trip fixture.
- *
- * These two call `resolveFunnel` directly rather than through `handler` —
- * `plan.ts`'s planner refuses both queries with `funnel-needs-server` unless
- * the catalogue declares `funnelCapabilities`, and no measure in
- * `src/data/fixtures/measures.ts` declares either (the mock never computes
- * them, so it has no reason to). Seeding that declaration into
- * `measures.seed.sql` was tried and reverted: it diverges the seeded
- * catalogue from `measureFixtures` and breaks AC-1275
- * (`api/v1/catalogue.test.ts`'s "`catalogue.measures` equals `measureFixtures`
- * field for field"). Patching `funnelCapabilities` onto an **in-memory**
- * copy of the loaded catalogue, only for this test's own call into the
- * resolver, proves the same computation without touching anything another
- * agent's fixture or contract test reads.
+ * `sequential`/`holdConstant` (F-V2-63) have no mock to equality-test
+ * against, so these seed isolated fixture rows and hand-trace expected
+ * numbers, calling `resolveFunnel` directly — the planner refuses both without `funnelCapabilities`, which cannot be seeded without breaking AC-1275, so it is patched onto an in-memory catalogue copy instead.
  */
 /**
- * F-V2-90: this used to be a shape assertion (`RecordRunOutcome` typechecks)
- * that never ran a real request with the header, which is exactly how the
- * server answered a bare `ReportResult` — `runId: undefined` at runtime —
- * behind a green suite. These prove the header's behaviour: the id it hands
- * back names a row `report_runs` really holds, and T5's "always records"
- * rule (§5) — a second call never reuses one.
- */
+ * F-V2-90: proves the header's behaviour for real, not by shape alone —
+ * the id it hands back names a row `report_runs` actually holds, and T5's
+ * "always records" rule (§5) means a second call never reuses one. A
+ * shape-only check cannot catch the server silently answering a bare `ReportResult`. */
 describe('reports.run: X-Eyvar-Record-Run header (F-V2-90)', () => {
   function recordRunRequest(query: unknown, cookie: string): Request {
     return new Request('http://localhost/api/v1/reports/run', {

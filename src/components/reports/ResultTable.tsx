@@ -162,12 +162,11 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-/* WP-8.4 §5 boundary exception (outside this role's file set, disclosed in
-   the handoff): the `@/components/metrics` barrel re-exports `TrendChart` and
-   `Sparkline`, both static `recharts` importers — the same reason
-   `AlertsView`/`AlertRuleDialog` already deep-import this one formatter.
-   `panelTitle` moves from `./PanelCard` (which statically imports the
-   recharts-bearing `PanelChart.tsx`) to `./panelPrimitives`, which does not. */
+/* `@/components/metrics` barrel re-exports `TrendChart`/`Sparkline`, both
+   static `recharts` importers — so this deep-imports the one formatter it
+   needs instead, same as `AlertsView`/`AlertRuleDialog`. `panelTitle` comes
+   from `./panelPrimitives`, not `./PanelCard`, which statically imports
+   `PanelChart.tsx`. */
 import { formatMetricValue } from '@/components/metrics/formatMetric'
 import type { BucketAggregate, Measure, PermissionKey, ReportPanel, ReportResult, ReportSeries } from '@/data/types'
 /* `TableSpec`/`TableColumn`/`TableFormatBand` are v2-only and not yet in the
@@ -188,11 +187,10 @@ import { declaredAggregate, rollUpSeries } from './rollup'
 const SEARCH_THRESHOLD = 8
 
 /**
- * WP-8.4 — below this many rows the plain table, every row mounted and
- * `table-auto` sizing each column from real content, is cheaper than the
- * virtualiser and keeps Ctrl+F able to find every row. The number is the
- * execution plan's own line for this work package, and the convention
- * `ConversationList.tsx` (Q-CC5) already uses for the inbox.
+ * Below this many rows, the plain table — every row mounted, `table-auto`
+ * sizing each column from real content — is cheaper than the virtualiser
+ * and keeps Ctrl+F able to find every row. Same convention
+ * `ConversationList.tsx` uses for the inbox.
  */
 const VIRTUALISE_ABOVE = 200
 
@@ -209,10 +207,10 @@ const TABLE_FONT_FAMILY =
   '"Inter Variable", "Noto Naskh Arabic Variable", "Noto Naskh Arabic", "Noto Sans Arabic", ui-sans-serif, "Segoe UI", system-ui, sans-serif'
 
 /**
- * WP-8.4 — column pixel widths measured off-DOM, so `table-fixed` holds every
- * column steady while only a window of rows is mounted; `table-auto` sizes
- * from whatever is rendered (this file's own §9.1 note), which is what would
- * jitter as the window scrolls. `null` with no canvas 2D context (jsdom).
+ * Column pixel widths measured off-DOM, so `table-fixed` holds every column
+ * steady while only a window of rows is mounted; `table-auto` sizes from
+ * whatever is rendered, which would jitter as the window scrolls. `null`
+ * with no canvas 2D context (jsdom).
  */
 function useMeasuredColumnWidths(active: boolean, columns: readonly (readonly string[])[]): number[] | null {
   return useMemo(() => {
@@ -230,11 +228,10 @@ function useMeasuredColumnWidths(active: boolean, columns: readonly (readonly st
 }
 
 /**
- * The two spacer rows a windowed `<tbody>` needs so the scrollbar reports the
- * table's real height without every row being mounted. A padding row, not
- * `position: absolute` on the `<tr>`s themselves — an absolutely positioned
- * table row is blockified (CSS Display 3 §2.3.1) and stops taking part in
- * table layout, which is the one thing this table cannot give up (§9.1).
+ * The spacer row a windowed `<tbody>` needs so the scrollbar reports the
+ * table's real height without every row mounted. A padding row, not
+ * `position: absolute` on the `<tr>` — that blockifies the row (CSS Display 3
+ * §2.3.1) and drops it out of table layout, which this table cannot give up.
  */
 function VirtualPadRow({ height, columnCount }: { height: number; columnCount: number }) {
   if (height <= 0) return null
@@ -246,11 +243,10 @@ function VirtualPadRow({ height, columnCount }: { height: number; columnCount: n
 }
 
 /**
- * WP-8.4 — `Table`'s own container is `overflow-x-auto` only, never `-y`
- * (the primitive's own design), so the scroller a row virtualiser needs is
- * further up: `AppLayout`'s shell region. Found at runtime rather than
- * assumed, so this virtualises correctly in the builder, a dashboard tile,
- * or wherever else this component is ever mounted.
+ * `Table`'s own container is `overflow-x-auto` only, never `-y`, so the
+ * scroller a row virtualiser needs is further up: `AppLayout`'s shell
+ * region. Found at runtime rather than assumed, so this virtualises
+ * correctly wherever this component is mounted.
  */
 function useNearestScrollParent(ref: React.RefObject<HTMLElement | null>, active: boolean): HTMLElement | null {
   const [parent, setParent] = useState<HTMLElement | null>(null)
@@ -535,20 +531,11 @@ export function ResultTable({
               </TableCell>
             ))}
             {withSummary && (
-              /* The number, then what kind of number it is. The
-                  word is per-cell rather than in the header because
-                  one table can hold two measures with two declared
-                  aggregates, and a single header naming one of them
-                  would be wrong for the other half of the rows.
-
-                  **And where there is no declared aggregate, the
-                  cell says so in the same slot.** An em dash on its
-                  own reads as a gap in the data; this is not a gap,
-                  it is a refusal to combine numbers nobody said how
-                  to combine. The dash is `aria-hidden` and the
-                  sentence beneath it is what a screen reader gets —
-                  the same pairing `PanelCard` uses for an absent
-                  delta, so a missing figure is never merely drawn. */
+              /* The number, then what kind of number it is, per-cell (two
+                  measures can have two aggregates). No declared aggregate:
+                  the em dash is `aria-hidden`, and the sentence beneath it —
+                  "refusal to combine", not a gap — is what a screen reader
+                  gets, the same pairing `PanelCard` uses for an absent delta. */
               <TableCell className="text-end">
                 <span className="flex flex-col items-end">
                   <span
@@ -805,12 +792,10 @@ interface ColumnsRow {
 }
 
 /**
- * §7's row axis, read off a column's OWN already-resolved result rather than
- * computed here: `rows: ['time']` walks its `buckets`, a dimension walks the
- * distinct `groupValue`s its own `groupBy` already produced. No cross-product
- * is computed in this component — a two-level split already arrives as one
- * joined `groupValue` per series (`<g1>|<g2>`), the same convention every
- * other v2 series reads.
+ * The row axis, read off a column's OWN already-resolved result: `rows:
+ * ['time']` walks its `buckets`, a dimension walks the distinct
+ * `groupValue`s its `groupBy` already produced. No cross-product is computed
+ * here — a two-level split already arrives as one joined `groupValue`.
  */
 function columnsRowsOf(result: ReportResult, rows: TableSpec['rows']): ColumnsRow[] {
   const mode = rows[0] ?? null
@@ -859,11 +844,10 @@ function columnLabel(column: TableColumn, measuresByKey: Readonly<Record<string,
 }
 
 /**
- * F-V2-47's connection: one `ReportResult` slice per column, from the SAME
- * run `result` already carries — never a second query (the orchestrator's
- * ruling for §7, applied here too). A column naming a measure or formula
- * outside `result.series` has no leg to slice, and this returns `null` so the
- * caller falls back rather than drawing a guessed column.
+ * One `ReportResult` slice per column, from the SAME run `result` already
+ * carries — never a second query (F-V2-47). A column naming a measure or
+ * formula outside `result.series` has no leg to slice, so this returns
+ * `null` and the caller falls back rather than draw a guessed column.
  */
 export function deriveColumnResults(result: ReportResult, columns: readonly TableColumn[]): ReportResult[] | null {
   const out: ReportResult[] = []
@@ -892,10 +876,10 @@ export interface ResultTableColumnsProps {
 }
 
 /**
- * §7's data table: measure/formula columns across, row dimensions down.
- * `ResultTable` above stays the degenerate `rows: ['time']` case a pre-columns
- * saved report keeps rendering (AC-1100). Reuses `Table`, so AC-1177's
- * contained scroll is the primitive's guarantee, not a second one here.
+ * The data table: measure/formula columns across, row dimensions down.
+ * `ResultTable` above stays the degenerate `rows: ['time']` case a
+ * pre-columns saved report keeps rendering (AC-1100). Reuses `Table`, so
+ * AC-1177's contained scroll is the primitive's own guarantee.
  */
 export function ResultTableColumns({ spec, columnResults, measuresByKey, t, language }: ResultTableColumnsProps) {
   const [sort, setSort] = useState<{ column: number; descending: boolean } | null>(null)

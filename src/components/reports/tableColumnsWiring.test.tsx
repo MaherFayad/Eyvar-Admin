@@ -1,8 +1,8 @@
 /**
- * WP-3.5, F-V2-47 — the connection: `ResultCanvas` draws `ResultTableColumns`
- * for a `mode: 'table'` query carrying a `table` spec, slicing the columns
- * from the SAME `ReportResult` (`deriveColumnResults`) rather than a second
- * query. `TableColumnsControl` is the rail control that builds that spec.
+ * WP-3.5, F-V2-47 — `ResultCanvas` draws `ResultTableColumns` for a
+ * `mode: 'table'` query, slicing columns from the SAME `ReportResult`
+ * (`deriveColumnResults`) rather than a second query. `TableColumnsControl`
+ * builds that `table` spec.
  */
 
 import { render, screen } from '@testing-library/react'

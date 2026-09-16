@@ -1,9 +1,7 @@
 /**
- * The runner-token surface — `05-backend.md` §5, `api/_lib/agentAuth.ts`'s
- * "bare runner call" path: `AGENT_RUNNER_TOKEN` alone, no `X-Eyvar-Acting-For`.
- * Distinct from `agent/mcp/client.ts`, which is the *acting-for* transport
- * the spawned `claude -p` child's own MCP tools use — this file is the
- * daemon's own calls to claim work and report on it, never seen by the model.
+ * The runner-token surface (`05-backend.md` §5) — `AGENT_RUNNER_TOKEN` alone,
+ * no `X-Eyvar-Acting-For`. Distinct from `agent/mcp/client.ts`'s acting-for
+ * transport, used by the spawned model's own MCP tools.
  */
 
 import { fetch } from 'undici'
@@ -79,11 +77,9 @@ export interface EnqueueDueSchedulesSummary {
 }
 
 /**
- * `POST /api/v1/agent/schedules/enqueue-due` — `schedule.ts`'s fallback call
- * (§1a: Vercel Hobby refuses a cron finer than daily, so the runner's own
- * poll loop is what checks schedules there). Shares the backend's
- * `enqueueDueAgentSchedules` with `/api/cron/agent-schedules` verbatim —
- * AC-1266's arbitration is the same unique constraint either way.
+ * `schedule.ts`'s fallback call (§1a: Vercel Hobby refuses a cron finer
+ * than daily). Shares the backend's `enqueueDueAgentSchedules` verbatim
+ * with `/api/cron/agent-schedules` — AC-1266's arbitration applies either way.
  */
 export async function enqueueDueSchedules(env: RunnerEnv): Promise<EnqueueDueSchedulesSummary> {
   const { data } = await request<EnqueueDueSchedulesSummary>(env, '/agent/schedules/enqueue-due', { method: 'POST' })

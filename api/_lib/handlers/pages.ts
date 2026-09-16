@@ -1,23 +1,8 @@
 /**
- * `pages.*` — WP-6.5 (`05-backend.md` §7; AC-1279, AC-1280, AC-1281).
- *
- * Every write runs the shared `validatePage()` (imported, never
- * reimplemented — the same function `03-pages-and-dashboards.md` §2 says
- * runs client-side and server-side on the identical JSONB) before touching
- * the database: an invalid page is refused with the validator's own codes
- * and nothing half-valid is ever stored (AC-1281).
- *
- * `PATCH` carries optimistic concurrency (AC-1279): the `UPDATE` is one
- * atomic statement guarded by `WHERE version = $expected`, so two writers
- * racing on the same page cannot both win — the loser gets a 409 naming
- * `details[0].code = 'stale'` and its write never lands, which is what lets
- * the client keep the operator's in-progress edits rather than silently
- * losing them to whoever committed first.
- *
- * `page_reports` (AC-1280) is rebuilt — deleted and re-inserted — on every
- * save, from the page's own `blocks`, never accumulated: a report dropped
- * from a page's blocks stops being "pinned" the moment that edit saves.
- */
+ * `pages.*` (05-backend.md §7; AC-1279, AC-1280, AC-1281). Every write runs
+ * the shared, imported `validatePage()` first — an invalid page never
+ * reaches storage. `PATCH` is optimistic concurrency: one atomic `UPDATE
+ * ... WHERE version = $expected`; a losing writer gets a 409, not silent loss. */
 import type { ApiErrorDetail } from '../errors'
 import { conflictError, notFoundError, validationError } from '../errors'
 import { jsonResponse, paginated, resolveOffsetPage, single } from '../envelope'
@@ -32,11 +17,9 @@ import type { PermissionKey } from '@/data/types/navigation'
 import { recordAudit } from '../audit'
 
 /**
- * `manage_analytics` (`02-report-builder-v2.md`, `annotation.ts`, `page.ts`)
- * is not yet a minted `PermissionKey` (D17) — every write here is gated on
- * the one analytics key that exists today. Named as a gap in this WP's
- * report; swapping it in later is a one-line change once the navigation
- * owner mints the key.
+ * `manage_analytics` is not yet a minted `PermissionKey` (F-V2-28) — every
+ * write here is gated on the one analytics key that exists today. Swapping
+ * it in later is a one-line change once the navigation owner mints the key.
  */
 const WRITE_PERMISSION: PermissionKey = 'view_analytics'
 const READ_PERMISSION: PermissionKey = 'view_analytics'
@@ -93,11 +76,9 @@ function toPage(row: PageRow): Page {
 }
 
 /**
- * Every `reportId` a page embeds through a `report` or `metric` block,
- * recursively through `toggle`/`columns` nesting (§2 allows both to hold
- * either). `bookmark` is excluded on purpose — it links to a report, the
- * way a hyperlink does, and is not an embed a report's own deletion should
- * be blocked by.
+ * Every `reportId` a page embeds via a `report`/`metric` block, recursively
+ * through `toggle`/`columns` nesting. `bookmark` is excluded on purpose — it
+ * links to a report like a hyperlink, not an embed that should block deletion.
  */
 export function collectReportIds(blocks: readonly Block[]): string[] {
   const ids = new Set<string>()
@@ -198,13 +179,10 @@ export function createGetPageHandler(db: Database): RouteHandler<RequestContext>
 }
 
 /**
- * POST /api/v1/pages
- *   body: { kind, title, icon?, description?, visibility, tags?, official?, scope?, blocks? }
- *   -> Single<Page>, 201
- *
- * AC-1281: `validatePage` runs before any `INSERT` — a candidate that fails
- * validation is refused with the violations and never reaches the database.
- */
+ * POST /api/v1/pages  body: { kind, title, icon?, description?, visibility,
+ * tags?, official?, scope?, blocks? }  -> Single<Page>, 201
+ * AC-1281: `validatePage` runs before any `INSERT`; a failing candidate
+ * never reaches the database. */
 export function createCreatePageHandler(db: Database): RouteHandler<RequestContext> {
   return async (req, ctx) => {
     const operator = requirePermission(ctx, WRITE_PERMISSION)

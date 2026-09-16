@@ -1,10 +1,8 @@
 /**
- * The formula field — `22-analytics-v2.md` §1.1 (AC-1104 … AC-1107, AC-1155).
- * A/B are read-only chips, never focusable. `dir="ltr"` always — a formula is
- * code, not prose (`rtl.md`). No red (R5a): the error is a sentence plus
- * `aria-invalid`/`aria-describedby`, so `Input`'s shared red border is
- * overridden at this one call site only. Legality comes from `plan.violations`
- * alone; `formulaUnit` runs again here only to print the unit sentence.
+ * The formula field (AC-1104 … AC-1107, AC-1155). `dir="ltr"` always — a
+ * formula is code, not prose. No red (R5a): the error is a sentence plus
+ * `aria-invalid`, overriding `Input`'s shared red border at this one site.
+ * Legality comes from `plan.violations` alone.
  */
 
 import { useId } from 'react'

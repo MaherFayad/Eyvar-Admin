@@ -1,9 +1,8 @@
 /**
  * The rest of the `SignInOutcome`/`VerifyCodeOutcome`/`ResendCodeOutcome`
- * state machine, TOTP enrolment, password reset, device-trust reauthentication
- * and account lockout — WP-6.2b. `auth-flow.test.ts` covers the sign-in ->
- * verify-code happy path and idempotency; this file covers the refusals.
- */
+ * state machine, TOTP enrolment, password reset, device-trust
+ * reauthentication and account lockout. `auth-flow.test.ts` covers the
+ * sign-in -> verify-code happy path and idempotency; this file covers refusals. */
 import { afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import type { PGlite } from '@electric-sql/pglite'
 import { createTestDatabase, seedSession, seedUser } from '../_test/db'

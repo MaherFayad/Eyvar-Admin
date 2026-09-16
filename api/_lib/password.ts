@@ -1,10 +1,8 @@
 /**
- * Password hashing for `users.password_hash`. `05-backend.md` §2 Q1 names
- * argon2id; no argon2 binding is a project dependency and adding a native one
- * is outside WP-6.2's file list, so this uses `node:crypto`'s built-in scrypt
- * (same cost-parameter shape — N/r/p) instead. Swapping to argon2id later is
- * a change to this file's two functions, not to the schema or the wire.
- */
+ * Password hashing for `users.password_hash` (F-V2-11): `05-backend.md` §2
+ * Q1 names argon2id, but no native binding is a project dependency, so this
+ * uses `node:crypto`'s scrypt (same N/r/p shape) instead. Swapping later is
+ * a change to this file's two functions, not the schema or the wire. */
 import { randomBytes, scrypt as scryptCallback, timingSafeEqual } from 'node:crypto'
 import { promisify } from 'node:util'
 

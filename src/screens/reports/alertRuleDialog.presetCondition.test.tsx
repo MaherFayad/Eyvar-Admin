@@ -1,8 +1,8 @@
 /**
  * AC-1260 — `presetCondition` prefills the composer from a finding's own
- * proposed `AlertCondition`, same as `presetReportId`/`presetSeriesId`
- * already do. Rendered standalone (not through `JobScreen`) so the fixture
- * report's own visibility can't get in the way of proving the wiring.
+ * `AlertCondition`, same as `presetReportId`/`presetSeriesId`. Rendered
+ * standalone (not through `JobScreen`) so the fixture report's visibility
+ * can't interfere with proving the wiring.
  */
 
 import { render, screen, waitFor } from '@testing-library/react'

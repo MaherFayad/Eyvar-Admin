@@ -1,9 +1,8 @@
 /**
  * Annotations — marked dates on a trend chart, `02-report-builder-v2.md` §4.5.
- * Context, never query state. Six, spanning the year behind the fixed clock
- * (`EYVAR_TODAY`), one per `AnnotationKind` plus a second `incident` inside
- * the snapshot coverage window (27 May … 25 Jun) so a 30-day trend chart
- * draws at least one mark without the operator widening the range.
+ * Context, never query state. Six, one per `AnnotationKind` plus a second
+ * `incident` inside the snapshot coverage window, so a 30-day trend chart
+ * draws at least one mark without widening the range.
  */
 
 import { offsetFromNow } from '../mock/clock'

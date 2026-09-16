@@ -1,22 +1,8 @@
 /**
- * `reports.*` — the saved-report library (WP-6.5, `05-backend.md` §7):
- * list/create/get/update/delete, tags, star, duplicate and version history.
- * `reports.run`/`reports.export`/`reports.sample`/`reports.contribution` are
- * a different WP (the measure compiler, §6) and are not touched here.
- *
- * The frontend client for this surface (`src/data/clients/reports.ts`) is
- * still the v1 shape — `SavedReport` has no `tags`/`official`/star yet, and
- * `Dashboard`/`pinnedToDashboardIds` have not been retired (`03-pages-and-
- * dashboards.md` §2 says that retirement is a later, separate phase). A
- * `segments.ts`/`annotations.ts`/`pages.ts` client did not exist at the time
- * this WP ran either. So the wire shape below is built from `05-backend.md`
- * §3's schema and §7's endpoint list directly, per this WP's brief, rather
- * than from a client docblock that does not yet describe it.
- *
- * AC-1280's other half: `DELETE /reports/:id` reads `page_reports` — the
- * reverse index `handlers/pages.ts` maintains — never `pages.blocks_json`,
- * and is refused, naming the pinning pages, when it is non-empty.
- */
+ * `reports.*`: the saved-report library (05-backend.md §7) — list/create/
+ * get/update/delete, tags, star, duplicate, version history. `reports.run`/
+ * `export`/`sample`/`contribution` live elsewhere (§6). AC-1280: `DELETE`
+ * refuses, naming the pinning pages, reading `page_reports` directly. */
 import { conflictError, notFoundError, validationError } from '../errors'
 import { jsonResponse, paginated, resolveOffsetPage, single } from '../envelope'
 import { requirePermission, type RequestContext } from '../auth'
@@ -274,11 +260,9 @@ export function createUpdateReportHandler(db: Database): RouteHandler<RequestCon
 }
 
 /**
- * DELETE /api/v1/reports/:id -> { deleted: true }, or 409 naming the pages that pin it (AC-1280).
- *
- * Reads `page_reports` directly — the reverse index, not a scan of every
- * page's `blocks_json` — so the refusal is cheap regardless of how many
- * pages exist.
+ * DELETE /api/v1/reports/:id -> { deleted: true }, or 409 naming the pinning
+ * pages (AC-1280). Reads `page_reports` directly, not a scan of every page's
+ * `blocks_json`, so the refusal is cheap regardless of page count.
  */
 export function createDeleteReportHandler(db: Database): RouteHandler<RequestContext> {
   return async (_req, ctx) => {

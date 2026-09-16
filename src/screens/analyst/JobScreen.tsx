@@ -1,8 +1,7 @@
 /**
- * The job page (`22-analytics-v2.md` §5.2/§5.3, AC-1256…AC-1264) —
- * `/management/reports/analyst/:jobId`. **Main + rail** (§7.2): the timeline
- * and, once `done`, the result main, `Provenance` the rail. Restyled on
- * arrival: `Badge` (R7 tones, no red), `PageHeader`'s action caps.
+ * The job page (AC-1256…AC-1264), `/management/reports/analyst/:jobId`.
+ * Main + rail (§7.2): the timeline and, once `done`, the result main,
+ * with `Provenance` in the rail.
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'

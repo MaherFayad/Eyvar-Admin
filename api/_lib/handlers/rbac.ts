@@ -1,24 +1,8 @@
 /**
- * `rbac.*` — WP-6.2c, closing the first item of WP-6.2b's gap list
- * (F-V2-21): role CRUD and `holdersOf`. Mirrors `src/data/clients/rbac.ts`
- * field for field — the same refusal codes, the same "a delta signed against
- * the baseline drops anything that merely restates it" rule for
- * `changeRole` (which lives in `handlers/team.ts`, next to the rest of the
- * operator lifecycle, not here).
- *
- * ## F-016 on a role edit is checked read-then-write, not atomically
- *
- * `handlers/team.ts`'s suspend/offboard/override guard one *target user* in
- * one atomic, lock-then-decide statement, because two operators racing to
- * remove the same two holders is a tested concurrency requirement
- * (`team-lifecycle.test.ts`). A role *update* or *delete* can affect many
- * holders at once — every active user on that role — and is a rare,
- * single-admin action with no equivalent concurrency requirement in this
- * WP's brief. This module checks the roster-wide `manage_team` holder count
- * before and after in two round trips rather than reproducing the
- * multi-row `FOR UPDATE` lock pattern for a path nothing exercises
- * concurrently; named here rather than left silent.
- */
+ * `rbac.*` (F-V2-21): role CRUD and `holdersOf`, mirroring
+ * `src/data/clients/rbac.ts` field for field. Unlike `team.ts`'s per-user
+ * atomic lock, an F-016 role edit checks the holder count before and after
+ * in two round trips, not a multi-row `FOR UPDATE` — no test exercises that race. */
 import type { PermissionKey } from '@/data/types/navigation'
 import { ROLE_NAMES, isBuiltInRole, type RoleId } from '@/data/types/session'
 import type { Role, RbacGuardCode, PermissionHolder } from '@/data/types/rbac'

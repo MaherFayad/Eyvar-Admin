@@ -44,11 +44,10 @@ function renderLibrary() {
 }
 
 /**
- * The library mounted directly, as `builder.chrome.test.tsx` mounts the
- * builder — `onOpen` is a spy here rather than `ReportsScreen`'s own
- * `navigate`, because that navigation needs a route table this test does not
- * carry (`SavedReportScreen` is wired at the app shell, not inside
- * `ReportsScreen`).
+ * The library mounted directly (as `builder.chrome.test.tsx` mounts the
+ * builder). `onOpen` is a spy here, not `ReportsScreen`'s own `navigate`,
+ * because that navigation needs a route table this test carries none of —
+ * `SavedReportScreen` is wired at the app shell.
  */
 function renderLibraryDirect() {
   const onOpen = vi.fn<(report: SavedReport) => void>()

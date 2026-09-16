@@ -1,9 +1,8 @@
 /**
- * §7's columns editor (F-V2-47), shown only in `mode: 'table'`. A column is a
- * free view of a leg this run already resolved (`deriveColumnResults` in
- * `ResultTable.tsx`), never a second query — so it offers only `query.measures`
- * and `query.formula`, the closed set a slice can fill (D9 CQ-3: no control
- * offers what it cannot do).
+ * The columns editor (F-V2-47), shown only in `mode: 'table'`. A column is a
+ * free view of a leg this run already resolved, never a second query — so it
+ * offers only `query.measures`/`query.formula`, the closed set a slice can
+ * fill (D9 CQ-3).
  */
 
 import { Checkbox } from '@/components/ui/checkbox'

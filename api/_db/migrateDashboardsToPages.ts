@@ -1,28 +1,8 @@
 /**
- * The one-time companion to `0006_pages.sql` — `03-pages-and-dashboards.md`
- * §2: "The backend runs [`dashboardToPage`] once in migration
- * `0003_pages.sql`'s companion script" (the file that doc names is stale;
- * this WP's own migration is `0006_pages.sql`, the numbering having moved
- * on under concurrent WPs — same job). `dashboardToPage`
- * (`src/data/reporting/pages/migrate.ts`) is pure and reused verbatim here,
- * never reimplemented.
- *
- * **No production `dashboards` table exists yet.** A v1 `Dashboard` today
- * lives only in the frontend's mock fixtures (`src/data/fixtures/reports.ts`)
- * — nothing has migrated it into Postgres, so this function is a no-op
- * against every database this WP has access to. It is written and tested
- * against a `dashboards` table shaped like `Dashboard` (§3's own sketch),
- * guarded by an `information_schema` check so a database with no such table
- * is left alone rather than erroring, and is ready the moment one exists.
- *
- * **Not wired into `npm run db:migrate`.** That CLI (`api/_db/migrate.mjs`)
- * is plain `.mjs`, applying `.sql` files with no TypeScript loader — it
- * cannot `import` this module or `dashboardToPage` without one, and this WP
- * may not add a dependency (`package.json` is outside `api/**`). Run it
- * explicitly instead, from a one-off Node script or a `vitest`-driven task,
- * once a real `dashboards` table is populated. Named in this WP's final
- * report as a deferral for the owner.
- */
+ * One-time companion to `0006_pages.sql`, reusing `dashboardToPage`
+ * verbatim. No production `dashboards` table exists yet (safe no-op), and
+ * this is not wired into `db:migrate` — that CLI is plain `.mjs` and cannot
+ * import TypeScript (F-V2-29). Run it explicitly once one exists. */
 import { dashboardToPage } from '@/data/reporting/pages/migrate'
 import type { Dashboard } from '@/data/types/report'
 import type { Database } from '../_lib/db'
@@ -61,13 +41,10 @@ function toDashboard(row: DashboardRow): Dashboard {
 }
 
 /**
- * Converts every `dashboards` row to a `Page` via `dashboardToPage` and
- * inserts it, rebuilding `page_reports` for each. `dashboardToPage` reuses
- * the dashboard's own id (§2), so a second run inserts nothing new
- * (`ON CONFLICT (id) DO NOTHING`) — idempotent, like every migration step
- * (AC-1271's rule, honoured here even though this is not a `.sql` file the
- * migration runner tracks). Returns how many pages this run wrote.
- */
+ * Converts each `dashboards` row to a `Page` and inserts it, rebuilding
+ * `page_reports`. `dashboardToPage` reuses the dashboard's own id, so a
+ * second run inserts nothing new (`ON CONFLICT (id) DO NOTHING`) — idempotent
+ * per AC-1271, though this file is not one the migration runner tracks. */
 export async function migrateDashboardsToPages(db: Database): Promise<number> {
   const tableExists = await db.sql<{ exists: boolean }>`
     SELECT EXISTS (

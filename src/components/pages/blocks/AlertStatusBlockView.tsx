@@ -1,8 +1,7 @@
 /**
- * `alert-status` — the live state of one or more alert rules (AC-1189). The
- * tone map mirrors `AlertsView.tsx`'s own (R7: `firing` = warning) — that
- * file is another work package's, so the map is repeated rather than
- * imported from a module-private constant.
+ * `alert-status` — the live state of one or more alert rules (AC-1189).
+ * The tone map mirrors `AlertsView.tsx`'s (R7: firing = warning); repeated
+ * here rather than imported, since that file belongs to another package.
  */
 
 import {

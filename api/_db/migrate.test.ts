@@ -1,8 +1,7 @@
 /**
  * AC-1271: migrations apply on PGlite from empty and are idempotent on a
- * second run. `pgcrypto` is loaded as a PGlite extension because
- * `0001_analytics.sql` calls `CREATE EXTENSION pgcrypto` for `audit_log`'s
- * default id.
+ * second run. `pgcrypto` loads as a PGlite extension because
+ * `0001_analytics.sql`'s `CREATE EXTENSION pgcrypto` backs `audit_log`'s id.
  */
 import { afterEach, describe, expect, it } from 'vitest'
 import { PGlite } from '@electric-sql/pglite'

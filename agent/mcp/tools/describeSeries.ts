@@ -1,8 +1,7 @@
 /**
- * T7 `describe_series` — 01-analyst-agent.md §5. Descriptive stats over a
- * stored run's series, read back rather than re-run, so the numbers match
- * what was cited. The arithmetic is `src/data/reporting/stats.ts`'s
- * `describe()` — called, never reimplemented (AGENT-BRIEF.md).
+ * T7 `describe_series` — descriptive stats over a stored run's series, read
+ * back rather than re-run, so the numbers match what was cited. Arithmetic
+ * is `stats.ts`'s `describe()`, called never reimplemented.
  */
 
 import { z } from 'zod'

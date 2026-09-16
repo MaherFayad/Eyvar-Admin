@@ -1,13 +1,7 @@
 /**
- * The http transport — `01-analyst-agent.md` §3.1: "fetch wrapper to
- * `/api/v1` with the runner token and `X-Eyvar-Acting-For`." Used only when
- * `EYVAR_MCP_SOURCE=http` (`source.ts`). §3.2 also requires `X-Eyvar-Job` on
- * every call (`05-backend.md` §5's acting-for rule), read from `EYVAR_JOB_ID`.
- *
- * **Untested against a live backend** — none exists yet (P7 follows P6).
- * Shapes follow the endpoints named in `01-analyst-agent.md` §5 and
- * `05-backend.md` §5 exactly; a real backend engineer should treat a mismatch
- * here as this file's bug, not theirs.
+ * The http transport for `EYVAR_MCP_SOURCE=http` — fetches `/api/v1` with
+ * the runner token, `X-Eyvar-Acting-For`, and `X-Eyvar-Job`. Untested
+ * against a live backend; a shape mismatch is this file's bug.
  */
 
 import { fetch } from 'undici'

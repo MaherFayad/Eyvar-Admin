@@ -1,9 +1,7 @@
 /**
- * T19 `note_finding` — 01-analyst-agent.md §5. Appends an interim finding to
- * the job, shown live in the timeline. Refuses a `runId` this job has not
- * actually produced — a finding citing a run nobody ran is exactly the
- * "no number without a run" defect §7 exists to prevent, caught here as
- * early as it can be rather than only at the runner's final validation.
+ * T19 `note_finding` — appends an interim finding to the job, shown live in
+ * the timeline. Refuses a `runId` this job hasn't actually produced, so a
+ * finding never cites a run nobody ran.
  */
 
 import { z } from 'zod'

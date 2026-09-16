@@ -1,12 +1,7 @@
 /**
  * AC-1245, AC-1250 (D38). `evaluateInitEvent` is the decision logic, tested
- * here without a subscription; `checkLogin` (the real spawn) is covered by
- * `spawn.e2e.test.ts` behind `AGENT_E2E=1`. The `"none"` case is copied
- * verbatim from a real `system/init` event captured on this machine's own
- * subscription-logged-in session; the API-key case mirrors the same shape
- * with `apiKeySource` set to `"ANTHROPIC_API_KEY"` — the literal string the
- * installed CLI binary itself uses for that source (confirmed by grepping
- * its own compiled strings), not a guess.
+ * without a subscription; the real spawn is the gated `spawn.e2e.test.ts`.
+ * The `"none"` case is a real subscription `system/init` event; the API-key case mirrors it with the CLI's own literal `apiKeySource` string.
  */
 
 import { describe, expect, it } from 'vitest'

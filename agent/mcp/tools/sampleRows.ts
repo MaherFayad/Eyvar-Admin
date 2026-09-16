@@ -1,10 +1,7 @@
 /**
- * T10 `sample_rows` — 01-analyst-agent.md §5, D44, AC-1242. "The only
- * row-level access", masked server-side, capped at 50 rows. Masking happens
- * in `src/data/mock/resolveReport.ts::sampleRows` (mock) / the real backend
- * (http) — this tool never sees an unmasked row, so no argument here can
- * defeat it. The permission gate is this tool's own, since a raw resource
- * has no `Measure.permission` to inherit (see `permissions.ts`).
+ * T10 `sample_rows` (D44, AC-1242) — the only row-level access, masked
+ * server-side and capped at 50 rows; this tool never sees an unmasked row.
+ * Its permission gate is its own (no `Measure.permission` to inherit).
  */
 
 import { z } from 'zod'

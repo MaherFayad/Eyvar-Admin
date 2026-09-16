@@ -1,9 +1,7 @@
 /**
- * Every `/api/cron/*` handler's first line (05-backend.md §1, §8): "each
- * guarded by `CRON_SECRET`". Vercel Cron sends `Authorization: Bearer
- * <CRON_SECRET>` (per Vercel's own cron docs, cited in `05-backend.md` §1a);
- * an unauthenticated call — no header, wrong value, or `CRON_SECRET` unset —
- * is refused before a single query runs.
+ * Every `/api/cron/*` handler's first line (05-backend.md §1, §8). Vercel
+ * Cron sends `Authorization: Bearer <CRON_SECRET>`; a missing header, wrong
+ * value, or unset `CRON_SECRET` is refused before a single query runs.
  */
 import { timingSafeEqual } from 'node:crypto'
 import { unauthorizedError } from './errors'

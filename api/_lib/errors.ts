@@ -1,12 +1,8 @@
 /**
- * The error taxonomy. `HttpError` is the only way a handler fails
- * (`docs/09-analytics-v2/05-backend.md` §4: "the router wraps every handler:
- * auth → permission → idempotency → handler → envelope. A thrown
- * HttpError(status, code, details) is the only way to fail."). `errorResponse`
- * turns one into the exact JSON shape `docs/07-api/CONTRACT.md` §5 declares,
- * reusing the frontend's own `kindForStatus`/`isRetryableStatus` so the two
- * sides cannot drift on what a status means.
- */
+ * `HttpError` is the only way a handler fails (05-backend.md §4: auth →
+ * permission → idempotency → handler → envelope). `errorResponse` turns one
+ * into the shape CONTRACT.md §5 declares, reusing the frontend's own
+ * `kindForStatus`/`isRetryableStatus` so the two sides cannot drift. */
 
 import { kindForStatus, isRetryableStatus } from '@/data/types/common'
 import type { ApiErrorDetail, ApiErrorKind } from '@/data/types/common'

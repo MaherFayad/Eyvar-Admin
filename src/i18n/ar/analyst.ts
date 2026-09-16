@@ -1,8 +1,7 @@
 /**
  * Arabic for `src/screens/analyst/copy.ts`, D38, WP-7.4. Same keys, same
- * order. "Runner" (the daemon, §3.1) is `المنفّذ`, not `المشغّل` —
- * `reports.ts` already uses that word for the human operator
- * (`rb.alert.form.recipients.blocked`), and the two must stay apart.
+ * order. "Runner" (the daemon, §3.1) is `المنفّذ`, not `المشغّل` — that
+ * word is already `reports.ts`'s for the human operator; keep them apart.
  */
 
 import type { Dictionary } from '@/lib'

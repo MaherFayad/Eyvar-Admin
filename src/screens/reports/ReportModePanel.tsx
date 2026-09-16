@@ -388,12 +388,10 @@ function FunnelFields({
   const set = (patch: Partial<FunnelSpec>) => onChange({ ...query, funnel: { ...spec, ...patch } })
   const setSteps = (next: FunnelStep[]) => set({ steps: next })
 
-  /* G10 / §5: mirrors `plan.ts`'s own `funnelViolations` predicate — every
-     rung's measure must declare the capability, and no fixture measure ever
-     does, so this reads the SAME catalogue field the planner refuses on
-     rather than inventing a second rule. `exclude` sits on the same footing
-     as `sequential` and `holdConstant`: its own `funnelCapabilities.exclude`
-     flag, checked the same way. */
+  /* Mirrors `plan.ts`'s own `funnelViolations` predicate (G10/§5): every
+     rung's measure must declare the capability, so this reads the SAME
+     catalogue field the planner refuses on, never a second rule. `exclude`
+     is checked the same way as `sequential` and `holdConstant`. */
   const supports = (capability: 'sequential' | 'holdConstant' | 'exclude'): boolean =>
     steps.length > 0 &&
     steps.every((step) => measures.find((m) => m.key === step.measureKey)?.funnelCapabilities?.[capability] === true)
@@ -925,10 +923,10 @@ function CohortFields({
 }
 
 /**
- * §6's custom `[lo, hi)` windows. An overlapping candidate is refused where it
- * is proposed — `Add` stays disabled with the reason — rather than accepted
- * and reported as a violation elsewhere: `bracketsOverlap` (`reporting/cohorts.ts`)
- * is the one place this rule is decided, read here and by the resolver.
+ * Custom `[lo, hi)` windows. An overlapping candidate is refused where it is
+ * proposed — `Add` stays disabled with the reason — rather than accepted and
+ * reported as a violation elsewhere. `bracketsOverlap` is the one place this
+ * rule is decided, read here and by the resolver.
  */
 function CohortBrackets({
   brackets,

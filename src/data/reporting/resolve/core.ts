@@ -1,9 +1,7 @@
 /**
- * The pure aggregation core (AC-1121). Rows in, a result out: no fixture
- * imports, no clock reads, no randomness. `mock/resolveReport.ts` reads the
- * fixture stores into `CoreRow`s and is the only caller; population/predicate
- * matching and permission redaction stay there, as viewer- and fixture-shaped
- * concerns this module has no business knowing about.
+ * The pure aggregation core (AC-1121): rows in, a result out — no fixture
+ * imports, no clock reads, no randomness. `mock/resolveReport.ts` is the
+ * only caller; population/predicate matching and redaction stay there.
  */
 
 import { evaluateFormula, formulaUnit, type FormulaRefInfo, type FormulaSeriesInput } from '../formula'
@@ -30,11 +28,9 @@ export const MAX_GROUPS_PER_LEVEL = 8
 /* ────────────────────────────── the row shape ──────────────────────────── */
 
 /**
- * One fixture row, flattened to exactly what aggregation needs — no store
- * name, no field name, nothing the adapter's `RowSource` table already
- * resolved. A closure rather than a plain boolean for `liveAt`, because a
- * stock reading depends on *which day* it is asked about (the bucket's last
- * instant), and that is only known once bucketing starts.
+ * One fixture row, flattened to exactly what aggregation needs. `liveAt`
+ * is a closure, not a plain boolean: a stock reading depends on WHICH day
+ * it's asked about (the bucket's last instant), known only once bucketing starts.
  */
 export interface CoreRow {
   /** Which bucket a flow row falls in, and what a split's rank is computed over. `null` = no date on this row. */
@@ -58,11 +54,9 @@ export interface CoreMeasureRows {
   bucketAggregate: BucketAggregate
   coverage: { from: IsoDate; to: IsoDate }
   /**
-   * Whether this measure's store can answer *"was this row live at instant
-   * X"* at all — `RowSource.liveAt !== null`. Zero matching rows is a real
-   * `0`; a store with no stock predicate is a real `null`. Row presence alone
-   * cannot tell the two apart, so this is a fact carried once per leg rather
-   * than inferred from `rows`.
+   * Whether this measure's store supports a stock reading at all
+   * (`RowSource.liveAt !== null`). Zero matching rows is a real `0`; no
+   * stock predicate is a real `null` — carried once per leg, never inferred from `rows`.
    */
   supportsStock: boolean
   /** Every row matching population, predicate and the query's filters. Not window-filtered — a leg buckets it twice, current and comparison. */
@@ -131,15 +125,9 @@ export interface GroupPath {
 }
 
 /**
- * The groups a split produces, ranked over the rows landing in `window`,
- * folded at eight **per level** (G4). Level two is ranked *within* its
- * level-one parent, so `Other` at level one still gets a real level-two split
- * rather than one lump sum.
- *
- * Ranking uses `window` — never the comparison window — and the same paths
- * are reused for the comparison leg (mirrors the v1 resolver's rule: *"the
- * window, which this ranking used to ignore… the rank-1 group could
- * contribute 0.00 to the period actually on screen"*).
+ * The groups a split produces, ranked over rows in `window`, folded at
+ * eight PER LEVEL (G4). Ranking uses the CURRENT window only, and the same
+ * paths are reused for the comparison leg — else the rank-1 group could contribute 0.00 to the period on screen.
  */
 export function planGroupPaths(
   rows: readonly CoreRow[],
@@ -271,10 +259,9 @@ export interface ResolveTrendLegInput {
 }
 
 /**
- * **One measure, current plus its optional comparison, resolved.** AC-1121:
- * this is the function under test for purity, and `mock/resolveReport.ts`
- * calls it once per measure it is not redacting — a two-measure trend is two
- * calls, a formula is `resolveFormulaLeg` below instead of one of them.
+ * One measure, current plus its optional comparison, resolved (AC-1121,
+ * purity under test). Called once per non-redacted measure — a two-measure
+ * trend is two calls; a formula uses `resolveFormulaLeg` instead.
  */
 export function resolveTrendLeg(input: ResolveTrendLegInput): CoreLegResult {
   const { measure, groupLevels, transform, comparisonDisplay, window, comparisonWindow, grain, today } = input
@@ -375,13 +362,9 @@ function refInfo(m: CoreMeasureRows): FormulaRefInfo {
 }
 
 /**
- * G2: a formula replaces the measure series in the plot. Groups are planned
- * once, over `A`'s rows — `formula.ts`'s `REF` comment: *"'A' | 'B' — the
- * measures in listed order"* — and the **same paths** are applied to `B`'s
- * rows, so group *i* pairs "A's riyadh" with "B's riyadh" even where B's own
- * ranking would have ordered them differently. `totalA`/`totalB` are this
- * bucket's sum across every group (including `Other`), which is what `PCT`
- * needs and no single group can derive alone.
+ * G2: a formula replaces the measure series. Groups are planned once over
+ * `A`'s rows and the SAME paths applied to `B`'s — group i pairs "A's
+ * riyadh" with "B's riyadh" even where B's own ranking would differ.
  */
 export function resolveFormulaLeg(input: ResolveFormulaLegInput): CoreLegResult {
   const { formula, a, b, groupLevels, transform, comparisonDisplay, window, comparisonWindow, grain, today } = input

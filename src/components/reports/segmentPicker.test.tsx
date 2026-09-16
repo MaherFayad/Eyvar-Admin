@@ -1,8 +1,8 @@
 /**
- * The segment picker — §1.2. AC-1156 (saved + inline, `performed` disabled in
- * place on an unsupported measure) and AC-1154 (the series-ceiling state names
- * the last-added segment). Loading/error come from the real `segments.list`
- * seam (`mockFailures`), never a hand-rolled fetch stub.
+ * The segment picker — §1.2, AC-1156 (saved+inline, `performed` disabled in
+ * place on an unsupported measure) and AC-1154 (series-ceiling names the
+ * last-added segment). Loading/error come from the real `segments.list`
+ * seam (`mockFailures`), never a hand-rolled stub.
  */
 
 import { render, screen, within } from '@testing-library/react'

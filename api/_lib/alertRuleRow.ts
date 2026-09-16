@@ -1,12 +1,8 @@
 /**
- * `alert_rules` row <-> the wire `AlertRule` (`src/data/types/alert.ts`) —
- * shared by `handlers/alerts.ts` (CRUD) and `evaluateDue.ts` (the cron), so
- * the two never reconstruct the shape differently. `condition_json` is
- * always populated by every writer here, so `alertCondition(rule)` on the
- * client always reads through `condition`, never falls back to the v1
- * `comparator`/`threshold` pair — those two ride along only so the field is
- * never `undefined` on the wire.
- */
+ * `alert_rules` row <-> wire `AlertRule` (04-alerting-v2.md §2), shared by
+ * `handlers/alerts.ts` and `evaluateDue.ts` so the shape never diverges.
+ * `condition_json` is always populated, so the client always reads
+ * `condition`; the v1 pair rides along only so it is never `undefined`. */
 import type {
   AlertCadence,
   AlertChannel,

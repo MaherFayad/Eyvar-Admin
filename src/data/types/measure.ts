@@ -223,10 +223,9 @@ export interface Measure {
   temporality: Temporality
   bucketAggregate: BucketAggregate
   /**
-   * G1 (`02-report-builder-v2.md` §2.1): other legal aggregates for a value
-   * field — a measure that can be summed or averaged offers both. **Absent or
-   * a single entry means the rail shows no `Measured as` control at all**; the
-   * catalogue's `bucketAggregate` stays the only aggregate that runs.
+   * G1: other legal aggregates for a value field. **Absent or a single entry
+   * means the rail shows no `Measured as` control**; catalogue's
+   * `bucketAggregate` stays the only aggregate that runs.
    */
   bucketAggregateOptions?: BucketAggregate[]
   /**
@@ -236,10 +235,9 @@ export interface Measure {
    */
   supportsPerformed?: boolean
   /**
-   * G10, §5: which v2 funnel options the server can compute for a rung over
-   * this measure. **Absent means none** — `sequential`, `holdConstant` and
-   * `exclude` all need event-level data the mock does not have; the planner
-   * refuses each with `funnel-needs-server` until this says otherwise.
+   * G10, §5: funnel options the server can compute for a rung. **Absent
+   * means none** — `sequential`/`holdConstant`/`exclude` need event-level
+   * data the mock lacks; planner refuses with `funnel-needs-server` until set.
    */
   funnelCapabilities?: { sequential: boolean; holdConstant: boolean; exclude: boolean }
   /**

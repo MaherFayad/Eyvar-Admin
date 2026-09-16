@@ -1,9 +1,7 @@
 /**
- * T20 `job_context` — 01-analyst-agent.md §5. The job's own record, its
- * attached context objects resolved to full content, the operator's
- * language, today in Riyadh, and the catalogue's overall coverage window.
- * `EYVAR_JOB_ID` names which job — the same env var `run_report`/
- * `note_finding` read for provenance.
+ * T20 `job_context` — the job's record, its context objects resolved to
+ * full content, the operator's language, today in Riyadh, and the
+ * catalogue's coverage window. `EYVAR_JOB_ID` names which job.
  */
 
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'

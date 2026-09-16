@@ -1,16 +1,8 @@
 /**
- * `evaluateDueRules` — WP-6.6. Every assertion here runs the real
- * `reports.run` compiler path (`handlers/reportsRun.ts`) against seeded
- * catalogue and `daily_snapshots` rows, so a firing's value is a real
- * `evaluate()` outcome over real data, not a stub.
- *
- * Proves: AC-1282 (cadence selection), AC-1283 (firing + notification +
- * delivery rows), AC-1284 (a failed Slack post is recorded, not thrown), the
- * weekly-rule-on-a-daily-cadence once-per-bucket rule, D43's recipient drop,
- * and every machine transition through a frozen clock: armed → firing
- * (→ cooling) → cooling → armed, the `minReArmMinutes` backstop, suspension
- * on a lost owner permission, and the `error` state after repeated failures.
- */
+ * `evaluateDueRules`: every assertion runs the real `reports.run` compiler
+ * path against seeded rows, so a firing's value is a real `evaluate()`
+ * outcome, not a stub. Proves AC-1282, AC-1283, AC-1284, D43's recipient
+ * drop, and the machine's full transition set on a frozen clock. */
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { readFile } from 'node:fs/promises'
 import path from 'node:path'

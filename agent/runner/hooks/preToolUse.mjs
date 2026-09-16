@@ -1,26 +1,8 @@
 #!/usr/bin/env node
 /**
- * `PreToolUse` deny-list — `01-analyst-agent.md` §3.3, AC-1250: "exits 2 for
- * any tool whose name does not start with `mcp__eyvar__`." Belt and braces
- * over `--allowedTools`/`--disallowedTools` — and not a redundant one: a
- * real `claude -p` run with those flags set exactly as §3.3 specifies still
- * showed `system/init`'s `tools` list carrying everything not *named* in
- * `--disallowedTools`, including tools and MCP connectors that list never
- * mentions (`CronCreate`, `Monitor`, `Workflow`, `TodoWrite`, third-party
- * connector tools, …) — whatever happens to be configured on the machine
- * the runner runs on. `--disallowedTools` is a closed list of what to
- * remove, not an open one of what to keep, so this hook is the actual
- * enforcement; the flags only reduce how often it has to fire.
- *
- * One deliberate exception: `StructuredOutput`. `--json-schema` does not
- * make the final assistant message raw JSON — it adds this built-in tool,
- * and the model must call it to submit its answer at all (confirmed by
- * spawning a real session with this exact flag set: `system/init`'s `tools`
- * always carries it, and the run does not complete without a call to it).
- * Blocking it would make every job unable to ever finish.
- *
- * Uses Node, not a shell script — the runner is meant to work on the
- * owner's machine, of unknown OS.
+ * `PreToolUse` deny-list (AC-1250): exits 2 unless the tool name starts with `mcp__eyvar__` — real enforcement, not redundant, since `--disallowedTools` alone does not close the tool list (confirmed live: unnamed built-ins and connector tools still appear regardless).
+ * Exception: `StructuredOutput`, the built-in tool `--json-schema` adds — the model must call it to submit its answer at all, so blocking it would strand every job.
+ * Node, not a shell script — the runner's OS is unspecified.
  */
 
 import { readFileSync } from 'node:fs'

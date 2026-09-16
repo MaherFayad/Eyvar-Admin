@@ -512,10 +512,9 @@ function aggregateKeySuffix(aggregate: BucketAggregate): string {
 }
 
 /**
- * G1 (§2.1) — **the catalogue stays the authority.** Renders nothing unless
- * `measure.bucketAggregateOptions` has more than one entry; there is no
- * fallback single-option render, because a control with one legal choice is
- * not a choice.
+ * The catalogue stays the authority (G1). Renders nothing unless
+ * `measure.bucketAggregateOptions` has more than one entry — a control with
+ * one legal choice is not a choice.
  */
 function MeasuredAsControl({
   id,

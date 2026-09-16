@@ -1,10 +1,7 @@
 /**
- * Pages — `03-pages-and-dashboards.md`. A dashboard is one `kind` of page;
- * the others are `case-study` (the analyst's output) and `note`. Replaces
- * `dashboards.ts` (D39): a migrated `DSH-*` id answers both
- * `/dashboards/:id` and `/pages/:id` through `pageFixtures`.
- * `SavedReport.pinnedToDashboardIds` keeps its name; the §3 rename is a
- * `SavedReport` change, out of this file's scope, flagged in the handoff.
+ * Pages (`03-pages-and-dashboards.md`): a dashboard is one `kind` of page,
+ * with `case-study` and `note`. Replaces `dashboards.ts` (D39) — a migrated
+ * `DSH-*` id answers both `/dashboards/:id` and `/pages/:id`.
  */
 
 import { DATA_SOURCE, registerOperations } from '../config'
@@ -109,12 +106,8 @@ export type SavePageOutcome =
 
 /**
  * POST /api/v1/pages · PATCH /api/v1/pages/:id
- *   body: { title, icon, description, visibility, tags, scope, blocks, version }
  *   -> Single<Page>, or 409 { kind: 'conflict', details: [{ field: 'version', code: 'stale' }] }
- *
- * `validatePage()` runs here exactly as `validate.ts` says it must run
- * server-side too: **the same function**, so a save this client accepts
- * cannot come back 422 from the real backend.
+ * Runs the same `validatePage()` the server must run, so an accepted save here cannot come back 422.
  */
 export async function savePage(input: SavePageInput, signal?: AbortSignal): Promise<SavePageOutcome> {
   if (DATA_SOURCE === 'http') {
@@ -185,10 +178,7 @@ export async function deletePage(id: string, signal?: AbortSignal): Promise<void
 /**
  * POST /api/v1/pages/:id/publish
  *   -> Single<Page>
- *
- * The only writer of `publishedAt`. Idempotent: publishing an already-
- * published page keeps its original `publishedAt` rather than bumping it,
- * so `Publish` on a stale page never reads as a fresh one.
+ * The only writer of `publishedAt`. Idempotent: re-publishing keeps the original timestamp, so a stale page never reads as fresh.
  */
 export async function publishPage(id: string, signal?: AbortSignal): Promise<Single<Page>> {
   if (DATA_SOURCE === 'http') return http.post<Single<Page>>(`/pages/${id}/publish`, undefined, { signal })
@@ -214,11 +204,7 @@ function mintFreshBlockIds(block: Block): Block {
 /**
  * POST /api/v1/pages/:id/duplicate
  *   -> Single<Page>
- *
- * Copies blocks (with fresh ids, AC-1215) and scope, never `publishedAt`
- * (§6: "a template copy is a draft until the operator publishes"). Owned by
- * the acting operator, private, so duplicating a `team` page does not hand
- * it to the team.
+ * Copies blocks (fresh ids, AC-1215) and scope, never `publishedAt` (§6). Private — duplicating a `team` page does not hand it to the team.
  */
 export async function duplicatePage(id: string, signal?: AbortSignal): Promise<Single<Page>> {
   if (DATA_SOURCE === 'http') return http.post<Single<Page>>(`/pages/${id}/duplicate`, undefined, { signal })
@@ -249,10 +235,7 @@ export async function duplicatePage(id: string, signal?: AbortSignal): Promise<S
 /**
  * POST /api/v1/pages/:id/star
  *   -> Single<Page>
- *
- * Toggles the acting operator in `starredBy` — §7's index toggle. A field
- * `03-pages-and-dashboards.md` §2's model block omits; mirrors
- * `SavedReport.starredBy`, the same shape for the same control.
+ * Toggles the acting operator in `starredBy` — §7's index toggle. Mirrors `SavedReport.starredBy`, the same control.
  */
 export async function starPage(id: string, signal?: AbortSignal): Promise<Single<Page>> {
   if (DATA_SOURCE === 'http') return http.post<Single<Page>>(`/pages/${id}/star`, undefined, { signal })

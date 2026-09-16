@@ -1,22 +1,7 @@
 /**
- * Writes to `audit_log` (`0001_analytics.sql`) — WP-6.2c / F-V2-22: every
- * client-side `writeAudit`/`appendAudit` call runs and refuses correctly but
- * records nothing server-side, so Activity Log playback would be empty. This
- * is the one write path every mutating handler that changes team, rbac,
- * saved-report, page, segment, annotation, alert or webhook config calls.
- *
- * `action`/`acting_via`/`entity_type` are open vocabularies by the table's
- * own design (`0001_analytics.sql`'s comment: "a closed type would need
- * revisiting on each one") — this module does **not** reuse the frontend's
- * `AuditAction` union (`src/data/types/audit.ts`). That type is a closed
- * union for a different, wider audit surface (money movements, tickets,
- * workspace) with no table in this migration set; conflating the two would
- * either force analytics-v2 actions into a vocabulary that does not name
- * them, or require editing a `src/` file this WP does not own. Where a name
- * already exists there in the same sense (`team.invite`, `team.suspend`,
- * `role.create`, …) this module reuses it verbatim for a reader's sake; new
- * actions this table needs and that union does not have follow the same
- * `entity.verb` shape.
+ * Writes to `audit_log` (`0001_analytics.sql`) — F-V2-22. Every mutating
+ * handler that changes team, rbac, saved-report, page, segment, annotation,
+ * alert or webhook config calls this, the one server-side write path.
  */
 import type { Database } from './db'
 
@@ -25,6 +10,7 @@ export interface AuditWrite {
   userId: string
   /** `'operator'` (a signed-in operator acting directly) unless stated otherwise — mirrors `agent.ts`'s own `actingVia` resolution for the analyst runner. */
   actingVia?: string
+  /** Open vocabulary by design (`0001_analytics.sql`): not the frontend's closed `AuditAction` union, which covers a different, wider surface. Existing names (`team.invite`, …) are reused verbatim; new ones follow `entity.verb`. */
   action: string
   entityType: string
   entityId: string

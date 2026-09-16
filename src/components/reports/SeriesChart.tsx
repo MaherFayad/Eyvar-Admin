@@ -1,9 +1,8 @@
 /**
- * One compound plot, every series sharing one axis — R4-1: a `ReportPanel` is
- * the unit two series may share a scale, and `ResultCanvas` groups by
- * `(unit, currency)` before calling this once per group. §3.7: colour is
- * series identity (`--chart-s1…s8`), the comparison differs by dash, never
- * hue. `INERT` (see below) on every mark except the brush handles (§2.5).
+ * One compound plot, every series sharing one axis (R4-1): a `ReportPanel` is
+ * the unit two series may share a scale. Colour is series identity
+ * (`--chart-s1…s8`); comparison differs by dash, never hue. `INERT` (below)
+ * sits on every mark except the brush handles.
  */
 
 import { useEffect, useId, useMemo, useState } from 'react'
@@ -203,12 +202,10 @@ export function SeriesChart({
         })
       : rows
 
-  /* `ChartContainer` emits `--color-<key>` per entry, which is what lets the
-     marks below name a colour without inlining one. The keys are the same
-     index-addressed strings the rows carry. §4.8 / AC-1136 — `Other` (§7.4's
-     fold) takes `--muted-foreground` here rather than the palette, which is
-     what makes every draw below (line, area, bar fill) agree with it for
-     free, the same way `HorizontalBarLayer` already does per-`Cell`. */
+  /* `ChartContainer` emits `--color-<key>` per entry, letting marks below
+     name a colour without inlining one. `Other` (AC-1136) takes
+     `--muted-foreground` here rather than the palette, so every draw below
+     agrees with it, the same way `HorizontalBarLayer` does per-`Cell`. */
   const config: ChartConfig = {}
   panels.forEach((_, index) => {
     const color =
@@ -593,10 +590,10 @@ export function SeriesChart({
 }
 
 /**
- * §4.1 — `horizontal-bar`: one row per panel (a split, one measure, `grain:
- * 'none'`), sorted descending by value with `'__other__'` always last, value
- * labelled at the bar's end. A separate layer rather than a branch of the
- * shared `axes` fragment: the category axis here is the SPLIT, not time.
+ * `horizontal-bar`: one row per panel, sorted descending with `'__other__'`
+ * always last, value labelled at the bar's end. A separate layer rather than
+ * a branch of the shared `axes` fragment: the category axis here is the
+ * SPLIT, not time.
  */
 function HorizontalBarLayer({
   panels,
@@ -700,10 +697,9 @@ export interface SeriesTooltipProps {
 }
 
 /**
- * **Every visible series at that bucket, ranked, in one card** — §2.2's v2
- * tooltip. Grouped per series (current plus its own `vs` sub-row) rather than
- * current and comparison entries mixed and re-sorted together, so the ranking
- * answers *which of these is highest* without a dashed entry outranking the
+ * Every visible series at that bucket, ranked, in one card. Grouped per
+ * series (current plus its own `vs` sub-row) rather than current and
+ * comparison mixed and re-sorted, so a dashed entry never outranks the
  * series it belongs to.
  */
 export function SeriesTooltip({

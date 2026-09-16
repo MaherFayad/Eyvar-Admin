@@ -1,9 +1,7 @@
 /**
- * The segment picker — `22-analytics-v2.md` §1.2. Up to four populations,
- * saved or inline, each taking a hue from the eight-stop ramp (D40,
- * `--chart-s1` … `--chart-s8`). Legality (the ceiling, `performed` support on
- * an already-added segment) comes from `plan.violations`; this component adds
- * no rule the planner does not already state.
+ * The segment picker: up to four populations, saved or inline, each taking a
+ * hue from the eight-stop ramp (D40). Legality comes from `plan.violations`;
+ * this component adds no rule the planner does not already state.
  */
 
 import { useEffect, useId, useState } from 'react'

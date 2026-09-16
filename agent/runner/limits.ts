@@ -1,14 +1,7 @@
 /**
- * Rate-limit detection — `01-analyst-agent.md` §10, AC-1248. `claude -p
- * --output-format stream-json` emits a `rate_limit_event` line whenever the
- * subscription's own usage-limit state changes (`rate_limit_info: {status:
- * "allowed"|"allowed_warning"|"rejected", resetsAt?, rateLimitType?}` — a
- * real shape, captured from a live `claude -p` run against this machine's
- * subscription, not a guess). `status: "rejected"` is the hard stop the
- * runner must turn into `deferred`, never a crash or a retry storm. A
- * plain-text fallback covers the case where the block instead ends the
- * session with a `result` message whose text names the limit rather than a
- * structured event (the CLI's own wording, e.g. "usage limit reached").
+ * Rate-limit detection (§10, AC-1248). `stream-json` emits `rate_limit_event`
+ * lines (`status: "allowed"|"allowed_warning"|"rejected"`, a real captured
+ * shape); `rejected` is the hard stop turned into `deferred`, never a crash or retry storm. A plain-text fallback covers a block ending the session instead.
  */
 
 export interface RateLimitInfo {
@@ -73,11 +66,9 @@ export function detectRateLimitFromStream(lines: readonly string[]): RateLimitRe
 }
 
 /**
- * Fallback over the final `result` message's own text — the CLI's own
- * wording when a block ends the session without (or in addition to) a
- * structured `rate_limit_event`. Two patterns, both real CLI phrasing:
- * a pipe-delimited unix timestamp (`"...reached|1735689600"`) and a
- * parenthetical reset clause (`"...reached (5h; resets 2026-06-25 14:00 UTC)"`).
+ * Fallback over the final `result` message's text, for a block ending the
+ * session without a structured `rate_limit_event`. Two real CLI phrasings:
+ * a pipe-delimited timestamp, or a parenthetical reset clause.
  */
 export function parseRateLimitFromResultText(text: string | null | undefined): RateLimitResult {
   if (!text) return { limited: false }

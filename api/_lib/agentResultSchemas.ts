@@ -1,17 +1,8 @@
 /**
- * Kind → schema file, mirroring `agent/runner/jobAssembly.ts`'s own
- * `SCHEMA_FILE_BY_KIND` map exactly (comment there: "triage and review are
- * literally the case-study shape") — WP-6.2c / F-V2-38. `agent/` is read
- * here, never edited: these are static imports of the same five files that
- * WP-7.3 landed and the runner already sends to the CLI as `--json-schema`,
- * so a schema change on that side needs no change here.
- *
- * Static `import … from '../../agent/schemas/*.json'` rather than
- * `readFileSync` at request time: `resolveJsonModule` (both tsconfigs) makes
- * this a normal module the bundler traces and embeds, so Vercel's function
- * tracer picks it up the same way it already does for every `@/data/*`
- * import that reaches outside `api/`.
- */
+ * Kind → schema file, mirroring `agent/runner/jobAssembly.ts`'s own map
+ * (F-V2-38). Static imports of the five schema files WP-7.3 wrote, not
+ * `readFileSync`: `resolveJsonModule` makes Vercel's function tracer embed
+ * them, the same way it already does for `@/data/*` imports. */
 import type { AgentJobKind } from '@/data/types/agent'
 import { validateSchema, type JsonSchema, type SchemaViolation } from './jsonSchema'
 import askSchema from '../../agent/schemas/ask.schema.json'

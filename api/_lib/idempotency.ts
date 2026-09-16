@@ -1,11 +1,8 @@
 /**
- * `Idempotency-Key` handling — `05-backend.md` §2 Q3: every non-GET accepts
- * the header; the server stores `(user, key) → response` for 24h in
- * `idempotency_keys` and replays it on a repeat. `DbIdempotencyStore`
- * (WP-6.2) claims a key with `INSERT … ON CONFLICT DO NOTHING`, so two
- * concurrent requests are arbitrated by the table's primary key, not by a
- * check-then-insert race in this process.
- */
+ * `Idempotency-Key` handling (05-backend.md §2 Q3, AC-1273): every non-GET
+ * accepts the header and replays the stored response for 24h on a repeat.
+ * `DbIdempotencyStore` claims a key with `INSERT ... ON CONFLICT DO NOTHING`,
+ * so concurrent requests are arbitrated by the primary key, not a race here. */
 
 import { idempotencyInProgressError } from './errors'
 import type { Database } from './db'
@@ -118,13 +115,10 @@ export function readIdempotencyKey(req: Request): string | null {
 }
 
 /**
- * Wraps a handler so a repeated `Idempotency-Key` on the same user replays
- * the first response instead of re-running the mutation, and a second
- * request that arrives while the first is still running is refused with the
- * contract's conflict status rather than executed a second time. GETs and
- * requests with no key pass straight through — nothing here is a cache for
- * reads.
- */
+ * Wraps a handler so a repeated `Idempotency-Key` replays the first response
+ * rather than re-running the mutation, and a request arriving mid-flight is
+ * refused, not executed twice (AC-1273). GETs and keyless requests pass
+ * straight through — nothing here is a cache for reads. */
 export async function withIdempotency(
   req: Request,
   userId: string,

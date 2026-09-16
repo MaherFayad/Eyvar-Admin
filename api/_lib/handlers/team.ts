@@ -1,25 +1,8 @@
 /**
- * The operator lifecycle `src/data/clients/team.ts` declares — WP-6.2b,
- * finishing what WP-6.2 stubbed: invite · resend · revoke · suspend ·
- * reinstate · offboard, plus the permission override `clients/rbac.ts`
- * guards the same way (F-016). `toTeamUser` now returns every column
- * WP-6.2 had to send back `null` — `phone`, `photoUrl`, `secondFactor`,
- * `permissionDelta`, `compensationCapHalalas` — from `0004_team.sql`.
- *
- * ## F-016 is enforced in the database, not after a read
- *
- * *"The last holder of `manage_team` cannot be stripped of it, suspended, or
- * removed."* `suspendOperator`, `offboardOperator` and `setPermissionDelta`'s
- * revoking branch each run ONE atomic SQL statement that locks every active
- * `manage_team` holder (`FOR UPDATE`) before deciding — never a
- * read-then-write pair. Two concurrent requests each trying to remove the
- * last two holders serialise on that lock: the first to commit wins, the
- * second re-evaluates against the now-committed state and finds itself
- * removing the *actual* last holder, so its `WHERE` clause matches zero rows
- * and it is refused. A plain "check, then update" — even inside the same
- * request — cannot give that guarantee, because the check and the write are
- * two separate round trips a second request can land between.
- */
+ * The operator lifecycle (invite/resend/revoke/suspend/reinstate/offboard,
+ * permission override, F-016). `suspend`/`offboard`/override's revoking
+ * branch each run ONE atomic statement locking every active `manage_team`
+ * holder (`FOR UPDATE`) before deciding — never read-then-write, which cannot stop two concurrent removals both succeeding. */
 import type { TeamUser, TeamUserStatus, PermissionDelta } from '@/data/types/session'
 import type { SecondFactor } from '@/data/types/auth'
 import type { TeamInvite } from '@/data/types/team'
@@ -61,18 +44,10 @@ function refuse(code: string, message: string, field?: string): HttpError {
 }
 
 /**
- * T6.4 / F-V2-21's `releaseHoldingsOf` gap. The frontend's own version
- * (`src/data/clients/team.ts`) releases per-domain work-item queues
- * (applications, disputes, tickets, …) that have no server table in this
- * migration set — those operational tables are still the owner's to name
- * (`05-backend.md` §11 item 1). The one holding mechanism this schema
- * *does* have is `claims` (`0004_team.sql`), named there as "the work-queue
- * take affordance… no WP has built a claim-writing endpoint yet" — nothing
- * writes a `claims` row today, so this reads as `0` until something does,
- * honestly rather than by fabricating a queue. Wired into `suspend` and
- * `offboard` so the day a claim-writer exists, releasing on exit is already
- * in place.
- */
+ * F-V2-21's `releaseHoldingsOf` gap: releases `claims` rows, the one
+ * holding mechanism this schema has today (the frontend's per-domain queues
+ * have no server table yet). Nothing writes a `claims` row today, so this
+ * honestly reads `0` rather than fabricating a queue. */
 async function releaseHoldingsOf(db: Database, userId: string): Promise<number> {
   const released = await db.sql<{ key: string }>`
     UPDATE claims SET state = 'released', released_at = now(), release_reason = 'operator-offline'
@@ -111,10 +86,9 @@ interface UserRow {
 }
 
 /**
- * `db.sql` is a tagged template: every `${}` becomes a bound `$n` parameter,
- * never spliced-in SQL text (there is no "raw fragment" escape hatch — see
- * `db.ts`'s `makeSqlTag`). So this SELECT is written out at each of its two
- * call sites rather than built from a shared string constant.
+ * `db.sql` is a tagged template — no "raw fragment" splice exists (`db.ts`'s
+ * `makeSqlTag`) — so this SELECT is written out at each of its two call
+ * sites rather than built from a shared string constant.
  */
 export async function fetchUserRow(db: Database, id: string): Promise<UserRow | null> {
   const rows = await db.sql<UserRow>`
@@ -216,16 +190,10 @@ export function createGetTeamUserHandler(db: Database): RouteHandler<RequestCont
 /* ──────────────────────────── the lifecycle ───────────────────────────── */
 
 /**
- * POST /api/v1/team/operators
- *   body: { name, email, phone, role, compensationCapHalalas }
- *   -> TeamUser
- *
- * Lands `Invited`, `secondFactor: null`, permissions from the role baseline
- * (never from the caller — a free permission set on an invite is out of
- * scope, D4). `capForRole`'s role-default policy is not reproduced; a
- * `compensationCapHalalas: null` on the input is left `null` (no cap) rather
- * than defaulted — named as a gap in WP-6.2b's report.
- */
+ * POST /api/v1/team/operators  body: { name, email, phone, role,
+ * compensationCapHalalas }  -> TeamUser. Lands `Invited`, permissions from
+ * the role baseline only, never the caller's (D4); a `null` cap on input
+ * stays `null` (`capForRole`'s default is not reproduced). */
 export function createInviteOperatorHandler(db: Database): RouteHandler<RequestContext> {
   return async (req, ctx) => {
     const operator = requirePermission(ctx, 'manage_team')
@@ -278,10 +246,8 @@ export function createInviteOperatorHandler(db: Database): RouteHandler<RequestC
 }
 
 /**
- * POST /api/v1/team/invites/:userId/resend
- *   -> TeamInvite
- *
- * No state change on the operator. 409 on a record that is not `Invited`.
+ * POST /api/v1/team/invites/:userId/resend -> TeamInvite. No state change
+ * on the operator; 409 on a record that is not `Invited`.
  */
 export function createResendInviteHandler(db: Database): RouteHandler<RequestContext> {
   return async (_req, ctx) => {
@@ -327,11 +293,9 @@ export function createResendInviteHandler(db: Database): RouteHandler<RequestCon
 }
 
 /**
- * DELETE /api/v1/team/invites/:userId
- *   -> { revoked: true }
- *
- * The record goes with the invitation — an invitee has never signed in and
- * holds nothing. `ON DELETE CASCADE` removes the `invites` row too.
+ * DELETE /api/v1/team/invites/:userId -> { revoked: true }. The user record
+ * goes too — an invitee has never signed in and holds nothing;
+ * `ON DELETE CASCADE` removes the `invites` row.
  */
 export function createRevokeInviteHandler(db: Database): RouteHandler<RequestContext> {
   return async (_req, ctx) => {
@@ -348,20 +312,15 @@ export function createRevokeInviteHandler(db: Database): RouteHandler<RequestCon
 }
 
 /**
- * The three guarded writes below (`suspend`, `offboard`, `override`'s
- * revoking branch) each open with the same `WITH holders AS (...)` —
- * repeated verbatim rather than shared, because `db.sql` is a tagged
- * template with no raw-fragment splice (see `fetchUserRow`'s comment): the
- * `FOR UPDATE`-locked "who actively holds manage_team" set has to be written
- * inline in every statement that needs it.
- */
+ * `suspend`, `offboard` and `override`'s revoking branch each repeat the
+ * same `WITH holders AS (...)` verbatim rather than share it — `db.sql` is
+ * a tagged template with no raw-fragment splice, so the `FOR UPDATE`-locked
+ * holder set must be written inline in every statement that needs it. */
 
 /**
- * POST /api/v1/team/operators/:id/suspend
- *   -> TeamUser
- *
- * F-016 applies. One atomic statement: lock every active `manage_team`
- * holder, then flip status only if the target is not the sole one.
+ * POST /api/v1/team/operators/:id/suspend -> TeamUser (F-016). One atomic
+ * statement: lock every active `manage_team` holder, then flip status only
+ * if the target is not the sole one.
  */
 export function createSuspendOperatorHandler(db: Database): RouteHandler<RequestContext> {
   return async (req, ctx) => {
@@ -411,10 +370,8 @@ export function createSuspendOperatorHandler(db: Database): RouteHandler<Request
 }
 
 /**
- * POST /api/v1/team/operators/:id/reinstate
- *   -> TeamUser
- *
- * Not guarded — reinstating can only raise the holder count.
+ * POST /api/v1/team/operators/:id/reinstate -> TeamUser. Not guarded —
+ * reinstating can only raise the holder count.
  */
 export function createReinstateOperatorHandler(db: Database): RouteHandler<RequestContext> {
   return async (_req, ctx) => {
@@ -434,11 +391,9 @@ export function createReinstateOperatorHandler(db: Database): RouteHandler<Reque
 }
 
 /**
- * DELETE /api/v1/team/operators/:id
- *   -> { offboarded: true }
- *
- * F-016 applies, atomically as `suspend` — offboarding the last
- * administrator would lock every remaining operator out permanently.
+ * DELETE /api/v1/team/operators/:id -> { offboarded: true } (F-016,
+ * atomic as `suspend`) — offboarding the last administrator would lock
+ * every remaining operator out permanently.
  */
 export function createOffboardOperatorHandler(db: Database): RouteHandler<RequestContext> {
   return async (_req, ctx) => {
@@ -476,16 +431,10 @@ export function createOffboardOperatorHandler(db: Database): RouteHandler<Reques
 }
 
 /**
- * PUT /api/v1/team/operators/:id/override
- *   body: { granted, revoked }
- *   -> TeamUser
- *
- * The delta is signed against the operator's current role: a granted key the
- * baseline already holds, or a revoked key it never held, is dropped rather
- * than stored (`clients/rbac.ts`'s `setPermissionDelta`, verbatim). F-016
- * guards only the branch that would actually drop `manage_team` — granting
- * or leaving it alone never needs the lock.
- */
+ * PUT /api/v1/team/operators/:id/override  body: { granted, revoked }
+ * -> TeamUser. The delta is signed against the current role: a granted key
+ * the baseline holds, or a revoked key it never held, is dropped rather
+ * than stored. F-016 guards only the branch that would drop `manage_team`. */
 export function createSetPermissionDeltaHandler(db: Database): RouteHandler<RequestContext> {
   return async (req, ctx) => {
     const operator = requirePermission(ctx, 'manage_team')
@@ -550,17 +499,10 @@ export function createSetPermissionDeltaHandler(db: Database): RouteHandler<Requ
 }
 
 /**
- * POST /api/v1/team/operators/:id/role
- *   body: { role, reason }
- *   -> TeamUser
- *
- * WP-6.2c / F-V2-21's `changeRole` gap. The override is cleared, not
- * carried: a delta signed against the old role is void against the new one
- * (D17), so an exception dies with a demotion — `clients/rbac.ts`'s
- * `changeRole`, verbatim. F-016 applies the same lock-then-decide statement
- * as `suspend`/`offboard`, because a role change to something that does not
- * hold `manage_team` is exactly as capable of stripping the last holder.
- */
+ * POST /api/v1/team/operators/:id/role  body: { role, reason }  -> TeamUser
+ * (F-V2-21). The override is cleared, not carried: a delta signed against
+ * the old role is void against the new one (D17), so an exception dies with
+ * a demotion. F-016 applies the same lock-then-decide statement as `suspend`/`offboard`. */
 export function createChangeRoleHandler(db: Database): RouteHandler<RequestContext> {
   return async (req, ctx) => {
     const operator = requirePermission(ctx, 'manage_team')
@@ -620,12 +562,9 @@ export function createChangeRoleHandler(db: Database): RouteHandler<RequestConte
 }
 
 /**
- * PUT /api/v1/team/operators/:id/compensation-cap
- *   body: { capHalalas }
- *   -> TeamUser
- *
- * WP-6.2c / F-V2-21's `setCompensationCap` gap. The operator's own cap, over
- * the role default (O-T5). `null` is no cap.
+ * PUT /api/v1/team/operators/:id/compensation-cap  body: { capHalalas }
+ * -> TeamUser (F-V2-21). The operator's own cap, over the role default
+ * (O-T5); `null` is no cap.
  */
 export function createSetCompensationCapHandler(db: Database): RouteHandler<RequestContext> {
   return async (req, ctx) => {
@@ -673,12 +612,9 @@ export function createGetOnCallRotaHandler(db: Database): RouteHandler<RequestCo
 }
 
 /**
- * PUT /api/v1/team/on-call
- *   body: { primaryUserId, secondaryUserId }
- *   -> OnCallRota
- *
- * Only an `Active` operator can be on call — a suspended or never-activated
- * operator on the rota is a rota that names somebody who cannot sign in.
+ * PUT /api/v1/team/on-call  body: { primaryUserId, secondaryUserId }
+ * -> OnCallRota. Only an `Active` operator can be on call — a suspended or
+ * never-activated one would name somebody who cannot sign in.
  */
 export function createUpdateOnCallRotaHandler(db: Database): RouteHandler<RequestContext> {
   return async (req, ctx) => {

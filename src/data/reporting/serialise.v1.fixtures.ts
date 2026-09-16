@@ -1,9 +1,7 @@
 /**
- * 20 v1 URLs, AC-1101. `reports.ts` seeds only 10 real `ReportQuery`
- * literals; `V1-1`…`V1-10` copy those verbatim (cited by line), `V1-11`…
- * `V1-20` recombine individually-real field values (flagged in the WP-1.5
- * report as a seeded-set gap, not invented here). `encodeV1` replicates the
- * pre-WP-1.5 `serialiseReportQuery`, gone now that `serialise.ts` writes v2.
+ * 20 v1 URLs (AC-1101): `V1-1`…`V1-10` copy `reports.ts`'s 10 real
+ * `ReportQuery` literals verbatim; `V1-11`…`V1-20` recombine real field
+ * values (a seeded-set gap, WP-1.5). `encodeV1` replicates the retired pre-WP-1.5 serialiser.
  */
 
 import type { CohortSpecV1, FunnelSpecV1, ReportQueryInput } from '../types/report'

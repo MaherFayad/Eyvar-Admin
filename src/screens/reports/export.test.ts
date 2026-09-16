@@ -1,8 +1,8 @@
 /**
  * `export.ts` — CSV serialisation and the shared export audit call (AC-1160).
- * PNG rendering itself is `chartPng.ts`'s, proven in `chartPng.test.ts` and a
- * harness; this file only proves the CSV text and the `track` call both formats
- * share.
+ * PNG rendering is `chartPng.ts`'s, proven in `chartPng.test.ts` and a
+ * harness; this file only proves the CSV text and the `track` call both
+ * formats share.
  */
 import { beforeEach, describe, expect, it } from 'vitest'
 import { recentEvents, resetAnalytics } from '@/lib/analytics'

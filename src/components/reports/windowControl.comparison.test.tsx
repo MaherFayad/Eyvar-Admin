@@ -1,8 +1,8 @@
 /**
- * `ComparisonControl` and `ComparisonDisplayToggle` — 22-analytics-v2.md
- * §1.4/§1.5. AC-1109 (new presets already flow through `REPORT_PRESETS`),
- * AC-1112/AC-1157 (fixed comparison, length stated before `Apply`), AC-1158
- * (offers `previous-quarter`, `previous-year`, `fixed` and the display choice).
+ * `ComparisonControl`/`ComparisonDisplayToggle` — §1.4/§1.5. AC-1109 (presets
+ * flow through `REPORT_PRESETS`), AC-1112/AC-1157 (fixed comparison states
+ * its length before `Apply`), AC-1158 (offers previous-quarter/year, fixed,
+ * and the display choice).
  */
 
 import { render, screen } from '@testing-library/react'

@@ -1,9 +1,8 @@
 /**
- * §2.4 — a hairline and marker per annotation in the window, drawn as an HTML
- * overlay (Recharts only collects its own element types as SVG children) at
- * the same point-scale bucket centre the plot uses. The hover/focus target is
- * a real `<button>`, keyboard-reachable (§2.4). The axis never mirrors
- * (`rtl.md`), so this overlay is physically positioned, not `dir`-aware.
+ * A hairline and marker per annotation, drawn as an HTML overlay rather than
+ * SVG, because Recharts only collects its own element types as SVG children.
+ * The target is a real, keyboard-reachable `<button>` (§2.4). Positioned
+ * physically, never `dir`-aware, because the axis never mirrors (`rtl.md`).
  */
 
 import { useState } from 'react'

@@ -1,8 +1,7 @@
 /**
- * The provenance rail (AC-1258/AC-1259) — every **run** the study cites, by
- * `runId` (F-V2-90, not the page's `report` blocks). Each is `getRun`'s own
- * record, with `Open in builder` (a real `<a>` — R3). A citation `getRun`
- * cannot find still renders, marked missing: never silently dropped.
+ * The provenance rail (AC-1258/AC-1259): every run the study cites, by
+ * runId (F-V2-90 — never derived from the page's report blocks). A
+ * citation `getRun` can't find still renders, marked missing, not dropped.
  */
 
 import { Link } from 'react-router-dom'

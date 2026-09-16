@@ -1,9 +1,7 @@
 /**
- * The runner's MCP server path has to resolve from the runner's own cwd, not
- * from the repo root. `index.ts` spawns `claude` with `cwd: env.sandboxDir`,
- * and a bare relative path in `--mcp-config` resolves against that cwd — so
- * `agent/dist/mcp/server.js` looked for `agent/sandbox/agent/dist/...` and the
- * tool server would have failed to start on the runner's first real job.
+ * The MCP server path must resolve from the spawn's own cwd
+ * (`env.sandboxDir`), not the repo root — a bare relative path resolved
+ * against `agent/sandbox/agent/dist/...` and would have failed the first real job. Regression guard.
  */
 
 import { existsSync, readFileSync } from 'node:fs'

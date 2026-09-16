@@ -1,9 +1,7 @@
 /**
- * The analyst index (`22-analytics-v2.md` §4/§5.4, AC-1254/AC-1255/AC-1264)
- * — `?view=analyst`. **Index table** (`patterns.md`) over `agent.jobs.list`,
- * the ask composer inline above it, never a dialog. State badge: `queued`
- * neutral · `running` info · `deferred` warning · `done` success · `failed`
- * warning — no red (R7). Restyled on arrival: `DataTable`, `Badge`, `Tabs`.
+ * The analyst index (AC-1254/AC-1255/AC-1264): an index table over
+ * `agent.jobs.list` with the ask composer inline above it, never a dialog.
+ * State badges use R7's tones only — no red.
  */
 
 import { useEffect, useRef, useState } from 'react'

@@ -1,9 +1,7 @@
 /**
- * `dashboardToPage(dashboard)` — pure (§2). Consecutive `half` tiles pair into
- * a two-column `columns` block (6-width each); a `full` tile, or a `half`
- * tile with no `half` neighbour, stands alone. `title` carries `pinnedName`
- * forward for every tile, which is what lets a dangling tile's block still
- * name what it used to be once `pinnedName` itself is gone (§2, AC-1180).
+ * `dashboardToPage(dashboard)` — pure (§2, AC-1180). Consecutive `half`
+ * tiles pair into a two-column `columns` block; a `full` or unpaired `half`
+ * stands alone. `title` carries `pinnedName` so a dangling tile still names itself.
  */
 
 import { tileSpan, type Dashboard, type DashboardTile } from '../../types/report'
@@ -52,10 +50,8 @@ function tilesToBlocks(tiles: readonly DashboardTile[]): Block[] {
 
 /**
  * Converts a v1 `Dashboard` to a `Page` of kind `'dashboard'`. Reuses the
- * dashboard's own `id` so `/dashboards/:id` can alias `/pages/:id` (§2). A
- * dashboard has no `visibility`/`tags`/`official`/`version` concept; migrated
- * pages default to `'team'` (the audience a v1 dashboard already had — it was
- * never scoped to its owner), `[]`, `false` and `1`.
+ * dashboard's own `id` so `/dashboards/:id` can alias `/pages/:id` (§2).
+ * Migrated `visibility` defaults to `'team'`, the audience a v1 dashboard already had.
  */
 export function dashboardToPage(dashboard: Dashboard): Page {
   return {

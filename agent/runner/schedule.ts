@@ -1,19 +1,7 @@
 /**
- * The runner-side fallback for scheduled reviews (§8, AC-1266/AC-1267).
- *
- * `/api/cron/agent-schedules` is the primary path, but §1a is explicit that
- * Vercel Hobby refuses a cron finer than daily — on that plan the 15-minute
- * `agent-schedules` cron may simply never run. The runner already polls the
- * job queue continuously, so it also checks for a due schedule on its own,
- * throttled to `scheduleCheckIntervalMs` rather than every poll tick. This
- * calls the exact same backend function (`enqueueDueAgentSchedules`) the
- * cron calls, through `POST /agent/schedules/enqueue-due` — AC-1266's
- * unique-constraint arbitration is what keeps the two from ever enqueuing
- * the same due schedule twice, not anything this file does.
- *
- * A failed check is logged and swallowed, exactly like `index.ts`'s own
- * heartbeat: a schedule that could not be checked this tick is checked
- * again next tick, and never crashes the poll loop.
+ * §8's runner-side fallback (AC-1266/AC-1267): Vercel Hobby refuses a cron
+ * finer than daily (§1a), so the runner also polls for a due schedule
+ * itself, via the same backend call the cron uses — AC-1266's unique constraint prevents a double-enqueue.
  */
 
 import { enqueueDueSchedules, type EnqueueDueSchedulesSummary } from './httpClient.js'
@@ -29,10 +17,9 @@ export function initialScheduleCheckState(): ScheduleCheckState {
 }
 
 /**
- * Called once per poll cycle; does nothing until `nextCheckAt` has passed, so
- * this shares the poll loop's own cadence and error handling instead of a
- * second timer racing the first. Returns the summary when a check actually
- * ran, `null` when it was throttled — the shape `index.test.ts` asserts on.
+ * Runs once per poll cycle; a no-op until `nextCheckAt` passes, sharing the
+ * poll loop's own cadence and error handling rather than a second timer.
+ * Returns the summary when a check ran, `null` when throttled.
  */
 export async function checkSchedulesDue(
   env: RunnerEnv,

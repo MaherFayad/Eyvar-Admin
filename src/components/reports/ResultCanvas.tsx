@@ -90,12 +90,10 @@ import { AnnotationForm } from './AnnotationForm'
    itself stays a static import: an operator's headline figure renders
    immediately rather than waiting on a chart chunk (coordinator ruling). */
 import { KpiCard } from './KpiCard'
-/* WP-8.4 §5 — the fix: every SYNCHRONOUS need (the legend swatches, the
-   no-panels/`kpi` frame, the related-boards strip) reads from
-   `panelPrimitives.tsx`, which does not import `recharts`. `PanelCard` and
-   `SeriesChart` themselves — the mark-drawing components — are `lazy()`
-   below, for real this time: nothing in this file's own static graph reaches
-   either module any more, so Rollup can finally move them. */
+/* Every SYNCHRONOUS need (legend swatches, no-panels/`kpi` frame,
+   related-boards strip) reads from `panelPrimitives.tsx`, which does not
+   import `recharts`. `PanelCard`/`SeriesChart` are `lazy()` below: nothing
+   in this file's own static graph reaches either module, so it can split. */
 import {
   COMPARISON_SERIES_ID,
   PanelFrame,
@@ -114,11 +112,9 @@ const LazyPanelCard = lazy(() => import('./PanelCard').then((m) => ({ default: m
 const LazySeriesChart = lazy(() => import('./SeriesChart').then((m) => ({ default: m.SeriesChart })))
 
 /**
- * `DistributionCard` has no sibling export another part of this file needs
- * synchronously, so — unlike `PanelCard`/`SeriesChart` above — this split is
- * real: `ReportsScreen.tsx` reaches this file regardless of view, so a static
- * import here shipped recharts on every plain visit. Same `lazy()`/`Suspense`
- * pattern as `ReportModeCanvas.tsx`'s own `LazyDistributionCard`.
+ * `DistributionCard` has no synchronous export this file needs, so this
+ * `lazy()` split is real: without it, `ReportsScreen.tsx` reaching this file
+ * regardless of view shipped recharts on every plain visit.
  */
 const LazyDistributionCard = lazy(() =>
   import('./DistributionCard').then((m) => ({ default: m.DistributionCard })),
@@ -139,10 +135,9 @@ export interface ResultCanvasProps {
   /** The shape the planner actually draws — every v2 `ChartType` is legal here now. */
   effectiveChartType: ChartType
   /**
-   * §2's chart-view cache key — the saved report id, or `serialiseReportQuery`
-   * of the draft when unsaved. Defaults to the latter so a caller that has not
-   * been updated for v2 keeps working; a saved report should pass its own id
-   * so the view survives a query edit that does not change the report.
+   * The chart-view cache key — the saved report id, or `serialiseReportQuery`
+   * of the draft when unsaved. A saved report should pass its own id so the
+   * view survives a query edit that does not change the report.
    */
   viewKey?: string
   /** §2.4 — the window's annotations, already fetched by the caller (dumb about fetching, per this module's rule). */
@@ -918,10 +913,9 @@ function drawKindFor(chartType: ChartType): SeriesChartKind {
 }
 
 /**
- * §2 — one axis group's plot, owning the hooks a `.map` callback cannot
- * (`useChartView`, the brush's local zoom). Composes the controls row
- * (§2's slim row: zoom chip, `Add annotation`, `View` menu), the headline
- * row, the plot itself, the button legend and the inline annotation form.
+ * One axis group's plot, owning the hooks a `.map` callback cannot
+ * (`useChartView`, the brush's local zoom). Composes the controls row, the
+ * headline row, the plot, the button legend and the inline annotation form.
  */
 function TrendPlotGroup({
   group,
@@ -1128,10 +1122,9 @@ function TrendPlotGroup({
 }
 
 /**
- * §2.1 — the legend as real `<button>`s (AC-1138): clicking one toggles its
- * series into `ChartView.hidden`, struck through but still named — the
- * picture never lies about what was asked. A kebab per entry isolates it
- * (AC-1139); the comparison entry toggles as one unit (AC-1140).
+ * The legend as real `<button>`s (AC-1138): clicking one toggles its series
+ * into `ChartView.hidden`, struck through but still named — the picture
+ * never lies about what was asked. A kebab per entry isolates it (AC-1139).
  */
 function SeriesLegend({
   panels,

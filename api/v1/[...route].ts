@@ -1,14 +1,8 @@
 /**
- * The one Vercel Function behind `/api/v1/*` — `05-backend.md` §1: "one cold
- * start, one place for auth, one place for the error envelope; a function
- * per route would be 60 cold starts." Web-standard handler signature, Node
- * 22 runtime (`vercel.json`'s `functions` block sets `maxDuration`).
- *
- * Order per §4: auth → permission (each handler's own `requirePermission`
- * call) → idempotency → handler → envelope. `createApiHandler` takes its
- * `Database` as a parameter so a test can hand it PGlite instead of the
- * lazy, env-backed one the default export uses — WP-6.2.
- */
+ * The one Vercel Function behind `/api/v1/*` (05-backend.md §1): one cold
+ * start, one auth path, one error envelope. Order per §4: auth ->
+ * permission (`requirePermission`) -> idempotency -> handler -> envelope.
+ * `createApiHandler` takes `Database` as a param so a test hands it PGlite. */
 
 import { createRouter } from '../_lib/router'
 import { errorResponse } from '../_lib/errors'

@@ -1,9 +1,7 @@
 /**
- * The runner's own environment — distinct from `agent/mcp/*`'s, which the
- * `claude -p` child process reads for itself (`EYVAR_MCP_SOURCE`,
- * `EYVAR_JOB_ID`, …, `agent/README.md`). This file is what the daemon
- * process (`index.ts`) reads to know how to reach the backend and what to
- * spawn.
+ * The daemon's own environment — distinct from `agent/mcp/*`'s, which the
+ * spawned `claude -p` child reads for itself (`EYVAR_MCP_SOURCE`, …).
+ * `index.ts` reads this to know how to reach the backend and what to spawn.
  */
 
 import { resolve } from 'node:path'

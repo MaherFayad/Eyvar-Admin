@@ -1,8 +1,7 @@
 /**
- * The list and `Single<T>` envelopes, and offset pagination — `CONTRACT.md`
- * §2 and `05-backend.md` §2 Q2. Types are re-exported from `common.ts` rather
- * than redeclared, so the server and the clients cannot disagree about the
- * shape.
+ * The list and `Single<T>` envelopes, and offset pagination (CONTRACT.md §2,
+ * 05-backend.md §2 Q2). Types re-export from `common.ts` so server and
+ * clients cannot disagree about the shape.
  */
 
 import { DEFAULT_PAGE_SIZE } from '@/data/types/common'
@@ -16,10 +15,9 @@ export function single<T>(data: T): Single<T> {
 }
 
 /**
- * A bare-`T` JSON response, for the endpoints `CONTRACT.md` §2 marks as the
- * exception to `Single<T>` — `session.ts` and `team.ts`'s client docblocks
- * call `http.get<Session>`/`http.get<{ items: TeamUser[] }>` directly, with
- * no `.data` to unwrap, so the server must not wrap them either.
+ * A bare-`T` response, for endpoints CONTRACT.md §2 marks as the exception
+ * to `Single<T>` — `session.ts`/`team.ts` clients call `http.get` directly
+ * with no `.data` to unwrap, so the server must not wrap them either.
  */
 export function jsonResponse<T = unknown>(data: T, status = 200, headers: Record<string, string> = {}): Response {
   return new Response(JSON.stringify(data), { status, headers: { 'content-type': 'application/json', ...headers } })

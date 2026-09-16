@@ -1,18 +1,8 @@
 /**
- * `/api/cron/alerts-hourly` (`0 * * * *` UTC) — evaluates every `hourly`
- * rule via `evaluateDue.ts` (05-backend.md §8).
- *
- * §1a: **this schedule is refused at deploy on Vercel Hobby** ("Hobby
- * accounts are limited to daily cron jobs"). On Hobby this function is
- * simply never invoked — nothing in it papers over that. An `hourly` rule
- * left enabled there keeps its `lastEvaluatedAt` exactly where it was: it
- * does not creep forward, does not fire, and does not read `armed`-and-fine
- * by any means this file controls. State 28 (`04-alerting-v2.md` §7,
- * "Evaluation lag") is what turns that honest staleness into something an
- * operator sees, once the composer disables `hourly` there
- * (`rb.alert.cadence.hobby`) — this file's only obligation is to never
- * fabricate a `lastEvaluatedAt` it did not actually run.
- */
+ * `/api/cron/alerts-hourly` (`0 * * * *` UTC): evaluates every `hourly`
+ * rule via `evaluateDue.ts`. Refused at deploy on Vercel Hobby (F-V2-36) —
+ * never invoked there, and an enabled `hourly` rule's `lastEvaluatedAt`
+ * stays put rather than being fabricated; state 28 makes that lag visible. */
 import { createPgPoolDatabase, type Database } from '../_lib/db'
 import { requireCronSecret } from '../_lib/cronAuth'
 import { errorResponse } from '../_lib/errors'

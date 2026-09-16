@@ -47,11 +47,9 @@ function minutesBetween(a: IsoDateTime, b: IsoDateTime): number {
 }
 
 /**
- * `armed → firing → cooling → armed`, `suspended`, `error` — spec 06 §12.4.
- * `suspended` and `error` are terminal here: re-entry to `armed` is a save
- * action (an operator or a permission fix), not an evaluation outcome, so it
- * is out of this function's domain. `mutedUntil` is deliberately absent from
- * `AlertMachineInput` — §12.4 says it silences delivery, never evaluation.
+ * `armed → firing → cooling → armed`, `suspended`, `error` (spec 06 §12.4).
+ * `suspended`/`error` are terminal — re-entry is a save action, not an
+ * evaluation outcome. `mutedUntil` is deliberately absent: §12.4 silences delivery, never evaluation.
  */
 export function nextAlertState(state: AlertState, input: AlertMachineInput): AlertTransition {
   if (state === 'suspended' || state === 'error') return settled(state)

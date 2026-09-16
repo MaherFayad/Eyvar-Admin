@@ -1,13 +1,8 @@
 /**
- * `mode: 'cohort'` — WP-6.4c. `resolveCohort` (`src/data/mock/resolveReport.ts`),
- * ported onto `fetchSubjectEvents`/`fetchLastActiveIndex` (`../compile.ts`)
- * instead of fixture arrays. The maths does not move here either — this file
- * calls the SAME `buildCohortMatrix` (`@/data/reporting/cohorts`) the mock
- * calls, already grain-generic (`rolling`/`nday`/`bracket`, G11) and already
- * tested; this function's only job is turning a query into that function's
- * three arguments and its output into a `ReportResult`, exactly as the
- * mock's own docblock states. AC-1276 (RPT-7) is the proof.
- */
+ * `mode: 'cohort'`: ports `resolveCohort` onto `fetchSubjectEvents`/
+ * `fetchLastActiveIndex` instead of fixture arrays, calling the *same*
+ * `buildCohortMatrix` the mock calls — turning a query into its arguments
+ * and its output into a `ReportResult` (AC-1276, RPT-7). */
 import { fetchLastActiveIndex, fetchSubjectEvents } from '../compile'
 import type { Database } from '../db'
 import { buildCohortMatrix } from '@/data/reporting/cohorts'

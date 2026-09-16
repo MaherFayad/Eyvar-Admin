@@ -189,10 +189,9 @@ export function RowActionMenuItem<T>({
   row: T
   /**
    * F-V2-83 — hand the action to the caller instead of running it inline.
-   * `onSelect` fires while this menu's own close is still tearing down, and a
-   * dialog opened here raced that teardown and lost about 1 run in 3.
-   * `onCloseAutoFocus` is the point proven safe; `deferTo` is what its
-   * `DropdownMenuContent` drains once that fires.
+   * `onSelect` fires mid-teardown of this menu's own close, and a dialog
+   * opened here can race it and lose. `onCloseAutoFocus` is the point proven
+   * safe; `deferTo` is what `DropdownMenuContent` drains once that fires.
    */
   deferTo?: MutableRefObject<(() => void) | null>
 }) {

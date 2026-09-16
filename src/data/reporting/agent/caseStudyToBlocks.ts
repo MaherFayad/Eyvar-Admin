@@ -1,8 +1,7 @@
 /**
  * `caseStudyToBlocks(study, jobId)` — pure (§7). No number without a run:
- * every digit written into a block's markdown comes from `finding.values`,
- * and that block's `runIds` is the same finding's `evidence` plus each
- * value's own `runId` — never assembled from any other source.
+ * every digit comes from `finding.values`; `runIds` is that finding's
+ * `evidence` plus each value's own `runId`, never assembled elsewhere.
  */
 
 import { PAGE_HEADING_MAX, PAGE_TEXT_MD_MAX } from '../../types/page'
@@ -76,12 +75,9 @@ function findingEvidenceBlock(
 }
 
 /**
- * AC-1260 — the smaller of two designs (a new `Block` variant needs its own
- * validation, migration and view; this is one optional field on the block a
- * finding already gets). Protocol step 8 pairs one recommendation per
- * finding by position, so `recommendations[i]` is read for `findings[i]`;
- * a proposal needs its own saved chart (`chartReportIds`, T13) and a series
- * to preset, or there is nothing to prefill and none is offered.
+ * AC-1260: one optional field on an existing block, not a new `Block` variant.
+ * Recommendations pair with findings BY POSITION (`recommendations[i]` for
+ * `findings[i]`); a proposal needs a saved chart (T13) and a series, or none is offered.
  */
 function alertProposalFor(
   finding: CaseStudyFinding,
@@ -119,11 +115,9 @@ function contributorColumns(language: CaseStudy['language']): PageTableColumn[] 
 }
 
 /**
- * §7's rendering rule ("a `table` block for contributors",
- * `01-analyst-agent.md:330`) — one row per contributor, its own `runId` in
- * the row, the same citation discipline a finding's values get. Present
- * even with zero contributors: an empty table is this block's empty state,
- * never an omitted block.
+ * §7's rendering rule (`01-analyst-agent.md:330`): a table block, one row
+ * per contributor with its own `runId`. Always present, even with zero
+ * contributors — an empty table is the empty state, never an omitted block.
  */
 function contributorsTableBlock(study: CaseStudy, jobId: string): TableBlock {
   return {
@@ -172,12 +166,9 @@ function dataQualityCallout(dataQuality: CaseStudyDataQuality, jobId: string): C
 }
 
 /**
- * Converts a validated `CaseStudy` into an ordered `Block[]`. `jobId` is the
- * run's `AgentJob.id`, not part of `CaseStudy`. `chartReportIds` (finding id
- * → saved `reportId`) is data T13 produced elsewhere, handed in rather than
- * fetched — a finding missing from it, or the map itself absent, degrades to
- * its evidence block alone; the function never throws and never drops a
- * finding for want of a chart (AC-1129).
+ * Converts a validated `CaseStudy` into an ordered `Block[]`. `chartReportIds`
+ * (finding id → `reportId`) is T13's data, handed in not fetched — a finding
+ * missing from it degrades to its evidence block alone (never throws, AC-1129).
  */
 export function caseStudyToBlocks(
   study: CaseStudy,

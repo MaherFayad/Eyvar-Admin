@@ -1,10 +1,7 @@
 /**
- * The http `Backend` — `01-analyst-agent.md` §5's endpoint column,
- * `05-backend.md` §5. Loaded only when `EYVAR_MCP_SOURCE=http`.
- *
- * **Untested against a live backend** — none exists yet (P7 follows P6, per
- * the doc header). Every path and body below is copied from the endpoint the
- * catalogue names; a mismatch once the backend lands is this file's bug.
+ * The http `Backend`, loaded only when `EYVAR_MCP_SOURCE=http`. Every path
+ * and body is copied from the endpoint catalogue (§5); untested against a
+ * live backend, so treat a mismatch as this file's bug, not the endpoint's.
  */
 
 import { httpGet, httpPost, EyvarHttpError } from './client.js'

@@ -1,10 +1,9 @@
 /**
- * The firings feed — AC-1236…1238. A cross-rule LEDGER (no sort, no
- * selection, no `rowActions` kebab, enforced at compile time by `mode:
- * 'ledger'`); `Acknowledge`/`Explain` are their own column instead (§7.3).
- * Fetched whole and narrowed here, as `AlertHistoryDialog` already narrows a
- * firing list — `date`/`severity` run client-side since `clients/alerts.ts`
- * (not this role's file) only filters `ruleId`/`acknowledged` server-side.
+ * The firings feed (AC-1236…1238). A cross-rule LEDGER (no sort, no
+ * selection, no `rowActions` kebab), enforced at compile time by `mode:
+ * 'ledger'`; `Acknowledge`/`Explain` are their own column instead (§7.3).
+ * `date`/`severity` filter client-side; `clients/alerts.ts` only filters
+ * `ruleId`/`acknowledged` server-side.
  */
 
 import { useState } from 'react'

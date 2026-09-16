@@ -1,8 +1,8 @@
 /**
  * The public entry point. `renderMarkdown` is the one call a text block
- * needs; `parse` and `render` are exported separately for a caller that
- * wants the tree itself (an editor preview, a word count) without paying
- * for a second parse. 03-pages-and-dashboards.md §4, AC-1181 … AC-1184.
+ * needs; `parse`/`render` are exported separately for a caller wanting the
+ * tree itself (editor preview, word count) without a second parse.
+ * 03-pages-and-dashboards.md §4, AC-1181 … AC-1184.
  */
 
 import { createElement, type ReactNode } from 'react'
@@ -34,9 +34,8 @@ export { render } from './render'
 
 /**
  * The one string this module owns. `src/i18n/dictionaries.ts` and the
- * Arabic dictionary register it exactly as `SLA_MESSAGES_EN` and
- * `FILE_SIZE_MESSAGES_EN` already are — that registration is outside
- * `src/lib/markdown/**` and is not done here.
+ * Arabic dictionary register it, as `SLA_MESSAGES_EN` and
+ * `FILE_SIZE_MESSAGES_EN` already are — outside `src/lib/markdown/**`.
  */
 export const MARKDOWN_MESSAGES_EN = Object.freeze({
   'markdown.truncated': 'Some of this text was too long to show and has been shortened.',
@@ -50,9 +49,8 @@ export interface RenderMarkdownOptions {
 
 /**
  * `parse` then `render` in one call, with the AC-1184 notice appended when
- * `md` was cut. The notice is its own paragraph, not folded into the last
- * block, so it reads as a system message rather than as something the
- * operator wrote.
+ * `md` was cut — its own paragraph, not folded into the last block, so it
+ * reads as a system message rather than something the operator wrote.
  */
 export function renderMarkdown(md: string, options: RenderMarkdownOptions): ReactNode[] {
   const result = parse(md)

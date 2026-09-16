@@ -371,10 +371,10 @@ const SERIES_COMPARISONS = ['none', 'previous-period', 'previous-quarter', 'prev
 const FIXED = '__fixed__'
 
 /**
- * The `Compare to` select plus its fifth, non-committing row (§1.4):
- * `Fixed range…` opens this file's own popover shape rather than writing the
- * query on select. Ready for `ChartToolbar` (WP-2.7) to swap in for its
- * inline `COMPARISONS` select; the trailing clear stays theirs.
+ * The `Compare to` select plus its fifth, non-committing row: `Fixed range…`
+ * opens this file's own popover rather than writing the query on select.
+ * `ChartToolbar` swaps this in for its inline `COMPARISONS` select; the
+ * trailing clear stays theirs.
  */
 export function ComparisonControl({
   query,
@@ -563,12 +563,10 @@ export function ComparisonControl({
 const COMPARISON_DISPLAYS: readonly ComparisonDisplay[] = ['series', 'difference', 'percent-change']
 
 /**
- * `comparisonDisplay`, shown only while `periodComparison !== 'none'` — the
- * caller decides that; this renders unconditionally once mounted. View-only:
- * it never issues a request (`askedOf` already strips nothing here because
- * `comparisonDisplay` IS part of `ReportQuery`, per 02 §2.6 — the resolver
- * needs it to compute `difference`/`percent-change`, so this one control
- * genuinely does belong on the query, unlike `ChartView`).
+ * `comparisonDisplay`, shown only while `periodComparison !== 'none'`
+ * (caller decides). View-only in UI, but unlike `ChartView` it IS part of
+ * `ReportQuery` — `askedOf` does not strip it, because the resolver needs it
+ * to compute `difference`/`percent-change`.
  */
 export function ComparisonDisplayToggle({
   query,

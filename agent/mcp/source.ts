@@ -1,14 +1,7 @@
 /**
- * The switch — `01-analyst-agent.md` §3.1: `EYVAR_MCP_SOURCE = 'http' | 'mock'`.
- * Mock imports the frontend clients (`../../src/data/clients`) for early
- * development, before the backend exists (§3.4); http calls the real API
- * through `client.ts`.
- *
- * **Dynamic import, not static** — so an http-mode process never evaluates
- * `mockBackend.ts`'s import of `src/data/config.ts`, which reads
- * `import.meta.env` unguarded and throws under plain Node/`tsx` outside Vite
- * or Vitest (see `agent/README.md` "Known gap"). Neither branch pays for the
- * other's dependency graph.
+ * The switch. `getBackend()` imports dynamically because http mode must
+ * never evaluate `mockBackend.ts`: its transitive `config.ts` import reads
+ * `import.meta.env` unguarded, which throws under plain Node/`tsx`.
  */
 
 import type { Backend } from './backendTypes.js'

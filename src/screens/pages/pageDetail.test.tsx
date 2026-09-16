@@ -1,9 +1,7 @@
 /**
- * `PageDetailScreen` — moved and renamed from `dashboards.test.tsx` (D39).
- * The report block's own five states are proven at the component level in
- * `src/components/pages/blocks/reportBlock.test.tsx`; this file proves the
- * page-level surface around it: AC-1193 (empty page), AC-1195 (Edit/Done)
- * and AC-1210 (the dashboard redirect).
+ * `PageDetailScreen` (D39). The report block's five states are proven in
+ * `blocks/reportBlock.test.tsx`; this file proves the page-level surface:
+ * AC-1193 (empty page), AC-1195 (Edit/Done), AC-1210 (dashboard redirect).
  */
 
 import { render, screen } from '@testing-library/react'

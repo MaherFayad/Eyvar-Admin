@@ -1,10 +1,7 @@
 /**
- * §7 / AC-1246 — the five scenarios the WP names explicitly: a passing
- * study, a number that does not match its run, a run id from another job,
- * fewer than two alternatives, and a PII leak. The passing fixture reuses
- * `DONE_JOB_CASE_STUDY` (`src/data/fixtures/agent.ts`) rather than a
- * hand-rolled one, so the "happy path" test is checked against the same
- * study the rest of the product already treats as the reference `done` job.
+ * §7 / AC-1246: a passing study, a value that doesn't match its run, a
+ * runId from another job, fewer than two alternatives, and a PII leak. The
+ * passing fixture reuses `DONE_JOB_CASE_STUDY`, the product's reference `done` job.
  */
 
 import { describe, expect, it } from 'vitest'

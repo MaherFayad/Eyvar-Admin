@@ -1,10 +1,9 @@
 /**
- * The save dialog — Amplitude §B1, principle 6, AC-856…AC-859. Asserts the
- * description/legend split, the consequence in `aria-describedby` rather than
- * a tooltip, and that a failed pin does not un-save the report (read back
- * through the client, never off the screen). D46 moved the picker from
- * `Dashboard`/`saveDashboard` to `Page`/`savePage`: a pin is now a
- * `ReportBlock` on `page.blocks`, and `pages.save` is what `mockFailures` rigs.
+ * The save dialog — Amplitude §B1 principle 6, AC-856…AC-859. Asserts the
+ * description/legend split, the consequence in `aria-describedby` (not a
+ * tooltip), and that a failed pin does not un-save the report, read back
+ * through the client. D46: a pin is now a `ReportBlock` on `page.blocks`;
+ * `pages.save` is what `mockFailures` rigs.
  */
 
 import { render, screen, waitFor } from '@testing-library/react'

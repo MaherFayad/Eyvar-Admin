@@ -1,8 +1,7 @@
 /**
- * Every tool's return shape, in one place — 01-analyst-agent.md §5's own
- * rule: "Tool error ... Not a failure. The tool returns the refusal; the
- * model is told to report it." A refusal is JSON the model reads, never a
- * thrown MCP protocol error (that stays for transport failures only).
+ * Every tool's return shape, in one place. A refusal is JSON the model
+ * reads, never a thrown MCP protocol error — that stays reserved for
+ * transport failures only.
  */
 
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js'

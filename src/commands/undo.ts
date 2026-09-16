@@ -82,11 +82,10 @@ export interface UndoOptions<T> {
 }
 
 /**
- * A 20-step in-memory undo stack for a surface with no server-audited
- * inverse — the page editor (`03-pages-and-dashboards.md` §5), not the
- * command centre's ten-second `undoHandle` above. Local only: it never
- * touches the data seam, so it is wrong for anything `undoHandle` already
- * covers.
+ * AC-1200's 20-step in-memory undo stack for a surface with no
+ * server-audited inverse — the page editor (03 §5), not the command
+ * centre's ten-second `undoHandle` above. Local only: wrong for anything
+ * `undoHandle` already covers.
  */
 const PAGE_EDITOR_UNDO_LIMIT = 20
 

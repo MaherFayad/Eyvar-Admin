@@ -1,8 +1,6 @@
 /**
- * An ordered list of blocks — `role="list"` in view mode, a plain flow of
- * regions in edit mode (§3's renderer table). Edit mode also draws the
- * insertion affordance above every block and after the last one (§3.1/§3.2):
- * present in the DOM at rest, visible on hover or `focus-visible`.
+ * An ordered list of blocks (§3): `role="list"` in view mode, a plain flow
+ * of regions in edit mode, with an insert affordance at each gap (§3.1/§3.2).
  */
 
 import { useState } from 'react'
@@ -65,13 +63,11 @@ export function BlockList({ blocks, containerId, columnIndex }: BlockListProps) 
       <div className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-border opacity-0 group-hover/gap:opacity-100 group-focus-within/gap:opacity-100" />
       <AddBlockPicker
         open={insertAt?.index === index && insertAt.picking === 'type'}
-        /* Same family as F-V2-83 (DataTable.tsx): picking `report`/`metric`
-           mounts ReportPickerPanel with an autofocused input in the same
-           commit that unmounts this popover, and the focus steal reaches the
-           still-attached DismissableLayer of the closing popover, which fires
-           one more `onOpenChange(false)` after `picking` has already moved
-           past `'type'`. Null only when THIS gap is still mid-`'type'`-pick,
-           so that stale call cannot wipe a selection that already landed. */
+        /* F-V2-83 family: switching to report/metric autofocuses a new panel
+           while this popover unmounts, so its closing DismissableLayer fires
+           one more onOpenChange(false) after `picking` has moved on. Guard:
+           only clear the gap while still mid-'type'-pick, so a stale close
+           cannot wipe a selection that already landed. */
         onOpenChange={(open) => {
           if (open) return
           setInsertAt((current) => (current?.index === index && current.picking === 'type' ? null : current))

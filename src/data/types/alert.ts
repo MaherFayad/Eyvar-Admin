@@ -1,8 +1,7 @@
 /**
- * Alert rules — moved out of `report.ts` (D42, `04-alerting-v2.md` §2), which
- * re-exports these for one phase. v2 adds `AlertCondition` beside the v1
- * `comparator`/`threshold` pair rather than replacing it, so a v1 rule stays a
- * valid v2 rule. Read via `alertCondition()`, not `rule.condition` directly.
+ * Alert rules — moved out of `report.ts` (D42, `04-alerting-v2.md` §2). v2
+ * adds `AlertCondition` beside the v1 `comparator`/`threshold` pair rather
+ * than replacing it, so a v1 rule stays valid; read via `alertCondition()`, not `rule.condition` directly.
  */
 
 import type { CurrencyCode, IsoDateTime } from './common'

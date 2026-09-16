@@ -1,13 +1,8 @@
 /**
- * `GET /api/v1/session` — `session.ts`'s `getSession` docblock: "the server
- * reads the auth cookie" and returns a bare `Session`. Built from the
- * operator + permissions the router's auth step already resolved (no second
- * permission query) plus one lookup for the user's display fields.
- *
- * `landingRoute`/`landingWorkspaceId`/`subTabPermissions`/`claimedCount` were
- * WP-6.2's placeholders; `sessionDerive.ts` (WP-6.2b) resolves all four from
- * `roles`, the route table and `claims`.
- */
+ * `GET /api/v1/session`: a bare `Session`, built from the operator +
+ * permissions the router's auth step already resolved (no second permission
+ * query) plus one lookup for display fields. `landingRoute`/
+ * `landingWorkspaceId`/`subTabPermissions`/`claimedCount` resolve via `sessionDerive.ts`. */
 import type { Session, UserPreferences } from '@/data/types/session'
 import type { IsoDateTime } from '@/data/types/common'
 import { unauthorizedError } from '../errors'
@@ -66,14 +61,10 @@ function parsePreferences(raw: unknown): UserPreferences {
 }
 
 /**
- * `GET /api/v1/me/preferences` — WP-6.2c / F-V2-21's `preferences` gap.
- * `session.ts`'s own docblock on the client is explicit that this is the
- * *old*, two-field pair (`subTabNavCollapsed`, `language`), not the D16
- * versioned preferences model `clients/preferences.ts` describes — that one
- * has no server endpoint of its own yet in `05-backend.md` §7 and is out of
- * this WP's scope; naming the distinction so a future WP does not conflate
- * the two on the wire.
- */
+ * `GET /api/v1/me/preferences` (F-V2-21): the *old* two-field pair
+ * (`subTabNavCollapsed`, `language`), not the D16 versioned model
+ * `clients/preferences.ts` describes — that one has no server endpoint yet.
+ * Do not conflate the two on the wire. */
 export function createGetPreferencesHandler(db: Database): RouteHandler<RequestContext> {
   return async (_req, ctx) => {
     if (!ctx.operator) throw unauthorizedError()

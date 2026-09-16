@@ -313,13 +313,10 @@ describe('a redraw is not a re-ask — changing the chart type costs no request'
     await mode(user, 'bar')
     await settle()
 
-    /* `Showing the previous run` is a claim that the numbers no longer answer
-       what is on screen. They do — only the shape they are drawn in moved — so
-       that sentence must not appear at all. A blanket `role="status"` query
-       would also catch §4.3's always-mounted active-bucket description on the
-       chart region (`SeriesChart.tsx`), which says nothing about freshness and
-       is legitimately present here; the staleness sentence is the claim under
-       test, so it is named directly. */
+    /* §4.3: `SeriesChart` always mounts a second `role="status"` (the active-
+       bucket description), so a blanket status query also catches it — name
+       the staleness sentence directly instead. Numbers here are still valid
+       (only the shape moved), so `Showing the previous run` must not appear. */
     expect(screen.queryByText(STALE_PREFIX, { exact: false })).toBeNull()
   })
 

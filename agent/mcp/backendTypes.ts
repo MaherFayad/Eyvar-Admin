@@ -1,8 +1,7 @@
 /**
- * The one seam every tool calls through. `source.ts` picks the mock or the
- * http implementation at runtime (`EYVAR_MCP_SOURCE`); a tool file never
- * imports `../../src/data/clients` or `client.ts` directly, so it works
- * unchanged once the backend exists (§3.4).
+ * The one seam every tool calls through. `source.ts` picks mock or http at
+ * runtime; tool files never import `../../src/data/clients` or `client.ts`
+ * directly, so they work unchanged once the real backend exists.
  */
 
 import type { PermissionKey } from '../../src/data/types/navigation'

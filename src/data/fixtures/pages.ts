@@ -1,11 +1,7 @@
 /**
- * Pages — `03-pages-and-dashboards.md`. `pageFixtures` is `dashboardFixtures`
- * (`reports.ts`) migrated through `dashboardToPage`, so `DSH-1` … `DSH-3`
- * answer both `/dashboards/:id` and `/pages/:id` with one record.
- *
- * `pageTemplateFixtures` below carry `template: true` (WP-1.7 mints the flag
- * on `Page`), so `pageFixtures[2]`, the draft case study `AGT-1` produced,
- * built with the real `caseStudyToBlocks()`, is not mistaken for one.
+ * Pages (D39, `03-pages-and-dashboards.md`). `pageFixtures` is
+ * `dashboardFixtures` migrated through `dashboardToPage`, so `DSH-1`…`DSH-3`
+ * answer both `/dashboards/:id` and `/pages/:id`; `pageTemplateFixtures` carry `template: true` so the `AGT-1` draft study is not mistaken for one.
  */
 
 import { caseStudyToBlocks } from '../reporting/agent/caseStudyToBlocks'

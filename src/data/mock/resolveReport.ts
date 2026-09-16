@@ -441,11 +441,9 @@ export function resolveReport(
 /* ─────────────────── one leg, filed as panels and series ───────────────── */
 
 /**
- * `CoreLegResult` → the wire shape, mechanical: one panel and one-or-two
- * series (current, and comparison when asked) per group. `idSuffix` is empty
- * unless more than one segment is in play, in which case every id from it
- * carries `#seg<n>` — the ordinary, single-segment id is untouched, matching
- * AC-1123's format exactly (`<measure>#<g1>|<g2>#<role>`).
+ * `CoreLegResult` → the wire shape, mechanical: one panel, one-or-two series
+ * (current, comparison) per group. `idSuffix` carries `#seg<n>` only when more
+ * than one segment is in play, matching AC-1123's `<measure>#<g1>|<g2>#<role>`.
  */
 function emitLeg(
   leg: CoreLegResult,
@@ -574,10 +572,8 @@ interface SegmentResolution {
 
 /**
  * A segment narrows the measure's population before bucketing (§2.5).
- * `'saved'` resolves against `segmentFixtures` (F-V2-18); an unknown id is a
- * refusal, `segment-not-found`, never a silent fall-through to "everyone".
- * `performed` (AC-1122) needs a subject on both measures or is refused with
- * `segment-performed-unsupported`.
+ * `'saved'` resolves against `segmentFixtures` (F-V2-18); unknown ids refuse
+ * `segment-not-found`. `performed` (AC-1122) needs a subject on both measures or refuses `segment-performed-unsupported`.
  */
 function resolveSegment(
   segment: SegmentRef | null,
@@ -610,11 +606,10 @@ function resolveSegment(
 }
 
 /**
- * `subjectId → how many times its rows matched, within `window`` — then the
- * ids meeting `op`/`count`. A deliberate simplification (WP-1.6 report):
- * `PerformedSpec.window`'s `'each-bucket'` vs `{rollingDays}` distinction is
- * not applied per bucket here, only over the whole report window; a bucket-
- * accurate mock is future work, not a change this package's ACs ask for.
+ * `subjectId → match count within `window`` → ids meeting `op`/`count`.
+ * Deliberate simplification: `PerformedSpec.window`'s `'each-bucket'` vs
+ * `{rollingDays}` is not applied per bucket, only over the whole report
+ * window — bucket-accurate is future work, not scoped to this package's ACs.
  */
 function subjectsMeetingPerformed(
   performedMeasure: Measure,
@@ -644,11 +639,10 @@ function subjectsMeetingPerformed(
 /* ─────────────────────── measure rows, for one leg ──────────────────────── */
 
 /**
- * Every row matching a measure's population, the query's own filters and (if
- * segmented) the segment's, flattened to `CoreRow` — the only place fixture
- * field names (`driver.city`, `trip.kind`, …) are read for the trend/table
- * path. Not window-filtered: `resolveTrendLeg`/`resolveFormulaLeg` bucket the
- * same set twice, current and comparison.
+ * Every row matching a measure's population and filters (segment's too, if
+ * any), flattened to `CoreRow` — the only place fixture field names
+ * (`driver.city`, `trip.kind`, …) are read for the trend/table path. Not
+ * window-filtered: trend/formula legs bucket the same set twice, current and comparison.
  */
 function buildMeasureRows(
   measure: Measure,
@@ -818,11 +812,10 @@ function eventsOf(
 }
 
 /**
- * `subjectId → the entry rung's own value of `groupBy`` — the same field
- * accessor `buildMeasureRows`' `level0` reads for a trend column, read once
- * off the population that seeds the funnel (AC-1170). `groupBy` naming a
- * field the entry resource does not have resolves to an empty map, same
- * silent no-op `level0` already makes when a resource lacks the field.
+ * `subjectId → the entry rung's own `groupBy` value` — the same field
+ * accessor `buildMeasureRows`'s `level0` reads for a trend column, read once
+ * off the funnel's entry population (AC-1170). A `groupBy` field the entry
+ * resource lacks resolves to an empty map, same silent no-op as `level0`.
  */
 function subjectGroupsOf(
   measure: Measure,
@@ -929,10 +922,9 @@ function emptyModeResult(query: ReportQuery, warnings: ReportWarning[] = []): Re
  */
 /**
  * §5. `measuredAs` picks the shape: the cascade (default), a trend of the
- * final rung's conversion rate over entry date, or a distribution of how long
- * a converting subject took. All three read the same rungs the same way
- * (`computeFunnelCore`) so the three pictures cannot disagree about who
- * converted, only about how that fact is drawn.
+ * final rung's conversion rate over entry date, or a distribution of time
+ * to convert. All three read the same rungs via `computeFunnelCore`, so the
+ * three pictures cannot disagree about who converted, only how it's drawn.
  */
 function resolveFunnel(
   original: ReportQuery,
@@ -943,12 +935,10 @@ function resolveFunnel(
   const steps = query.funnel?.steps ?? []
   if (steps.length === 0) return emptyModeResult(original)
 
-  /* `sequential` needs event-level ordering no store here has. `planQuery`
-     refuses it without a capability flag (`funnel-needs-server`); reached
-     directly — `reports.export` does this today, bypassing the planner — the
-     resolver itself must refuse rather than quietly compute `ordered`'s
-     answer under a different name. A silently wrong funnel is the one
-     failure this product cannot produce. */
+  /* `sequential` needs event-level ordering no store has. `planQuery` refuses
+     it via `funnel-needs-server`, but `reports.export` reaches this resolver
+     directly, bypassing the planner — so the resolver itself must refuse
+     rather than quietly compute `ordered`'s answer under another name. */
   if ((query.funnel?.mode ?? 'ordered') === 'sequential') {
     return emptyModeResult(original, ['funnel-sequential-not-resolved'])
   }
@@ -1124,9 +1114,8 @@ function resolveFunnelConversion(
 
 /**
  * §5's `conversion-over-time`: the last rung's conversion rate, bucketed by
- * ENTRY date at `query.grain`. A bucket nobody entered is `null` — a rate over
- * zero entrants is not zero, it is undefined, the same rule §4.4.1 states for
- * a gap outside a store's coverage.
+ * entry date at `query.grain`. A bucket nobody entered is `null` — a rate
+ * over zero entrants is undefined, not zero (§4.4.1's gap rule).
  */
 function resolveFunnelOverTime(
   original: ReportQuery,
@@ -1774,13 +1763,10 @@ function panelIdFor(measureKey: string, groupValue: string | null): string {
   return groupValue === null ? `p:${measureKey}` : `p:${measureKey}:${groupValue}`
 }
 
-/* `buildSeries`, `bucketSpan` and `groupsFor` moved to
-   `reporting/resolve/core.ts` (`resolveTrendLeg`/`resolveFormulaLeg`,
-   `planGroupPaths`) as the pure aggregation core — WP-1.6. `buildMeasureRows`
-   above is what replaced them here: population, predicate, filter and segment
-   matching, flattened to the `CoreRow` shape core operates on. `valueForBucket`
-   stays — `eventsOf`'s counted-funnel fallback still needs the one-window
-   aggregate and does not go through `CoreRow` at all. */
+/* `buildSeries`, `bucketSpan` and `groupsFor` moved to `reporting/resolve/core.ts`
+   as the pure aggregation core (WP-1.6). `buildMeasureRows` above replaces
+   them here: population, predicate, filter and segment matching, flattened
+   to `CoreRow`. `valueForBucket` stays — `eventsOf`'s counted-funnel fallback needs the one-window aggregate, not `CoreRow`. */
 
 /** One window, one number — `eventsOf`'s `total` for a rung nobody can be followed on. Same rules as `core.ts`'s `valueForSpan`. */
 function valueForBucket(
@@ -1828,10 +1814,9 @@ function matchesAll(row: AnyRow, filters: readonly FilterSpec[], source: RowSour
 /* ────────────────────── sample rows (D44, T10) ──────────────────────────── */
 
 /**
- * Masked fixture rows behind `reports.sample` (T10) — `resource`-scoped,
+ * Masked fixture rows behind `reports.sample` (D44, T10) — `resource`-scoped,
  * never joined across stores. `name → initials`, `phone → last 2 digits`,
- * every other field (including ids) unmasked, matching the field-name rule
- * the tool's own contract states rather than a per-resource PII schema.
+ * every other field (including ids) unmasked, per the tool's own contract.
  */
 export function sampleRows(
   resource: string,

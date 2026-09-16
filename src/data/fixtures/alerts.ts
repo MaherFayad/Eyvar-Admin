@@ -1,23 +1,7 @@
 /**
- * Alert rules and firing history — moved out of `reports.ts` (D42 split
- * `AlertRule` into `types/alert.ts`), extended for v2 (`04-alerting-v2.md`).
- *
- * `ALR-1` … `ALR-5` are unchanged from the v1 set and keep their ids: `ALR-1`
- * is what `fixtures/notifications.ts`'s seeded `N11` points at, and
- * `AlertHistoryDialog.tsx`'s own comment already assumes it fired twice
- * (`AFR-1`, `AFR-2`). `ALR-6` … `ALR-11` are new, one per v2 condition kind
- * plus the delivery and acknowledgement states §7 of the alerting doc adds.
- *
- * ## States 23 and 24, now seedable
- *
- * WP-1.7 widened `AlertFiring` with `deliveries[]` and `band` (§5); `AFR-4`
- * (`ALR-11`'s slack channel) carries a failed delivery for **state 24**.
- * `ALR-9` (seven buckets against a 28-bucket lookback) reaches
- * `AlertEvaluation.outcome === 'no-baseline'` for **state 23**.
- *
- * Every cadence stays `null`, for the same reason the v1 set gave: no
- * scheduler exists yet and an invented window is indistinguishable from a
- * measured one once it is in a fixture (AC-453).
+ * Alert rules and firing history, split from `reports.ts` (D42), extended
+ * for v2. `ALR-1`…`ALR-5` keep their v1 ids, depended on by `notifications.ts`'s
+ * `N11` and `AlertHistoryDialog.tsx`. `AFR-4`/`ALR-9` seed states 24/23 (F-V2-25); every cadence is `null` (D41).
  */
 
 import { offsetFromNow } from '../mock/clock'

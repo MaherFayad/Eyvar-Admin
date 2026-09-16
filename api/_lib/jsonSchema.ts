@@ -1,16 +1,8 @@
 /**
- * A minimal JSON Schema (draft 2020-12) interpreter — WP-6.2c / F-V2-38: the
- * server validates an agent job's result against the same files WP-7.3
- * wrote (`agent/schemas/*.json`), not a second, hand-rolled shape checker
- * that can drift from them. Covers exactly the keyword set those five files
- * use — `type`, `properties`/`required`/`additionalProperties`, `items`,
- * `minItems`/`maxItems`, `minLength`/`maxLength`, `minimum`/`maximum`,
- * `enum`, `const`, `oneOf`, `pattern` — and nothing else (no `$ref`,
- * `anyOf`/`allOf`, `patternProperties`): a general-purpose validator is not
- * this WP's brief, and adding `ajv` would be a root `package.json` change
- * outside `api/**`'s file set. If a future schema needs a keyword this file
- * does not implement, `validateSchema` throws rather than silently passing.
- */
+ * A minimal JSON Schema (draft 2020-12) interpreter (F-V2-38): validates
+ * against the same `agent/schemas/*.json` files WP-7.3 wrote, not a second
+ * hand-rolled checker. Covers only the keywords those five files use — an
+ * unimplemented keyword makes `validateSchema` throw, never silently pass. */
 
 export type JsonSchema = Record<string, unknown>
 

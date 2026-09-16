@@ -1,23 +1,8 @@
 /**
- * `/api/cron/housekeeping` (`30 2 * * *` UTC) — 05-backend.md §8 / AC-1286:
- * sweeps `report_runs` older than 30 days that no page references,
- * `idempotency_keys` older than 24 h (the belt beside `idempotency.ts`'s own
- * TTL check on read), and — only if the table exists yet, since the agent
- * queue is a different WP not built at the time of writing — `agent_events`
- * for jobs older than 90 days. Vercel Blob exports older than 7 days are
- * named in §8 too; no Blob store is wired to this deployment yet (05-backend.md
- * §11 lists it as owner setup, not code), so that sweep is a deliberate no-op
- * here, reported as `blobExportsDeleted: 0` rather than silently omitted.
- *
- * A `report_runs` row has no `page_reports` entry of its own — that table
- * links a *saved report*, not one run of it — so "no page references" is
- * read the way `05-backend.md` §5's agent path creates the reference: a
- * case-study page's blocks cite a `runId` as evidence. Absent a typed
- * citation shape to join on (a different WP's `Block` variant), this scans
- * `pages.blocks_json` as text for the run's own id — a citation is a
- * `runId` string appearing in the page's stored JSON, and this treats that
- * literally rather than parsing block-by-block.
- */
+ * `/api/cron/housekeeping` (`30 2 * * *` UTC, AC-1286): sweeps `report_runs`
+ * >30 days with no page reference, `idempotency_keys` >24h, `agent_events`
+ * for jobs >90 days, and reports Blob exports as `blobExportsDeleted: 0` (no
+ * store wired yet). "No page reference" text-scans `pages.blocks_json` for the run's own id — over-retains, never deletes a cited run (F-V2-37). */
 import { createPgPoolDatabase, type Database } from '../_lib/db'
 import { requireCronSecret } from '../_lib/cronAuth'
 import { errorResponse } from '../_lib/errors'

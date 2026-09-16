@@ -1,10 +1,8 @@
 /**
  * `/api/cron/alerts-daily` (`15 3 * * *` UTC, 06:15 Riyadh — after
- * `snapshot` at 00:05 Riyadh) — evaluates every `daily` rule, including a
- * `week`/`month`-grain rule on this cadence (`evaluateDue.ts`'s
- * `isNewBucket` gate is what stops that firing once per day instead of once
- * per new bucket — AC-1221/AC-1286).
- */
+ * `snapshot` at 00:05 Riyadh): evaluates every `daily` rule. A `week`/
+ * `month`-grain rule on this cadence is stopped from firing more than once
+ * per new bucket by `evaluateDue.ts`'s `isNewBucket` gate (AC-1221/AC-1286). */
 import { createPgPoolDatabase, type Database } from '../_lib/db'
 import { requireCronSecret } from '../_lib/cronAuth'
 import { errorResponse } from '../_lib/errors'

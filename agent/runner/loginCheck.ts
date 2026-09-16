@@ -1,22 +1,6 @@
 /**
- * The login check — `01-analyst-agent.md` §3.3, AC-1245, AC-1250 (D38): "the
- * runner runs `claude -p --max-turns 1 'reply with the word ready'` at start
- * and refuses to claim jobs if that fails or the output names an API key as
- * the auth source." D38 forbids the Agent SDK precisely because it requires
- * API-key auth; a runner that quietly works via `ANTHROPIC_API_KEY` has
- * defeated the whole point, so this check is the one place that must not be
- * fooled.
- *
- * `claude -p`'s `system`/`init` stream-json event carries `apiKeySource`,
- * the CLI's own name for what authenticated this session (confirmed against
- * a real invocation on this machine: a subscription-logged-in session
- * reports `"none"` — no separate key is in play). Anything else names a key
- * mechanism: `"ANTHROPIC_API_KEY"`, `"ANTHROPIC_AUTH_TOKEN"`, `"apiKeyHelper"`,
- * a cloud-provider credential, or an unrecognised value — all refused.
- * `"CLAUDE_CODE_OAUTH_TOKEN"` is the one exception: it is a long-lived
- * *subscription* token (`claude setup-token`), the documented way to run a
- * subscription session headlessly — not a pay-per-token API key — so it is
- * accepted alongside `"none"`.
+ * The login check (§3.3, AC-1245, AC-1250, D38): runs `claude -p --max-turns 1 "reply with the word ready"` at start, and refuses to claim jobs unless `system/init`'s `apiKeySource` names a subscription mechanism — `"none"` or the long-lived `"CLAUDE_CODE_OAUTH_TOKEN"`.
+ * Anything else (`ANTHROPIC_API_KEY`, `ANTHROPIC_AUTH_TOKEN`, `apiKeyHelper`, a cloud credential) is a pay-per-token key, refused outright: D38 forbids API-key auth entirely, and this is the one check that must not be fooled.
  */
 
 import { spawn } from 'node:child_process'

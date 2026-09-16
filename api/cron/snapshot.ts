@@ -1,20 +1,12 @@
 /**
- * `/api/cron/snapshot` (`5 21 * * *` UTC, 00:05 Riyadh) — AC-1285: writes the
- * nine fields `captureDailySnapshot` captured in the legacy prototype
- * (`eyvar_ops_panel_v40_fixed.html:7638-7651`), idempotent per day via
- * `daily_snapshots`'s `day` primary key and an `ON CONFLICT ... DO UPDATE`
- * (running it twice for the same day overwrites the same row, never inserts
- * a second one).
- *
- * The legacy formula reads a `DB.payments` ledger this schema does not have
- * yet (`05-backend.md` §11 item 1: the operational tables' real names and
- * shapes are still the owner's to supply). Translated onto the fixture
- * tables `0005_runs.sql` actually seeded: `quickRideRevenueHalalas` sums
- * `fixture_trips.fareHalalas` for completed quick rides, `subRevenueHalalas`
- * sums `fixture_subscriptions.paidHalalas`, and `totalRevenueHalalas` is
- * their sum — the same three-way split the legacy `revenue`/`quickRevenue`/
- * `subRevenue` reduce over `paidPayments`, on the data this deployment
- * actually has.
+ * `/api/cron/snapshot` (`5 21 * * *` UTC, 00:05 Riyadh, AC-1285): writes the
+ * nine fields the legacy `captureDailySnapshot` captured, idempotent per
+ * day via `daily_snapshots.day` and `ON CONFLICT ... DO UPDATE`. The legacy
+ * formula reads a `DB.payments` ledger this schema lacks (§11); translated
+ * onto `0005_runs.sql`'s fixtures: `quickRideRevenueHalalas` sums
+ * `fixture_trips.fareHalalas`, `subRevenueHalalas` sums
+ * `fixture_subscriptions.paidHalalas`, `totalRevenueHalalas` is their sum —
+ * the same three-way split the legacy code reduces over `paidPayments`.
  */
 import { localDayOf } from '@/data/reporting/buckets'
 import type { IsoDate } from '@/data/types/common'

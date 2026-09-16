@@ -1,12 +1,8 @@
 #!/usr/bin/env node
 /**
- * Applies every `NNNN_name.sql` file in `api/_db/migrations/` in name order,
- * recording each in `schema_migrations`. Re-running is a no-op for files
- * already recorded (`05-backend.md` §1 "Schema management").
- *
- * `migrate(adapter)` is the reusable core — `api/_db/migrate.test.ts` calls
- * it directly against PGlite. `main()` below is the `db:migrate` CLI, which
- * runs it against `DATABASE_URL` with `pg`.
+ * Applies each `api/_db/migrations/NNNN_name.sql` file in order, recording it
+ * in `schema_migrations` so a rerun is a no-op (AC-1271). `migrate(adapter)`
+ * is the reusable core; `main()` is the `db:migrate` CLI, run against `pg`.
  */
 
 import { readdir, readFile } from 'node:fs/promises'
@@ -17,11 +13,9 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 export const MIGRATIONS_DIR = path.join(__dirname, 'migrations')
 
 /**
- * `adapter.run(sql)` executes a (possibly multi-statement) migration file.
- * `adapter.query(sql, params)` executes one parameterised statement and
- * returns `{ rows }`. Two methods, not one, because PGlite's `.query()`
- * accepts only a single statement — multi-statement migration files need
- * `.exec()` there and the simple-query protocol (no params) on `pg`.
+ * Two methods, not one: PGlite's `.query()` takes only a single statement, so
+ * a multi-statement file needs `adapter.run` while `adapter.query(sql, params)`
+ * runs one parameterised statement (AC-1271).
  */
 export async function migrate(adapter) {
   await adapter.run(`

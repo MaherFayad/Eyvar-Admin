@@ -1,34 +1,8 @@
 /**
- * `POST /api/v1/reports/run` — WP-6.4, `05-backend.md` §4, §6, §7.
- * `reports.run`'s client docblock (`src/data/clients/reports.ts`) types the
- * response bare (`-> ReportResult`, one of Q5's four bare-`T` endpoints), so
- * this handler returns the `ReportResult` JSON directly — never `single()`.
- *
- * A separate file from `handlers/reports.ts` (WP-6.5's saved-report CRUD
- * library, §7's other endpoints) on purpose: two agents building against the
- * same brief's endpoint list both reached for the name `reports.ts`, and
- * `AGENT-BRIEF.md` is explicit that a same-named file is a collision to
- * avoid, not resolve by overwriting. `reportsRun.ts` keeps this WP's own file
- * disjoint from theirs; only `[...route].ts`'s router wiring — a few lines,
- * anchored — is shared.
- *
- * Mirrors `src/data/mock/resolveReport.ts`'s control flow measure-by-measure
- * and segment-by-segment, but calls `compile.ts`'s `fetchMeasureRows` for the
- * population instead of a fixture array, and calls `resolveTrendLeg`/
- * `resolveFormulaLeg` — the **same functions the mock calls** — for
- * bucketing, aggregation, grouping and the comparison. See `compile.ts`'s
- * header for why that split is the compiler, not a shortcut around it.
- *
- * Every run is persisted to `report_runs` (`0005_runs.sql`) before the
- * response is sent, so the analyst path's `runId` (`05-backend.md` §5) is
- * always real.
- *
- * F-V2-90: the header used to pick only the `job_id` stamp, so the response
- * stayed a bare `ReportResult` and `recordRun`'s `RecordRunOutcome` cast lied
- * — `runId` was `undefined` against a real backend. `persistRun` now returns
- * the row's id, and the header (`persistAndRespond`) answers the `'ok'`
- * branch with it and `summariseRunSeries`, shared with the mock.
- */
+ * `POST /api/v1/reports/run`: returns `ReportResult` bare, never `single()`.
+ * Mirrors `resolveReport.ts`'s control flow, calling the *same*
+ * `resolveTrendLeg`/`resolveFormulaLeg` the mock calls. Every run persists
+ * to `report_runs` before the response, so the analyst path's `runId` (F-V2-90) is always real. */
 
 import {
   DEFAULT_COMPARISON_DISPLAY,
@@ -115,22 +89,20 @@ async function persistRun(db: Database, userId: string, query: ReportQuery, resu
 }
 
 /**
- * Whether to record (the header alone) and the job to stamp. Kept separate:
- * `X-Eyvar-Record-Run: 1` with no job header is the operator's own off-ramp,
- * and collapsing both into one `string | null` made that case indistinguishable
- * from the header being absent — half of F-V2-90.
- */
+ * Whether to record (the header alone) and the job to stamp, kept separate:
+ * `X-Eyvar-Record-Run: 1` with no job header is the operator's own off-ramp
+ * — collapsing both into one `string | null` made that indistinguishable
+ * from the header being absent (F-V2-90). */
 function recordRunSignal(req: Request): { shouldRecord: boolean; jobId: string | null } {
   const shouldRecord = req.headers.get('x-eyvar-record-run') === '1'
   return { shouldRecord, jobId: shouldRecord ? req.headers.get('x-eyvar-job') : null }
 }
 
 /**
- * Persists the run and answers it — bare `ReportResult`, or, when
- * `X-Eyvar-Record-Run: 1` was sent, `RecordRunOutcome`'s `'ok'` branch with
- * `runId` and `summary` (F-V2-90). One function so the three call sites
- * below cannot answer the header differently by accident.
- */
+ * Persists the run and answers it — bare `ReportResult`, or (when
+ * `X-Eyvar-Record-Run: 1` was sent) `RecordRunOutcome`'s `'ok'` branch with
+ * `runId` and `summary` (F-V2-90). One function so the call sites cannot
+ * answer the header differently by accident. */
 async function persistAndRespond(
   db: Database,
   userId: string,
@@ -276,16 +248,10 @@ interface SavedSegmentRow {
 }
 
 /**
- * `resolveSegment` in the mock (`src/data/mock/resolveReport.ts`):
- *   - `null` → "everyone".
- *   - `'saved'` → a real lookup against `segments` (WP-6.5's `0006_pages.sql`),
- *     re-run as `'inline'` with the saved row's own filters/performed —
- *     exactly the mock's own recursion. An unknown id is `segment-not-found`,
- *     never a silent fall-through to "everyone" (WP-6.4b Gap 2).
- *   - `'inline'` with `performed` → needs a subject on both the segmented
- *     measures and the performed measure (`subjectKindOf`, mirrored below via
- *     `measure_sources.subject_column`), or `segment-performed-unsupported`.
- */
+ * `resolveSegment`: `null` -> everyone. `'saved'` -> a real lookup, re-run
+ * as `'inline'` with the saved filters/performed; an unknown id is
+ * `segment-not-found`, never a silent "everyone". `'inline'` with
+ * `performed` needs a subject on both measures, or `segment-performed-unsupported`. */
 async function resolveSegment(
   db: Database,
   segment: SegmentRef | null,
@@ -368,13 +334,10 @@ export function createRunReportHandler(db: Database, deps: RunReportDeps = {}): 
     const window = resolveWindow(query.window, todayDate)
 
     if (q.mode === 'funnel' || q.mode === 'cohort' || q.mode === 'journey') {
-      // WP-6.4c: the three subject-shaped modes §6 and WP-6.4's own brief
-      // left as `mode-not-resolved`. Each has its own resolver
-      // (`reportsFunnel.ts`/`reportsCohort.ts`/`reportsJourney.ts`), ported
-      // from `src/data/mock/resolveReport.ts` onto `compile.ts`'s
-      // `fetchSubjectEvents`/`fetchLastActiveIndex` the same way the
-      // trend/formula path is ported onto `fetchMeasureRows` — see those
-      // files' own headers. AC-1276 (RPT-6/7/8) is the proof.
+      // The three subject-shaped modes: each has its own resolver
+      // (reportsFunnel.ts/reportsCohort.ts/reportsJourney.ts), ported onto
+      // compile.ts's fetchSubjectEvents/fetchLastActiveIndex the same way
+      // trend/formula is ported onto fetchMeasureRows (AC-1276, RPT-6/7/8).
       const modeByKey = new Map(catalogue.measures.map((m) => [m.key, m]))
       const modeDimByKey = new Map(catalogue.dimensions.map((d) => [d.key, d]))
       const result =

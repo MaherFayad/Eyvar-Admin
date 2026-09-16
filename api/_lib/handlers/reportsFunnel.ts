@@ -1,42 +1,18 @@
 /**
- * `mode: 'funnel'` — WP-6.4c. `resolveFunnel`/`resolveFunnelConversion`/
- * `resolveFunnelOverTime`/`resolveFunnelTimeToConvert`/`computeFunnelCore`
- * (`src/data/mock/resolveReport.ts`), ported line-for-line onto
- * `fetchSubjectEvents` (`../compile.ts`) instead of a fixture `RowSource`.
- * AC-1276 (`api/v1/reports-run.test.ts`, RPT-6) is the proof the port is
- * exact, not merely plausible.
+ * `mode: 'funnel'`: ports `resolveFunnel` et al. line-for-line onto
+ * `fetchSubjectEvents` (AC-1276, RPT-6). `sequential` and `holdConstant`
+ * have no mock to port from — they are this file's own design (F-V2-63),
+ * refused server-side unless `funnelCapabilities` allows them:
  *
- * ## `sequential` and `holdConstant` — the two options with no mock to copy
+ * **`sequential`**: stricter than `ordered`. A rung `i` match is legal only
+ * when no OTHER rung of this funnel recorded an event for the subject
+ * strictly between the previous rung's matched date and this candidate's —
+ * answerable from the funnel's own rungs, without a full event stream.
  *
- * `02-report-builder-v2.md` §5: both need event-level data no fixture store
- * has, so `plan.ts` refuses them with `funnel-needs-server` unless the
- * catalogue's `funnelCapabilities` says a server supports them — which is
- * this file, now that WP-6.4c exists. Neither has a prior implementation
- * anywhere to port, so both are this file's own, documented design:
- *
- *   **`sequential`** — stricter than `ordered`. A rung `i` match is legal
- *   only when, in addition to `ordered`'s own date/window rule, **no other
- *   rung of this same funnel** (earlier or later in step order) recorded an
- *   event for the same subject strictly between the previous rung's matched
- *   date and this candidate's date. This is the strict reading of "the very
- *   next tracked thing they did was the next step" that a *funnel's own
- *   rungs* can answer without the full per-subject event stream every store
- *   would need to answer it literally (`resolveJourney`'s vocabulary) — a
- *   stated simplification, not an approximation of a spec that exists
- *   elsewhere.
- *   **`holdConstant`** — names a `Dimension`. A rung whose own table carries
- *   that dimension's field must show the *same* value on its matched event
- *   as the entry (rung 0) event showed for it; a rung whose table does not
- *   carry the field is not constrained there (`fetchSubjectEvents`' own
- *   `dimension` parameter is silent unless `dimension.resource` is that
- *   rung's own resource). Read this as a **user**-adjacent property held
- *   fixed across a funnel that may cross stores (`riders` → `trips` →
- *   `subscriptions`), the same way a real analytics tool holds a user
- *   property constant rather than an event property no later rung's store
- *   could possibly carry.
- *
- * `reports-run.test.ts` hand-checks both against fixture rows it names, and
- * says so in each test's own name.
+ * **`holdConstant`**: names a `Dimension`. A rung whose table carries that
+ * field must match the entry (rung 0) event's value; a rung whose table
+ * lacks the field is unconstrained. A **user**-adjacent property held fixed
+ * across stores, not an event property no later rung could carry.
  */
 import { fetchMeasureRows, fetchSubjectEvents, type SubjectEvent } from '../compile'
 import type { Database } from '../db'
@@ -141,13 +117,10 @@ async function totalOverWindow(
 }
 
 /**
- * `computeFunnelCore` (`resolveReport.ts`): who reached each rung, and when.
- * `follow` is a **parameter**, not recomputed here, because the cascade
- * (`resolveFunnelConversion`) calls this over a rung *prefix* stopped at the
- * first blocked rung — `follow` has to be the whole funnel's own fact
- * (matching `resolveFunnelConversion`'s own `kinds` over every step), never
- * the prefix's.
- */
+ * `computeFunnelCore`: who reached each rung, and when. `follow` is a
+ * **parameter**, not recomputed here — the cascade calls this over a rung
+ * *prefix* stopped at the first blocked rung, but `follow` must be the
+ * whole funnel's own fact, never the prefix's. */
 async function computeFunnelCore(
   db: Database,
   rungs: readonly Rung[],
@@ -227,21 +200,10 @@ async function computeFunnelCore(
 }
 
 /**
- * `subjectGroupsOf` (`resolveReport.ts`), over SQL: `subjectId → the entry
- * rung's own value of the drop-off group dimension`, read once off the same
- * population that seeds the funnel (AC-1170). One extra query bounded by the
- * same `rowCap` as every other leg — not more rows than the cap allows,
- * just a second SELECT over the entry rung's own table.
- *
- * The mock keeps the first fixture-array row per subject; this keeps the
- * earliest-dated one (`earliestEventPerSubject`, already used for
- * `holdConstant`'s baseline). Both agree whenever the dimension is what
- * §5's `holdConstant` docs already assume of a rung's own table — a
- * subject-stable property — which is the only shape `dropoffByGroup` is
- * meaningful for. A dimension that is not on the entry rung's own resource
- * resolves to `dimValue: null` for every subject, same as the mock's empty
- * map (`fetchSubjectEvents`'s own `dimension.resource` guard).
- */
+ * `subjectGroupsOf`, over SQL (AC-1170): entry rung's own drop-off group
+ * value per subject, bounded by the same `rowCap`. Keeps the earliest-dated
+ * row, unlike the mock's first-in-array — the two agree only for a
+ * subject-stable dimension, the only shape `dropoffByGroup` needs. */
 async function computeFunnelGroupOf(
   db: Database,
   entry: { step: FunnelStep; measure: Measure },

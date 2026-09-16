@@ -1,10 +1,9 @@
 /**
- * §7's data table — WP-3.3. `ResultTableColumns` renders a `TableSpec` over
- * one already-resolved `ReportResult` per column, so a blocked column does
- * not blank the ones beside it (AC-1174), the totals row follows the
- * catalogue's own additivity (AC-1175), a band's tone is R7's closed three
- * (AC-1176), the table scrolls inside its own container (AC-1177), and a
- * sort with `null`s sinks them to the bottom of every direction (AC-1178).
+ * §7 data table — WP-3.3. `ResultTableColumns` renders a `TableSpec` over one
+ * resolved `ReportResult`: a blocked column stays isolated (AC-1174), totals
+ * follow catalogue additivity (AC-1175), band tone is R7's closed three
+ * (AC-1176), the table scrolls in its own container (AC-1177), and `null`
+ * sorts sink to the bottom of every direction (AC-1178).
  */
 
 import { render, screen, within } from '@testing-library/react'

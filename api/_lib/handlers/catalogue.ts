@@ -1,20 +1,8 @@
 /**
- * `catalogue.ts`'s `listMeasures`/`listDimensions` docblocks (`GET
- * /catalogue/measures`, `GET /catalogue/dimensions`, both `Paginated<T>`),
- * plus `GET /catalogue/glossary` (`01-analyst-agent.md` T3) — WP-6.3.
- *
- * `0003_catalogue.sql` holds one column per `Measure`/`Dimension` field, in
- * fixture order (`sort_order`), so `toMeasure`/`toDimension` below are the
- * only place the shape is reassembled — no query re-derives it. AC-1275
- * (`api/v1/catalogue.test.ts`) is what proves the reassembly is exact.
- *
- * Filtering mirrors the mock branch of `listMeasures` exactly (`category`
- * then `pairableWith`, `pairableWith`'s `first` measure looked up in the
- * *unfiltered* catalogue, same as the mock) plus an additive `q` filter the
- * mock branch declares in its docblock but never applies — supporting it
- * here does not change any existing behaviour, only extends what an
- * unfiltered caller already got.
- */
+ * `GET /catalogue/measures`/`/dimensions`/`/glossary`. `toMeasure`/
+ * `toDimension` are the only place `0003_catalogue.sql`'s columns are
+ * reassembled (AC-1275). `pairableWith`'s `first` measure is looked up in
+ * the *unfiltered* catalogue — a category filter narrows the result only. */
 import type {
   BucketAggregate,
   Dimension,
@@ -76,9 +64,8 @@ interface DimensionRow {
 }
 
 /**
- * Every JSONB column above comes back already parsed from the Neon HTTP
- * driver and `pg`; PGlite's `.query()` (the test harness, `api/_test/db.ts`)
- * also parses jsonb columns. This still tolerates a string, defensively —
+ * Every JSONB column already comes back parsed, from Neon, `pg`, and
+ * PGlite's `.query()` alike. This still tolerates a string, defensively —
  * cheaper than a driver-specific regression finding out the hard way.
  */
 function parseJsonColumn<T>(value: unknown): T | null {
@@ -222,15 +209,10 @@ export function createListDimensionsHandler(db: Database): RouteHandler<RequestC
 }
 
 /**
- * GET /api/v1/catalogue/glossary
- *   params: term?
- *   -> text/markdown (bare, not an envelope — `01-analyst-agent.md` T3: "server-side markdown")
- *
- * `term` narrows to measures whose key, label key or category contains it
- * (case-insensitive); absent returns the whole glossary, business rules
- * first. Generated from the catalogue on every call — nothing here is
- * hand-written per measure, so it cannot drift from `0003_catalogue.sql`.
- */
+ * GET /api/v1/catalogue/glossary  params: term?  -> text/markdown, bare (01-analyst-agent.md T3)
+ * `term` narrows by key/label/category (case-insensitive); absent returns
+ * the whole glossary. Generated from the catalogue on every call, so it
+ * cannot drift from `0003_catalogue.sql`. */
 export function createGetGlossaryHandler(db: Database): RouteHandler<RequestContext> {
   return async (req, ctx) => {
     if (!ctx.operator) throw unauthorizedError()

@@ -1,8 +1,7 @@
 /**
- * Registers every tool in 01-analyst-agent.md §5 (T1…T20; T14 and T16 are
- * each more than one tool on the wire) onto one `McpServer`. `server.ts` is
- * the only caller in production; tests call this against an `McpServer`
- * wired to `InMemoryTransport` instead of stdio.
+ * Registers every tool (T1…T20; T14 and T16 are each more than one tool on
+ * the wire) onto one `McpServer`. `server.ts` is the only production caller;
+ * tests wire this to an `InMemoryTransport` instead of stdio.
  */
 
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'

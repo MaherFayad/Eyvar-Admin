@@ -1,8 +1,7 @@
 /**
- * Shared test rig — one connected `McpServer`/`Client` pair per test file,
- * every tool registered, talking over `InMemoryTransport` (no stdio, no
- * subprocess). `EYVAR_MCP_SOURCE` is forced to `mock` before any tool file
- * is imported, since `source.ts` reads it once at module load.
+ * Shared test rig: one connected `McpServer`/`Client` pair per test file over
+ * `InMemoryTransport` (no stdio, no subprocess). `EYVAR_MCP_SOURCE` is forced
+ * to `mock` before any tool file loads, since `source.ts` reads it once.
  */
 
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'

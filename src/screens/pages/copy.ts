@@ -1,10 +1,7 @@
 /**
- * Pages (`pg.*`), D39. The index screen, one page's own states, the block
- * renderer, the editor's actions and the templates — `03-pages-and-
- * dashboards.md` §3/§6/§7/§8/§10, `22-analytics-v2.md` §3. English copy for
- * the editor controls is quoted verbatim from `22-analytics-v2.md` §3 where
- * that section states it; everything else follows `copy.md`'s rules (verb
- * first on a button, no ALL CAPS, a sentence takes its period).
+ * Pages copy (`pg.*`), D39: index, page states, block renderer, editor
+ * actions and templates. Editor-control strings quote `22-analytics-v2.md`
+ * §3 verbatim; everything else follows `copy.md`'s button/casing rules.
  */
 
 import type { Dictionary } from '@/lib'

@@ -1,10 +1,8 @@
 /**
- * WP-2.1…2.5 — the chart surface. One `ReportResult` fixture per behaviour,
- * hand-built for the reason `canvas.wiring.test.tsx` gives: the point is a
- * shape the seeded data need not contain, and waiting for a fixture to grow
- * one is how a seam ships untested. `SeriesChart`'s marks carry no text
- * (`INERT`, proven in the harness, not here — jsdom renders no SVG); every
- * assertion below is about the HTML chrome around the plot.
+ * WP-2.1…2.5 — the chart surface, built from hand-crafted `ReportResult`
+ * fixtures per behaviour. jsdom renders no SVG and `SeriesChart` marks stay
+ * inert (`INERT`), so every assertion here is about the HTML chrome, not
+ * the plot itself.
  */
 
 import { fireEvent, render, screen, within } from '@testing-library/react'

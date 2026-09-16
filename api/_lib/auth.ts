@@ -1,8 +1,7 @@
 /**
  * Cookie session read, the request-context type every handler receives, and
- * `SessionStore` — now backed by `sessions` / `users` / `role_permissions`
- * (WP-6.2). `StubSessionStore` is kept for anything that wants an
- * always-signed-out store without a database (05-backend.md §2 Q1).
+ * `SessionStore`, backed by `sessions`/`users`/`role_permissions` (05-backend.md §2 Q1).
+ * `StubSessionStore` is an always-signed-out store with no database.
  */
 
 import { createHmac, timingSafeEqual } from 'node:crypto'
@@ -17,21 +16,18 @@ export const SESSION_COOKIE_NAME = 'eyvar_session'
 export const SESSION_TTL_SECONDS = 60 * 60 * 24 * 30
 
 /**
- * `verifyCode`'s `rememberDevice` and `reauthenticate`'s AC-573 device check
- * (§7.1, `TRUSTED_DEVICE_DAYS` in `fixtures/authIdentities.ts`) — a second,
- * separate cookie from the session one, so a device can stay "remembered"
- * across a sign-out/sign-in that rotates the session cookie. Signed the same
- * way (`signSessionId`/`verifySessionCookieValue` are generic over any id).
- */
+ * AC-573's device check: a second cookie, separate from the session one, so
+ * a device stays "remembered" across a sign-out/sign-in that rotates the
+ * session cookie. Signed the same way — `signSessionId`/`verifySessionCookieValue`
+ * are generic over any id. */
 export const DEVICE_COOKIE_NAME = 'eyvar_device'
 export const DEVICE_TRUST_SECONDS = 60 * 60 * 24 * 30
 
 /**
- * Bounded write for the "refresh last-seen without making every GET a
- * write" requirement: `readSession` only issues the `UPDATE` when the
- * session has not been touched in this long, so a screen polling every few
- * seconds costs one write per five minutes per session, not one per request.
- */
+ * Bounded write (05-backend.md §2 Q1): `readSession` only issues the
+ * `UPDATE` when the session has not been touched in this long, so a screen
+ * polling every few seconds costs one write per five minutes, not one per
+ * request. */
 const LAST_SEEN_REFRESH_THRESHOLD_MS = 5 * 60 * 1000
 
 export interface AuthenticatedOperator {
@@ -62,11 +58,10 @@ export class StubSessionStore implements SessionStore {
 }
 
 /**
- * `sessions` joined to `users` and `role_permissions`, one round trip — the
- * permission set comes back `array_agg`'d rather than as a second query. A
- * `Suspended` or `Invited` user reads as signed out even with a live
- * session row: the row can outlive an account action taken elsewhere.
- */
+ * `sessions` joined to `users`/`role_permissions`, one round trip — the
+ * permission set comes back `array_agg`'d rather than a second query. A
+ * `Suspended`/`Invited` user reads as signed out even with a live session
+ * row: the row can outlive an account action taken elsewhere. */
 export class DbSessionStore implements SessionStore {
   constructor(private readonly db: Database) {}
 
@@ -178,12 +173,10 @@ export function deviceCookieHeader(signedValue: string, maxAgeSeconds: number = 
 }
 
 /**
- * `undefined` `secret` (SESSION_SECRET unset) resolves to "nobody is signed
- * in" rather than throwing — routes that need no operator (`/health`) must
- * keep working in an environment that has not configured auth yet; routes
- * that do need one fail via the ordinary 401, and `requireSessionSecret`
- * is what makes a misconfiguration loud on the routes that mint a session.
- */
+ * An unset `SESSION_SECRET` resolves to "nobody is signed in" rather than
+ * throwing (05-backend.md §2 Q1), so routes needing no operator (`/health`)
+ * keep working unconfigured; a route that needs one fails via the ordinary
+ * 401, and `requireSessionSecret` makes misconfiguration loud where it mints one. */
 export async function authenticate(
   req: Request,
   store: SessionStore,

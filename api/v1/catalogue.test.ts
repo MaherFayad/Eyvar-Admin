@@ -1,14 +1,8 @@
 /**
- * `catalogue.*` end-to-end through the real router — WP-6.3, AC-1275.
- *
- * The seed loaded here is the generated
- * `docs/09-analytics-v2/examples/{measures,dimensions}.seed.sql`
- * (`scripts/fixtures-to-seed.mjs` from `src/data/fixtures/measures.ts`), not
- * a hand-typed fixture of the test's own — the point of AC-1275 is that the
- * server's rows and the frontend's fixture are the **same source**, so a
- * test author cannot accidentally paper over a real drift by retyping the
- * expectation to match whatever the server happens to return.
- */
+ * `catalogue.*` end-to-end (AC-1275). The seed loaded is the generated
+ * `{measures,dimensions}.seed.sql`, not a hand-typed fixture — server rows
+ * and frontend fixture share one source, so a test author cannot paper over
+ * real drift by retyping the expectation to match the server's return. */
 import { afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { readFile } from 'node:fs/promises'
 import path from 'node:path'

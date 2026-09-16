@@ -1,9 +1,8 @@
 /**
- * Transform controls — §1.3's three rows, each disabled in place with a
- * reason (D9 CQ-3). `options` is `plan.transformOptions`, computed by the
- * real `planReportQuery` (`plan.ts`) — the same computation that refuses a
- * hand-edited URL carrying an illegal transform (WP-2.6b gap 1). This file
- * proves the rendering; `plan.transform.test.ts` proves the rule.
+ * Transform controls — §1.3's three rows, disabled in place with a reason
+ * (D9 CQ-3). `options` comes from the real `planReportQuery`, the same
+ * computation that refuses an illegal transform in a hand-edited URL. This
+ * file proves the rendering; `plan.transform.test.ts` proves the rule.
  */
 
 import { render, screen } from '@testing-library/react'

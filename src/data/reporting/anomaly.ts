@@ -1,8 +1,7 @@
 /**
- * The anomaly band — 04-alerting-v2.md §2. Pure, shared by mock and server;
- * `alerts/evaluate.ts` calls `anomalyBandAt` per evaluation and compares the
- * tested bucket's value against it. `median ± k·MAD·1.4826`, k by confidence,
- * a weekday baseline at `day` grain, `null` below the 8-point floor.
+ * The anomaly band (04-alerting-v2.md §2), pure, shared by mock and server.
+ * `median ± k·MAD·1.4826`, k by confidence, a weekday baseline at `day`
+ * grain, `null` below the 8-point floor.
  */
 
 import type { IsoDate } from '../types/common'
@@ -64,10 +63,9 @@ function bandFrom(baseline: readonly UsablePoint[], confidence: AnomalyConfidenc
 }
 
 /**
- * The band for the bucket at `evaluatedIndex`, built from the usable buckets
- * strictly before it — a point never appears in its own baseline. `null`
- * (`no-baseline`) if the evaluated bucket is itself partial, or if fewer than
- * `MIN_BASELINE_POINTS` usable buckets precede it.
+ * The band at `evaluatedIndex`, built only from usable buckets strictly
+ * BEFORE it — a point never appears in its own baseline. `null` if the bucket
+ * is itself partial, or fewer than `MIN_BASELINE_POINTS` usable buckets precede it.
  */
 export function anomalyBandAt(
   points: readonly (number | null)[],

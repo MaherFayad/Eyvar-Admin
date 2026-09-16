@@ -67,11 +67,9 @@ export function buildUrl(path: string, params?: RequestParams): string {
 }
 
 /**
- * `Idempotency-Key` on every non-GET (`05-backend.md` §2 Q3): the server
- * stores `(user, key) → response` for 24 h and replays a retried mutation
- * rather than double-applying it. Minted fresh per call, not per request
- * object, so a genuine retry (a new `fetch`) still carries its own key —
- * only an explicit caller header (a replay the caller controls) overrides it.
+ * `Idempotency-Key` on every non-GET (`05-backend.md` §2 Q3): server stores
+ * `(user, key) → response` for 24h, minted fresh per call so a real retry
+ * gets its own key; an explicit caller header (a deliberate replay) overrides it.
  */
 function idempotencyHeader(method: string, callerHeaders?: Record<string, string>): Record<string, string> {
   if (method === 'GET') return {}

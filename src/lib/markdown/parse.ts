@@ -1,9 +1,8 @@
 /**
- * `parse`: a markdown string in, a typed node tree out — exactly the subset
+ * `parse`: a markdown string in, a typed node tree out — the subset
  * `03-pages-and-dashboards.md` §4 names (AC-1181). No angle bracket is ever
- * interpreted, so a heading, a table, an image or a raw `<tag>` is text, not
- * syntax. Never throws: a malformed construct degrades to its literal
- * characters (AC-1184), because a throw here would blank a page block.
+ * interpreted, so a raw `<tag>` is text, not syntax. Never throws — a
+ * malformed construct degrades to literal characters (AC-1184) instead of blanking a page block.
  */
 
 import { invariant } from '../invariant'
@@ -197,9 +196,8 @@ function parseBlocks(md: string): BlockNode[] {
 
 /**
  * One pass, left to right, `.charAt` throughout so a read is always a
- * `string` under `noUncheckedIndexedAccess`, never `string | undefined`.
- * Every delimiter falls back to a literal character the moment its close is
- * missing — an unclosed tag or a malformed link becomes inert text.
+ * `string` under `noUncheckedIndexedAccess`. Every delimiter falls back to
+ * a literal character the moment its close is missing — an unclosed tag or malformed link becomes inert text.
  */
 function parseInline(raw: string): InlineNode[] {
   const nodes: InlineNode[] = []
@@ -274,8 +272,8 @@ function parseInline(raw: string): InlineNode[] {
 /**
  * `[label](href)` at index `start`. `null` on anything else — nested `[`,
  * a multi-line label/href, a missing `(`/`)`, or a refused `href` — so the
- * caller's literal-character fallback reproduces the source untouched. That
- * is the whole defence against a nested markdown-link payload.
+ * caller's literal-character fallback reproduces the source untouched. The
+ * whole defence against a nested markdown-link payload.
  */
 function tryParseLink(raw: string, start: number): { node: LinkInlineNode; next: number } | null {
   let labelEnd = -1

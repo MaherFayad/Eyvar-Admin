@@ -394,11 +394,8 @@ export interface FiringQuery extends QueryParams {
 
 /**
  * GET /api/v1/alerts/firings
- *   params: q · filters[ruleId|severity|acknowledged] · page · pageSize
  *   -> Paginated<AlertFiring>
- *
- * The cross-rule ledger `04-alerting-v2.md` §4 adds beside the per-rule
- * `alerts.history` above: every firing the viewer may see, newest first.
+ * The cross-rule ledger (§4) beside `alerts.history`: every firing seen, newest first.
  */
 export async function listFirings(params: FiringQuery = {}, signal?: AbortSignal): Promise<Paginated<AlertFiring>> {
   if (DATA_SOURCE === 'http') {
@@ -421,11 +418,8 @@ export async function listFirings(params: FiringQuery = {}, signal?: AbortSignal
 
 /**
  * POST /api/v1/alerts/firings/:id/acknowledge
- *   -> AlertFiring
- *
- * §7 state 27. Writes `acknowledgedAt`/`acknowledgedBy` on the firing and
- * mirrors both onto the rule, matching the shape `ALR-10`/`AFR-3` already
- * seed. No state change.
+ *   -> AlertFiring (§7 state 27)
+ * Writes `acknowledgedAt`/`acknowledgedBy` on the firing AND mirrors both onto the rule, matching `ALR-10`/`AFR-3`.
  */
 export async function acknowledgeFiring(firingId: string, signal?: AbortSignal): Promise<AlertFiring> {
   if (DATA_SOURCE === 'http') {
@@ -444,11 +438,8 @@ export async function acknowledgeFiring(firingId: string, signal?: AbortSignal):
 
 /**
  * POST /api/v1/alerts/:id/mute
- *   body: { until: IsoDateTime }
  *   -> Single<AlertRule>
- *
- * §4's `Mute for…` inline menu. §12.4: evaluation keeps running while muted
- * so the rule re-arms correctly; this writes only `mutedUntil`.
+ * §4's `Mute for…` menu. Evaluation keeps running while muted (§12.4) so the rule re-arms correctly.
  */
 export async function muteAlertRule(id: string, until: string, signal?: AbortSignal): Promise<Single<AlertRule>> {
   if (DATA_SOURCE === 'http') return http.post<Single<AlertRule>>(`/alerts/${id}/mute`, { until }, { signal })
@@ -464,10 +455,7 @@ export async function muteAlertRule(id: string, until: string, signal?: AbortSig
 /**
  * GET /api/v1/alerts/:id/config-history
  *   -> Paginated<ConfigHistoryEntry>
- *
- * §5's `Changes` tab. One entry per save that changed a field, newest first.
- * A rule saved once, unchanged, or never edited since seeding has none —
- * the empty state, not an error.
+ * §5's Changes tab: one entry per save that changed a field, newest first. No history is the empty state, not an error.
  */
 export async function getAlertConfigHistory(
   id: string,

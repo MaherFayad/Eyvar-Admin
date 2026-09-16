@@ -1,18 +1,8 @@
 /**
- * `alerts.*` — WP-6.6 (`05-backend.md` §7, §8; `04-alerting-v2.md`).
- * CRUD, `Test now` (`evaluate`), `mute`, `acknowledge` and the cross-rule
- * firings feed and per-rule/per-save history. Mirrors
- * `src/data/clients/alerts.ts`'s mock branch field for field — same
- * `SaveAlertInput`/`SaveInvalidReason` validation, the same
- * `CONFIG_HISTORY_FIELDS` diff, the same `measureForSeries` lookup — so a
- * screen pointed at either data source behaves identically.
- *
- * `Test now` (`POST /:id/evaluate`) runs the shared `evaluate()`
- * (`src/data/reporting/alerts/`) against the **requesting operator's own**
- * permissions, exactly as `reports.run` would if they ran the report by
- * hand — this is a foreground preview, never the scheduled evaluation
- * (`evaluateDue.ts`), which runs as the rule's owner.
- */
+ * `alerts.*`: CRUD, `Test now`, `mute`, `acknowledge`, firings feed and
+ * history — mirrors `src/data/clients/alerts.ts`'s mock branch field for
+ * field. `Test now` runs `evaluate()` as the requesting operator's own
+ * permissions, a foreground preview; the scheduled run (`evaluateDue.ts`) acts as the owner. */
 import { evaluate, type ResolvedSeries } from '@/data/reporting/alerts/evaluate'
 import { REPORT_NAME_MAX, type SaveInvalidReason } from '@/data/types/report'
 import type { AlertCondition, AlertEvaluation, AlertRule } from '@/data/types/alert'
@@ -180,16 +170,10 @@ async function collectSaveReasons(db: Database, body: SaveAlertBody, name: strin
 }
 
 /**
- * POST /api/v1/alerts · PATCH /api/v1/alerts/:id
- *   body: SaveAlertInput (`src/data/clients/alerts.ts`)
- *   -> Single<AlertRule>
- *
- * A validation failure is a 422 naming every failed `SaveInvalidReason` as a
- * `details[].code` — the mock's `{ status: 'invalid', reasons }` return is a
- * mock-only convenience; over HTTP the same set of reasons travels as the
- * thrown error's details (05-backend.md §4's "a thrown HttpError is the only
- * way to fail").
- */
+ * POST /api/v1/alerts · PATCH /api/v1/alerts/:id  body: SaveAlertInput
+ * -> Single<AlertRule>. A 422 names every `SaveInvalidReason` as a
+ * `details[].code` — the mock's `{ status: 'invalid', reasons }` is a
+ * mock-only convenience; over HTTP the reasons travel as the error's details. */
 function createSaveAlertRuleHandler(db: Database, mode: 'create' | 'update'): RouteHandler<RequestContext> {
   return async (req, ctx) => {
     const operator = requirePermission(ctx, WRITE_PERMISSION)
@@ -309,10 +293,9 @@ function bareEvaluation(rule: AlertRule, unit: AlertRule['thresholdUnit'], curre
 }
 
 /**
- * POST /api/v1/alerts/:id/evaluate -> AlertEvaluation (bare, not `Single<T>` — mirrors `src/data/clients/alerts.ts`).
- * AC-877: never changes state, never emits a notification, never claims the
- * rule fired — `stateChanged` is the literal `false`, and nothing here writes
- * to `alert_rules`, `alert_firings` or `notifications`.
+ * POST /api/v1/alerts/:id/evaluate -> AlertEvaluation (bare, mirrors the client).
+ * AC-877: never changes state or writes to `alert_rules`/`alert_firings`/
+ * `notifications` — `stateChanged` is the literal `false`.
  */
 export interface EvaluateAlertRuleDeps {
   /** Injectable so a test pins the same clock `reports.run` resolves the window against. Defaults to the real clock. */

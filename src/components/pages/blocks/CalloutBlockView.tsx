@@ -1,8 +1,7 @@
 /**
- * `callout` — a highlighted note with a tone. Same markdown subset as `text`
- * (§3), inside a tone-tinted card. Tone maps to R7's four content tones
- * plus `neutral`; a callout is not a status pill, so it uses the tone's
- * background rather than `Badge`.
+ * `callout` — a highlighted note with a tone, using the same markdown
+ * subset as `text` (§3). Tone maps to R7's badge tones plus `neutral`;
+ * not a status pill, so it uses a tinted background, never `Badge`.
  */
 
 import { useState } from 'react'

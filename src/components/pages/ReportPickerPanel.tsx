@@ -1,8 +1,7 @@
 /**
- * The saved-report picker, re-homed as an inline panel inside a block's own
- * frame (§5) — `AddContentDialog`'s list, without the dialog chrome, per the
- * owner's standing no-dialog ruling. Search, already-placed reports disabled
- * with a reason (AC-1204), `New report` opens the builder with `?pinTo=`.
+ * The saved-report picker as an inline panel inside a block's frame (§5),
+ * per the owner's no-dialog ruling. Already-placed reports are disabled
+ * with a reason (AC-1204); `New report` opens the builder with `?pinTo=`.
  */
 
 import { useEffect, useState } from 'react'

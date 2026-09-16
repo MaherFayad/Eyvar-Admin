@@ -1,10 +1,7 @@
 /**
- * Saved segments — `02-report-builder-v2.md` §2.5. A named, reusable
- * population filter a `ReportQuery.segments` entry can point at by id
- * (`{ kind: 'saved' }`) instead of carrying its own filters inline.
- *
- * This is the store F-V2-18 named missing; `mock/resolveReport.ts` now
- * resolves a saved id against it rather than falling through to "everyone".
+ * Saved segments (`02-report-builder-v2.md` §2.5): a named population
+ * filter `ReportQuery.segments` can point at by id (`{ kind: 'saved' }`).
+ * The store F-V2-18 found missing; `resolveReport.ts` resolves against it now instead of falling through to "everyone".
  */
 
 import { DATA_SOURCE, registerOperations } from '../config'
@@ -57,9 +54,7 @@ export async function listSegments(
 /**
  * GET /api/v1/segments/:id
  *   -> Single<Segment>
- *
- * Read by `reports.run`'s mock adapter for every `{ kind: 'saved' }` segment
- * ref, and by this module's own `getSegment` for the composer's edit form.
+ * Read by `reports.run`'s mock adapter for every `{ kind: 'saved' }` ref, and by the composer's edit form.
  */
 export async function getSegment(id: string, signal?: AbortSignal): Promise<Single<Segment>> {
   if (DATA_SOURCE === 'http') return http.get<Single<Segment>>(`/segments/${id}`, undefined, { signal })
@@ -112,12 +107,7 @@ export async function saveSegment(input: SaveSegmentInput, signal?: AbortSignal)
 /**
  * DELETE /api/v1/segments/:id
  *   -> 204
- *
- * Unlike `reports.delete`, this never refuses: a saved segment is a filter
- * list, not a definition other resources point at by id in a way that would
- * dangle — a report holding a now-missing `{ kind: 'saved' }` ref is the
- * planner's `segment-not-found` at run time, the same shape a deleted report
- * or dashboard tile already handles.
+ * Unlike `reports.delete`, never refuses: a dangling `{ kind: 'saved' }` ref resolves as `segment-not-found` at run time.
  */
 export async function deleteSegment(id: string, signal?: AbortSignal): Promise<void> {
   if (DATA_SOURCE === 'http') {
