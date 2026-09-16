@@ -215,7 +215,11 @@ export function PageHeader({
               that slot 1 does not move or change shape between routes. The
               weight comes down with the size going up: 600 at 30px is a
               display weight, and this is a name rather than a headline. */}
-          <h1 className="text-band font-medium text-foreground">{title}</h1>
+          {/* AC-898 — a title can be user content (a page name, an analyst
+              question), so its direction follows its own first strong letter
+              rather than the UI language. A translated screen title resolves
+              to the UI direction anyway. */}
+          <h1 dir="auto" className="text-band font-medium text-foreground">{title}</h1>
           {/* §8 slot 3 — same baseline as the title, never a second row. */}
           {badges}
         </div>
