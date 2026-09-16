@@ -110,3 +110,24 @@ defect, #23 is fixed.
 None. Every should-fix and blocking finding surveyed was either already correctly graded by its
 source document or has since been fixed at the cited commit; no under-graded defect was found
 during this triage.
+
+
+## Orchestrator's corrections to this triage
+
+Two verdicts above were checked against the code and are wrong.
+
+- **D1 (page-block "Create alert…" does not prefill the series) is fixed, not
+  open.** The fix is in `src/screens/reports/AlertRuleDialog.tsx`, not in
+  `BlockMenu.tsx`: when the composer opens with a `presetReportId`, no rule and
+  no series, it defaults to the report's first legal series (`firstSeriesId`,
+  around line 206). `BlockMenu.tsx` passes `presetReportId`. The triage read only
+  `BlockMenu.tsx`. No test proved this path, so one is being added.
+- **AC-1298 is closed, not open.** The criterion reads "within 1.5× its P0 size
+  *or the handoff names the reason*". `docs/09-analytics-v2/handoffs/performance.md`
+  §2 names it, file by file. The triage looked in `BUILD-LOG.md`. It also
+  repeats the audit's 2.5×, which was a measurement error: the measured chunk was
+  fixtures and types. The corrected figure is 1.59× raw and 1.71× gzip.
+
+That leaves two engineering items open, S3 and the mislabelled screenshot, both
+now being fixed, and one owner decision: loading only the active language's
+dictionary.
